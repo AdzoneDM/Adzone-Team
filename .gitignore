@@ -1,0 +1,35 @@
+# ── Datos que NUNCA se suben ─────────────────────────────────────────
+# Base de datos, fotos de evidencia, contraseñas y datos del equipo
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3.*
+backend/media/
+media/
+.env
+.env.*
+!.env.example
+backend/datos_privados/*
+!backend/datos_privados/LEEME.md
+*.dump
+*.sql
+
+# ── Python ───────────────────────────────────────────────────────────
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+staticfiles/
+*.log
+
+# ── Node / React ─────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+npm-debug.log*
+
+# ── Editores y sistema ───────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+.playwright-mcp/

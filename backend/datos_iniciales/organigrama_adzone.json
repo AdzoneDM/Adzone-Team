@@ -1,0 +1,522 @@
+[
+  {
+    "nombre_puesto": "CEO / Director General",
+    "nombre_departamento": "Gerencia",
+    "supervisado_por_nombre_puesto": null,
+    "funciones_principales": [
+      "Guiar la estrategia general de la empresa, garantizando el cumplimiento de los objetivos financieros, creativos y culturales de Adzone.",
+      "Definir la estrategia general de la empresa y establecer los objetivos anuales, asegurando el crecimiento sostenible y la rentabilidad del negocio.",
+      "Supervisar el desempeño de todas las gerencias departamentales, brindando dirección y apoyo para el cumplimiento de sus metas.",
+      "Representar a Adzone ante clientes clave, alianzas estratégicas y eventos de la industria, fortaleciendo la imagen y relaciones de la empresa.",
+      "Garantizar la eficiencia financiera y el óptimo uso de los recursos en coordinación con la Gerencia Financiera, revisando presupuestos y proponiendo mejoras en costos y rentabilidad.",
+      "Fomentar la innovación en servicios y procesos, impulsando iniciativas creativas que mantengan a la agencia a la vanguardia del marketing digital.",
+      "Asegurar el cumplimiento de la cultura organizacional y los valores corporativos en todas las áreas, promoviendo un ambiente de trabajo colaborativo y ético.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Director Comercial",
+    "nombre_departamento": "Gerencia",
+    "supervisado_por_nombre_puesto": "CEO / Director General",
+    "funciones_principales": [
+      "Dirigir la estrategia comercial de la agencia asegurando el cumplimiento de metas de ventas, expansión de la cartera de clientes y fortalecimiento de relaciones comerciales.",
+      "Es responsable de liderar y desarrollar al equipo comercial y de garantizar la alineación de las actividades con la cultura organizacional y los objetivos estratégicos de Adzone.",
+      "Diseñar, implementar y supervisar la estrategia de ventas de la agencia.",
+      "Establecer metas comerciales claras y medibles para el equipo.",
+      "Analizar tendencias de mercado, identificar oportunidades de negocio y desarrollar planes para su aprovechamiento.",
+      "Garantizar el cumplimiento de los indicadores de venta, captación de nuevos clientes y fidelización de los actuales.",
+      "Liderar y supervisar al equipo de ventas y cuentas, promoviendo el cumplimiento de metas individuales y grupales.",
+      "Coordinar la capacitación continua del personal comercial en técnicas de ventas, comunicación y manejo de objeciones.",
+      "Evaluar el desempeño del equipo con base en KPIs establecidos y retroalimentación trimestral.",
+      "Establecer y mantener relaciones estratégicas con clientes de alto valor.",
+      "Actuar como enlace principal con cuentas clave y participar en negociaciones relevantes.",
+      "Supervisar la calidad del servicio al cliente desde el punto de vista comercial.",
+      "Coordinar la elaboración de propuestas comerciales personalizadas junto al equipo creativo y de producción.",
+      "Participar en licitaciones, presentaciones corporativas y reuniones comerciales de alto nivel.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing.",
+      "Asegurar que el equipo comercial actúe conforme a los valores de Adzone: respeto, innovación, honestidad y compromiso.",
+      "Participar en programas internos de reconocimiento, team building y campañas de cultura empresarial."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado(a) de Gestión del Talento",
+    "nombre_departamento": "Gerencia",
+    "supervisado_por_nombre_puesto": "Director Comercial",
+    "funciones_principales": [
+      "Diseñar, implementar y supervisar estrategias que aseguren la atracción, desarrollo, bienestar y retención del talento, promoviendo una cultura organizacional basada en respeto, innovación, honestidad y compromiso.",
+      "Es responsable de gestionar los procesos clave del ciclo de vida del colaborador y de garantizar la alineación entre las capacidades del equipo y los objetivos estratégicos de la agencia.",
+      "Diseñar y ejecutar procesos de atracción de talento alineados con el perfil cultural de Adzone.",
+      "Gestionar entrevistas, evaluaciones y contrataciones garantizando eficiencia y calidad.",
+      "Gestionar junto a administración y contabilidad los contratos, beneficios y cumplimiento de las normativas laborales (TSS, Ministerio de Trabajo, nomina, compensación variable, vacaciones, días libres, etc).",
+      "Implementar sistemas trimestrales de evaluación de desempeño y retroalimentación.",
+      "Coordinar junto a los líderes de área el análisis de desempeño individual y por equipo.",
+      "Diseñar planes de sucesión, expedientes de colaboradores completos con todos su histórico (Digital y físico) y desarrollo profesional por competencias.",
+      "Implementar iniciativas que fomenten la promoción interna.",
+      "Coordinar encuestas de clima y acciones de mejora continua.",
+      "Liderar celebraciones culturales, programas de reconocimiento y campañas internas.",
+      "Coordinar junto a dirección los planes de compensación variable.",
+      "Sugerir y gestionar beneficios internos alineados al bienestar del colaborador.",
+      "Diseñar y actualizar el mapa de competencias de Adzone.",
+      "Coordinar procesos de evaluación y formación basados en competencias claves.",
+      "Desarrollar un plan anual de formación técnica y habilidades blandas.",
+      "Coordinar talleres, mentorías, certificaciones y alianzas con instituciones como INFOTEP.",
+      "Diseñar estrategias para elevar el sentido de pertenencia y reducir rotación.",
+      "Acompañar el ciclo de vida del colaborador con programas de bienestar y motivación.",
+      "Brindar acompañamiento personalizado a líderes de equipo.",
+      "Coordinar programas de liderazgo y coaching organizacional.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado(a) de Ventas y Cuentas",
+    "nombre_departamento": "Gerencia",
+    "supervisado_por_nombre_puesto": "Director Comercial",
+    "funciones_principales": [
+      "Gestionar, desarrollar y fidelizar las cuentas asignadas de Adzone Digital Marketing, asegurando el crecimiento de la facturación, la satisfacción del cliente y el cumplimiento de los objetivos comerciales.",
+      "Debe mantener una cartera sana, impulsar la captación de nuevos clientes, asegurar la gestión efectiva de cobros y garantizar el seguimiento de políticas internas, calidad del servicio y mejora continua de sus habilidades comerciales.",
+      "Captar nuevos clientes y fidelizar los existentes mediante seguimiento personalizado y análisis de necesidades.",
+      "Elaborar y presentar propuestas comerciales efectivas con apoyo del equipo creativo.",
+      "Realizar ventas cruzadas con la cartera actual, promoviendo nuevos servicios o productos.",
+      "Mantener contacto mensual con los clientes clave.",
+      "Resolver inquietudes, garantizar la calidad del servicio y elevar el índice de satisfacción.",
+      "Monitorear la tasa de retención y aplicar estrategias de mejora.",
+      "Realizar seguimiento puntual a la facturación y cobros mensuales.",
+      "Coordinar con administración para asegurar una gestión eficiente de la cartera.",
+      "Aplicar los lineamientos definidos por la Dirección Comercial y las políticas organizacionales.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing.",
+      "Participar activamente en al menos una capacitación de ventas, negociación o gestión de cuentas por trimestre.",
+      "Velar por el cumplimiento de metas grupales del departamento comercial.",
+      "Participar en proyectos, reuniones y actividades culturales internas.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Gerente de Tecnología y Desarrollo",
+    "nombre_departamento": "Tecnología",
+    "supervisado_por_nombre_puesto": "CEO / Director General",
+    "funciones_principales": [
+      "Visión Tecnológica: Define la estrategia tecnológica de Adzone, identificando plataformas, herramientas y desarrollos requeridos para mejorar servicios digitales y eficientizar operaciones internas.",
+      "Liderazgo de Proyectos Tl: Supervisa proyectos de desarrollo de software tanto internos (ej. app de gestión de eventos, implementación de CRM) como externos para clientes, garantizando cumplimiento de requerimientos y calidad.",
+      "Infraestructura de TI: Asegura funcionamiento de redes, servidores, sitios web, respaldos y seguridad informática, mitigando riesgos de caídas o brechas.",
+      "Fomenta iniciativas de investigación y desarrollo: explora tecnologías emergentes (Al, realidad aumentada, automatización) que puedan integrarse en campañas o procesos, realizando pilotos para evaluar su valor.",
+      "Gestión del Equipo Técnico: Asigna proyectos según especialidades (front-end, back-end, seguridad, soporte), mentoríza, provee recursos y evalúa su desempeño, promoviendo la formación continua en nuevas habilidades.",
+      "Alianza Negocio-TI: Colabora con otras gerencias para alinear soluciones tecnológicas a necesidades del negocio: con Marketing para analítica avanzada, con Comercial para herramientas CRM, con Finanzas para sistemas de gestión, actuando como traductor entre mundo técnico y operativo.",
+      "Buenas Prácticas: Implementa metodologías (ágiles, DevOps) y estándares de documentación, prueba y deployment para asegurar entregas confiables; también establece planes de capacitación para su equipo en nuevas tecnologías.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado en Innovación y Desarrollo",
+    "nombre_departamento": "Tecnología",
+    "supervisado_por_nombre_puesto": "Gerente de Tecnología y Desarrollo",
+    "funciones_principales": [
+      "Investiga y prototipa nuevas soluciones tecnológicas que Adzone podría ofrecer o usar internamente (apps interactivas para campañas, realidad aumentada en eventos, herramientas de automatización de marketing).",
+      "Desarrollo de MVPs: Construye Minimum Viable Products (demos funcionales) para probar conceptos innovadores rápidamente, escribiendo código y armando maquetas en semanas para demostrar viabilidad.",
+      "Exploración de Herramientas: Prueba APIs, frameworks y plataformas emergentes, manteniendo un \"laboratorio\" de ideas (Al, chatbots, VR, data analytics avanzado) para ver qué puede adaptarse a la oferta de Adzone.",
+      "Soporte Creativo: Trabaja con equipos creativos y de cuentas para materializar ideas tech: si Marketing quiere una activación digital novedosa, diseña cómo lograrla técnicamente y la desarrolla (ej. un mini - juego web para una campaña).",
+      "Automatización Interna: Identifica tareas repetitivas en la operación interna y crea scripts o pequeñas herramientas para automatizarlas, mejorando productividad (ej. script que combine datos de distintas fuentes para un reporte).",
+      "Documentación de Prototipos: Documenta sus prototipos (objetivo, instalación, uso) para que, si se decide escalarlos, el equipo principal pueda entender y continuar su trabajo.",
+      "Difusión de Innovación: Presenta periódicamente al Gerente de tecnología y a la dirección pequeñas demostraciones de lo que está desarrollando, recibiendo feedback y generando entusiasmo interno por nuevas posibilidades tecnológicas.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicoS asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado Ciberseguridad y Desarrollo",
+    "nombre_departamento": "Tecnología",
+    "supervisado_por_nombre_puesto": "Gerente de Tecnología y Desarrollo",
+    "funciones_principales": [
+      "Seguridad de la Infraestructura: Monitorea redes y sistemas en busca de actividades sospechosas o intentos de intrusión; administra firewalls, antivirus y otras defensas para prevenir ataques.",
+      "Auditorías de Seguridad: Realiza análisis de vulnerabilidades y pruebas de penetración periódicas en sitios web, aplicaciones y servidores, identificando brechas y aplicando parches/configuraciones para fortalecerlos.",
+      "Gestión de Accesos: Administra usuarios y permisos en sistemas; implementa autenticación 2FA donde posible; aplica \"principio de mínimo privilegio\" para limitar accesos solo a lo necesario por rol.",
+      "Políticas y Concientización: Desarrolla políticas de seguridad de la información (uso aceptable de TI, política de backups, respuesta a incidentes) y entrena al personal en buenas prácticas (evitar phishing, manejo seguro de datos).",
+      "Respaldo y Continuidad: Asegura respaldos regulares de datos críticos, prueba restauraciones para verificar integridad, y prepara planes de recuperación ante desastres (disaster recovery) para reanudar operaciones rápidamente tras un incidente grave.",
+      "Administración de Sistemas: Mantiene servidores (físicos/cloud), bases de datos y servicios de correo; instala actualizaciones de software y parches de seguridad; optimiza rendimiento y resuelve problemas complejos de sistemas que soporte de ler nivel no pueda.",
+      "Asesoría en Desarrollo Seguro: Revisa proyectos de software para que sigan prácticas de codificación segura (validación de inputs, encriptación de datos sensibles) e instaura revisiones de seguridad en el ciclo de desarrollo.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Gerente de Eventos e Impresiones",
+    "nombre_departamento": "Impresión",
+    "supervisado_por_nombre_puesto": "CEO / Director General",
+    "funciones_principales": [
+      "Planificar y coordinar todos los eventos y catering de la empresa y de clientes, desde la concepción hasta la ejecución, asegurando que cumplan con los requerimientos del cliente, objetivos y público objetivo.",
+      "Supervisar las operaciones de impresión y producción gráfica (gran formato, rotulación, etc.), garantizando la calidad de los materiales impresos y su entrega a tiempo.",
+      "Gestionar el presupuesto de eventos, catering e impresiones, controlando costos y negociando con proveedores para maximizar la eficiencia sin comprometer la calidad.",
+      "Liderar al equipo de eventos (producción, catering, montaje) y al equipo técnico (instalaciones, rotulación, transporte, maquinaria), asignando tareas y velando por el cumplimiento de los cronogramas.",
+      "Desarrollar propuestas creativas para eventos, incorporando elementos innovadores y tendencias actuales que aumenten el impacto y éxito de cada evento.",
+      "Asegurar el cumplimiento de normas de seguridad industrial y protocolos de montaje en cada evento, protegiendo la integridad del equipo y de los asistentes.",
+      "Mantener comunicación constante con el cliente durante la planeación y ejecución del evento, gestionando expectativas y satisfacción del cliente.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Técnico de Servicios Generales",
+    "nombre_departamento": "Impresión",
+    "supervisado_por_nombre_puesto": "Gerente de Eventos e Impresiones",
+    "funciones_principales": [
+      "Brindar soporte operativo en las actividades de montaje, mantenimiento y logística de eventos dentro y fuera de la empresa, asegurando la correcta ejecución de tareas físicas y técnicas con calidad, puntualidad y actitud de servicio, alineado a los estándares y cultura de Adzone.",
+      "Velar y custodiar el inventario del almacén de eventos asegurando que todo sea entregado completo y en buen estado.",
+      "Apoyar en la carga, descarga, instalación y desmontaje de equipos, rótulos, estructuras y mobiliario para eventos o activaciones.",
+      "Realizar trabajos menores de electricidad, pintura, organización o soporte técnico según necesidad de la empresa.",
+      "Colaborar con el equipo de logística para asegurar orden, limpieza y seguridad en las áreas de trabajo.",
+      "Cumplir con rutas, asignaciones y protocolos establecidos en cada proyecto.",
+      "Reportar a tiempo fallos, incidentes o necesidades de mantenimiento preventivo.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado de Eventos y Catering",
+    "nombre_departamento": "Impresión",
+    "supervisado_por_nombre_puesto": "Gerente de Eventos e Impresiones",
+    "funciones_principales": [
+      "Planificar el montaje y ejecución logística de eventos específicos, detallando cronogramas, asignación de personal y necesidades de recursos (equipos, mobiliario, insumos de catering).",
+      "Coordinar con proveedores de catering, sonido, iluminación y otros servicios para asegurar que cumplan con los requerimientos y tiempos establecidos para el evento.",
+      "Supervisar el montaje del evento, resolviendo inconvenientes en tiempo real y garantizando la calidad en la ambientación, decoración y disposición del espacio según lo acordado con el cliente.",
+      "Gestionar el desmontaje post - evento de forma eficiente, asegurando que se retiren todos los materiales y se restablezca el orden del lugar, evitando daños o contratiempos.",
+      "Apoyar en la elaboración de presupuestos detallados para cada evento o proyecto asignado, proporcionando al gerente la información de costos de proveedores y estimaciones de gasto.",
+      "Mantener una comunicación constante con el cliente o encargado del proyecto durante las etapas de pre producción y ejecución, informando avances y atendiendo solicitudes de última hora.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Técnico de Instalación y Rotulación",
+    "nombre_departamento": "Impresión",
+    "supervisado_por_nombre_puesto": "Gerente de Eventos e Impresiones",
+    "funciones_principales": [
+      "Instalar elementos gráficos y rotulaciones en eventos y proyectos, incluyendo banners, vallas, letreros y otros materiales impresos, asegurando su correcta colocación, alineación y fijación.",
+      "Realizar el montaje de estructuras necesarias para exhibiciones o stands en eventos, siguiendo los planos o diseños proporcionados, y utilizando herramientas y equipos de manera segura.",
+      "Preparar previamente los materiales impresos (laminado, corte, pegado en sustratos rígidos, etc.) para que estén listos para su instalación en sitio.",
+      "Verificar las dimensiones y calces de cada pieza gráfica contra los espacios designados, haciendo ajustes menores en campo de ser necesario para lograr un acabado profesional.",
+      "Colaborar en las tareas de rotulación de vehículos, vitrinas u otros objetos cuando el servicio lo requiera, aplicando vinilos o adhesivos de forma precisa y sin defectos (burbujas, arrugas).",
+      "Mantener y operar adecuadamente las herramientas, equipos y maquinarias ligeras (andamios, taladros, cortadoras, plotter de corte) necesarias para las instalaciones, reportando cualquier desperfecto para su mantenimiento oportuno.",
+      "Cumplir estrictamente con las normas de seguridad industrial durante las instalaciones, usando los equipos de protección personal (arneses, guantes, cascos) y señalizando áreas de trabajo para prevenir accidentes.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicoS asignados (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Chofer de Transporte",
+    "nombre_departamento": "Impresión",
+    "supervisado_por_nombre_puesto": "Gerente de Eventos e Impresiones",
+    "funciones_principales": [
+      "Conducir los vehículos de la empresa para transportar equipos, materiales, personal y mercancías hacia los lugares de eventos o instalaciones de clientes, garantizando entregas puntuales según los cronogramas establecidos.",
+      "Cargar y descargar de forma segura el material en el vehículo (estructuras, equipos audiovisuales, impresiones, inventario, etc.), asegurando su correcta estiba y protección durante el traslado para evitar daños.",
+      "Realizar rutas óptimas considerando el tráfico y las restricciones vehiculares, para cumplir con los tiempos de llegada; en caso de contratiempos (ej. cierres viales), comunicar de inmediato y proponer rutas alternativas.",
+      "Mantener y gestionar todos los vehículos asignados en buen estado y realizar mantenimiento preventivo: revisión diaria de niveles de combustible, aceite y fluidos, verificación de llantas, frenos y luces, y reporte inmediato de cualquier desperfecto o necesidad de mantenimiento.",
+      "Cumplir con las normas de tránsito y seguridad vial en todo momento, así como con las normativas específicas para transporte de carga especial si aplica (por ejemplo, permisos de circulación para carga voluminosa).",
+      "Apoyar al equipo de eventos en labores básicas durante los montajes cuando no esté conduciendo (ej. ayudando a mover equipos), manteniendo siempre la disposición de trabajo en equipo.",
+      "Llevar registros de los viajes realizados, kilometraje, consumo de combustible y mantenimientos realizados/preventivos pendientes, para la administración eficiente de la flota vehicular.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño injustificado en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado de Impresiones (Especialista en Impresión Digital)",
+    "nombre_departamento": "Impresión",
+    "supervisado_por_nombre_puesto": "Gerente de Eventos e Impresiones",
+    "funciones_principales": [
+      "Operar y mantener las máquinas de impresión digital de gran formato y otros equipos de producción gráfica (plotters, impresoras láser, cortadoras) para producir materiales visuales según las especificaciones de los proyectos.",
+      "Revisar los archivos de arte final proporcionados por el área de Diseño Gráfico, asegurándose de que estén en el formato y resolución adecuados para impresión; realizar pruebas de color (proofs) cuando sea necesario para garantizar la calidad esperada por el cliente.",
+      "Gestionar el inventario de insumos de impresión (papel, vinil, tintas, sustratos especiales) y solicitar reabastecimiento con tiempo, evitando interrupciones en la producción por falta de materiales.",
+      "Programar las colas de impresión de acuerdo a las prioridades y fechas de entrega de cada proyecto, optimizando el uso de los equipos (por ejemplo, agrupando trabajos en el mismo material para minimizar desperdicio).",
+      "Realizar el control de calidad de cada tirada: verificar que los colores, cortes y acabados cumplan con los estándares, y corregir cualquier desviación (ajustes de color, reimpresiones parciales) oportunamente.",
+      "Coordinar con el personal de instalación y acabados para la entrega oportuna del material impreso, informándoles de las especificaciones de montaje o cuidado especial de las piezas impresas.",
+      "Mantener un registro de mantenimiento de las máquinas y ejecutar la limpieza y calibraciones periódicas; gestionar soporte técnico externo cuando surjan fallas complejas, minimizando tiempos muertos.",
+      "Manejo responsable, adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Operador de Maquinarias",
+    "nombre_departamento": "Impresión",
+    "supervisado_por_nombre_puesto": "Gerente de Eventos e Impresiones",
+    "funciones_principales": [
+      "Diseñar, operar, mantener y monitorear el funcionamiento eficiente de las máquinas de impresión, corte o acabado asignadas, garantizando la calidad de los productos, el cumplimiento de los plazos y la optimización del uso de insumos.",
+      "Velar por el mantenimiento preventivo de los equipos y contribuir con una actitud colaboradora y responsable al trabajo del equipo de producción.",
+      "Preparar, calibrar y operar correctamente las máquinas de impresión, corte, laminado u otras asignadas.",
+      "Revisar archivos o materiales antes de ejecutar cada trabajo, para asegurar que cumplan con las especificaciones.",
+      "Realizar controles de calidad durante y después del proceso de impresión o acabado.",
+      "Llevar registro de insumos utilizados, tiempos de producción y mantenimiento.",
+      "Aplicar rutinas de limpieza y mantenimiento preventivo de los equipos.",
+      "Comunicar cualquier incidencia técnica al supervisor inmediato.",
+      "Apoyar en la impresión, entrega o embalaje de trabajos finalizados cuando se requiera.",
+      "Participar en las capacitaciones técnicas y reuniones del equipo de producción.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Asistente de Catering y Servicios Generales",
+    "nombre_departamento": "Impresión",
+    "supervisado_por_nombre_puesto": "Gerente de Eventos e Impresiones",
+    "funciones_principales": [
+      "Garantizar el orden, la limpieza y el mantenimiento óptimo de las instalaciones de Adzone, así como la correcta preparación y atención de catering y refrigerios en eventos internos o externos, contribuyendo a un ambiente de trabajo eficiente, seguro y alineado con la cultura organizacional.",
+      "Mantener limpios y organizados los espacios comunes, oficinas, salas de reuniones y áreas de eventos.",
+      "Mantener limpios y en buen estado los utensilios de cristalería y cubertería de eventos y Catering.",
+      "Llevar el control de la entrada y salida del inventario de eventos y catering.",
+      "Apoyar en el montaje y desmontaje de estaciones de café, refrigerios o catering durante eventos, almuerzos, cenas, capacitaciones y visitas a la empresa.",
+      "Controlar y optimizar el uso de insumos de limpieza, cocina y cafetería, evitando desperdicios.",
+      "Dar soporte con los telares, manteles y cintas que se colocan en los eventos y catering.",
+      "Cumplir con los cronogramas asignados y registrar las tareas realizadas.",
+      "Asegurar la correcta limpieza y disposición del área al final de cada jornada o evento.",
+      "Comunicar a tiempo cualquier desperfecto, daño o necesidad de reposición de inventario.",
+      "Asistir a las capacitaciones internas de buenas prácticas, seguridad y uso eficiente de recursos.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Gerente Financiero y Administrativo",
+    "nombre_departamento": "Administración",
+    "supervisado_por_nombre_puesto": "CEO / Director General",
+    "funciones_principales": [
+      "Supervisar la ejecución del presupuesto anual de la empresa, controlando los gastos operativos y optimizando el uso de los recursos financieros disponibles.",
+      "Garantizar el cumplimiento de las obligaciones tributarias y financieras, coordinando con el contador las declaraciones fiscales, pagos de impuestos y presentación de estados financieros confiables.",
+      "Gestionar todas las cotizaciones con proveedores junto a contabilidad siempre buscando la rentabilidad para la empresa y la mejor calidad en el servicio solicitado tanto para los clientes, como para Adzone (Minino de 3 cotizaciones).",
+      "Coordinar la logística interna y servicios generales: mantenimiento de oficinas, insumos de oficina, tecnología básica y proveedores de servicios (internet, limpieza, seguridad), asegurando un ambiente de trabajo adecuado.",
+      "Velar por el cumplimiento de obligaciones legales y societarias: mantener actualizada la documentación legal de la empresa (RNC, registro mercantil, estatutos, PYME, permisos, etc.) y gestionar la preparación de licitaciones, contratos con clientes, y proveedores en coordinación con el área legal.",
+      "Gestionar áreas administrativas de recursos humanos en conjunto con Gestión del Talento: supervisar nómina, contratos, beneficios y cumplimiento de las normativas laborales (TSS, Ministerio de Trabajo).",
+      "Preparar informes de gestión administrativa y financiera para la Dirección General, incluyendo análisis de KPIs operativos, flujo de caja, rentabilidad por proyecto, y recomendaciones para mejorar la eficiencia y reducir costos.",
+      "Implementar procesos administrativos y herramientas (por ej. un software ERP/CRM de gestión) que aumenten la automatización y medición de objetivos internos, facilitando la toma de decisiones basada en datos.",
+      "Revisar y elaborar con el asesoramiento de abogados contratos con clientes, proveedores y aliados, asegurándose de que protejan los intereses de Adzone, cumplan con la legalidad vigente y reflejen adecuadamente los acuerdos comerciales (alcances, entregables, plazos, pagos, cláusulas de confidencialidad y propiedad intelectual, etc.).",
+      "Mantener actualizados al director general, director comercial y gerentes, en temas como cumplimiento normativo, participación en licitaciones, propiedad intelectual, y cualquier nuevo requerimiento legal que surja en las operaciones de la agencia.",
+      "Gestionar cualquier disputa o reclamación legal que involucre a la empresa: coordinar la respuesta ante quejas formales de clientes o proveedores, manejar junto con abogados externos los casos que lleguen a instancias judiciales o arbitrales, buscando resolverlos de la mejor manera para la empresa.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado de Contabilidad y Tesorería",
+    "nombre_departamento": "Administración",
+    "supervisado_por_nombre_puesto": "Gerente Financiero y Administrativo",
+    "funciones_principales": [
+      "Registrar y controlar todas las operaciones contables de la empresa (ingresos, egresos, activos, pasivos), asegurando que la contabilidad esté al día y cumpla con las normas financieras y fiscales vigentes.",
+      "Preparar estados financieros periódicos (mensuales, trimestrales) incluyendo Balance General, Estado de Resultados y Flujo de Caja, brindando información precisa para la toma de decisiones gerenciales.",
+      "Gestionar la tesorería: monitorear el flujo de efectivo, programar pagos a proveedores, nóminas e impuestos, y garantizar que exista liquidez suficiente para las operaciones diarias.",
+      "Coordinar y ejecutar los procesos de cierre contable mensual y anual, calculando depreciaciones, amortizaciones, provisiones y asegurando la correcta conciliación de cuentas bancarias",
+      "Garantizar el cumplimiento tributario: elaborar y presentar a tiempo las declaraciones de impuestos requeridas (ITBIS, retenciones, ISR, etc.), minimizando riesgos de sanciones y atendiendo cualquier requerimiento de la autoridad fiscal.",
+      "Mantener ordenada la documentación contable y soportes (facturas, recibos, comprobantes fiscales), implementando sistemas de archivo físico o digital que faciliten auditorías internas o externas.",
+      "Apoyar al Gerente Administrativo en la elaboración del presupuesto anual y el control presupuestario, proporcionando datos históricos y proyecciones financieras confiables.",
+      "Elaborar presupuestos y cotizaciones para proyectos y campañas, en coordinación con el equipo comercial y de proyectos: analizar los costos de los recursos (horas de personal, producción, insumos) y definir precios competitivos que aseguren la rentabilidad esperada.",
+      "Emitir facturas a clientes de manera puntual y conforme a los acuerdos (contratos, órdenes de compra), asegurando el correcto detalle de los servicios prestados y aplicando los impuestos o retenciones según la normativa.",
+      "Llevar el control de las cuentas por cobrar: monitorear los vencimientos de facturas, enviar recordatorios de pago a los clientes cuando corresponda, y coordinar con el área comercial acciones para acelerar cobros atrasados (llamadas, reprogramaciones).",
+      "Realizar seguimiento de las cuentas por cobrar problemáticas e implementar planes de cobro: establecer acuerdos de pago con clientes morosos, generar alertas de suspensión de servicios si la política de la empresa lo indica, e involucrar asistencia legal en caso necesario de recuperaciones.",
+      "Preparar informes periódicos de gestión de ingresos: reporte de facturación mensual vs metas, estado de cuentas por cobrar y flujo de ingresos proyectado, alertando de cualquier desviación importante al Gerente Administrativo.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "nombre_departamento": "Marketing",
+    "supervisado_por_nombre_puesto": "CEO / Director General",
+    "funciones_principales": [
+      "Diseñar la estrategia general de marketing y comunicación de Adzone, así como supervisar las estrategias desarrolladas para los clientes, asegurando coherencia con los objetivos de marca y la obtención de resultados medibles.",
+      "Liderar los equipos creativos y de medios digitales, coordinando las campañas integrales desde la conceptualización hasta la producción y difusión, garantizando altos estándares de calidad en los entregables (piezas gráficas, videos, publicaciones, etc.).",
+      "Desarrollar el plan de contenido y calendario de marketing (tanto para la agencia como guía para clientes), equilibrando los diferentes canales: redes sociales, email marketing, publicidad digital, contenido audiovisual y eventos, para maximizar el alcance e impacto.",
+      "Monitorear las métricas clave de desempeño de marketing (alcance, engagement, conversiones, ROI de campañas) e impulsar mejoras continuas basadas en datos: ajustar tácticas, reasignar presupuesto a canales más efectivos, e implementar nuevas herramientas analíticas cuando sea pertinente.",
+      "Gestionar el presupuesto del departamento de marketing y audiovisuales, asegurándose de una distribución eficiente entre producción de contenido, pauta en medios y desarrollo de proyectos especiales, manteniendo gastos dentro de lo planificado.",
+      "Fomentar la creatividad e innovación en el equipo: establecer sesiones de brainstorming, promover la investigación de tendencias emergentes en marketing digital y tecnología audiovisual, y facilitar capacitaciones para el desarrollo de habilidades innovadoras del personal.",
+      "Representar al departamento frente a clientes estratégicos en presentaciones importantes, explicando las propuestas creativas y de medios, y recabando retroalimentación para ajustes que satisfagan al cliente."
+    ]
+  },
+  {
+    "nombre_puesto": "Editor Audiovisual",
+    "nombre_departamento": "Audiovisual",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Edición de fotos y videos: Ensambla tomas de fotos y videos en secuencias coherentes y atractivas conforme a lo solicitado, guion/storyboard, editando spots publicitarios, videos y fotos corporativas, cápsulas para redes, etc.",
+      "Selección de Tomas: Filtra el material bruto eligiendo las mejores tomas; corta y ajusta clips e imágenes para mantener un ritmo dinámico y contar la historia de manera efectiva.",
+      "Postproducción: Agrega transiciones, títulos y gráficos animados (motion graphics básicos) asegurando que el estilo sea consistente con la identidad visual de la marca y fácil de seguir.",
+      "Audio: Limpia audio (elimina ruidos), sincroniza voz con imagen, equilibra niveles de música/ FX/voz; inserta música de fondo y efectos de sonido según requerimientos emocionales del video o edición.",
+      "Colorización: Aplica corrección de color para uniformar la apariencia entre tomas y realzar la atmósfera deseada (contraste, saturación, temperatura de color adecuados).",
+      "Revisión y Feedback: Presenta cortes preliminares al gerente de marketing incorpora retroalimentación ágilmente iterando versiones hasta la edición final; mantiene una estructura ordenada de versiones de archivo.",
+      "Exportación y Formatos: Exporta el video o las imágenes finales en los formatos y resoluciones necesarios para distintos usos (TV, YouTube, Instagram), cuidando la calidad y comprobando que no haya errores técnicos en la reproducción.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto se deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado de Creatividad",
+    "nombre_departamento": "Marketing",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Liderar el proceso creativo en la generación de conceptos y campañas publicitarias para clientes y proyectos internos, asegurando que las ideas propuestas sean innovadoras, coherentes con la estrategia de marca y efectivas para la audiencia objetivo.",
+      "Dirigir las sesiones de brainstorming y briefings creativos con el equipo, proporcionando inspiración, referencias y guía clara sobre el enfoque que deben tener las propuestas visuales y de contenido.",
+      "Revisar y aprobar las piezas creativas clave (artes gráficas, storyboards de video, guiones de contenido) antes de presentarlas al cliente o de pasar a producción, garantizando calidad y alineamiento con la idea central.",
+      "Colaborar estrechamente con el Coordinador de Medios y otros departamentos para integrar la creatividad con los canales de difusión: adaptar ideas al formato de cada medio (digital, impreso, audiovisual) y optimizar mensajes para diferentes plataformas.",
+      "Mantenerse actualizado sobre tendencias de diseño, publicidad y cultura popular, e introducir nuevas técnicas o enfoques creativos que mantengan a Adzone a la vanguardia en propuestas (por ejemplo, uso de realidad aumentada en una campaña, storytelling transmedia, etc.).",
+      "Monitorear y desarrollar el talento creativo del equipo, brindando retroalimentación constructiva, detectando fortalezas de cada miembro y asignándoles proyectos donde puedan lucirse, a la vez que retando al equipo a salir de la zona de confort creativa.",
+      "Participar en presentaciones a clientes de alto nivel, explicando las justificaciones creativas detrás de las campañas, \"vendiendo\" la idea con pasión y claridad, y receptando también el feedback para refinar las propuestas cuando sea necesario."
+    ]
+  },
+  {
+    "nombre_puesto": "Community Manager",
+    "nombre_departamento": "Marketing",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Gestionar las redes sociales de Adzone y/o de los clientes asignados, planificando y ejecutando calendarios de contenido mensual que alineen los mensajes clave de la marca con fechas relevantes, lanzamientos y tendencias del momento.",
+      "Crear, programar y publicar contenidos diarios o periódicos en las diversas plataformas (Facebook, Instagram, Twitter, LinkedIn, TikTok, etc.), adaptando el formato y tono de comunicación a cada red para maximizar el impacto (imágenes, videos cortos, stories, posts interactivos).",
+      "Monitorear la interacción de la comunidad digital: responder al menos el 90% de los comentarios, mensajes directos y menciones en un lapso menor a 24 horas OBJ OBU fomentando conversaciones positivas, aclarando dudas e involucrando a la audiencia.",
+      "Incrementar el engagement y la base de seguidores de manera orgánica: implementar tácticas para estimular la participación (encuestas, concursos, preguntas a la audiencia) que resulten en un crecimiento mensual de aproximadamente 10% en interacciones.",
+      "Identificar oportunidades de contenido viral o de trending topics: estar atento a temas del momento (memes, retos virales, noticias relevantes) para insertar a la marca de forma creativa y oportuna, generando al menos un contenido de alto impacto viral por trimestre.",
+      "Analizar las métricas de redes sociales utilizando herramientas (Facebook Insights, Instagram Analytics, etc.): generar reportes mensuales de rendimiento, destacando crecimiento de seguidores, tasa de engagement, posts de mejor desempeño, y recomendaciones para optimizar la estrategia de contenido.",
+      "Coordinar con el equipo de diseño gráfico y audiovisual la creación de las piezas necesarias para las redes (imágenes, infografías, videos cortos), proporcionando briefs claros y asegurando que el resultado final se ajuste a las necesidades de cada publicación."
+    ]
+  },
+  {
+    "nombre_puesto": "Encargado de Producción Audiovisual",
+    "nombre_departamento": "Audiovisual",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Planificar y coordinar la producción de contenidos audiovisuales (videos promocionales, anuncios, cortometrajes corporativos, animaciones, etc.) desde la preproducción hasta la postproducción, siguiendo el brief creativo acordado.",
+      "Desarrollar guiones técnicos o storyboards basados en las ideas creativas: definir escenas, tomas, diálogos o voice-overs necesarios, y preparar el plan de rodaje (shot list, locaciones, elenco si aplica, y recursos técnicos requeridos).",
+      "Gestionar la logística de rodajes y sesiones de fotografía/video: asegurar la reserva de locaciones, permisos de filmación, castings de talento o locutores, contratación de equipo técnico externo (cámaras, iluminación, asistentes) de ser necesario, y coordinación de horarios.",
+      "Dirigir en campo las filmaciones o sesiones, liderando al equipo técnico y al talento para obtener las tomas deseadas; resolver imprevistos durante la grabación (clima, fallos técnicos, cambios solicitados) ajustando el plan sobre la marcha sin perder la esencia buscada.",
+      "Supervisar el proceso de postproducción junto al Editor: revisar los cortes de video, aportar indicaciones sobre ritmo, transiciones, música, efectos y correcciones de color, garantizando que el producto final sea de alta calidad y cumpla con los objetivos narrativos.",
+      "Controlar que el proyecto audiovisual se mantenga dentro del presupuesto y plazos establecidos: monitorear gastos (alquiler de equipos, honorarios), evitar rehacer tomas costosas salvo que sea imprescindible, y adelantar trabajo de edición en paralelo al rodaje si es posible.",
+      "Implementar estándares técnicos de producción: asegurar que todos los contenidos se generen en las resoluciones y formatos óptimos para su difusión (ej. Full HD, 4K, formatos adaptados a redes sociales) y archivar ordenadamente el material bruto y editado para uso futuro."
+    ]
+  },
+  {
+    "nombre_puesto": "Especialista en Fotografía y Video",
+    "nombre_departamento": "Audiovisual",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Realizar sesiones fotográficas y filmaciones de video para las diversas necesidades de Adzone y sus clientes: cobertura de eventos, sesiones de productos, fotos corporativas, material para redes sociales, making-of de proyectos, etc., asegurando obtener tomas de alta calidad y acordes a la finalidad definida.",
+      "Preparar el equipo fotográfico y de video antes de cada sesión: cámaras (DSLR / mirrorless), lentes adecuados, iluminación (flash, softboxes, reflectores) y audio si corresponde, calibrándolos según las condiciones de luz y efecto deseados.",
+      "Dirigir, en caso de ser necesario, a las personas que van a ser fotografiadas o filmadas (ej. modelos, staff del cliente en fotos corporativas), dándoles indicaciones sencillas de pose o movimiento para lograr imágenes naturales y profesionales.",
+      "Capturar múltiples opciones de encuadre y composición creativa, experimentando con ángulos, profundidades de campo y encuadres, para proveer material variado que el equipo creativo pueda luego seleccionar y utilizar en distintos formatos.",
+      "Realizar una selección y edición básica de fotografías: descarte de tomas defectuosas, ajuste de exposición/colores en Lightroom o software similar, retoque menor (limpieza de imperfecciones, recortes) antes de entregar al equipo de diseño o al cliente.",
+      "Para video, aportar en la clasificación de tomas y proveer notas al editor sobre la intención de cada clip.",
+      "Catalogar y archivar ordenadamente el material fotográfico y de video generado, manteniendo una biblioteca multimedia organizada con etiquetas o metadata, para facilitar su localización y reutilización futura en otros proyectos.",
+      "Mantenerse al día con técnicas fotográficas y cinematográficas modernas (uso de drones para tomas aéreas, cámaras lentas, hyperlapses, etc.) y proponer sU aplicación cuando aporten valor a un proyecto, elevando así el nivel de producción.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Coordinador de Medios",
+    "nombre_departamento": "Adzone TV",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Coordinar la planificación, diseño, distribución y monitoreo de los contenidos visuales y audiovisuales de Adzone Digital Marketing, asegurando la coherencia estética, calidad técnica y cumplimiento de tiempos, alineados con los objetivos de marca, cultura y campañas del cliente.",
+      "Supervisar la producción visual de campañas (videos, reels, diseños, artes animados) desde el brief hasta la publicación.",
+      "Organizar cronogramas de producción de piezas gráficas, audiovisuales y animaciones en coordinación con las demás áreas creativas.",
+      "Asignar tareas al equipo de medios según especialidad y carga de trabajo.",
+      "Garantizar la coherencia estética, fidelidad al branding y calidad visual de las entregas.",
+      "Ser enlace entre diseño, audiovisual, cuentas y estrategia para asegurar la correcta interpretación de los lineamientos del cliente.",
+      "Validar entregas antes de su publicación o envío a clientes.",
+      "Realizar control de calidad visual y técnico en piezas gráficas, videos, animaciones o presentaciones.",
+      "Documentar entregas, mantener respaldos organizados y reportar estatus de ejecución a la Dirección Creativa.",
+      "Participar en reuniones de planificación creativa y dar soporte en campañas de alto impacto.",
+      "Evaluar desempeño del equipo de medios en proyectos, proponiendo mejoras continuas.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Editor / Animador 3D VFX",
+    "nombre_departamento": "Audiovisual",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Diseñar y animar elementos gráficos tridimensionales y efectos visuales (VFX) para videos, activaciones digitales y piezas publicitarias, asegurando un acabado profesional, innovador y alineado con la narrativa y valores visuales de Adzone.",
+      "Modelar, texturizar e iluminar elementos 3D para uso en piezas audiovisuales.",
+      "Crear efectos visuales (partículas, explosiones, entornos virtuales, motion design) en campañas o contenidos institucionales.",
+      "Componer y renderizar escenas que integren gráficos tridimensionales con material real (chroma, tracking, etc.).",
+      "Adaptar animaciones a distintos formatos de publicación: TV, redes, eventos, realidad aumentada.",
+      "Colaborar con editores, diseñadores y programadores para integrar efectos a otras plataformas (web, apps, eventos interactivos).",
+      "Gestionar versiones de archivo y flujos de render en proyectos complejos.",
+      "Probar nuevas herramientas de animación y efectos, proponiendo técnicas que eleven el estándar de calidad visual.",
+      "Participar en brainstormings de concepto visual y storytelling para campañas.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Diseñador Gráfico Junior",
+    "nombre_departamento": "Marketing",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Apoyar la creación de piezas gráficas digitales e impresas alineadas con los lineamientos de marca y objetivos de comunicación de Adzone y sus clientes, asegurando una ejecución visual coherente, funcional y creativa bajo supervisión directa del gerente de marketing y audiovisuales.",
+      "Diseñar piezas gráficas básicas para redes sociales, presentaciones, piezas internas, papelería y material publicitario según brief aprobado.",
+      "Adaptar artes maestros y plantillas a distintos formatos y plataformas (feed, historias, banners, reels, etc.).",
+      "Preparar archivos para impresión siguiendo requerimientos técnicos (sangrado, resolución, tipografía, etc.).",
+      "Apoyar en la organización del banco de imágenes, íconos, mockups y plantillas del área.",
+      "Participar en sesiones de retroalimentación con el equipo creativo, mostrando apertura para mejorar su trabajo.",
+      "Recibir entrenamiento continuo en tendencias, herramientas y buenas prácticas de diseño visual.",
+      "Cumplir con deadlines establecidos, entregando archivos organizados y editables según estándares del equipo.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Diseñador Gráfico Senior",
+    "nombre_departamento": "Marketing",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Liderar el desarrollo de conceptos visuales y la ejecución de piezas gráficas de alto impacto para campañas digitales, branding, eventos y materiales corporativos.",
+      "Garantiza la calidad visual, coherencia de marca y creatividad en cada entrega, guiando a diseñadores junior y colaborando con cuentas, marketing y producción.",
+      "Crear conceptos gráficos originales a partir de briefings y objetivos estratégicos.",
+      "Diseñar campañas completas para marcas: identidad visual, artes para redes, animaciones, impresos y más.",
+      "Supervisar el trabajo de diseñadores junior, asegurando su alineación con los lineamientos de marca y calidad.",
+      "Coordinar con el gerente de marketing el desarrollo de piezas clave para concursos, lanzamientos o campañas especiales.",
+      "Adaptar creatividades a múltiples formatos (digitales e impresos), considerando especificaciones técnicas.",
+      "Participar en brainstormings y proponer ideas visuales innovadoras que fortalezcan el mensaje de marca.",
+      "Apoyar la implementación de sistemas gráficos, plantillas y estándares visuales en el área creativa.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  },
+  {
+    "nombre_puesto": "Coordinador de Estudio de Contenido y Podcast",
+    "nombre_departamento": "Adzone TV",
+    "supervisado_por_nombre_puesto": "Gerente de Marketing y Audiovisuales",
+    "funciones_principales": [
+      "Coordinar la operación del estudio interno de grabación de Adzone, asegurando la producción técnica, logística y de contenido de podcasts, cápsulas, entrevistas, contenidos audiovisuales y transmisiones especiales, garantizando calidad de sonido, imagen, agenda y alineación estratégica.",
+      "Coordinar grabaciones semanales del podcast y otros formatos: establecer agenda, coordinar invitados, preparar el set y revisar guiones o pautas.",
+      "Supervisar aspectos técnicos de grabación: audio, cámaras, luces, micrófonos, software de grabación.",
+      "Apoyar en la edición inicial o supervisar entregables del editor audiovisual (cuando aplica).",
+      "Gestionar la agenda de uso del estudio y velar por el orden, limpieza funcionamiento del mismo.",
+      "Trabajar con el equipo de contenido y marketing para alinear la temática de cada grabación con los objetivos editoriales y comerciales de Adzone.",
+      "Implementar mejoras continuas en el formato y dinámica del estudio (mejoras técnicas, nuevos formatos, recursos interactivos).",
+      "Realizar pruebas técnicas, backups de archivos, etiquetado y almacenamiento ordenado del material grabado.",
+      "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+      "(En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+      "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+    ]
+  }
+]

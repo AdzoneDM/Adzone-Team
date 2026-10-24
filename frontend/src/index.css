@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* Adzone Team · tokens de la marca ADZONE */
+@theme {
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit Variable", "Outfit", "Inter Variable", ui-sans-serif, sans-serif;
+
+  --color-azul: #224b9a;
+  --color-azul-700: #1c4d9b;
+  --color-noche: #16336b;
+  --color-noche-900: #0f2550;
+  --color-amarillo: #fbc236;
+  --color-amarillo-600: #f8ae33;
+  --color-amarillo-50: #fff7e0;
+  --color-rojo: #e73e36;
+  --color-rojo-50: #fdecea;
+  --color-tinta: #1b2333;
+  --color-gris: #5b6475;
+  --color-linea: #e3e8f1;
+  --color-linea-suave: #eef1f7;
+  --color-fondo: #f6f7fb;
+  --color-verde: #0d7a5f;
+  --color-verde-50: #e3f5ee;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-fondo text-tinta font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1, h2, h3 { @apply font-display text-noche; letter-spacing: -0.01em; }
+  .num { font-variant-numeric: tabular-nums; }
+  /* Los hijos de una cuadrícula pueden encogerse: los textos largos se cortan en vez de ensanchar la página */
+  .grid > * { min-width: 0; }
+
+  :focus-visible { outline: 3px solid var(--color-amarillo); outline-offset: 2px; border-radius: 6px; }
+}
+
+@layer components {
+  /* Controles de formulario */
+  .campo { @apply block w-full rounded-lg border border-linea bg-white px-3 py-2.5 text-[15px] text-tinta placeholder:text-gray-400 focus:border-azul focus:outline-none focus:ring-2 focus:ring-azul/20 disabled:bg-linea-suave; }
+  textarea.campo { @apply leading-relaxed; }
+  .etiqueta { @apply mb-1.5 block text-sm font-medium text-tinta; }
+  .ayuda { @apply mt-1 text-[13px] text-gris; }
+
+  /* Tablas de PC */
+  .tabla { @apply w-full border-collapse text-sm; }
+  .tabla th { @apply border-b border-linea px-4 py-3 text-left text-[13px] font-medium text-gris whitespace-nowrap; }
+  .tabla td { @apply border-b border-linea-suave px-4 py-3 align-middle; }
+  .tabla tbody tr:last-child td { @apply border-b-0; }
+  .tabla tbody tr:hover td { @apply bg-fondo/60; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

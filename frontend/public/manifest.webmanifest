@@ -1,0 +1,20 @@
+{
+  "name": "Adzone Team",
+  "short_name": "Adzone Team",
+  "description": "Tareas, KPIs, desempeño y Empleado del Mes del equipo ADZONE.",
+  "lang": "es-DO",
+  "start_url": "/mis-tareas",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f7fb",
+  "theme_color": "#16336b",
+  "icons": [
+    { "src": "/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icono-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Mis tareas", "url": "/mis-tareas" },
+    { "name": "Por validar", "url": "/validar" }
+  ]
+}

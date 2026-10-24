@@ -1,0 +1,7 @@
+{
+  "_ayuda": "Copia este archivo a backend/datos_privados/equipo.json, pon a las personas reales y corre: python manage.py cargar_equipo datos_privados/equipo.json --aplicar. La carpeta datos_privados no se sube a GitHub.",
+  "personas": [
+    {"usuario": "ana.perez", "nombre": "Ana", "apellido": "Pérez", "correo": "ana@ejemplo.com", "puesto": "Community Manager"},
+    {"usuario": "luis.gomez", "nombre": "Luis", "apellido": "Gómez", "correo": "luis@ejemplo.com", "puesto": "Gerente de Marketing y Audiovisuales", "administrador": false}
+  ]
+}
