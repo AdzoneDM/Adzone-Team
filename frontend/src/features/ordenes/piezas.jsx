@@ -285,3 +285,15 @@ export function EtapasE({ orden, areas }) {
     </ol>
   );
 }
+
+/** Ventana de anticipación del contenido: ideal 15 días, seguro 10, emergencia 7 hábiles. */
+export function Anticipacion({ a, className }) {
+  if (!a) return null;
+  const estilo = { ideal: "bg-verde-50 text-verde", seguro: "bg-azul/10 text-noche", emergencia: "bg-amarillo-50 text-[#7a5000]", insuficiente: "bg-rojo-50 text-[#a3170f]" }[a.nivel];
+  const titulo = { ideal: "Ideal", seguro: "Seguro", emergencia: "Emergencia", insuficiente: "Por debajo del mínimo" }[a.nivel];
+  return (
+    <p className={cx("rounded-lg px-3 py-2 text-sm", estilo, className)}>
+      <span className="font-semibold">Anticipación del contenido: {titulo}</span> · {a.dias} días ({a.habiles} hábiles). {a.texto}
+    </p>
+  );
+}

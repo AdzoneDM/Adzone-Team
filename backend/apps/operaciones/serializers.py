@@ -197,6 +197,7 @@ class OrdenSerializer(serializers.ModelSerializer):
     soy_responsable = serializers.SerializerMethodField()
     facturada = serializers.SerializerMethodField()
     g0_faltan = serializers.SerializerMethodField()
+    anticipacion = serializers.SerializerMethodField()
 
     class Meta:
         model = OrdenTrabajo
@@ -211,7 +212,8 @@ class OrdenSerializer(serializers.ModelSerializer):
                   'g0', 'g0_faltan', 'g0_entregada_fecha', 'g0_rechazo', 'excepcion_g0_por_nombre', 'excepcion_g0_motivo',
                   'excepcion_g0_regularizar', 'fecha_aprobacion', 'fecha_lista', 'fecha_entrega', 'recibido_por',
                   'fecha_cierre', 'costo_real', 'motivo_cancelacion', 'vencida', 'a_tiempo', 'areas_resumen', 'progreso',
-                  'puedo_gestionar', 'puedo_editar', 'soy_responsable', 'facturada', 'fecha_creacion', 'fecha_modificacion']
+                  'puedo_gestionar', 'puedo_editar', 'soy_responsable', 'facturada', 'anticipacion', 'fecha_creacion',
+                  'fecha_modificacion']
         read_only_fields = ['numero', 'solicitud', 'estado', 'solicitada_por', 'responsable', 'fecha_compromiso',
                             'tiempo_estandar_dias', 'cola_dias', 'aprobacion_dias', 'colchon_pct', 'anticipo_confirmado',
                             'anticipo_fuente', 'anticipo_fecha', 'g0_entregada_fecha', 'g0_rechazo', 'excepcion_g0_motivo',
@@ -269,6 +271,12 @@ class OrdenSerializer(serializers.ModelSerializer):
             return None
         return any(f.estado != 'ANULADA' and not f.es_anticipo for f in o.facturas.all())
 
+    def get_anticipacion(self, o):
+        from .servicios_ot import anticipacion
+        if o.estado not in ('SOLICITADA', 'DEVUELTA', 'LIBERADA'):
+            return None
+        return anticipacion(o.plan_areas, o.fecha_requerida, o.fecha_creacion.date() if o.fecha_creacion else None)
+
     def get_g0_faltan(self, o):
         from .servicios_ot import faltan_g0
         return faltan_g0(o)
@@ -307,9 +315,15 @@ class OrdenSerializer(serializers.ModelSerializer):
                 fila['fecha_entrega_interna'] = str(f['fecha_entrega_interna'])[:10]
             try:
                 if f.get('tiempo_estandar_dias') not in (None, ''):
-                    fila['tiempo_estandar_dias'] = float(f['tiempo_estandar_dias'])
+                    fila['tiempo_estandar_dias'] = round(float(f['tiempo_estandar_dias']), 2)
+                if f.get('horas_estimadas') not in (None, ''):
+                    fila['horas_estimadas'] = round(float(f['horas_estimadas']), 2)
+                if f.get('cantidad') not in (None, ''):
+                    fila['cantidad'] = max(1, int(float(f['cantidad'])))
             except (TypeError, ValueError):
                 errores.append(f"Fila {i + 1}: tiempo estándar inválido.")
+            if f.get('trabajo'):
+                fila['trabajo'] = str(f['trabajo'])[:120]
             if f.get('responsable'):
                 fila['responsable'] = int(f['responsable'])
             if f.get('especificacion'):
@@ -367,6 +381,7 @@ class OrdenAreaSerializer(serializers.ModelSerializer):
     g1_entrega_por_nombre = serializers.SerializerMethodField()
     g1_recibe_por_nombre = serializers.SerializerMethodField()
     g3_supervisor_nombre = serializers.SerializerMethodField()
+    revision_interna_por_nombre = serializers.SerializerMethodField()
     requiere_g4 = serializers.BooleanField(read_only=True)
     vencida = serializers.BooleanField(read_only=True)
     tarea = serializers.SerializerMethodField()
@@ -377,7 +392,9 @@ class OrdenAreaSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrdenArea
         fields = ['id', 'orden', 'orden_codigo', 'orden_titulo', 'orden_estado', 'cliente_nombre', 'prioridad', 'area',
-                  'area_nombre', 'numero', 'secuencia', 'que_produce', 'fecha_entrega_interna', 'tiempo_estandar_dias',
+                  'area_nombre', 'numero', 'secuencia', 'que_produce', 'fecha_entrega_interna', 'tiempo_estandar_dias', 'horas_estimadas',
+                  'revision_interna', 'revision_interna_por_nombre', 'revision_interna_fecha', 'revision_interna_comentario',
+                  'revisiones_internas_devueltas', 'g4_primer_envio',
                   'responsable', 'responsable_nombre', 'estado', 'estado_nombre', 'especificacion', 'formato',
                   'g1', 'g1_entrega_por_nombre', 'g1_recibe_por_nombre', 'g1_fecha', 'g1_rechazo',
                   'requiere_g4', 'g4_aprobado', 'g4_canales', 'g4_ronda', 'g4_fecha', 'g4_aprobado_por', 'g4_version',
@@ -385,11 +402,15 @@ class OrdenAreaSerializer(serializers.ModelSerializer):
                   'servicios_externos', 'otros_materiales', 'pase_retrabajo', 'fecha_terminada', 'vencida', 'tarea',
                   'bloqueada_por', 'traspaso_pendiente', 'puedo', 'fecha_creacion']
         read_only_fields = [f for f in fields if f not in ('que_produce', 'fecha_entrega_interna', 'especificacion',
-                                                             'servicios_externos', 'otros_materiales', 'tiempo_estandar_dias')]
+                                                             'servicios_externos', 'otros_materiales', 'tiempo_estandar_dias',
+                                                             'horas_estimadas')]
 
     def get_formato(self, oa):
         f = AREAS[oa.area]
-        return {k: f.get(k) for k in ('formato', 'nombre', 'icono', 'nota', 'nota_g4', 'sale_al_cliente')}
+        return {k: f.get(k) for k in ('formato', 'nombre', 'icono', 'nota', 'nota_g4', 'sale_al_cliente', 'revision_interna', 'herramientas')}
+
+    def get_revision_interna_por_nombre(self, oa):
+        return nombre(oa.revision_interna_por)
 
     def get_responsable_nombre(self, oa):
         return nombre(oa.responsable)
@@ -430,7 +451,8 @@ class OrdenAreaSerializer(serializers.ModelSerializer):
         return {'recibir': supervisa and oa.estado in ('EMITIDA', 'RECHAZADA'), 'reemitir': coord and oa.estado == 'RECHAZADA',
                 'operar': (trabaja or supervisa or coord) and oa.estado in ('RECIBIDA', 'EN_EJECUCION', 'EN_APROBACION'),
                 'editar': (supervisa or coord) and oa.estado not in ('TERMINADA', 'CANCELADA'), 'supervisa': supervisa,
-                'costos': supervisa or coord or es_finanzas(u)}
+                'costos': supervisa or coord or es_finanzas(u),
+                'revisar_interna': supervisa and bool(AREAS[oa.area].get('revision_interna')) and oa.estado in ('RECIBIDA', 'EN_EJECUCION')}
 
     def validate_especificacion(self, v):
         area = self.instance.area if self.instance else None
@@ -580,4 +602,4 @@ class TiempoEstandarSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TiempoEstandar
-        fields = ['id', 'area', 'area_nombre', 'trabajo', 'dias']
+        fields = ['id', 'area', 'area_nombre', 'trabajo', 'dias', 'horas', 'referencia']

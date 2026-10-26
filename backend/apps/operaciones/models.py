@@ -135,7 +135,7 @@ class OrdenTrabajo(models.Model):
     # Fechas y cálculo de la fecha comprometida (sección 4 del F-01)
     fecha_requerida = models.DateField("Fecha que pide el cliente", null=True, blank=True)
     fecha_compromiso = models.DateField("Fecha comprometida", null=True, blank=True)
-    tiempo_estandar_dias = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    tiempo_estandar_dias = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     cola_dias = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     aprobacion_dias = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     colchon_pct = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -247,7 +247,9 @@ class OrdenArea(models.Model):
     secuencia = models.PositiveSmallIntegerField(default=1, help_text="Las de la misma secuencia van en paralelo.")
     que_produce = models.CharField(max_length=255)
     fecha_entrega_interna = models.DateField(null=True, blank=True)
-    tiempo_estandar_dias = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    tiempo_estandar_dias = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    horas_estimadas = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True,
+                                          help_text="Horas de trabajo según el cronograma estimado de producción.")
     responsable = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ordenes_area',
                                     help_text="Ejecutor principal.")
     estado = models.CharField(max_length=14, choices=ESTADOS, default='EMITIDA')
@@ -258,7 +260,14 @@ class OrdenArea(models.Model):
     g1_recibe_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     g1_fecha = models.DateTimeField(null=True, blank=True)
     g1_rechazo = models.TextField(blank=True)
+    # Revisión interna del Gerente de Marketing (checklist de validación final) antes de enviar al cliente
+    revision_interna = models.JSONField(default=dict, blank=True)
+    revision_interna_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    revision_interna_fecha = models.DateTimeField(null=True, blank=True)
+    revision_interna_comentario = models.TextField(blank=True)
+    revisiones_internas_devueltas = models.PositiveSmallIntegerField(default=0)
     # G4
+    g4_primer_envio = models.DateTimeField(null=True, blank=True, help_text="Primera vez que se envió al cliente (brief → propuesta).")
     g4_aprobado = models.BooleanField(default=False)
     g4_canales = models.JSONField(default=list, blank=True)
     g4_ronda = models.PositiveSmallIntegerField(default=0)
@@ -447,10 +456,15 @@ class Acta(models.Model):
 
 
 class TiempoEstandar(models.Model):
-    """Tabla de tiempos estándar por área y tipo de trabajo (la «Tabla 8.2» del manual)."""
+    """
+    Tiempo estándar por área y tipo de trabajo: el «Cronograma estimado de producción» de Diseño y Audiovisuales
+    (y la Tabla 8.2 para las demás áreas). `horas` son horas de trabajo; `dias` son días hábiles (8 h) para la fecha comprometida.
+    """
     area = models.CharField(max_length=4, choices=AREA_CHOICES)
     trabajo = models.CharField(max_length=120)
-    dias = models.DecimalField(max_digits=5, decimal_places=1)
+    dias = models.DecimalField(max_digits=6, decimal_places=2)
+    horas = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    referencia = models.CharField("Como dice el cronograma", max_length=60, blank=True)
 
     class Meta:
         ordering = ['area', 'trabajo']

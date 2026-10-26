@@ -17,20 +17,21 @@ import { Alerta, Boton, Campo, Cargando, EntradaEstrellas, Modal, Panel, cx, use
 import { CambioModal } from "./acciones";
 import { AreaChip, CampoFormato, Checklist, Dato, EstadoOA, FichaFormato, PrioridadOrden } from "./piezas";
 
-const PASOS = [["G1", "Entrada"], ["E3", "Ejecución"], ["G4", "Cliente"], ["G3", "Calidad"], ["G2", "Salida"]];
+const PASOS = [["G1", "Entrada"], ["E3", "Ejecución"], ["RI", "Revisión interna"], ["G4", "Cliente"], ["G3", "Calidad"], ["G2", "Salida"]];
 
 function Compuertas({ oa }) {
   const hecho = {
     G1: !!oa.g1_fecha && oa.estado !== "RECHAZADA",
-    E3: ["EN_EJECUCION", "EN_APROBACION", "TERMINADA"].includes(oa.estado) || oa.g3_resultado === "APROBADO",
+    E3: ["EN_EJECUCION", "EN_APROBACION", "TERMINADA"].includes(oa.estado) || oa.g3_resultado === "APROBADO" || !!oa.revision_interna_por_nombre,
+    RI: !!oa.revision_interna_por_nombre || oa.g4_aprobado,
     G4: oa.g4_aprobado,
     G3: oa.g3_resultado === "APROBADO",
     G2: oa.estado === "TERMINADA",
   };
-  const pasos = PASOS.filter(([k]) => k !== "G4" || oa.requiere_g4);
+  const pasos = PASOS.filter(([k]) => (k !== "G4" || oa.requiere_g4) && (k !== "RI" || oa.formato.revision_interna));
   const actual = pasos.findIndex(([k]) => !hecho[k]);
   return (
-    <ol className={cx("grid gap-1", pasos.length === 5 ? "grid-cols-5" : "grid-cols-4")} aria-label="Compuertas">
+    <ol className={cx("grid gap-1", { 4: "grid-cols-4", 5: "grid-cols-5", 6: "grid-cols-6" }[pasos.length])} aria-label="Compuertas">
       {pasos.map(([k, t], i) => (
         <li key={k} aria-current={i === actual ? "step" : undefined}>
           <span className={cx("block h-1.5 rounded-full", hecho[k] ? "bg-azul" : i === actual ? "bg-amarillo" : "bg-linea")} />
@@ -78,6 +79,34 @@ function Recepcion({ oa, formato, onHecho }) {
               <Boton variante="peligro" icono={Undo2} cargando={enviando} disabled={causa.trim().length < 3} onClick={() => ir(() => accionArea(oa.id, "rechazar", { g1, causa: causa.trim() }), "Rechazada en G1. Coordinación recibió el aviso.")}>Rechazar en G1</Boton></div>
           </>
         )}
+      </div>
+    </Panel>
+  );
+}
+
+function RevisionInterna({ oa, onHecho }) {
+  const [catalogo] = useRecurso("catalogo");
+  const [marcas, setMarcas] = useState(oa.revision_interna || {});
+  const [comentario, setComentario] = useState("");
+  const [error, setError] = useState("");
+  const [enviando, setEnviando] = useState(null);
+  const ir = async (aprobar) => {
+    setEnviando(aprobar ? "si" : "no"); setError("");
+    try { await accionArea(oa.id, "revision_interna", { aprobar, checklist: marcas, comentario }); onHecho(aprobar ? "Visto bueno interno: ya se puede enviar al cliente." : "Ajustes pedidos al equipo."); }
+    catch (e) { setError(e.message); }
+    setEnviando(null);
+  };
+  return (
+    <Panel titulo="Revisión interna · checklist de validación final">
+      <div className="space-y-4">
+        {error && <Alerta>{error}</Alerta>}
+        <p className="text-sm text-gris">Antes de que el cliente la vea. Si no hay revisión humana, no hay publicación.</p>
+        <Checklist items={catalogo?.validacion_final || []} valor={marcas} onCambio={setMarcas} />
+        <Campo etiqueta="Comentario (obligatorio si pides ajustes)">{(id) => <textarea id={id} rows={2} className="campo" value={comentario} onChange={(e) => setComentario(e.target.value)} />}</Campo>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Boton variante="secundario" icono={Undo2} cargando={enviando === "no"} onClick={() => ir(false)}>Pedir ajustes</Boton>
+          <Boton icono={ShieldCheck} cargando={enviando === "si"} onClick={() => ir(true)}>Dar visto bueno</Boton>
+        </div>
       </div>
     </Panel>
   );
@@ -318,16 +347,21 @@ export default function OrdenArea() {
           <a href={`/imprimir/oa/${oa.id}`} target="_blank" rel="noopener" className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-azul hover:underline"><Printer className="size-4" />{oa.formato.formato}</a>
         </div>
         <h1 className="text-2xl font-semibold leading-tight">{oa.que_produce}</h1>
-        <p className="mt-1 text-gris">{oa.cliente_nombre} · secuencia {oa.secuencia}{oa.fecha_entrega_interna && <> · entrega interna <span className={cx(oa.vencida && "font-medium text-rojo")}>{fechaCorta(oa.fecha_entrega_interna)}</span></>}{oa.responsable_nombre && ` · ${oa.responsable_nombre}`}</p>
+        <p className="mt-1 text-gris">{oa.cliente_nombre} · secuencia {oa.secuencia}{oa.horas_estimadas && ` · ${Number(oa.horas_estimadas)} h estándar`}{oa.fecha_entrega_interna && <> · entrega interna <span className={cx(oa.vencida && "font-medium text-rojo")}>{fechaCorta(oa.fecha_entrega_interna)}</span></>}{oa.responsable_nombre && ` · ${oa.responsable_nombre}`}</p>
         <div className="mt-4"><Compuertas oa={oa} /></div>
         {oa.estado === "RECHAZADA" && <Alerta className="mt-4"><span className="font-medium">Rechazada en G1:</span> {oa.g1_rechazo}</Alerta>}
         {oa.bloqueada_por?.length > 0 && <Alerta tono="azul" className="mt-4">Espera a que terminen: {oa.bloqueada_por.join(", ")}. Puedes revisar el G1 mientras tanto.</Alerta>}
         {oa.formato.nota && <p className="mt-3 text-sm text-gris">{oa.formato.nota}</p>}
+        {oa.formato.herramientas && <p className="mt-2 text-sm text-gris"><span className="font-medium text-tinta">Herramientas recomendadas:</span> {oa.formato.herramientas}. La IA propone y acelera; el equipo decide y valida.</p>}
+        {oa.revision_interna_comentario && !oa.revision_interna_por_nombre && oa.revisiones_internas_devueltas > 0 && ["RECIBIDA", "EN_EJECUCION"].includes(oa.estado) &&
+          <Alerta tono="amarillo" className="mt-3"><span className="font-medium">Ajustes de la revisión interna:</span> {oa.revision_interna_comentario}</Alerta>}
         <div className="mt-4 flex flex-wrap gap-2">
           {oa.puedo.reemitir && <Boton icono={Send} onClick={() => accion(() => accionArea(oa.id, "reemitir", { nota: "Completada" }), "Reemitida al área.")}>Reemitir al área</Boton>}
           {tarea && <Link to={tarea && usuario.id === oa.responsable ? `/mis-tareas?tarea=${tarea.id}` : `/equipo?ver=tareas&tarea=${tarea.id}`} className="inline-flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-4 text-[15px] font-medium hover:bg-fondo">
             <ClipboardCheck className="size-4" />Tarea · {tarea.pasos_hechos}/{tarea.pasos} etapas · {tarea.estado_nombre}</Link>}
-          {oa.requiere_g4 && ["RECIBIDA", "EN_EJECUCION"].includes(oa.estado) && oa.puedo.operar && !oa.g4_aprobado &&
+          {oa.formato.revision_interna && ["RECIBIDA", "EN_EJECUCION"].includes(oa.estado) && oa.puedo.operar && !oa.g4_aprobado && !oa.revision_interna_por_nombre && !oa.puedo.revisar_interna &&
+            <Boton variante="secundario" icono={ShieldCheck} onClick={() => accion(() => accionArea(oa.id, "pedir_revision"), "Avisado el Gerente de Marketing para la revisión interna.")}>Pedir revisión interna</Boton>}
+          {oa.requiere_g4 && ["RECIBIDA", "EN_EJECUCION"].includes(oa.estado) && oa.puedo.operar && !oa.g4_aprobado && (!oa.formato.revision_interna || oa.revision_interna_por_nombre) &&
             <Boton variante="secundario" icono={Send} onClick={() => accion(() => accionArea(oa.id, "enviar_aprobacion"), "Enviada al cliente (E4).")}>Enviar al cliente (G4)</Boton>}
           {["RECIBIDA", "EN_EJECUCION", "EN_APROBACION"].includes(oa.estado) && oa.puedo.operar && <Boton variante="secundario" icono={Package} onClick={() => setModal("vale")}>Pedir material</Boton>}
           {oa.estado !== "CANCELADA" && <Boton variante="secundario" icono={Wrench} onClick={() => setModal("cambio")}>Cambio / retrabajo</Boton>}
@@ -337,6 +371,7 @@ export default function OrdenArea() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-5">
           {oa.puedo.recibir && <Recepcion oa={oa} formato={formato} onHecho={listo} />}
+          {oa.puedo.revisar_interna && !oa.revision_interna_por_nombre && !oa.g4_aprobado && <RevisionInterna oa={oa} onHecho={listo} />}
           {t?.puedo_recibir && <RecibirTraspaso t={t} onHecho={listo} />}
           {t && !t.puedo_recibir && <Alerta tono="amarillo">Traspaso {t.numero} entregado a {t.recibe_area}: falta la firma de quien recibe.</Alerta>}
           {oa.estado === "EN_APROBACION" && oa.puedo.operar && <AprobacionCliente oa={oa} onHecho={listo} />}
@@ -364,6 +399,7 @@ export default function OrdenArea() {
           <Panel titulo="Compuertas firmadas">
             <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               <Dato etiqueta="G1 · Entrada">{oa.g1_fecha && `Entregó ${oa.g1_entrega_por_nombre || "Coordinación"} · recibió ${oa.g1_recibe_por_nombre} · ${fechaHora(oa.g1_fecha)}`}</Dato>
+              {oa.formato.revision_interna && <Dato etiqueta="Revisión interna">{oa.revision_interna_por_nombre ? `Visto bueno de ${oa.revision_interna_por_nombre} · ${fechaHora(oa.revision_interna_fecha)}` : oa.revisiones_internas_devueltas ? `${oa.revisiones_internas_devueltas} vez(es) con ajustes` : "Pendiente"}</Dato>}
               {oa.requiere_g4 && <Dato etiqueta="G4 · Cliente">{oa.g4_aprobado ? `Aprobó ${oa.g4_aprobado_por} · ${oa.g4_canales.join(", ")} · ${oa.g4_version || ""} · ronda ${oa.g4_ronda}` : oa.g4_ronda ? `Ronda ${oa.g4_ronda} en curso` : "Pendiente"}</Dato>}
               <Dato etiqueta="G3 · Calidad">{oa.g3_resultado && `${oa.g3_resultado === "APROBADO" ? "Aprobado" : "Rechazado"} · ${oa.g3_supervisor_nombre} · ${fechaHora(oa.g3_fecha)}${oa.g3_observaciones ? ` · ${oa.g3_observaciones}` : ""}`}</Dato>
               <Dato etiqueta="Retrabajos">{oa.pase_retrabajo > 0 && `${oa.pase_retrabajo} pase(s)`}</Dato>

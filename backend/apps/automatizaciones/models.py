@@ -6,6 +6,8 @@ EVENTOS = [
     ('ORDEN_CREADA', 'Se pide una orden de trabajo'),
     ('ORDEN_ESTADO', 'Una orden cambia de estado'),
     ('ORDEN_VENCIDA', 'Una orden pasa su fecha comprometida'),
+    ('OA_ESTADO', 'Una Orden de Área cambia de etapa (recibida, con el cliente, terminada…)'),
+    ('TRASPASO', 'Un área entrega a otra (handoff) y falta la firma de quien recibe'),
     ('TAREA_ENTREGADA', 'Se entrega una tarea'),
     ('TAREA_VALIDADA', 'Se valida una tarea'),
     ('TAREA_VENCIDA', 'Una tarea se vence sin entregar'),

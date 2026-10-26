@@ -49,6 +49,14 @@ def indicadores(user, desde=None, hasta=None):
         except Exception:  # noqa: BLE001 — almacén opcional
             pass
         rondas = [o.g4_ronda for o in terminadas if o.requiere_g4]
+        # KPIs de adopción y eficiencia (uso estratégico de herramientas)
+        primera = [o for o in terminadas if o.requiere_g4 and o.g4_aprobado]
+        enviadas = oas.filter(g4_primer_envio__date__range=rango, g1_fecha__isnull=False)
+        brief = [(o.g4_primer_envio - o.g1_fecha).total_seconds() / 3600 for o in enviadas]
+        from apps.tiempo.models import RegistroTiempo
+        con_estandar = [o for o in terminadas if o.horas_estimadas]
+        estandar = sum((o.horas_estimadas for o in con_estandar), Decimal('0'))
+        reales = sum(r.minutos for r in RegistroTiempo.objects.filter(tarea__oa__in=con_estandar, fin__isnull=False)) / 60 if con_estandar else 0
         filas.append({
             'area': codigo, 'nombre': AREAS[codigo]['nombre'],
             'terminadas': len(terminadas),
@@ -64,6 +72,11 @@ def indicadores(user, desde=None, hasta=None):
             'minutos_perdidos': minutos,
             'desperdicio': desperdicio.quantize(Decimal('0.01')) if ve_montos(user) else None,
             'rondas_g4_promedio': round(sum(rondas) / len(rondas), 1) if rondas else None,
+            'primera_aprobacion_pct': round(100 * sum(o.g4_ronda <= 1 for o in primera) / len(primera)) if primera else None,
+            'brief_a_propuesta_h': round(sum(brief) / len(brief), 1) if brief else None,
+            'horas_estandar': float(estandar) if con_estandar else None,
+            'horas_reales': round(reales, 1) if con_estandar else None,
+            'devoluciones_internas': sum(o.revisiones_internas_devueltas for o in terminadas),
         })
 
     ots = OrdenTrabajo.objects.all()

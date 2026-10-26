@@ -7,7 +7,7 @@ import { useRecurso } from "@/lib/recursos";
 import { useSesion } from "@/lib/sesion";
 import { SelectorCliente, SelectorPersona } from "@/components/Selectores";
 import { Alerta, Boton, Campo, Cargando, Modal, cx } from "@/components/ui";
-import { AreaChip, CampoFormato, Checklist } from "./piezas";
+import { Anticipacion, AreaChip, CampoFormato, Checklist } from "./piezas";
 
 const ANTICIPO = "Anticipo confirmado por Administración";
 
@@ -26,8 +26,29 @@ function FilaArea({ fila, i, total, catalogo, tiempos, onCambio, onQuitar, onMov
   const area = catalogo.areas.find((a) => a.codigo === fila.area);
   const sugeridos = tiempos.filter((t) => t.area === fila.area);
   const poner = (k) => (v) => onCambio({ ...fila, [k]: v });
+  const elegirTrabajo = (trabajo, cantidad) => {
+    const t = sugeridos.find((x) => x.trabajo === trabajo);
+    if (!t) return onCambio({ ...fila, trabajo: "", cantidad });
+    const horas = Number(t.horas || Number(t.dias) * 8) * cantidad;
+    // Lo que dura en horas se reparte en días de 8 h; lo que se mide en días se suma por pieza.
+    const dias = Math.round((t.horas && Number(t.horas) < 8 ? horas / 8 : Number(t.dias) * cantidad) * 100) / 100;
+    onCambio({ ...fila, trabajo, cantidad, horas_estimadas: horas, tiempo_estandar_dias: dias,
+      que_produce: fila.que_produce || (cantidad > 1 ? `${cantidad} × ${t.trabajo}` : t.trabajo) });
+  };
   return (
     <li className="rounded-xl border border-linea bg-white p-3">
+      {sugeridos.length > 0 && (
+        <div className="mb-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_110px]">
+          <Campo etiqueta="Tipo de trabajo (cronograma de producción)" ayuda="Pone las horas y los días estándar; se pueden ajustar.">{(id) => (
+            <select id={id} className="campo" value={fila.trabajo || ""} onChange={(e) => elegirTrabajo(e.target.value, fila.cantidad || 1)}>
+              <option value="">Otro / a mano</option>
+              {sugeridos.map((t) => <option key={t.id} value={t.trabajo}>{t.trabajo} · {t.referencia || `${Number(t.dias)} d`}</option>)}
+            </select>
+          )}</Campo>
+          <Campo etiqueta="Cantidad">{(id) => <input id={id} type="number" min={1} className="campo" value={fila.cantidad || 1}
+            onChange={(e) => elegirTrabajo(fila.trabajo, Math.max(1, Number(e.target.value) || 1))} />}</Campo>
+        </div>
+      )}
       <div className="grid gap-3 md:grid-cols-[minmax(0,180px)_80px_minmax(0,1fr)_120px_auto]">
         <Campo etiqueta="Área">{(id) => (
           <select id={id} className="campo" value={fila.area || ""} onChange={(e) => onCambio({ ...fila, area: e.target.value, especificacion: {} })}>
@@ -37,11 +58,8 @@ function FilaArea({ fila, i, total, catalogo, tiempos, onCambio, onQuitar, onMov
         )}</Campo>
         <Campo etiqueta="Orden" ayuda="Igual = a la vez">{(id) => <input id={id} type="number" min={1} max={20} className="campo" value={fila.secuencia ?? i + 1} onChange={(e) => poner("secuencia")(e.target.value)} />}</Campo>
         <Campo etiqueta="Qué produce">{(id) => <input id={id} className="campo" value={fila.que_produce || ""} onChange={(e) => poner("que_produce")(e.target.value)} placeholder="Ej.: arte final de 4 lonas" maxLength={255} />}</Campo>
-        <Campo etiqueta="Días estándar">{(id) => (
-          <>
-            <input id={id} type="number" min={0} step="0.5" className="campo" list={`t-${i}`} value={fila.tiempo_estandar_dias ?? ""} onChange={(e) => poner("tiempo_estandar_dias")(e.target.value)} />
-            <datalist id={`t-${i}`}>{sugeridos.map((t) => <option key={t.id} value={t.dias}>{t.trabajo}</option>)}</datalist>
-          </>
+        <Campo etiqueta="Días estándar" ayuda={fila.horas_estimadas ? `${Number(fila.horas_estimadas)} h de trabajo` : undefined}>{(id) => (
+          <input id={id} type="number" min={0} step="any" className="campo" value={fila.tiempo_estandar_dias ?? ""} onChange={(e) => poner("tiempo_estandar_dias")(e.target.value)} />
         )}</Campo>
         <div className="flex items-end gap-1">
           <button type="button" aria-label="Subir" disabled={i === 0} onClick={() => onMover(-1)} className="flex size-11 items-center justify-center rounded-lg border border-linea disabled:opacity-30"><ArrowUp className="size-4" /></button>
@@ -49,7 +67,6 @@ function FilaArea({ fila, i, total, catalogo, tiempos, onCambio, onQuitar, onMov
           <button type="button" aria-label="Quitar área" onClick={onQuitar} className="flex size-11 items-center justify-center rounded-lg border border-linea text-rojo"><Trash2 className="size-4" /></button>
         </div>
       </div>
-      {sugeridos.length > 0 && <p className="mt-1.5 text-xs text-gris">Tabla de tiempos: {sugeridos.map((t) => `${t.trabajo} ${Number(t.dias)} d`).join(" · ")}</p>}
       {area && (
         <div className="mt-2">
           <button type="button" onClick={() => setAbierta(!abierta)} aria-expanded={abierta} className="inline-flex items-center gap-1 text-sm font-medium text-azul">
@@ -101,11 +118,12 @@ export default function FormOrden({ abierto, onCerrar, inicial, onGuardada }) {
   const plan = f.plan_areas || [];
   const ponerPlan = (lista) => { setF({ ...f, plan_areas: lista }); setCalculo(null); };
   const filasValidas = () => plan.filter((p) => p.area).map((p, i) => ({ ...p, secuencia: Number(p.secuencia || i + 1),
-    tiempo_estandar_dias: p.tiempo_estandar_dias === "" || p.tiempo_estandar_dias == null ? undefined : Number(p.tiempo_estandar_dias) }));
+    tiempo_estandar_dias: p.tiempo_estandar_dias === "" || p.tiempo_estandar_dias == null ? undefined : Number(p.tiempo_estandar_dias),
+    horas_estimadas: p.horas_estimadas === "" || p.horas_estimadas == null ? undefined : Number(p.horas_estimadas) }));
 
   const calcular = async () => {
     setError("");
-    try { setCalculo(await calcularCompromiso({ plan_areas: filasValidas(), prioridad: f.prioridad, rondas_incluidas: f.rondas_incluidas })); }
+    try { setCalculo(await calcularCompromiso({ plan_areas: filasValidas(), prioridad: f.prioridad, rondas_incluidas: f.rondas_incluidas, fecha_requerida: f.fecha_requerida || null })); }
     catch (e) { setError(e.message); }
   };
 
@@ -206,7 +224,9 @@ export default function FormOrden({ abierto, onCerrar, inicial, onGuardada }) {
               <div className={cx("mt-3 rounded-lg p-3 text-sm", f.fecha_requerida && calculo.fecha_compromiso > f.fecha_requerida ? "bg-amarillo-50" : "bg-verde-50")}>
                 <p className="font-semibold">Fecha comprometida sugerida: {fechaCorta(calculo.fecha_compromiso)} <span className="font-normal text-gris">({Number(calculo.dias_habiles)} días hábiles)</span></p>
                 <p className="text-gris">Estándar {Number(calculo.tiempo_estandar_dias)} d · cola {Number(calculo.cola_dias)} d · aprobación {Number(calculo.aprobacion_dias)} d · colchón {calculo.colchon_pct} %</p>
+                {Number(calculo.horas_estimadas) > 0 && <p className="text-gris">{Number(calculo.horas_estimadas)} horas de trabajo según el cronograma de producción</p>}
                 {f.fecha_requerida && calculo.fecha_compromiso > f.fecha_requerida && <p className="mt-1 font-medium text-[#7a5000]">El cliente la pide antes: negocia la fecha o súbele la prioridad.</p>}
+                {calculo.anticipacion && <Anticipacion a={calculo.anticipacion} className="mt-2" />}
               </div>
             )}
           </Seccion>

@@ -8,13 +8,24 @@ Cómo se trabaja en Adzone Team desde la versión 6. Las OT siguen los **formato
 2. **G0 · Coordinación de Producción la recibe.** Si falta una casilla, la **rechaza** con la causa y vuelve a Comercial (que corrige y la **reenvía**). Sin anticipo confirmado no se numera, salvo **excepción de Gerencia General** (Administración recibe el aviso de regularizar en 24 horas). Al **liberarla** recibe su número **OT-AA-0000 (E1)** y se emite una **Orden de Área** por cada área: `OT-26-0001-DIS`, `OT-26-0001-IMP`…
 3. **G1 · El supervisor del área la recibe** con su lista de entrada. Si falta algo, la rechaza (Coordinación la completa y la **reemite**). Al recibirla asigna al ejecutor y su apoyo: se crea la **tarea con las etapas del formato** (E2). Una área no recibe mientras la anterior en la secuencia no termina.
 4. **E3 · Ejecución.** El ejecutor trabaja su tarea (cronómetro, etapas, evidencia), pide **material con vale (F-11)** y anota **incidencias y tiempos muertos**.
-5. **G4 · Aprobación del cliente (E4)** en Diseño, Marketing, Audiovisual, Software y Call Center: **Enviar al cliente** y luego registrar la respuesta. Para aprobar hay que marcar por dónde aprobó por escrito (WhatsApp archivado, correo, firma). Si se agotan las rondas incluidas, la plataforma avisa que la siguiente se cobra con una **Solicitud de Cambio (F-14)**.
-6. **G3 · Control de calidad.** El ejecutor entrega su tarea y el supervisor la **valida** marcando la lista G3 (en **Por validar** o en la Orden de Área). Sin G3 completo, o sin G4 cuando aplica, no se valida. Si la devuelve puede registrar la causa del **retrabajo**.
-7. **G2/G5 · Traspaso con doble firma (F-13).** El área entrega con su lista de salida a la siguiente área (o a Coordinación si sale al cliente). **Quien recibe verifica y firma**; si rechaza, el trabajo vuelve al área con la causa y cuenta como retrabajo. Aceptado, la Orden de Área queda **terminada (E5)**. Cuando todas terminan, la OT queda **Lista para entregar**.
-8. **Acta de entrega / instalación (F-12).** Coordinación (o el supervisor de Instalación) la prepara. **Administración libera la salida (G5)**: con saldo pagado, o con autorización escrita de Gerencia General. En el sitio se marca la verificación y **el cliente firma en la pantalla** del celular (o, si no puede, se suben fotos y su nombre). La OT queda **Entregada (E6)**.
-9. **Factura y cierre (G6).** Sin acta firmada no se factura (salvo los anticipos y abonos). Administración factura —**en Cashflow, que asigna el NCF / e-CF**— y **cierra la OT (E7)**: la plataforma calcula el **costo real** (horas × costo por hora, materiales de los vales, servicios externos, retrabajos y gastos) y el **margen** contra lo cotizado.
+5. **Revisión interna (Diseño, Audiovisuales y Marketing).** Con la propuesta lista, el ejecutor toca **Pedir revisión interna**. El Gerente de Marketing la revisa con el **checklist de validación final** (marca, mensaje, calidad, trazabilidad, conversión y calendario) y da **visto bueno** o pide ajustes. Sin visto bueno no se envía al cliente; cada nueva versión que pida el cliente vuelve a pasar por aquí.
+6. **G4 · Aprobación del cliente (E4)** en Diseño, Marketing, Audiovisual, Software y Call Center: **Enviar al cliente** y luego registrar la respuesta. Para aprobar hay que marcar por dónde aprobó por escrito (WhatsApp archivado, correo, firma). Si se agotan las rondas incluidas, la plataforma avisa que la siguiente se cobra con una **Solicitud de Cambio (F-14)**.
+7. **G3 · Control de calidad.** El ejecutor entrega su tarea y el supervisor la **valida** marcando la lista G3 (en **Por validar** o en la Orden de Área). Sin G3 completo, o sin G4 cuando aplica, no se valida. Si la devuelve puede registrar la causa del **retrabajo**.
+8. **G2/G5 · Traspaso con doble firma (F-13).** El área entrega con su lista de salida a la siguiente área (o a Coordinación si sale al cliente). **Quien recibe verifica y firma**; si rechaza, el trabajo vuelve al área con la causa y cuenta como retrabajo. Aceptado, la Orden de Área queda **terminada (E5)**. Cuando todas terminan, la OT queda **Lista para entregar**.
+9. **Acta de entrega / instalación (F-12).** Coordinación (o el supervisor de Instalación) la prepara. **Administración libera la salida (G5)**: con saldo pagado, o con autorización escrita de Gerencia General. En el sitio se marca la verificación y **el cliente firma en la pantalla** del celular (o, si no puede, se suben fotos y su nombre). La OT queda **Entregada (E6)**.
+10. **Factura y cierre (G6).** Sin acta firmada no se factura (salvo los anticipos y abonos). Administración factura —**en Cashflow, que asigna el NCF / e-CF**— y **cierra la OT (E7)**: la plataforma calcula el **costo real** (horas × costo por hora, materiales de los vales, servicios externos, retrabajos y gastos) y el **margen** contra lo cotizado.
 
 La OT se puede **pausar**, **reanudar** o **cancelar** (Coordinación). Cualquiera que trabaje en ella puede registrar una **Solicitud de cambio o retrabajo (F-14)**; Coordinación la autoriza (si es sin costo para el cliente, Gerencia General). Al autorizar un cambio cobrable, el monto se suma a la OT y Administración recibe el aviso; si cambia la fecha, se actualiza la fecha comprometida.
+
+## Tiempos: cronograma de producción y ventanas de anticipación
+
+- En la OT, para Diseño y Audiovisuales se elige el **tipo de trabajo del cronograma estimado de producción** y la cantidad (por ejemplo, 3 flyers = 3 horas). La plataforma pone las horas, los días y lo que produce; todo se puede ajustar. Las horas pasan a la tarea del ejecutor y cuentan en la carga del equipo.
+- **Ventanas de anticipación del contenido** (Marketing, Diseño, Audiovisuales): ideal 15 días calendario, seguro 10, emergencia 7 días hábiles (solo con plantillas, copys aprobados y automatizaciones estables). El formulario avisa cuando la fecha pedida queda por debajo del mínimo.
+- La tabla completa está en **Áreas y tiempos**: horas, días y cómo lo dice el cronograma.
+
+## Herramientas e IA
+
+Cada Orden de Área muestra las **herramientas recomendadas** para esa área (Claude, Gemini y ChatGPT para pensar y documentar; Canva y Nano Banana para producir y visualizar; Veo 3, Flow, Runway, CapCut y Adobe para audiovisual; n8n y GitHub para el control). En la especificación se marcan las **herramientas usadas**. Regla: la IA propone, acelera y documenta; el equipo decide, valida y responde por la calidad. Los prototipos y piezas con IA se identifican y se aclaran al cliente (está en el control de calidad).
 
 ## Quién hace qué
 
@@ -39,7 +50,7 @@ Cada colaborador ve las OT que pasan por las áreas de su departamento, las que 
 - **Orden de Área:** las compuertas G1 → E3 → G4 → G3 → G2 en una línea, y lo que toca hacer ahora aparece arriba. Especificación del formato, etapas, materiales, incidencias, costos y archivos del área.
 - **Imprimir:** F-01, cada Orden de Área (F-02 a F-10) y el acta F-12 salen llenas, listas para imprimir o guardar en PDF.
 - **Bitácora F-15:** descarga en Excel (CSV) de todas las OT con fechas, áreas, rondas, retrabajos, monto, costo y margen.
-- **Indicadores:** por área y por semana: terminadas, % a tiempo, cola, vencidas, rechazos en G1, traspasos rechazados, retrabajos por causa, minutos perdidos, rondas de G4 y desperdicio. Y de las OT: solicitadas, liberadas, devueltas en G0, entregadas, a tiempo y margen de las cerradas.
+- **Indicadores:** además de lo de abajo, **velocidad, calidad y control**: horas de brief a propuesta, % aprobado a la primera, ajustes en revisión interna y rendimiento (horas del cronograma ÷ horas reales). Por área y por semana: terminadas, % a tiempo, cola, vencidas, rechazos en G1, traspasos rechazados, retrabajos por causa, minutos perdidos, rondas de G4 y desperdicio. Y de las OT: solicitadas, liberadas, devueltas en G0, entregadas, a tiempo y margen de las cerradas.
 - **Almacén:** vales por autorizar, por despachar y despachados; materiales con existencia, punto de reposición (avisa al llegar), costo promedio y kardex.
 - **Áreas y tiempos:** supervisores de cada área y la tabla de tiempos estándar (Tabla 8.2), que el formulario de la OT sugiere al llenar los días.
 
@@ -68,32 +79,38 @@ Cambiar un formato es cambiar `backend/apps/operaciones/formatos.py` (no hace fa
 
 ### F-02 · Diseño (DIS)
 
-Departamento: Marketing. Requiere aprobación escrita del cliente (G4).
+Departamento: Marketing. Revisión interna con checklist de validación final antes del cliente. Requiere aprobación escrita del cliente (G4).
+
+Herramientas recomendadas: Canva (Brand Kit) · Adobe · Nano Banana para mockups y variantes · ChatGPT para racionales y revisar contra marca · Runway.
 
 - **G1 · entrada:** OT Maestra liberada (E1); Tipo de trabajo definido; Medidas y formato final; Cantidad de piezas; Textos definitivos del cliente; Logo vectorial recibido; Fotografías en resolución; Referencias visuales; Manual de marca del cliente; Destino de la pieza definido; Fecha interna aceptada.
-- **Especificación:** Tipo de trabajo *, Pieza *, Formato / dimensiones, Resolución / sangrado, Perfil de color / códigos, Destino, Instrucciones creativas, concepto, colores, tipografías, referencias y restricciones, Archivos de salida requeridos, Nombre del archivo (inicia con No. OT), Versión entregada.
-- **Etapas:** Recepción y análisis del brief → Propuesta creativa → Revisión interna → Envío al cliente → Correcciones → Arte final / entrega.
-- **G3 · calidad:** Ortografía revisada; Teléfonos correctos; Dirección correcta; Redes sociales; Código QR probado; Precios y fechas; Logo en versión correcta; Medidas contra la OT; Resolución de imágenes; Sangrado y márgenes; Perfil de color; Archivo nombrado con No. OT; Respaldo guardado.
+- **Especificación:** Tipo de trabajo *, Pieza *, Formato / dimensiones, Resolución / sangrado, Perfil de color / códigos, Destino, Instrucciones creativas, concepto, colores, tipografías, referencias y restricciones, Archivos de salida requeridos, Nombre del archivo (inicia con No. OT), Versión entregada, Herramientas usadas.
+- **Etapas:** Recepción del brief y del plan de contenido de Marketing → Revisión de requerimientos (reunión con el cliente si hace falta) → Desarrollo de la propuesta gráfica (cronómetro activo, arte subido a la plataforma) → Revisión interna del Gerente de Marketing → Validación del cliente → Correcciones → Arte final entregado al Community Manager para publicación.
+- **G3 · calidad:** Ortografía revisada; Teléfonos correctos; Dirección correcta; Redes sociales; Código QR probado; Precios y fechas; Logo en versión correcta; Medidas contra la OT; Resolución de imágenes; Sangrado y márgenes; Perfil de color; Archivo nombrado con No. OT; Respaldo guardado; Prototipos o piezas hechas con IA identificados y aclarados al cliente.
 - **G2/G5 · salida:** Arte final en el formato que exige el área receptora; Archivo editable respaldado; Aprobación del cliente adjunta; Medidas confirmadas; Cantidad de piezas confirmada.
 
 ### F-03 · Marketing digital y contenido (MKT)
 
-Departamento: Marketing. Requiere aprobación escrita del cliente (G4).
+Departamento: Marketing. Revisión interna con checklist de validación final antes del cliente. Requiere aprobación escrita del cliente (G4).
+
+Herramientas recomendadas: Claude para briefs y racionales · Gemini para investigación y benchmarking · ChatGPT para copys y control de calidad · Canva · n8n para alertas y aprobaciones.
 
 - **G1 · entrada:** OT o iguala vigente; Accesos a las cuentas del cliente; Manual de marca del cliente; Objetivos de la campaña definidos; Público objetivo definido; Calendario de fechas clave; Presupuesto de pauta confirmado; Fecha interna aceptada.
-- **Especificación:** Período que cubre *, No. de posts, No. de historias, No. de reels / videos, Plataformas *, Ejes temáticos · Branding %, Servicios %, Ofertas %, Educación %, Otro %, Estrategia, mensajes clave, tono y llamados a la acción, Piezas solicitadas a otras áreas, Presupuesto de pauta (RD$).
-- **Etapas:** Análisis del brief y objetivos → Elaboración del plan de contenido → Aprobación del cliente → Emisión de OA a Diseño / Audiovisuales → Programación y publicación → Monitoreo y comunidad → Reporte de resultados.
-- **G3 · calidad:** Plan aprobado antes de producir; Piezas revisadas contra el manual de marca; Copys revisados y sin errores; Hashtags y menciones correctos; Horarios de publicación definidos; Pauta configurada y verificada; Enlaces probados; Reporte con métricas del período.
-- **G2/G5 · salida:** Piezas publicadas según calendario; Evidencia de publicación adjunta; Reporte de resultados entregado al cliente; Pauta liquidada y conciliada con Administración.
+- **Especificación:** Período que cubre *, No. de posts, No. de historias, No. de reels / videos, Plataformas *, Ejes temáticos · Branding %, Servicios %, Ofertas %, Educación %, Otro %, Estrategia, mensajes clave, tono y llamados a la acción, Piezas solicitadas a otras áreas, Presupuesto de pauta (RD$), Herramientas usadas.
+- **Etapas:** Recepción del brief: objetivos y estrategia → Creación del plan de contenido alineado al brief → Revisión interna y aprobación del cliente → Envío del plan a Diseño / Audiovisuales (coordinar fecha de grabación) → Recepción de artes y videos aprobados → Programación y publicación (Community Manager) → Monitoreo y comunidad → Reporte de resultados.
+- **G3 · calidad:** Plan aprobado antes de producir; Piezas revisadas contra el manual de marca; Copys revisados y sin errores; Hashtags y menciones correctos; Horarios de publicación definidos; Pauta configurada y verificada; Enlaces probados; Reporte con métricas del período; Prototipos o piezas hechas con IA identificados y aclarados al cliente.
+- **G2/G5 · salida:** Checklist de validación final aprobado antes de publicar; Piezas publicadas según calendario; Evidencia de publicación adjunta; Reporte de resultados entregado al cliente; Pauta liquidada y conciliada con Administración.
 
 ### F-04 · Audiovisuales (AUD)
 
-Departamento: Audiovisual. Requiere aprobación escrita del cliente (G4).
+Departamento: Audiovisual. Revisión interna con checklist de validación final antes del cliente. Requiere aprobación escrita del cliente (G4).
+
+Herramientas recomendadas: Claude para guiones, escaletas y shot lists · Gemini para hooks · Nano Banana para miniaturas · Veo 3 para teasers demo · Flow para storyboard · Runway y CapCut / Adobe para el acabado.
 
 - **G1 · entrada:** OT Maestra liberada; Plan de contenido o guion recibido; Fecha y hora de grabación confirmada con el cliente; Locación y acceso confirmados; Lista de tomas definida; Formato y duración de salida definidos; Equipo disponible y reservado; Fecha interna aceptada.
-- **Especificación:** Tipo de trabajo *, Fecha y hora de grabación, Locación / dirección, Duración final, Formatos de salida, Equipo requerido, Guion, lista de tomas, personas o productos que aparecen, música y referencias, Respaldo del material (ubicación 1), Respaldo del material (ubicación 2).
-- **Etapas:** Estudio del plan y preparación de equipo → Grabación / sesión → Respaldo del material (mismo día) → Edición → Revisión interna → Envío al cliente → Correcciones → Exportación final.
-- **G3 · calidad:** Audio nivelado y sin ruido; Colorimetría consistente; Logos y textos correctos; Duración exacta por plataforma; Subtítulos si aplica; Derechos de música verificados; Exportado en todos los formatos; Doble respaldo confirmado; Miniatura generada.
+- **Especificación:** Tipo de trabajo *, Fecha y hora de grabación, Locación / dirección, Duración final, Formatos de salida, Equipo requerido, Guion, lista de tomas, personas o productos que aparecen, música y referencias, Respaldo del material (ubicación 1), Respaldo del material (ubicación 2), Herramientas usadas.
+- **Etapas:** Recepción del brief, plan de contenido y fecha de grabación → Estudio del plan y preparación del equipo → Grabación del contenido (fotos y videos) → Respaldo del material (mismo día) → Desarrollo de la propuesta visual / edición (cronómetro activo, subida a la plataforma) → Revisión interna del Gerente de Marketing → Validación del cliente → Correcciones → Exportación final y entrega al Community Manager.
+- **G3 · calidad:** Audio nivelado y sin ruido; Colorimetría consistente; Logos y textos correctos; Duración exacta por plataforma; Subtítulos si aplica; Derechos de música verificados; Exportado en todos los formatos; Doble respaldo confirmado; Miniatura generada; Hook claro en los primeros segundos; Prototipos o piezas hechas con IA identificados y aclarados al cliente.
 - **G2/G5 · salida:** Piezas exportadas y nombradas con No. OT; Aprobación del cliente adjunta; Material bruto respaldado y ubicado; Entregado a Marketing para publicación.
 
 ### F-05 · Podcast · Adzone TV (POD)

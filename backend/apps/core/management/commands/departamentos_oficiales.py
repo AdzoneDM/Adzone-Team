@@ -14,7 +14,9 @@ from apps.organizacion.models import PuestoDeTrabajo
 
 # nombre, color del texto, color de fondo, descripción
 OFICIALES = [
-    ('Gerencia', '#2f3a4f', '#eef1f6', 'Dirección general y coordinación de la empresa.'),
+    ('Gerencia', '#2f3a4f', '#eef1f6', 'Consejo, dirección general y coordinación de la empresa.'),
+    ('Comercial', '#9a3412', '#ffedd5', 'Dirección comercial, ventas, cuentas y servicio al cliente.'),
+    ('Gestión del Talento', '#86198f', '#fae8ff', 'Reclutamiento, inducción, clima y desarrollo del personal.'),
     ('Marketing', '#1d4189', '#e6edfa', 'Estrategia, creatividad, diseño y redes sociales.'),
     ('Audiovisual', '#56298f', '#f0e9fb', 'Producción, fotografía, video y edición.'),
     ('Adzone TV', '#a3170f', '#fde8e7', 'Canal, programación, medios y podcast.'),
@@ -27,6 +29,14 @@ OFICIALES = [
 # Puesto → departamento. Lo que no está aquí se decide por el departamento anterior.
 POR_PUESTO = {
     'CEO / Director General': 'Gerencia',
+    'Presidente del Consejo': 'Gerencia',
+    'Vicepresidente y Secretario del Consejo': 'Gerencia',
+    'Director Comercial': 'Comercial',
+    'Encargado de Ventas y Cuentas': 'Comercial',
+    'Encargado de Gestión del Talento': 'Gestión del Talento',
+    'Encargado de Medios Digitales': 'Marketing',
+    'Editor de Animación, 3D y VFX': 'Audiovisual',
+    'Coordinador de Contenido y Podcast': 'Adzone TV',
     'Gerente de Marketing y Audiovisuales': 'Marketing',
     'Encargado de Creatividad': 'Marketing',
     'Community Manager': 'Marketing',
@@ -52,6 +62,8 @@ POR_DEPARTAMENTO = [
     ('Marketing', 'Marketing'),
     ('TV', 'Adzone TV'),
     ('Call', 'Call Center'),
+    ('Comercial', 'Comercial'),
+    ('Talento', 'Gestión del Talento'),
     ('BPO', 'Call Center'),
 ]
 

@@ -94,10 +94,12 @@ function FOA({ d, catalogo }) {
   return (
     <Hoja codigo={oa.formato.formato} titulo={`Orden de Área · ${oa.area_nombre}`} numero={oa.numero}>
       <Tabla filas={[["OT Maestra", `${orden.codigo} · ${orden.titulo}`], ["Cliente", orden.cliente_nombre], ["Qué produce", oa.que_produce], ["Entrega interna", oa.fecha_entrega_interna && fechaCorta(oa.fecha_entrega_interna)],
-        ["Ejecutor", oa.responsable_nombre], ["Prioridad", orden.prioridad_nombre]]} />
+        ["Ejecutor", oa.responsable_nombre], ["Horas estándar", oa.horas_estimadas && `${Number(oa.horas_estimadas)} h`], ["Prioridad", orden.prioridad_nombre]]} />
       <Seccion titulo="G1 · Compuerta de entrada"><Lista items={formato.g1} marcados={oa.g1} />{oa.g1_rechazo && <p className="mt-1">Rechazo: {oa.g1_rechazo}</p>}
         <Firmas nombres={[["Entrega (Coordinación)", oa.g1_entrega_por_nombre || ""], ["Recibe (área)", oa.g1_recibe_por_nombre || ""]]} /></Seccion>
       <Seccion titulo="Especificación"><Tabla filas={formato.especificacion.map((c) => [c.etiqueta, valorCampo(c, oa.especificacion?.[c.clave])])} /></Seccion>
+      {oa.formato.revision_interna && <Seccion titulo="Revisión interna · checklist de validación final"><Lista items={catalogo?.validacion_final || []} marcados={oa.revision_interna} />
+        <p className="mt-1">Visto bueno: {oa.revision_interna_por_nombre || "—"}{oa.revision_interna_fecha && ` · ${fechaHora(oa.revision_interna_fecha)}`}{oa.revisiones_internas_devueltas ? ` · ajustes pedidos ${oa.revisiones_internas_devueltas} vez(es)` : ""}</p></Seccion>}
       {oa.requiere_g4 && <Seccion titulo="G4 · Aprobación del cliente">
         <p>{(catalogo?.g4_canales || []).map((c) => <span key={c} className="mr-4"><Caja si={oa.g4_canales.includes(c)} />{c}</span>)}</p>
         <Tabla filas={[["Aprobó", oa.g4_aprobado_por], ["Fecha", oa.g4_fecha && fechaHora(oa.g4_fecha)], ["Versión", oa.g4_version], ["Ronda", oa.g4_ronda], ["Con cambios", oa.g4_con_cambios ? "Sí" : "No"]]} />

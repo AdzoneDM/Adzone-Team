@@ -19,7 +19,7 @@ import {
   ActaModal, AgregarAreaModal, AutorizarCambioModal, CambioModal, ExcepcionModal, FirmarActaModal, LiberarG5Modal, LiberarModal, MotivoModal,
   RechazarG0Modal,
 } from "./acciones";
-import { AreaChip, Checklist, Dato, EstadoOA, EstadoOrden, EtapasE, Plazo, PrioridadOrden } from "./piezas";
+import { Anticipacion, AreaChip, Checklist, Dato, EstadoOA, EstadoOrden, EtapasE, Plazo, PrioridadOrden } from "./piezas";
 
 function Historial({ eventos }) {
   return (
@@ -226,7 +226,7 @@ export default function OrdenDetalle() {
                       <span className="w-6 text-center text-sm font-semibold text-gris num">{a.secuencia}</span>
                       <AreaChip area={a.area} />
                       <span className="min-w-0 flex-1 font-medium">{a.que_produce}</span>
-                      {a.tiempo_estandar_dias != null && <span className="text-sm text-gris">{Number(a.tiempo_estandar_dias)} d</span>}
+                      {a.tiempo_estandar_dias != null && <span className="text-sm text-gris">{Number(a.tiempo_estandar_dias)} d{a.horas_estimadas ? ` · ${Number(a.horas_estimadas)} h` : ""}</span>}
                       {a.numero && <Link to={`/ordenes/${o.id}/areas/${a.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-azul hover:underline">{a.numero}<ArrowRight className="size-3.5" /></Link>}
                       {a.estado && <EstadoOA estado={a.estado} />}
                     </li>
@@ -240,6 +240,7 @@ export default function OrdenDetalle() {
                   <Dato etiqueta="Rondas de cambios incluidas">{o.rondas_incluidas}</Dato>
                   {o.tiempo_estandar_dias != null && <Dato etiqueta="Cálculo" className="sm:col-span-3">Estándar {Number(o.tiempo_estandar_dias)} d · cola {Number(o.cola_dias)} d · aprobación {Number(o.aprobacion_dias)} d · colchón {o.colchon_pct} %</Dato>}
                 </dl>
+                <Anticipacion a={o.anticipacion} className="mt-3" />
               </Panel>
               <Panel titulo="G0 · Compuerta de apertura">
                 <Checklist items={(catalogo?.g0 || []).map((x) => x.texto)} valor={o.g0} soloLectura />

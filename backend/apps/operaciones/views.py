@@ -286,7 +286,12 @@ class OrdenViewSet(viewsets.ModelViewSet):
             plan = s.validate_plan_areas(request.data.get('plan_areas') or [])
         except Exception as e:  # noqa: BLE001
             return Response({"plan_areas": getattr(e, 'detail', str(e))}, status=status.HTTP_400_BAD_REQUEST)
-        temp = OrdenTrabajo(prioridad=request.data.get('prioridad') or 'N',
+        from datetime import date
+        try:
+            requerida = date.fromisoformat(str(request.data.get('fecha_requerida'))[:10]) if request.data.get('fecha_requerida') else None
+        except ValueError:
+            requerida = None
+        temp = OrdenTrabajo(prioridad=request.data.get('prioridad') or 'N', fecha_requerida=requerida,
                             rondas_incluidas=int(request.data.get('rondas_incluidas') or 2))
         r = ot.calcular_compromiso(temp, plan)
         r['por_area'] = [{'area': f['area'], 'cola_dias': ot.cola_del_area(f['area'])} for f in plan]
@@ -395,7 +400,8 @@ class OrdenViewSet(viewsets.ModelViewSet):
             return Response({"detail": " ".join(map(str, getattr(e, 'detail', [str(e)])))}, status=status.HTTP_400_BAD_REQUEST)
         oa = OrdenArea.objects.create(orden=orden, area=fila['area'], secuencia=fila['secuencia'], que_produce=fila['que_produce'],
                                       fecha_entrega_interna=fila.get('fecha_entrega_interna') or orden.fecha_compromiso,
-                                      tiempo_estandar_dias=fila.get('tiempo_estandar_dias'), g1_entrega_por=request.user,
+                                      tiempo_estandar_dias=fila.get('tiempo_estandar_dias'), horas_estimadas=fila.get('horas_estimadas'),
+                                      g1_entrega_por=request.user,
                                       responsable_id=fila.get('responsable'), especificacion=fila.get('especificacion') or {})
         orden.plan_areas = [*orden.plan_areas, fila]
         orden.save(update_fields=['plan_areas'])
@@ -669,6 +675,25 @@ class OrdenAreaViewSet(viewsets.mixins.ListModelMixin, viewsets.mixins.RetrieveM
         oa = self.get_object()
         try:
             ot.reemitir(oa, request.user, request.data.get('nota', ''))
+        except ot.ErrorFlujo as e:
+            return _error(e)
+        return self._resp(oa)
+
+    @action(detail=True, methods=['post'])
+    def pedir_revision(self, request, pk=None):
+        oa = self.get_object()
+        try:
+            ot.pedir_revision(oa, request.user)
+        except ot.ErrorFlujo as e:
+            return _error(e)
+        return self._resp(oa)
+
+    @action(detail=True, methods=['post'])
+    def revision_interna(self, request, pk=None):
+        oa = self.get_object()
+        try:
+            ot.revisar_interna(oa, request.user, request.data.get('checklist') or {}, bool(request.data.get('aprobar')),
+                               request.data.get('comentario', ''))
         except ot.ErrorFlujo as e:
             return _error(e)
         return self._resp(oa)

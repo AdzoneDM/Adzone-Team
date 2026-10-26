@@ -56,6 +56,23 @@ COLCHON = {'N': 20, 'U': 20, 'E': 30}  # % de colchón según prioridad (secció
 # ---------------------------------------------------------------------------------------------
 G4_CANALES = ['WhatsApp archivado', 'Correo', 'Firma física', 'Prueba impresa firmada']
 
+# Checklist de validación final (Uso estratégico de herramientas · Gerencia de Marketing y Audiovisuales).
+# «Si no hay revisión humana, no hay publicación»: el Gerente de Marketing la firma antes de enviar al cliente (G4).
+VALIDACION_FINAL = [
+    'Marca: respeta logo, colores, tono y Brand Kit',
+    'Mensaje: el objetivo y el llamado a la acción están claros',
+    'Calidad: visual, audio, subtítulos y portada listos',
+    'Trazabilidad: hay versión identificada y responsable',
+    'Conversión: la pieza puede generar acción, atención o confianza',
+    'Calendario: cliente, fecha, hora y formato correctos',
+]
+CHECK_IA = 'Prototipos o piezas hechas con IA identificados y aclarados al cliente'
+HERRAMIENTAS = ['Claude', 'Gemini', 'ChatGPT', 'Canva', 'Nano Banana', 'Adobe', 'Veo 3', 'Runway', 'Flow', 'CapCut', 'n8n', 'Otra']
+
+# Ventanas de anticipación para contenido (días entre la solicitud y la fecha requerida).
+VENTANAS = {'ideal': 15, 'seguro': 10, 'emergencia_habiles': 7}
+AREAS_CONTENIDO = ['MKT', 'DIS', 'AUD']
+
 AREAS = {
     'DIS': {
         'nombre': 'Diseño', 'formato': 'F-02', 'departamento': 'Marketing', 'supervisor': 'Supervisor de Diseño',
@@ -73,12 +90,18 @@ AREAS = {
             c('instrucciones', 'Instrucciones creativas, concepto, colores, tipografías, referencias y restricciones', 'largo', ancho='completo'),
             c('archivos_salida', 'Archivos de salida requeridos', 'multiple', ['PDF', 'AI', 'EPS', 'CDR', 'PSD', 'JPG', 'PNG', 'SVG', 'Canva', 'Otro']),
             c('nombre_archivo', 'Nombre del archivo (inicia con No. OT)'), c('version', 'Versión entregada'),
+            c('herramientas', 'Herramientas usadas', 'multiple', HERRAMIENTAS),
         ],
-        'etapas': ['Recepción y análisis del brief', 'Propuesta creativa', 'Revisión interna', 'Envío al cliente', 'Correcciones',
-                   'Arte final / entrega'],
+        'etapas': ['Recepción del brief y del plan de contenido de Marketing',
+                   'Revisión de requerimientos (reunión con el cliente si hace falta)',
+                   'Desarrollo de la propuesta gráfica (cronómetro activo, arte subido a la plataforma)',
+                   'Revisión interna del Gerente de Marketing', 'Validación del cliente', 'Correcciones',
+                   'Arte final entregado al Community Manager para publicación'],
+        'revision_interna': True,
+        'herramientas': 'Canva (Brand Kit) · Adobe · Nano Banana para mockups y variantes · ChatGPT para racionales y revisar contra marca · Runway',
         'g3': ['Ortografía revisada', 'Teléfonos correctos', 'Dirección correcta', 'Redes sociales', 'Código QR probado', 'Precios y fechas',
                'Logo en versión correcta', 'Medidas contra la OT', 'Resolución de imágenes', 'Sangrado y márgenes', 'Perfil de color',
-               'Archivo nombrado con No. OT', 'Respaldo guardado'],
+               'Archivo nombrado con No. OT', 'Respaldo guardado', CHECK_IA],
         'g2': ['Arte final en el formato que exige el área receptora', 'Archivo editable respaldado', 'Aprobación del cliente adjunta',
                'Medidas confirmadas', 'Cantidad de piezas confirmada'],
         'nota_g4': 'No se produce sin esta aprobación por escrito. Las rondas adicionales a las cotizadas requieren Solicitud de Cambio F-14.',
@@ -99,13 +122,18 @@ AREAS = {
                 col('area', 'Área'), col('pieza', 'Pieza'), col('cantidad', 'Cantidad', 'numero'), col('fecha', 'Fecha requerida', 'fecha'),
                 col('oa', 'No. OA emitida')]),
             c('presupuesto_pauta', 'Presupuesto de pauta (RD$)', 'dinero'),
+            c('herramientas', 'Herramientas usadas', 'multiple', HERRAMIENTAS),
         ],
-        'etapas': ['Análisis del brief y objetivos', 'Elaboración del plan de contenido', 'Aprobación del cliente',
-                   'Emisión de OA a Diseño / Audiovisuales', 'Programación y publicación', 'Monitoreo y comunidad', 'Reporte de resultados'],
+        'etapas': ['Recepción del brief: objetivos y estrategia', 'Creación del plan de contenido alineado al brief',
+                   'Revisión interna y aprobación del cliente', 'Envío del plan a Diseño / Audiovisuales (coordinar fecha de grabación)',
+                   'Recepción de artes y videos aprobados', 'Programación y publicación (Community Manager)', 'Monitoreo y comunidad',
+                   'Reporte de resultados'],
+        'revision_interna': True,
+        'herramientas': 'Claude para briefs y racionales · Gemini para investigación y benchmarking · ChatGPT para copys y control de calidad · Canva · n8n para alertas y aprobaciones',
         'g3': ['Plan aprobado antes de producir', 'Piezas revisadas contra el manual de marca', 'Copys revisados y sin errores',
                'Hashtags y menciones correctos', 'Horarios de publicación definidos', 'Pauta configurada y verificada', 'Enlaces probados',
-               'Reporte con métricas del período'],
-        'g2': ['Piezas publicadas según calendario', 'Evidencia de publicación adjunta', 'Reporte de resultados entregado al cliente',
+               'Reporte con métricas del período', CHECK_IA],
+        'g2': ['Checklist de validación final aprobado antes de publicar', 'Piezas publicadas según calendario', 'Evidencia de publicación adjunta', 'Reporte de resultados entregado al cliente',
                'Pauta liquidada y conciliada con Administración'],
         'nota_g4': 'Diseño y Audiovisuales no inician hasta que el plan de contenido esté aprobado.',
     },
@@ -124,12 +152,18 @@ AREAS = {
               'Micrófono boom', 'Luces', 'Fondo / croma', 'Teleprompter', 'Generador']),
             c('guion', 'Guion, lista de tomas, personas o productos que aparecen, música y referencias', 'largo', ancho='completo'),
             c('respaldo_1', 'Respaldo del material (ubicación 1)'), c('respaldo_2', 'Respaldo del material (ubicación 2)'),
+            c('herramientas', 'Herramientas usadas', 'multiple', HERRAMIENTAS),
         ],
-        'etapas': ['Estudio del plan y preparación de equipo', 'Grabación / sesión', 'Respaldo del material (mismo día)', 'Edición',
-                   'Revisión interna', 'Envío al cliente', 'Correcciones', 'Exportación final'],
+        'etapas': ['Recepción del brief, plan de contenido y fecha de grabación', 'Estudio del plan y preparación del equipo',
+                   'Grabación del contenido (fotos y videos)', 'Respaldo del material (mismo día)',
+                   'Desarrollo de la propuesta visual / edición (cronómetro activo, subida a la plataforma)',
+                   'Revisión interna del Gerente de Marketing', 'Validación del cliente', 'Correcciones',
+                   'Exportación final y entrega al Community Manager'],
+        'revision_interna': True,
+        'herramientas': 'Claude para guiones, escaletas y shot lists · Gemini para hooks · Nano Banana para miniaturas · Veo 3 para teasers demo · Flow para storyboard · Runway y CapCut / Adobe para el acabado',
         'g3': ['Audio nivelado y sin ruido', 'Colorimetría consistente', 'Logos y textos correctos', 'Duración exacta por plataforma',
                'Subtítulos si aplica', 'Derechos de música verificados', 'Exportado en todos los formatos', 'Doble respaldo confirmado',
-               'Miniatura generada'],
+               'Miniatura generada', 'Hook claro en los primeros segundos', CHECK_IA],
         'g2': ['Piezas exportadas y nombradas con No. OT', 'Aprobación del cliente adjunta', 'Material bruto respaldado y ubicado',
                'Entregado a Marketing para publicación'],
     },
@@ -376,12 +410,15 @@ def catalogo():
     """Lo que necesita el frontend para dibujar los formatos."""
     return {
         'areas': [{'codigo': k, **{x: v.get(x) for x in ('nombre', 'formato', 'departamento', 'supervisor', 'icono', 'requiere_g4',
-                                                        'sale_al_cliente', 'g1', 'especificacion', 'etapas', 'g3', 'g2', 'nota', 'nota_g4')}}
+                                                        'sale_al_cliente', 'g1', 'especificacion', 'etapas', 'g3', 'g2', 'nota', 'nota_g4',
+                                                        'revision_interna', 'herramientas')}}
                   for k, v in AREAS.items()],
         'g0': [{'clave': k, 'texto': t} for k, t in G0],
         'tipos_cliente': [{'valor': k, 'nombre': t} for k, t in TIPOS_CLIENTE],
         'prioridades': [{'valor': k, 'nombre': t} for k, t in PRIORIDADES],
         'g4_canales': G4_CANALES,
+        'validacion_final': VALIDACION_FINAL,
+        'ventanas': VENTANAS,
         'causas_retrabajo': CAUSAS_RETRABAJO,
         'g5_acta': [{'clave': k, 'texto': t} for k, t in G5_ACTA],
         'verificacion_sitio': VERIFICACION_SITIO,

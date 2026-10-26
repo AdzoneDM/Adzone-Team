@@ -1,5 +1,6 @@
 """Pruebas: OT Maestra y Órdenes de Área (formatos ADZONE), almacén, Cashflow, proyectos, tiempo, finanzas y automatizaciones."""
 import json
+import os
 import shutil
 import tempfile
 from datetime import timedelta
@@ -18,7 +19,7 @@ from apps.desempeno.models import Notificacion, Tarea
 from apps.finanzas.models import Factura, Gasto
 from apps.organizacion.models import PuestoDeTrabajo
 from apps.tiempo.models import RegistroTiempo
-from .formatos import AREAS, G0, G5_ACTA, VERIFICACION_TRASPASO
+from .formatos import AREAS, G0, G5_ACTA, VALIDACION_FINAL, VERIFICACION_TRASPASO
 from .models import Cliente, OrdenArea, OrdenTrabajo, Proyecto
 
 MEDIA = tempfile.mkdtemp()
@@ -104,11 +105,21 @@ class Base(TestCase):
         self.assertEqual(r.status_code, 200, r.content)
         return oa.tareas.get()
 
+    def visto_bueno(self, oa, supervisor):
+        """Revisión interna del Gerente de Marketing (checklist de validación final)."""
+        self.como(supervisor)
+        r = self.c.post(f'/api/operaciones/areas/{oa.id}/revision_interna/', {
+            'aprobar': True, 'checklist': {t: True for t in VALIDACION_FINAL}}, format='json')
+        self.assertEqual(r.status_code, 200, r.content)
+
     def terminar_tarea(self, tarea, ejecutor, supervisor):
         self.como(ejecutor)
         self.c.post(f'/api/desempeno/tareas/{tarea.id}/iniciar/')
         oa = tarea.oa
         if oa.requiere_g4:
+            if AREAS[oa.area].get('revision_interna'):
+                self.visto_bueno(oa, supervisor)
+                self.como(ejecutor)
             self.assertEqual(self.c.post(f'/api/operaciones/areas/{oa.id}/enviar_aprobacion/').status_code, 200)
             r = self.c.post(f'/api/operaciones/areas/{oa.id}/registrar_g4/', {'aprobado': True, 'canales': ['WhatsApp archivado'],
                                                                               'aprobado_por': 'Ana', 'version': 'v2'}, format='json')
@@ -227,13 +238,32 @@ class OrdenTests(Base):
         dis.refresh_from_db()
         self.assertEqual(dis.estado, 'EN_EJECUCION')
         self.assertEqual(OrdenTrabajo.objects.get(pk=orden.pk).estado, 'EN_PRODUCCION')
+        # Revisión interna antes del cliente: «si no hay revisión humana, no hay publicación»
+        r = self.c.post(f'/api/operaciones/areas/{dis.id}/enviar_aprobacion/')
+        self.assertIn('revisión interna', r.json()['detail'])
+        self.assertEqual(self.c.post(f'/api/operaciones/areas/{dis.id}/pedir_revision/').status_code, 200)
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.vladi, titulo__startswith='Revisión interna').exists())
+        self.assertEqual(self.c.post(f'/api/operaciones/areas/{dis.id}/revision_interna/', {'aprobar': True}, format='json').status_code, 400)
+        self.como(self.vladi)
+        r = self.c.post(f'/api/operaciones/areas/{dis.id}/revision_interna/', {'aprobar': True, 'checklist': {VALIDACION_FINAL[0]: True}},
+                        format='json')
+        self.assertIn('Falta', r.json()['detail'])
+        self.c.post(f'/api/operaciones/areas/{dis.id}/revision_interna/', {'aprobar': False, 'comentario': 'El CTA no se lee'}, format='json')
+        self.assertEqual(OrdenArea.objects.get(pk=dis.pk).revisiones_internas_devueltas, 1)
+        self.visto_bueno(dis, self.vladi)
+        self.como(self.erlin)
         self.c.post(f'/api/operaciones/areas/{dis.id}/enviar_aprobacion/')
         r = self.c.post(f'/api/operaciones/areas/{dis.id}/registrar_g4/', {'aprobado': True, 'aprobado_por': 'Ana'}, format='json')
         self.assertEqual(r.status_code, 400)  # sin canal escrito no hay aprobación
         self.c.post(f'/api/operaciones/areas/{dis.id}/registrar_g4/', {'aprobado': False, 'comentario': 'Más grande el logo'}, format='json')
+        self.assertIsNone(OrdenArea.objects.get(pk=dis.pk).revision_interna_por)  # la nueva versión se revisa otra vez
+        self.visto_bueno(dis, self.vladi)
+        self.como(self.erlin)
         self.c.post(f'/api/operaciones/areas/{dis.id}/enviar_aprobacion/')
         r = self.c.post(f'/api/operaciones/areas/{dis.id}/registrar_g4/', {'aprobado': False, 'comentario': 'Otro color'}, format='json')
         self.assertIn('F-14', r.json()['aviso'])  # rondas agotadas
+        self.visto_bueno(dis, self.vladi)
+        self.como(self.erlin)
         self.c.post(f'/api/operaciones/areas/{dis.id}/enviar_aprobacion/')
         self.c.post(f'/api/operaciones/areas/{dis.id}/registrar_g4/', {'aprobado': True, 'canales': ['Correo'], 'aprobado_por': 'Ana'},
                     format='json')
@@ -308,9 +338,49 @@ class OrdenTests(Base):
         ind = self.c.get('/api/operaciones/ordenes/indicadores/').json()
         dis_fila = next(f for f in ind['areas'] if f['area'] == 'DIS')
         self.assertEqual((dis_fila['terminadas'], dis_fila['traspasos_rechazados']), (1, 1))
+        self.assertEqual(dis_fila['devoluciones_internas'], 1)
+        self.assertEqual(dis_fila['primera_aprobacion_pct'], 0)  # se aprobó en la tercera ronda
+        self.assertIsNotNone(dis_fila['brief_a_propuesta_h'])
         self.assertEqual(ind['ot']['entregadas'], 1)
         bitacora = self.c.get('/api/operaciones/ordenes/bitacora/')
         self.assertIn(orden.numero, bitacora.content.decode('utf-8'))
+
+    def test_ventanas_de_anticipacion_del_contenido(self):
+        self.como(self.erlin)
+        base = {'plan_areas': [{'area': 'MKT', 'secuencia': 1, 'que_produce': 'Calendario', 'tiempo_estandar_dias': 3}]}
+        for dias, nivel in ((20, 'ideal'), (11, 'seguro'), (4, 'insuficiente')):
+            r = self.c.post('/api/operaciones/ordenes/calcular/', {**base, 'fecha_requerida': (HOY() + timedelta(days=dias)).isoformat()},
+                            format='json').json()
+            self.assertEqual(r['anticipacion']['nivel'], nivel)
+        r = self.c.post('/api/operaciones/ordenes/calcular/', {'plan_areas': [{'area': 'IMP', 'secuencia': 1, 'que_produce': 'Lona'}],
+                                                               'fecha_requerida': HOY().isoformat()}, format='json').json()
+        self.assertIsNone(r['anticipacion'])  # la regla es del contenido (Marketing, Diseño, Audiovisuales)
+
+    def test_cronograma_de_produccion_cargado_y_horas_a_la_tarea(self):
+        from .models import TiempoEstandar
+        logo = TiempoEstandar.objects.get(area='DIS', trabajo='Logotipo corporativo')
+        self.assertEqual((logo.horas, logo.dias), (Decimal('8.00'), Decimal('1.00')))
+        self.assertEqual(TiempoEstandar.objects.get(area='AUD', trabajo__startswith='Plano').dias, Decimal('10.00'))
+        self.assertGreaterEqual(TiempoEstandar.objects.filter(area__in=['DIS', 'AUD']).count(), 26)
+        plan = [{'area': 'DIS', 'secuencia': 1, 'que_produce': '3 flyers', 'trabajo': 'Flyer o volante publicitario', 'cantidad': 3,
+                 'tiempo_estandar_dias': 0.38, 'horas_estimadas': 3}]
+        oid = self.pedir(plan_areas=plan).json()['id']
+        self.como(self.willian)
+        self.c.post(f'/api/operaciones/ordenes/{oid}/confirmar_anticipo/')
+        self.como(self.yokasta)
+        self.c.post(f'/api/operaciones/ordenes/{oid}/liberar/')
+        oa = OrdenTrabajo.objects.get(pk=oid).areas.get()
+        self.assertEqual(oa.horas_estimadas, Decimal('3.00'))
+        self.assertEqual(self.recibir(oa, self.vladi, self.erlin).horas_estimadas, Decimal('3.00'))
+
+    def test_automatizacion_de_handoff_entre_areas(self):
+        Regla.objects.create(nombre='Handoff', evento='TRASPASO', condiciones={'area': 'IMP'}, accion='AVISAR',
+                             parametros={'a': ['jefes'], 'titulo': 'Llega {titulo}', 'mensaje': '{entrega} → {recibe}'})
+        orden = self.liberada()
+        dis, imp = self.oa(orden, 'DIS'), self.oa(orden, 'IMP')
+        self.terminar_tarea(self.recibir(dis, self.vladi, self.erlin), self.erlin, self.vladi)
+        self.traspasar(dis, self.erlin, imp)
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.omar, titulo__startswith='Llega').exists())
 
     def test_anticipo_por_factura_y_pago_marca_g0(self):
         oid = self.pedir().json()['id']
@@ -692,3 +762,22 @@ class BuscarTests(Base):
         self.assertIn('orden', tipos)
         self.como(self.luis)
         self.assertNotIn('orden', {x['tipo'] for x in self.c.get('/api/operaciones/buscar/?q=lona').json()})
+
+
+class OrganigramaTests(TestCase):
+    def test_organigrama_2026_renombra_crea_y_encadena(self):
+        from django.core.management import call_command
+        call_command('departamentos_oficiales', '--aplicar', stdout=open(os.devnull, 'w'))
+        ceo = PuestoDeTrabajo.objects.create(nombre='CEO / Director General', departamento=Departamento.objects.get(nombre='Gerencia'))
+        viejo = PuestoDeTrabajo.objects.create(nombre='Supervisor de Call Center', departamento=Departamento.objects.get(nombre='Call Center'),
+                                               supervisor=ceo)
+        call_command('organigrama_2026', stdout=open(os.devnull, 'w'))  # sin --aplicar no cambia nada
+        self.assertFalse(PuestoDeTrabajo.objects.filter(nombre='Director Comercial').exists())
+        call_command('organigrama_2026', '--aplicar', stdout=open(os.devnull, 'w'))
+        viejo.refresh_from_db()
+        self.assertEqual(viejo.nombre, 'Gerente de Call Center')  # la persona se queda en su puesto renombrado
+        self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Encargado de Ventas y Cuentas').supervisor.nombre, 'Director Comercial')
+        self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Community Manager').supervisor.nombre, 'Encargado de Medios Digitales')
+        self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Director Comercial').departamento.nombre, 'Comercial')
+        call_command('organigrama_2026', '--aplicar', stdout=open(os.devnull, 'w'))  # se puede repetir
+        self.assertEqual(PuestoDeTrabajo.objects.filter(nombre='Gerente de Call Center').count(), 1)

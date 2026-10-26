@@ -1,5 +1,28 @@
 # Cambios
 
+## 6.1 · 26/10/2026 · Organigrama 2026, cronograma de producción, flujogramas y uso estratégico de herramientas
+
+### Organigrama 2026
+- Comando `organigrama_2026`: crea los puestos nuevos (Dirección Comercial y Encargado de Ventas y Cuentas, Gestión del Talento, Presupuestos/Facturación y Cobros, Legal y Contratos, Herrero, Soporte Técnico, Supervisor de Calidad y Monitoreo, agentes bilingüe y español, el Consejo), renombra los que cambiaron (las personas se quedan en su puesto) y deja a cada uno con su supervisor.
+- Departamentos nuevos: **Comercial** y **Gestión del Talento**.
+- Con la nueva cadena, los encargados intermedios (Creatividad, Contenido y Podcast, Impresiones) validan a su gente y supervisan sus áreas.
+
+### Cronograma estimado de producción (Diseño y Audiovisuales)
+- Los 26 tipos de trabajo del cronograma se cargan como **tiempos estándar** (horas y días).
+- En la OT, cada área de Diseño o Audiovisuales tiene **«Tipo de trabajo (cronograma)»** y **cantidad**: pone las horas, los días y «qué produce». Esas horas pasan a la tarea del ejecutor (carga del equipo).
+- Indicador de **rendimiento**: horas del cronograma contra horas reales del cronómetro.
+
+### Flujogramas de Diseño Gráfico y Audiovisuales
+- Las etapas de las Órdenes de Área de Diseño, Audiovisuales y Marketing siguen el flujograma: brief y plan de Marketing → revisión de requerimientos → propuesta (cronómetro activo, arte en la plataforma) → **revisión interna del Gerente de Marketing** → validación del cliente → entrega al Community Manager.
+- **Revisión interna obligatoria** antes de enviar al cliente: el ejecutor la pide, el Gerente de Marketing da visto bueno o pide ajustes. Cada nueva versión que pide el cliente vuelve a pasar por la revisión.
+
+### Uso estratégico de IA y herramientas
+- **Checklist de validación final** (marca, mensaje, calidad, trazabilidad, conversión, calendario) en la revisión interna: «si no hay revisión humana, no hay publicación».
+- **Ventanas de anticipación** del contenido en la OT: ideal 15 días, seguro 10, emergencia 7 días hábiles; avisa si se pide por debajo del mínimo.
+- **Herramientas recomendadas** por área en cada Orden de Área y campo «Herramientas usadas»; en el control de calidad, «prototipos o piezas con IA identificados y aclarados».
+- **KPIs de adopción:** tiempo de brief a propuesta, % aprobado a la primera, ajustes en revisión interna y rendimiento contra el estándar.
+- Automatizaciones nuevas para **n8n**: «una Orden de Área cambia de etapa» y «un área entrega a otra (handoff)».
+
 ## 6.0 · 26/10/2026 · Formatos ADZONE en digital, almacén y facturación con Cashflow
 
 Las órdenes de trabajo ahora siguen al pie de la letra los formatos controlados de ADZONE (F-01 a F-15).

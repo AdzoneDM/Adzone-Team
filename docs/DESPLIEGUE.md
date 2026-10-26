@@ -70,6 +70,18 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Organigrama 2026 (versión 6.1)
+
+Después de `migrate` (que también carga el cronograma de producción):
+
+```bash
+python manage.py departamentos_oficiales --aplicar   # crea Comercial y Gestión del Talento
+python manage.py organigrama_2026                    # muestra lo que haría
+python manage.py organigrama_2026 --aplicar          # lo hace
+```
+
+Luego, en **Personas**, asigna a cada persona su puesto del organigrama (los puestos nuevos llegan vacíos).
+
 ### Si vienes de la versión 5
 
 `migrate` crea las tablas de Órdenes de Área, traspasos, actas, cambios, almacén y Cashflow, y los accesos «Coordinación» y «Almacén». Después:

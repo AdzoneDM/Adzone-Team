@@ -3,6 +3,7 @@
 La plataforma de trabajo de ADZONE: **tareas, KPIs y reconocimiento en un solo lugar**. Une lo que antes eran dos sistemas, *Adzone Team* (tablero de tareas del equipo) y *Adzone KPIs* (medición del desempeño).
 
 - **Órdenes de trabajo con los formatos ADZONE (F-01 a F-15):** OT Maestra con compuerta G0 y numeración por Coordinación, una Orden de Área por cada área (diseño, marketing, audiovisuales, podcast, impresión, letreros, fabricación, eventos, software, instalación, call center), compuertas G1/G4/G3, traspasos con doble firma, acta de entrega con firma del cliente en pantalla, cambios y retrabajos, cierre con costo real y margen, bitácora e indicadores por área.
+- **Organigrama 2026, cronograma de producción y flujogramas** de Diseño y Audiovisuales integrados: tiempos estándar por tipo de trabajo, revisión interna con checklist de validación final, ventanas de anticipación y KPIs de uso de herramientas.
 - **Almacén:** vales de salida de materiales (F-11) con autorización, despacho, devolución, desperdicio y existencias.
 - **Cashflow:** factura fiscal (NCF / e-CF), clientes, cotizaciones y pagos conectados por API.
 - **Proyectos y clientes:** tabla, tablero y cronograma (Gantt). Cada proyecto reúne sus tareas, sus órdenes, sus horas, una conversación con @menciones y su rentabilidad.
@@ -93,7 +94,7 @@ Cómo se trabaja con órdenes, proyectos, tiempo y finanzas, paso a paso: [`docs
 
 ## Departamentos oficiales
 
-Gerencia · Marketing · Audiovisual · Adzone TV · Impresión · Administración · Tecnología · Call Center. Cada uno con su color, que se ve en el tablero del equipo y en los puestos.
+Gerencia · Comercial · Gestión del Talento · Marketing · Audiovisual · Adzone TV · Impresión · Administración · Tecnología · Call Center. Los puestos y a quién reporta cada uno siguen el Organigrama 2026 (`python manage.py organigrama_2026 --aplicar`). Cada uno con su color, que se ve en el tablero del equipo y en los puestos.
 
 ## Seguridad
 

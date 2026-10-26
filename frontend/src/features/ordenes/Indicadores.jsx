@@ -91,6 +91,30 @@ export default function Indicadores() {
               </div>
             )}
           </Panel>
+          <Panel titulo="Velocidad, calidad y control (uso estratégico de herramientas)" cuerpo="p-0">
+            <div className="overflow-x-auto">
+              <table className="tabla">
+                <thead><tr><th>Área</th><th className="text-right">Brief → propuesta</th><th className="text-right">Aprobadas a la primera</th>
+                  <th className="text-right">Ajustes en revisión interna</th><th className="text-right">Horas reales / estándar</th><th className="text-right">Rendimiento</th></tr></thead>
+                <tbody>
+                  {d.areas.filter((a) => a.brief_a_propuesta_h != null || a.primera_aprobacion_pct != null || a.horas_estandar != null || a.devoluciones_internas).map((a) => {
+                    const rend = a.horas_estandar && a.horas_reales ? Math.round((a.horas_estandar / a.horas_reales) * 100) : null;
+                    return (
+                      <tr key={a.area}>
+                        <td><AreaChip area={a.area} nombre={a.nombre} /></td>
+                        <td className="text-right num">{a.brief_a_propuesta_h != null ? `${a.brief_a_propuesta_h} h` : "—"}</td>
+                        <td className={cx("text-right num", tonoPct(a.primera_aprobacion_pct))}>{pct(a.primera_aprobacion_pct)}</td>
+                        <td className="text-right num">{a.devoluciones_internas}</td>
+                        <td className="text-right num">{a.horas_estandar != null ? `${a.horas_reales} / ${a.horas_estandar} h` : "—"}</td>
+                        <td className={cx("text-right num", rend == null ? "" : rend >= 90 ? "text-verde" : rend >= 70 ? "" : "text-rojo")}>{rend != null ? `${rend}%` : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="px-5 pb-4 pt-2 text-xs text-gris">Rendimiento = horas del cronograma de producción ÷ horas reales del cronómetro (100 % = en el estándar). Meta: más contenido aprobado con menos retrabajo.</p>
+          </Panel>
           {d.areas.some((a) => a.retrabajos) && (
             <Panel titulo="Causas de retrabajo">
               <ul className="grid gap-2 sm:grid-cols-2">{d.areas.filter((a) => a.retrabajos).map((a) => (

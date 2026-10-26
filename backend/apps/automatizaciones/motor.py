@@ -36,6 +36,19 @@ def contexto(objeto):
                  responsable=objeto.responsable.get_full_name() if objeto.responsable else '',
                  fecha_compromiso=str(objeto.fecha_compromiso or ''), monto=str(objeto.monto or ''),
                  enlace=f"/ordenes/{objeto.pk}")
+    elif modelo == 'ordenarea':
+        o = objeto.orden
+        d.update(numero=objeto.numero, titulo=objeto.que_produce, cliente=o.cliente.nombre, area=objeto.area, areas=[objeto.area],
+                 area_nombre=objeto.get_area_display(), estado=objeto.estado, estado_nombre=objeto.get_estado_display(),
+                 orden=o.codigo, responsable=objeto.responsable.get_full_name() if objeto.responsable else '',
+                 fecha_compromiso=str(objeto.fecha_entrega_interna or ''), ronda_cliente=objeto.g4_ronda,
+                 departamento_id=None, enlace=f"/ordenes/{o.pk}/areas/{objeto.pk}")
+    elif modelo == 'traspaso':
+        d.update(numero=objeto.numero, titulo=objeto.que_entrega[:200], cliente=objeto.orden.cliente.nombre,
+                 area=objeto.oa.area if objeto.oa_id else '', areas=[a for a in [objeto.oa.area if objeto.oa_id else None,
+                                                                                 objeto.destino_oa.area if objeto.destino_oa_id else None] if a],
+                 estado=objeto.resultado, estado_nombre=objeto.get_resultado_display(), entrega=objeto.entrega_area,
+                 recibe=objeto.recibe_area, orden=objeto.orden.codigo, enlace=f"/ordenes/{objeto.orden_id}")
     elif modelo == 'tarea':
         d.update(numero='', titulo=objeto.titulo, cliente=objeto.cliente, estado=objeto.estado,
                  responsable=objeto.colaborador.get_full_name() or objeto.colaborador.username,
@@ -86,7 +99,10 @@ def _destinatarios(regla, objeto, datos):
         elif a == 'solicitante':
             quienes.append(getattr(objeto, 'solicitada_por', None) or getattr(objeto, 'asignada_por', None))
         elif a == 'jefes':
-            if datos['modelo'] == 'ordentrabajo':
+            if datos['modelo'] in ('ordenarea', 'traspaso') and datos.get('areas'):
+                from apps.operaciones.servicios_ot import supervisores_de
+                quienes.extend(supervisores_de(datos['areas'][-1]))
+            elif datos['modelo'] == 'ordentrabajo':
                 from apps.operaciones.servicios import jefes_de_departamento
                 quienes.extend(jefes_de_departamento(objeto.departamento_id))
             elif datos['modelo'] == 'tarea':

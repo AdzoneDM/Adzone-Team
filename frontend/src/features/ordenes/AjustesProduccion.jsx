@@ -15,7 +15,7 @@ export default function AjustesProduccion() {
   const [areas, setAreas] = useState(null);
   const [tiempos, setTiempos] = useState(null);
   const [editando, setEditando] = useState(null);
-  const [nuevo, setNuevo] = useState({ area: "", trabajo: "", dias: "" });
+  const [nuevo, setNuevo] = useState({ area: "", trabajo: "", dias: "", horas: "" });
   const [error, setError] = useState("");
   const cargar = useCallback(() => {
     configAreas().then(setAreas).catch((e) => setError(e.message));
@@ -43,16 +43,19 @@ export default function AjustesProduccion() {
         </ul>
       </Panel>
 
-      <Panel titulo="Tiempos estándar (días hábiles)" cuerpo="p-0">
+      <Panel titulo="Tiempos estándar · cronograma estimado de producción" cuerpo="p-0">
         <div className="overflow-x-auto">
           <table className="tabla">
-            <thead><tr><th>Área</th><th>Trabajo</th><th className="text-right">Días</th><th /></tr></thead>
+            <thead><tr><th>Área</th><th>Trabajo</th><th>Cronograma</th><th className="text-right">Horas</th><th className="text-right">Días</th><th /></tr></thead>
             <tbody>
               {tiempos.map((t) => (
                 <tr key={t.id}>
                   <td><AreaChip area={t.area} /></td>
                   <td>{t.trabajo}</td>
-                  <td className="text-right"><input type="number" min={0} step="0.5" aria-label={`Días de ${t.trabajo}`} className="h-9 w-20 rounded-md border border-linea px-2 text-right" defaultValue={Number(t.dias)}
+                  <td className="text-sm text-gris">{t.referencia}</td>
+                  <td className="text-right"><input type="number" min={0} step="any" aria-label={`Horas de ${t.trabajo}`} className="h-9 w-20 rounded-md border border-linea px-2 text-right" defaultValue={t.horas != null ? Number(t.horas) : ""}
+                    onBlur={async (e) => { if (e.target.value !== "" && Number(e.target.value) !== Number(t.horas)) { try { await guardarTiempo({ id: t.id, horas: e.target.value }); listo("Horas actualizadas."); } catch (err) { avisar(err.message, "rojo"); } } }} /></td>
+                  <td className="text-right"><input type="number" min={0} step="any" aria-label={`Días de ${t.trabajo}`} className="h-9 w-20 rounded-md border border-linea px-2 text-right" defaultValue={Number(t.dias)}
                     onBlur={async (e) => { if (Number(e.target.value) !== Number(t.dias)) { try { await guardarTiempo({ id: t.id, dias: e.target.value }); listo("Tiempo actualizado."); } catch (err) { avisar(err.message, "rojo"); } } }} /></td>
                   <td className="text-right"><button type="button" aria-label={`Quitar ${t.trabajo}`} className="rounded p-2 text-gris hover:text-rojo" onClick={async () => { await eliminarTiempo(t.id); listo("Quitado."); }}><Trash2 className="size-4" /></button></td>
                 </tr>
@@ -61,9 +64,11 @@ export default function AjustesProduccion() {
                 <td><select aria-label="Área" className="h-10 rounded-md border border-linea px-2" value={nuevo.area} onChange={(e) => setNuevo({ ...nuevo, area: e.target.value })}>
                   <option value="">Área…</option>{(catalogo?.areas || []).map((a) => <option key={a.codigo} value={a.codigo}>{a.codigo} · {a.nombre}</option>)}</select></td>
                 <td><input aria-label="Trabajo" className="h-10 w-full rounded-md border border-linea px-2" placeholder="Ej.: Lona hasta 10 m²" value={nuevo.trabajo} onChange={(e) => setNuevo({ ...nuevo, trabajo: e.target.value })} /></td>
-                <td className="text-right"><input aria-label="Días" type="number" min={0} step="0.5" className="h-10 w-20 rounded-md border border-linea px-2 text-right" value={nuevo.dias} onChange={(e) => setNuevo({ ...nuevo, dias: e.target.value })} /></td>
+                <td />
+                <td className="text-right"><input aria-label="Horas" type="number" min={0} step="any" className="h-10 w-20 rounded-md border border-linea px-2 text-right" value={nuevo.horas || ""} onChange={(e) => setNuevo({ ...nuevo, horas: e.target.value })} /></td>
+                <td className="text-right"><input aria-label="Días" type="number" min={0} step="any" className="h-10 w-20 rounded-md border border-linea px-2 text-right" value={nuevo.dias} onChange={(e) => setNuevo({ ...nuevo, dias: e.target.value })} /></td>
                 <td className="text-right"><Boton tam="sm" icono={Plus} disabled={!nuevo.area || !nuevo.trabajo.trim() || nuevo.dias === ""} onClick={async () => {
-                  try { await guardarTiempo(nuevo); setNuevo({ area: "", trabajo: "", dias: "" }); listo("Agregado."); } catch (e) { avisar(e.message, "rojo"); }
+                  try { await guardarTiempo({ ...nuevo, horas: nuevo.horas || null }); setNuevo({ area: "", trabajo: "", dias: "", horas: "" }); listo("Agregado."); } catch (e) { avisar(e.message, "rojo"); }
                 }}>Agregar</Boton></td>
               </tr>
             </tbody>

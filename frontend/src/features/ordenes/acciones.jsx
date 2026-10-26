@@ -120,7 +120,7 @@ export function AgregarAreaModal({ orden, abierto, onCerrar, onHecho }) {
           <option value="">Elige…</option>{(catalogo?.areas || []).map((a) => <option key={a.codigo} value={a.codigo}>{a.codigo} · {a.nombre}</option>)}</select>}</Campo>
         <Campo etiqueta="Orden en la secuencia">{(id) => <input id={id} type="number" min={1} className="campo" value={f.secuencia} onChange={(e) => setF({ ...f, secuencia: e.target.value })} />}</Campo>
         <Campo etiqueta="Qué produce" className="sm:col-span-2">{(id) => <input id={id} className="campo" value={f.que_produce} onChange={(e) => setF({ ...f, que_produce: e.target.value })} />}</Campo>
-        <Campo etiqueta="Días estándar">{(id) => <input id={id} type="number" min={0} step="0.5" className="campo" value={f.tiempo_estandar_dias} onChange={(e) => setF({ ...f, tiempo_estandar_dias: e.target.value })} />}</Campo>
+        <Campo etiqueta="Días estándar">{(id) => <input id={id} type="number" min={0} step="any" className="campo" value={f.tiempo_estandar_dias} onChange={(e) => setF({ ...f, tiempo_estandar_dias: e.target.value })} />}</Campo>
       </div>
     </Modal>
   );

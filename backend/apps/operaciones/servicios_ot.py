@@ -14,7 +14,7 @@ from django.utils import timezone
 from apps.desempeno import servicios as tareas_srv
 from apps.desempeno.models import PasoTarea, Tarea
 from apps.desempeno.servicios import avisar, nombre
-from .formatos import AREAS, COLCHON, G0, faltan
+from .formatos import AREAS, AREAS_CONTENIDO, COLCHON, G0, VALIDACION_FINAL, VENTANAS, faltan
 from .models import Acta, AreaConfig, EventoOrden, Firma, OrdenArea, OrdenTrabajo, SolicitudCambio, Traspaso
 from .permisos import es_coordinacion, es_finanzas, es_gerencia
 
@@ -99,8 +99,44 @@ def calcular_compromiso(orden, plan=None, hoy=None):
     aprobacion = Decimal(orden.rondas_incluidas) if requiere_aprobacion else Decimal('0')  # 24 h × rondas
     colchon = COLCHON.get(orden.prioridad, 20)
     total = (estandar + cola + aprobacion) * (Decimal(100 + colchon) / 100)
+    horas = sum((Decimal(str(f.get('horas_estimadas') or 0)) for f in plan), Decimal('0'))
     return {'tiempo_estandar_dias': estandar, 'cola_dias': cola, 'aprobacion_dias': aprobacion, 'colchon_pct': colchon,
-            'dias_habiles': total.quantize(Decimal('0.1')), 'fecha_compromiso': sumar_habiles(hoy, total)}
+            'dias_habiles': total.quantize(Decimal('0.1')), 'fecha_compromiso': sumar_habiles(hoy, total), 'horas_estimadas': horas,
+            'anticipacion': anticipacion(plan, orden.fecha_requerida, hoy)}
+
+
+def habiles_entre(desde, hasta):
+    n, d = 0, desde
+    while d < hasta:
+        d += timedelta(days=1)
+        if d.weekday() < 5:
+            n += 1
+    return n
+
+
+def anticipacion(plan, fecha_requerida, hoy=None):
+    """
+    Ventanas de anticipación del contenido (Marketing, Diseño, Audiovisuales):
+    ideal 15 días calendario, seguro 10, emergencia 7 días hábiles (solo con plantillas y copys aprobados).
+    """
+    if not fecha_requerida or not any(f.get('area') in AREAS_CONTENIDO for f in plan):
+        return None
+    hoy = hoy or timezone.localdate()
+    if isinstance(fecha_requerida, str):
+        from datetime import date
+        fecha_requerida = date.fromisoformat(fecha_requerida[:10])
+    dias = (fecha_requerida - hoy).days
+    habiles = habiles_entre(hoy, fecha_requerida)
+    if dias >= VENTANAS['ideal']:
+        nivel, texto = 'ideal', "Ventana ideal: hay margen para trabajar con excelencia y corregir."
+    elif dias >= VENTANAS['seguro']:
+        nivel, texto = 'seguro', "Ventana segura: se mantiene la calidad sin improvisar."
+    elif habiles >= VENTANAS['emergencia_habiles']:
+        nivel, texto = 'emergencia', "Emergencia: solo si hay plantillas, copys aprobados y automatizaciones listas."
+    else:
+        nivel, texto = 'insuficiente', (f"Menos de {VENTANAS['emergencia_habiles']} días hábiles: por debajo de la ventana mínima. "
+                                         "Negocia la fecha con el cliente o márcala como emergencia.")
+    return {'dias': dias, 'habiles': habiles, 'nivel': nivel, 'texto': texto}
 
 
 # ------------------------------------------------------------------ G0 · apertura (Comercial → Coordinación)
@@ -210,11 +246,12 @@ def liberar(orden, quien, fecha_compromiso=None):
             orden=orden, area=fila['area'], secuencia=int(fila.get('secuencia') or 1),
             que_produce=(fila.get('que_produce') or AREAS[fila['area']]['nombre'])[:255],
             fecha_entrega_interna=fila.get('fecha_entrega_interna') or orden.fecha_compromiso,
-            tiempo_estandar_dias=fila.get('tiempo_estandar_dias') or None,
+            tiempo_estandar_dias=fila.get('tiempo_estandar_dias') or None, horas_estimadas=fila.get('horas_estimadas') or None,
             responsable_id=fila.get('responsable') or None, g1_entrega_por=quien,
             especificacion=fila.get('especificacion') or {})
         avisar(supervisores_de(oa.area), 'ORDEN', f"Orden de Área {oa.numero}", f"{oa.que_produce} · {orden.cliente}. Revisa la compuerta G1.",
                enlace=enlace(orden, oa), excepto=quien)
+        disparar('OA_ESTADO', oa, quien)
     Traspaso.objects.create(orden=orden, compuerta='G0', que_entrega="OT Maestra completa (F-01)", entrega_area='Comercial',
                             entrega_por=orden.g0_entregada_por or orden.solicitada_por, recibe_area='Coordinación', recibe_por=quien,
                             recibe_fecha=timezone.now(), verificacion=orden.g0, resultado='ACEPTADO')
@@ -285,7 +322,7 @@ def recibir_g1(oa, quien, marcados, responsable, equipo=(), fecha_interna=None, 
         titulo=f"{oa.numero} · {oa.que_produce}"[:255], descripcion=oa.orden.descripcion, cliente=oa.orden.cliente.nombre,
         colaborador=responsable, asignada_por=quien, prioridad=PRIORIDAD_TAREA.get(oa.orden.prioridad, 'MEDIA'),
         fecha_limite=oa.fecha_entrega_interna, fecha_inicio=timezone.localdate(), orden=oa.orden, oa=oa,
-        proyecto=oa.orden.proyecto, horas_estimadas=(oa.tiempo_estandar_dias or 0) * 8 or None)
+        proyecto=oa.orden.proyecto, horas_estimadas=oa.horas_estimadas or ((oa.tiempo_estandar_dias or 0) * 8) or None)
     tarea.companeros.set([u for u in equipo if u.pk != responsable.pk])
     for i, etapa in enumerate(AREAS[oa.area]['etapas']):
         PasoTarea.objects.create(tarea=tarea, texto=etapa, orden=i)
@@ -295,6 +332,7 @@ def recibir_g1(oa, quien, marcados, responsable, equipo=(), fecha_interna=None, 
                             recibe_fecha=timezone.now(), verificacion=oa.g1, resultado='ACEPTADO')
     registrar(oa.orden, quien, f"{oa.numero} recibida en G1 (E2)", f"Ejecutor: {nombre(responsable)}.")
     sincronizar_orden(oa.orden, quien)
+    disparar('OA_ESTADO', oa, quien)
     return tarea
 
 
@@ -312,6 +350,7 @@ def rechazar_g1(oa, quien, marcados, causa):
                             entrega_por=oa.g1_entrega_por, recibe_area=oa.get_area_display(), recibe_por=quien,
                             recibe_fecha=timezone.now(), verificacion=oa.g1, resultado='RECHAZADO', causa_rechazo=causa)
     registrar(oa.orden, quien, f"{oa.numero} rechazada en G1", causa)
+    disparar('OA_ESTADO', oa, quien)
     avisar(coordinadores(), 'ORDEN', f"Rechazada en G1: {oa.numero}", causa, enlace=enlace(oa.orden, oa), excepto=quien)
 
 
@@ -339,11 +378,60 @@ def enviar_a_aprobacion(oa, quien):
         raise ErrorFlujo("No trabajas en esta Orden de Área.")
     if oa.estado not in ('RECIBIDA', 'EN_EJECUCION'):
         raise ErrorFlujo("Solo se envía al cliente lo que está en ejecución.")
+    if AREAS[oa.area].get('revision_interna') and not oa.revision_interna_por_id:
+        raise ErrorFlujo("Antes del cliente va la revisión interna del Gerente de Marketing (checklist de validación final): "
+                         "si no hay revisión humana, no hay publicación.")
     oa.estado = 'EN_APROBACION'
     oa.g4_ronda += 1
-    oa.save(update_fields=['estado', 'g4_ronda'])
+    oa.g4_primer_envio = oa.g4_primer_envio or timezone.now()
+    oa.save(update_fields=['estado', 'g4_ronda', 'g4_primer_envio'])
     registrar(oa.orden, quien, f"{oa.numero} enviada al cliente (G4, ronda {oa.g4_ronda}) · E4")
     sincronizar_orden(oa.orden, quien)
+    disparar('OA_ESTADO', oa, quien)
+
+
+def pedir_revision(oa, quien):
+    """El ejecutor avisa al Gerente de Marketing que la propuesta está lista para la revisión interna."""
+    if not _puede_operar(oa, quien):
+        raise ErrorFlujo("No trabajas en esta Orden de Área.")
+    if not AREAS[oa.area].get('revision_interna'):
+        raise ErrorFlujo("Esta área no lleva revisión interna antes del cliente.")
+    if oa.estado not in ('RECIBIDA', 'EN_EJECUCION'):
+        raise ErrorFlujo("La Orden de Área no está en ejecución.")
+    registrar(oa.orden, quien, f"{oa.numero}: propuesta lista para revisión interna")
+    avisar(supervisores_de(oa.area), 'ORDEN', f"Revisión interna: {oa.numero}", f"{nombre(quien)} subió la propuesta de «{oa.que_produce}».",
+           enlace=enlace(oa.orden, oa), excepto=quien)
+
+
+def revisar_interna(oa, quien, marcados, aprobar, comentario=''):
+    """Revisión interna del Gerente de Marketing con el checklist de validación final, antes de mostrar al cliente."""
+    from .permisos import supervisa_area
+    if not supervisa_area(quien, oa.area):
+        raise ErrorFlujo("La revisión interna la hace el Gerente de Marketing (supervisor del área).")
+    if oa.estado not in ('RECIBIDA', 'EN_EJECUCION'):
+        raise ErrorFlujo("La Orden de Área no está en ejecución.")
+    oa.revision_interna = {t: bool((marcados or {}).get(t)) for t in VALIDACION_FINAL}
+    oa.revision_interna_comentario = (comentario or '').strip()
+    if aprobar:
+        pendientes = faltan(VALIDACION_FINAL, oa.revision_interna)
+        if pendientes:
+            oa.save(update_fields=['revision_interna', 'revision_interna_comentario'])
+            raise ErrorFlujo("Nada sale sin el checklist completo. Falta: " + "; ".join(pendientes) + ".")
+        oa.revision_interna_por = quien
+        oa.revision_interna_fecha = timezone.now()
+        oa.save(update_fields=['revision_interna', 'revision_interna_comentario', 'revision_interna_por', 'revision_interna_fecha'])
+        registrar(oa.orden, quien, f"{oa.numero}: revisión interna aprobada", comentario)
+        avisar([oa.responsable], 'ORDEN', f"Visto bueno interno: {oa.numero}", "Ya se puede enviar al cliente (G4).",
+               enlace=enlace(oa.orden, oa), excepto=quien)
+    else:
+        if len(oa.revision_interna_comentario) < 3:
+            raise ErrorFlujo("Escribe qué ajustes pides.")
+        oa.revision_interna_por = None
+        oa.revisiones_internas_devueltas += 1
+        oa.save(update_fields=['revision_interna', 'revision_interna_comentario', 'revision_interna_por', 'revisiones_internas_devueltas'])
+        registrar(oa.orden, quien, f"{oa.numero}: ajustes pedidos en la revisión interna", comentario)
+        avisar([oa.responsable, *[u for t in oa.tareas.all() for u in t.companeros.all()]], 'DEVUELTA',
+               f"Ajustes internos: {oa.numero}", comentario, enlace=enlace(oa.orden, oa), excepto=quien)
 
 
 def registrar_g4(oa, quien, aprobado, canales, aprobado_por='', version='', con_cambios=False, comentario=''):
@@ -368,10 +456,14 @@ def registrar_g4(oa, quien, aprobado, canales, aprobado_por='', version='', con_
         registrar(oa.orden, quien, f"{oa.numero}: cliente aprobó (G4)", f"{aprobado_por} · {', '.join(canales)} · versión {version}")
     else:
         registrar(oa.orden, quien, f"{oa.numero}: cliente pidió cambios (ronda {oa.g4_ronda})", comentario)
+        if AREAS[oa.area].get('revision_interna'):  # la nueva versión vuelve a pasar por la revisión interna
+            oa.revision_interna_por = None
+            oa.save(update_fields=['revision_interna_por'])
         if oa.g4_ronda >= oa.orden.rondas_incluidas:
             aviso = (f"Ya van {oa.g4_ronda} rondas y la cotización incluye {oa.orden.rondas_incluidas}. "
                      "La siguiente se cobra: registra una Solicitud de Cambio (F-14).")
             avisar(coordinadores(), 'ORDEN', f"Rondas agotadas: {oa.numero}", aviso, enlace=enlace(oa.orden, oa), excepto=quien)
+    disparar('OA_ESTADO', oa, quien)
     return aviso
 
 
@@ -432,6 +524,7 @@ def traspasar(oa, quien, marcados, destino_oa=None, que_entrega=''):
     avisar(destinatarios, 'ORDEN', f"Traspaso por recibir: {oa.numero}", f"{t.que_entrega}. Verifica y firma la recepción.",
            enlace=enlace(oa.orden, oa), excepto=quien)
     registrar(oa.orden, quien, f"{oa.numero}: entregada en {t.compuerta} a {t.recibe_area}", t.que_entrega)
+    disparar('TRASPASO', t, quien)
     return t
 
 
@@ -464,6 +557,7 @@ def recibir_traspaso(t, quien, verificacion, aceptar, causa=''):
         oa.fecha_terminada = timezone.now()
         oa.save(update_fields=['estado', 'fecha_terminada'])
         registrar(oa.orden, quien, f"{oa.numero} terminada (E5): traspaso firmado por {t.recibe_area}")
+        disparar('OA_ESTADO', oa, quien)
         avisar([oa.responsable], 'ORDEN', f"Traspaso aceptado: {oa.numero}", f"Recibió {nombre(quien)}.", enlace=enlace(oa.orden, oa), excepto=quien)
     else:
         if len((causa or '').strip()) < 3:
@@ -498,6 +592,7 @@ def sincronizar_desde_tarea(tarea, quien):
         oa.save(update_fields=['estado'])
         registrar(oa.orden, quien, f"{oa.numero} en ejecución (E3)")
         sincronizar_orden(oa.orden, quien)
+        disparar('OA_ESTADO', oa, quien)
 
 
 def sincronizar_orden(orden, quien=None):
