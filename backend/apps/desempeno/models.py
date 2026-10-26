@@ -54,6 +54,8 @@ class Tarea(models.Model):
                                  related_name='tareas', verbose_name="Proyecto")
     orden = models.ForeignKey('operaciones.OrdenTrabajo', on_delete=models.SET_NULL, null=True, blank=True,
                               related_name='tareas', verbose_name="Orden de trabajo")
+    oa = models.ForeignKey('operaciones.OrdenArea', on_delete=models.SET_NULL, null=True, blank=True,
+                           related_name='tareas', verbose_name="Orden de Área")
     fecha_inicio = models.DateField(null=True, blank=True, verbose_name="Empieza",
                                     help_text="Para el cronograma. Si está vacía, se toma la fecha de creación.")
     horas_estimadas = models.DecimalField(max_digits=6, decimal_places=1, null=True, blank=True,
@@ -240,7 +242,9 @@ class PasoTarea(models.Model):
     hecho = models.BooleanField(default=False)
     orden = models.PositiveSmallIntegerField(default=0)
     hecho_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    fecha_inicio = models.DateTimeField(null=True, blank=True, help_text="Seguimiento de la ejecución: inicio de la etapa.")
     fecha_hecho = models.DateTimeField(null=True, blank=True)
+    resultado = models.CharField("Resultado / observación", max_length=255, blank=True)
 
     def __str__(self):
         return self.texto

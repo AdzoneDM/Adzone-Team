@@ -11,6 +11,12 @@ const ROLES = [
   ["Administrador", "Ve a toda la empresa, configura la plataforma y declara el Empleado del Mes."],
 ];
 
+const ACCESOS = [
+  ["Finanzas", "Acceso a Finanzas", "Cotizaciones, facturas, cobros, gastos y Cashflow. El departamento de Administración ya lo tiene."],
+  ["Coordinación", "Coordinación de Producción", "Recibe las OT en G0, las numera, emite las Órdenes de Área, autoriza vales y recibe los traspasos."],
+  ["Almacén", "Almacén", "Despacha los vales de materiales, registra entradas y ajusta el inventario."],
+];
+
 const rolPrincipal = (roles) => (roles.includes("Administrador") ? "Administrador" : roles.includes("Gerente de Departamento") ? "Gerente de Departamento" : "Colaborador");
 
 function generarClave() {
@@ -28,9 +34,9 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
   useEffect(() => {
     if (!abierto) return;
     setError("");
-    setF(nuevo ? { first_name: "", last_name: "", username: "", email: "", puesto_trabajo_id: "", rol: "Colaborador", password: generarClave(), is_active: true, finanzas: false, horas_semana: 44, costo_hora: "" }
+    setF(nuevo ? { first_name: "", last_name: "", username: "", email: "", puesto_trabajo_id: "", rol: "Colaborador", password: generarClave(), is_active: true, accesos: [], horas_semana: 44, costo_hora: "" }
       : { ...inicial, puesto_trabajo_id: inicial.puesto_id || "", rol: rolPrincipal(inicial.roles), password: "",
-        finanzas: inicial.roles.includes("Finanzas"), horas_semana: inicial.horas_semana ?? 44, costo_hora: inicial.costo_hora ?? "" });
+        accesos: ACCESOS.map(([r]) => r).filter((r) => inicial.roles.includes(r)), horas_semana: inicial.horas_semana ?? 44, costo_hora: inicial.costo_hora ?? "" });
   }, [abierto, inicial, nuevo]);
   const cambiar = (c) => (e) => setF({ ...f, [c]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
@@ -43,7 +49,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
       const datos = {
         id: f.id, first_name: f.first_name.trim(), last_name: (f.last_name || "").trim(), username: f.username.trim().toLowerCase(),
         email: f.email.trim().toLowerCase(), puesto_trabajo_id: f.puesto_trabajo_id ? Number(f.puesto_trabajo_id) : null,
-        roles_asignados: f.finanzas ? [f.rol, "Finanzas"] : [f.rol], is_active: !!f.is_active,
+        roles_asignados: [f.rol, ...(f.accesos || [])], is_active: !!f.is_active,
         horas_semana: f.horas_semana || 44, costo_hora: f.costo_hora === "" || f.costo_hora == null ? null : f.costo_hora,
       };
       if (f.password) datos.password = f.password;
@@ -83,10 +89,19 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
             ))}
           </div>
         </fieldset>
-        <label className="flex items-start gap-2.5 rounded-lg border border-linea p-3 text-[15px]">
-          <input type="checkbox" checked={!!f.finanzas} onChange={cambiar("finanzas")} className="mt-1 accent-azul" />
-          <span>Acceso a Finanzas<span className="block text-sm text-gris">Cotizaciones, facturas, cobros y gastos. El departamento de Administración ya lo tiene.</span></span>
-        </label>
+        <fieldset className="space-y-2">
+          <legend className="etiqueta">Accesos adicionales</legend>
+          {ACCESOS.map(([rol, titulo, texto]) => {
+            const marcado = (f.accesos || []).includes(rol);
+            return (
+              <label key={rol} className="flex items-start gap-2.5 rounded-lg border border-linea p-3 text-[15px]">
+                <input type="checkbox" checked={marcado} className="mt-1 accent-azul"
+                  onChange={() => setF({ ...f, accesos: marcado ? f.accesos.filter((x) => x !== rol) : [...(f.accesos || []), rol] })} />
+                <span>{titulo}<span className="block text-sm text-gris">{texto}</span></span>
+              </label>
+            );
+          })}
+        </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo etiqueta="Horas por semana" ayuda="Su capacidad, para medir la carga.">
             {(id) => <input id={id} type="number" min={1} max={80} step="0.5" className="campo" value={f.horas_semana ?? ""} onChange={cambiar("horas_semana")} />}

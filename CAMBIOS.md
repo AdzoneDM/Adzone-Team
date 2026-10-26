@@ -1,5 +1,37 @@
 # Cambios
 
+## 6.0 · 26/10/2026 · Formatos ADZONE en digital, almacén y facturación con Cashflow
+
+Las órdenes de trabajo ahora siguen al pie de la letra los formatos controlados de ADZONE (F-01 a F-15).
+
+### OT Maestra y Órdenes de Área
+- **F-01 completo:** datos del cliente, alcance y exclusiones, áreas que intervienen con su secuencia (en paralelo si comparten número), cálculo de la fecha comprometida (estándar + cola + aprobación × rondas + colchón 20/30 %), monto, anticipo y la compuerta **G0** de 11 casillas.
+- **Numeración por Coordinación:** la solicitud (S-AA-0000) se vuelve **OT-AA-0000** solo al liberarla. Sin anticipo no se numera, salvo excepción de Gerencia General con aviso de regularizar en 24 h.
+- **Una Orden de Área por área** (F-02 Diseño, F-03 Marketing, F-04 Audiovisuales, F-05 Podcast/Adzone TV, F-06 Impresión, F-07 Letreros, F-08 Fabricación, F-09 Eventos, F-10 Software, más Instalación, Call Center y Administración), cada una con su G1, su especificación, sus etapas, su G3 y su G2/G5.
+- **Compuertas que no se saltan:** G1 al recibir (crea la tarea con las etapas), G4 con aprobación escrita del cliente y control de rondas, G3 al validar la tarea, y **traspasos con doble firma (F-13)**: quien recibe verifica, acepta o rechaza con causa.
+- **Estados E1 a E7** visibles en cada OT, y tablero **Por área** con la cola de cada área.
+- **Acta de entrega / instalación (F-12)** con liberación de salida G5 (saldo pagado o autorización de Gerencia), verificación en sitio y **firma del cliente en la pantalla**. Sin acta firmada no se factura ni se cierra.
+- **Cierre G6** con costo real (horas, materiales, servicios externos, retrabajos y gastos) y margen contra lo cotizado.
+- **Solicitudes de cambio y retrabajos (F-14)** con clasificación, impacto antes/después, acción preventiva y autorización.
+- **Incidencias y tiempos muertos** por Orden de Área.
+- **Bitácora F-15** en Excel e **indicadores semanales** por área.
+- Formatos **imprimibles** y llenos: F-01, F-02 a F-10 y F-12.
+- **Áreas y tiempos:** supervisores por área y tabla de tiempos estándar.
+
+### Almacén (F-11)
+- Catálogo de materiales con existencia, punto de reposición (avisa al llegar), costo promedio y kardex.
+- Vale de salida: lo pide el área, lo **autoriza Coordinación**, lo **despacha Almacén** (descuenta en el momento), lo firma quien recibe, y se cierra con devolución y desperdicio con su causa. El costo pasa a la OT.
+
+### Cashflow
+- Conector con la API de Cashflow: sincroniza clientes (por RNC), envía cotizaciones, **emite la factura fiscal** (Cashflow asigna el NCF / e-CF) y **lee pagos y saldo**. Si el pago cubre el anticipo, el G0 se marca solo.
+- Pantalla **Finanzas → Cashflow** con prueba de conexión, sincronización y bitácora de cada llamada. **Modo prueba** (simulador) mientras no haya API key.
+- Las rutas y los nombres de campos de la API están en un solo archivo para ajustarlos a la documentación oficial sin tocar el resto.
+
+### Otros
+- Accesos nuevos en Personas: **Coordinación** y **Almacén**.
+- Anticipos y abonos facturables antes de entregar; la factura final descuenta lo ya facturado.
+- Automatizaciones filtrables por área. La tarea diaria también avisa excepciones G0 vencidas y trae pagos de Cashflow.
+
 ## 5.0 · 26/10/2026 · Operación completa: órdenes, proyectos, tiempo y finanzas
 
 Adzone Team deja de ser solo tareas y KPIs: ahora lleva el trabajo diario de toda la agencia, de la cotización al cobro.

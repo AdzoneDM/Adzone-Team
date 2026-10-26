@@ -2,7 +2,9 @@
 
 La plataforma de trabajo de ADZONE: **tareas, KPIs y reconocimiento en un solo lugar**. Une lo que antes eran dos sistemas, *Adzone Team* (tablero de tareas del equipo) y *Adzone KPIs* (medición del desempeño).
 
-- **Órdenes de trabajo por área:** impresión, Adzone TV, call center, marketing, audiovisual, desarrollo y administración. Cada área tiene su propio formulario. El recorrido es solicitud → aprobación → producción → control de calidad → lista → entrega, con tablero arrastrable, tabla y calendario.
+- **Órdenes de trabajo con los formatos ADZONE (F-01 a F-15):** OT Maestra con compuerta G0 y numeración por Coordinación, una Orden de Área por cada área (diseño, marketing, audiovisuales, podcast, impresión, letreros, fabricación, eventos, software, instalación, call center), compuertas G1/G4/G3, traspasos con doble firma, acta de entrega con firma del cliente en pantalla, cambios y retrabajos, cierre con costo real y margen, bitácora e indicadores por área.
+- **Almacén:** vales de salida de materiales (F-11) con autorización, despacho, devolución, desperdicio y existencias.
+- **Cashflow:** factura fiscal (NCF / e-CF), clientes, cotizaciones y pagos conectados por API.
 - **Proyectos y clientes:** tabla, tablero y cronograma (Gantt). Cada proyecto reúne sus tareas, sus órdenes, sus horas, una conversación con @menciones y su rentabilidad.
 - **Tareas:** se asignan a una persona o a varias, con pasos, cliente, proyecto, horas estimadas y fechas. Solo cuentan cuando quien supervisa las valida.
 - **Tiempo y carga:** cronómetro siempre visible, tiempo anotado a mano, capacidad semanal de cada persona con aviso de sobrecarga y reporte de horas.
@@ -82,7 +84,9 @@ GitHub las corre solas en cada Pull Request (ver [`CONTRIBUTING.md`](CONTRIBUTIN
 | --- | --- | --- |
 | Colaborador | Todo el equipo | Ve sus tareas (propias y compartidas), marca pasos, entrega con evidencia, pide más trabajo y consulta su avance, puntaje y KPIs. |
 | Supervisor | Quien ocupa un puesto del que dependen otros (organigrama) | Ve a todo lo que cuelga de su puesto, en cascada. Asigna, programa recurrentes, recuerda, valida o devuelve. |
-| Finanzas | Departamento de Administración (o grupo «Finanzas») | Cotizaciones, facturas, cobros, gastos y rentabilidad de toda la empresa. |
+| Finanzas | Departamento de Administración (o acceso «Finanzas») | Cotizaciones, facturas (Cashflow), cobros, gastos y rentabilidad; anticipos, salida G5 y cierre G6 de las OT. |
+| Coordinación | Acceso «Coordinación» | G0: libera y numera las OT, emite y reemite Órdenes de Área, autoriza vales y cambios, prepara actas. |
+| Almacén | Acceso «Almacén» | Despacha vales, entradas y ajustes de inventario. |
 | Administrador | Dirección | Todo, para toda la empresa. Además configura organigrama, personas, KPIs, reglas del puntaje, automatizaciones y declara el Empleado del Mes. |
 
 Cómo se trabaja con órdenes, proyectos, tiempo y finanzas, paso a paso: [`docs/GUIA_OPERACION.md`](docs/GUIA_OPERACION.md).
@@ -94,6 +98,7 @@ Gerencia · Marketing · Audiovisual · Adzone TV · Impresión · Administraci�
 ## Seguridad
 
 - No subas nunca la base de datos, la carpeta `media/`, el archivo `.env` ni `datos_privados/`. El `.gitignore` ya los excluye.
+- La **API key de Cashflow** va solo en `backend/.env` del servidor (`CASHFLOW_API_KEY`). Nunca en GitHub, en un chat ni en la plataforma. La bitácora de Cashflow nunca la guarda.
 - Las fotos de evidencia no son públicas: se descargan por la API, que revisa permisos.
 
 Ver [`CAMBIOS.md`](CAMBIOS.md) para el historial de versiones.

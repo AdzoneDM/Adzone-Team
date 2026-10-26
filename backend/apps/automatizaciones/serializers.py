@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 
 from rest_framework import serializers
 
-from apps.operaciones.formularios import TIPOS
+from apps.operaciones.formatos import AREAS
 from apps.operaciones.models import OrdenTrabajo
 from .models import Ejecucion, Regla
 
@@ -21,8 +21,9 @@ class ReglaSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         cond = attrs.get('condiciones', getattr(self.instance, 'condiciones', {})) or {}
-        if cond.get('tipo') and cond['tipo'] not in TIPOS:
-            raise serializers.ValidationError({'condiciones': "Tipo de orden desconocido."})
+        cond.pop('tipo', None)
+        if cond.get('area') and cond['area'] not in AREAS:
+            raise serializers.ValidationError({'condiciones': "Área desconocida."})
         if cond.get('estado') and cond['estado'] not in dict(OrdenTrabajo.ESTADOS):
             raise serializers.ValidationError({'condiciones': "Estado desconocido."})
         accion = attrs.get('accion', getattr(self.instance, 'accion', None))

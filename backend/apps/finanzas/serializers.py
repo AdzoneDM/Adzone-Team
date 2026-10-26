@@ -25,7 +25,7 @@ class DocumentoSerializer(serializers.ModelSerializer):
     MODELO_LINEA = None
     BASE = ['id', 'numero', 'cliente', 'cliente_nombre', 'cliente_rnc', 'proyecto', 'proyecto_nombre', 'titulo', 'fecha',
             'moneda', 'notas', 'subtotal', 'itbis', 'total', 'estado', 'estado_nombre', 'lineas', 'creada_por_nombre',
-            'fecha_creacion']
+            'fecha_creacion', 'cashflow_id', 'cashflow_numero', 'cashflow_estado', 'cashflow_sincronizado']
 
     def get_creada_por_nombre(self, o):
         return (o.creada_por.get_full_name() or o.creada_por.username) if o.creada_por else None
@@ -69,7 +69,8 @@ class CotizacionSerializer(DocumentoSerializer):
     class Meta:
         model = Cotizacion
         fields = DocumentoSerializer.BASE + ['valida_hasta', 'condiciones']
-        read_only_fields = ['numero', 'subtotal', 'itbis', 'total', 'estado']
+        read_only_fields = ['numero', 'subtotal', 'itbis', 'total', 'estado', 'cashflow_id', 'cashflow_numero', 'cashflow_estado',
+                            'cashflow_sincronizado']
 
 
 class PagoSerializer(serializers.ModelSerializer):
@@ -90,20 +91,21 @@ class FacturaSerializer(DocumentoSerializer):
     saldo = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     vencida = serializers.BooleanField(read_only=True)
     pagos = PagoSerializer(many=True, read_only=True)
-    orden_numero = serializers.CharField(source='orden.numero', read_only=True, default=None)
+    orden_numero = serializers.CharField(source='orden.codigo', read_only=True, default=None)
     cotizacion_numero = serializers.CharField(source='cotizacion.numero', read_only=True, default=None)
 
     class Meta:
         model = Factura
         fields = DocumentoSerializer.BASE + ['vencimiento', 'ncf', 'orden', 'orden_numero', 'cotizacion', 'cotizacion_numero',
-                                             'pagado', 'saldo', 'vencida', 'pagos']
-        read_only_fields = ['numero', 'subtotal', 'itbis', 'total', 'estado', 'pagado', 'cotizacion']
+                                             'pagado', 'saldo', 'vencida', 'pagos', 'es_anticipo']
+        read_only_fields = ['numero', 'subtotal', 'itbis', 'total', 'estado', 'pagado', 'cotizacion', 'cashflow_id',
+                            'cashflow_numero', 'cashflow_estado', 'cashflow_sincronizado']
 
 
 class GastoSerializer(serializers.ModelSerializer):
     categoria_nombre = serializers.CharField(source='get_categoria_display', read_only=True)
     proyecto_nombre = serializers.CharField(source='proyecto.nombre', read_only=True, default=None)
-    orden_numero = serializers.CharField(source='orden.numero', read_only=True, default=None)
+    orden_numero = serializers.CharField(source='orden.codigo', read_only=True, default=None)
     tiene_comprobante = serializers.SerializerMethodField()
 
     class Meta:

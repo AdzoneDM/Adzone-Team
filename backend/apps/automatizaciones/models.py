@@ -26,7 +26,7 @@ class Regla(models.Model):
     activa = models.BooleanField(default=True)
     evento = models.CharField(max_length=24, choices=EVENTOS)
     condiciones = models.JSONField(default=dict, blank=True,
-                                   help_text="Filtros opcionales: tipo (de orden), estado, departamento_id.")
+                                   help_text="Filtros opcionales: area (de producción), estado, departamento_id.")
     accion = models.CharField(max_length=12, choices=ACCIONES)
     parametros = models.JSONField(default=dict, blank=True,
                                   help_text="AVISAR: a (lista), usuario_id, mensaje. CREAR_TAREA: titulo, asignar, usuario_id, dias. WEBHOOK: url.")

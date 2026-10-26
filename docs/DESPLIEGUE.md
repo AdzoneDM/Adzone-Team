@@ -70,6 +70,30 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Si vienes de la versión 5
+
+`migrate` crea las tablas de Órdenes de Área, traspasos, actas, cambios, almacén y Cashflow, y los accesos «Coordinación» y «Almacén». Después:
+
+1. En **Personas**, da el acceso **Coordinación** a quien coordina producción y **Almacén** a quien despacha materiales.
+2. En **Áreas y tiempos**, revisa quién supervisa cada área (si no se asigna, es el gerente del departamento) y carga la tabla de tiempos estándar.
+3. En **Almacén → Materiales**, carga el catálogo con su existencia inicial (o con una entrada).
+4. Cashflow: ver la sección siguiente.
+
+La versión 5 no llegó a publicarse con órdenes reales, por eso sus migraciones de órdenes se rehicieron. Si llegaste a cargar órdenes de prueba en la v5, empieza desde una base de la v4 (o borra esas tablas) antes de `migrate`.
+
+### Conectar Cashflow
+
+1. En Cashflow → **Generador de API KEY**, genera la clave de la aplicación «API-CASHFLOW».
+2. En el servidor, en `backend/.env` (nunca en GitHub ni en un chat):
+   ```
+   CASHFLOW_API_KEY=la-clave
+   ```
+   Si la documentación de desarrolladores de Cashflow indica otra dirección o cabecera, ajusta también `CASHFLOW_API_URL`, `CASHFLOW_AUTH_HEADER` y `CASHFLOW_AUTH_PREFIX` (ver `.env.example`).
+3. Reinicia la app y prueba: `python manage.py sincronizar_cashflow --probar`, o **Finanzas → Cashflow → Probar conexión**.
+4. Si algo responde 404 o 422, ajusta las rutas o los campos en `backend/apps/integraciones/cashflow/rutas.py` y `mapeo.py` según la documentación oficial (el README de esa carpeta explica cada operación). La bitácora en Finanzas → Cashflow muestra el error de cada llamada.
+
+La tarea programada diaria (`python manage.py tareas_diarias`) trae los pagos de Cashflow cuando la clave está puesta.
+
 ### Si vienes de la versión 4
 
 `migrate` crea las tablas de clientes, proyectos, órdenes, tiempo, finanzas y automatizaciones, y carga las cuatro automatizaciones base. Vuelve a correr `python manage.py departamentos_oficiales --aplicar` para crear **Call Center**. Finanzas entra con cualquier persona del departamento Administración; también se puede crear el grupo «Finanzas» en el administrador.

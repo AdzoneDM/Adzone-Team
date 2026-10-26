@@ -11,7 +11,7 @@ const ICONO = { AVISAR: BellRing, CREAR_TAREA: ListPlus, WEBHOOK: Webhook };
 function frase(r, cat) {
   const ev = cat.eventos.find((e) => e.valor === r.evento)?.nombre || r.evento;
   const cond = [];
-  if (r.condiciones?.tipo) cond.push(`de ${cat.tipos.find((t) => t.valor === r.condiciones.tipo)?.nombre}`);
+  if (r.condiciones?.area) cond.push(`con ${cat.areas.find((t) => t.valor === r.condiciones.area)?.nombre}`);
   if (r.condiciones?.estado) cond.push(`a «${cat.estados.find((t) => t.valor === r.condiciones.estado)?.nombre}»`);
   let accion = "";
   if (r.accion === "AVISAR") {
@@ -51,8 +51,8 @@ function Editor({ abierto, inicial, cat, onCerrar, onGuardado }) {
           <div className="grid gap-4 sm:grid-cols-3">
             <Campo etiqueta="Pasa esto" className="sm:col-span-3">{(id) => <select id={id} className="campo" value={f.evento} onChange={(e) => setF({ ...f, evento: e.target.value, condiciones: {} })}>
               {cat.eventos.map((x) => <option key={x.valor} value={x.valor}>{x.nombre}</option>)}</select>}</Campo>
-            {esOrden && <Campo etiqueta="Solo órdenes de">{(id) => <select id={id} className="campo" value={f.condiciones?.tipo || ""} onChange={(e) => setF({ ...f, condiciones: { ...f.condiciones, tipo: e.target.value } })}>
-              <option value="">Cualquier área</option>{cat.tipos.map((x) => <option key={x.valor} value={x.valor}>{x.nombre}</option>)}</select>}</Campo>}
+            {esOrden && <Campo etiqueta="Solo OT que pasan por">{(id) => <select id={id} className="campo" value={f.condiciones?.area || ""} onChange={(e) => setF({ ...f, condiciones: { ...f.condiciones, area: e.target.value } })}>
+              <option value="">Cualquier área</option>{cat.areas.map((x) => <option key={x.valor} value={x.valor}>{x.nombre}</option>)}</select>}</Campo>}
             {f.evento === "ORDEN_ESTADO" && <Campo etiqueta="Que pasa a">{(id) => <select id={id} className="campo" value={f.condiciones?.estado || ""} onChange={(e) => setF({ ...f, condiciones: { ...f.condiciones, estado: e.target.value } })}>
               <option value="">Cualquier estado</option>{cat.estados.map((x) => <option key={x.valor} value={x.valor}>{x.nombre}</option>)}</select>}</Campo>}
           </div>

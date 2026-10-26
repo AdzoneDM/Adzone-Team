@@ -15,5 +15,14 @@ class Command(BaseCommand):
         avisos = avisar_por_vencer()
         from apps.automatizaciones.motor import revisar_vencimientos
         reglas = revisar_vencimientos()
+        from apps.operaciones.servicios_ot import revisar_excepciones
+        excepciones = revisar_excepciones()
+        cashflow = ''
+        from django.conf import settings
+        if settings.CASHFLOW_MODO == 'real':
+            from apps.integraciones.cashflow.servicios import sincronizar_pendientes
+            r = sincronizar_pendientes()
+            cashflow = f" Cashflow: {r['facturas']} facturas, {r['pagos']} pagos nuevos, {r['errores']} errores."
         self.stdout.write(self.style.SUCCESS(
-            f"Tareas recurrentes creadas: {creadas}. Avisos de vencimiento: {avisos}. Automatizaciones ejecutadas: {reglas}."))
+            f"Tareas recurrentes creadas: {creadas}. Avisos de vencimiento: {avisos}. Automatizaciones ejecutadas: {reglas}. "
+            f"Excepciones G0 sin regularizar: {excepciones}.{cashflow}"))

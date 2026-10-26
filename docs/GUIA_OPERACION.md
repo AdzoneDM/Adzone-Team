@@ -1,188 +1,195 @@
-# Guía de operación: órdenes, proyectos, tiempo y finanzas
+# Guía de operación: formatos ADZONE, almacén, finanzas y Cashflow
 
-Cómo se trabaja en Adzone Team desde la versión 5. Para todo el equipo.
+Cómo se trabaja en Adzone Team desde la versión 6. Las OT siguen los **formatos controlados ADZONE** (F-01 a F-15): ahora se llenan, se firman y se consultan en la plataforma.
 
-## El recorrido de un trabajo
+## El recorrido de un trabajo (E1 a E7)
 
-1. **Se pide una orden de trabajo.** Cualquiera puede pedirla con **Crear → Orden de trabajo**: ventas, un gerente o quien atiende al cliente. Primero se elige el área y luego se llena el formulario de esa área. Una lona pide medidas y material; un podcast pide estudio y fecha de grabación. La orden llega a quien gestiona ese departamento.
-2. **El gerente del área la aprueba.** Elige al responsable, al equipo y la **fecha comprometida**. Al aprobarla se crea sola la **tarea de producción** con los pasos del área, y esos pasos se pueden cambiar.
-3. **El equipo la produce.** Empieza la tarea (o el cronómetro), marca los pasos y la entrega con evidencia. La orden avanza sola: **En producción**, luego **Control de calidad**.
-4. **Se valida.** Cuando el gerente valida la tarea con estrellas, la orden queda **Lista para entregar**, quien la pidió recibe el aviso y la tarea cuenta para el puntaje y los KPIs.
-5. **Se entrega.** Se anota quién recibió. Finanzas recibe el aviso **Por facturar**.
-6. **Se factura y se cobra.** En **Finanzas → Resumen**, la orden aparece en «sin facturar». Con **Facturar** se crea la factura en borrador; después se emite y se registran los pagos.
+1. **Comercial llena la OT Maestra (F-01)** con **Crear → Orden de trabajo**: datos del cliente, alcance y exclusiones, las **áreas que intervienen en su secuencia** (las que tienen el mismo número trabajan a la vez), fecha requerida, prioridad (Normal, Urgente, Emergencia), monto, anticipo y la lista **G0**. El botón **Calcular** propone la fecha comprometida: tiempo estándar + cola del área + aprobación del cliente (24 h × rondas) + colchón (20 %, emergencia 30 %). Al guardarla queda como **solicitud S-AA-0000** y le llega a Coordinación.
+2. **G0 · Coordinación de Producción la recibe.** Si falta una casilla, la **rechaza** con la causa y vuelve a Comercial (que corrige y la **reenvía**). Sin anticipo confirmado no se numera, salvo **excepción de Gerencia General** (Administración recibe el aviso de regularizar en 24 horas). Al **liberarla** recibe su número **OT-AA-0000 (E1)** y se emite una **Orden de Área** por cada área: `OT-26-0001-DIS`, `OT-26-0001-IMP`…
+3. **G1 · El supervisor del área la recibe** con su lista de entrada. Si falta algo, la rechaza (Coordinación la completa y la **reemite**). Al recibirla asigna al ejecutor y su apoyo: se crea la **tarea con las etapas del formato** (E2). Una área no recibe mientras la anterior en la secuencia no termina.
+4. **E3 · Ejecución.** El ejecutor trabaja su tarea (cronómetro, etapas, evidencia), pide **material con vale (F-11)** y anota **incidencias y tiempos muertos**.
+5. **G4 · Aprobación del cliente (E4)** en Diseño, Marketing, Audiovisual, Software y Call Center: **Enviar al cliente** y luego registrar la respuesta. Para aprobar hay que marcar por dónde aprobó por escrito (WhatsApp archivado, correo, firma). Si se agotan las rondas incluidas, la plataforma avisa que la siguiente se cobra con una **Solicitud de Cambio (F-14)**.
+6. **G3 · Control de calidad.** El ejecutor entrega su tarea y el supervisor la **valida** marcando la lista G3 (en **Por validar** o en la Orden de Área). Sin G3 completo, o sin G4 cuando aplica, no se valida. Si la devuelve puede registrar la causa del **retrabajo**.
+7. **G2/G5 · Traspaso con doble firma (F-13).** El área entrega con su lista de salida a la siguiente área (o a Coordinación si sale al cliente). **Quien recibe verifica y firma**; si rechaza, el trabajo vuelve al área con la causa y cuenta como retrabajo. Aceptado, la Orden de Área queda **terminada (E5)**. Cuando todas terminan, la OT queda **Lista para entregar**.
+8. **Acta de entrega / instalación (F-12).** Coordinación (o el supervisor de Instalación) la prepara. **Administración libera la salida (G5)**: con saldo pagado, o con autorización escrita de Gerencia General. En el sitio se marca la verificación y **el cliente firma en la pantalla** del celular (o, si no puede, se suben fotos y su nombre). La OT queda **Entregada (E6)**.
+9. **Factura y cierre (G6).** Sin acta firmada no se factura (salvo los anticipos y abonos). Administración factura —**en Cashflow, que asigna el NCF / e-CF**— y **cierra la OT (E7)**: la plataforma calcula el **costo real** (horas × costo por hora, materiales de los vales, servicios externos, retrabajos y gastos) y el **margen** contra lo cotizado.
 
-La orden se puede **pausar** y **reanudar**, o **cancelar** con un motivo; al cancelarla se cancelan sus tareas. En el **Tablero** se arrastran las tarjetas entre etapas. Si se arrastra a «Aprobada», se abre la aprobación; si se arrastra a «Entregada», se pide quién recibe.
+La OT se puede **pausar**, **reanudar** o **cancelar** (Coordinación). Cualquiera que trabaje en ella puede registrar una **Solicitud de cambio o retrabajo (F-14)**; Coordinación la autoriza (si es sin costo para el cliente, Gerencia General). Al autorizar un cambio cobrable, el monto se suma a la OT y Administración recibe el aviso; si cambia la fecha, se actualiza la fecha comprometida.
 
-## Quién ve y quién hace qué
+## Quién hace qué
 
-| Quién | Ve | Puede |
-| --- | --- | --- |
-| Colaborador | Las órdenes de su departamento, las que pidió y en las que trabaja | Pedir órdenes, comentar, subir archivos, trabajar y entregar sus tareas, usar el cronómetro |
-| Gerente o encargado | Además, las de los departamentos que dependen de su puesto y las que pidió su gente | Aprobar, asignar, mover, pausar, entregar y cancelar órdenes; crear proyectos; ver montos y rentabilidad de sus proyectos |
-| Finanzas (Administración) | Todo | Cotizaciones, facturas, cobros, gastos, rentabilidad; facturar órdenes |
-| Dirección (administradores) | Todo | Además, configurar automatizaciones, personas, KPIs y reglas del puntaje |
+| Quién | Hace |
+| --- | --- |
+| Comercial (quien vende) | Llena la OT Maestra, ve el monto de lo que vendió, reenvía si la devuelven, pide cambios |
+| Coordinación de Producción (acceso «Coordinación») | G0: libera y numera o rechaza; reemite OA; agrega áreas; autoriza vales y cambios; recibe las salidas al cliente (G5); prepara el acta; pausa y cancela. Ve todas las OT |
+| Supervisor de área (gerente del departamento, o los asignados en **Áreas y tiempos**) | G1: recibe y asigna; G3: valida; firma los traspasos que llegan a su área; anota costos externos |
+| Ejecutor y apoyo | Trabajan la tarea, envían al cliente (G4), piden material, registran incidencias, entregan con traspaso |
+| Almacén (acceso «Almacén») | Despacha vales (descuenta la existencia), cierra con devolución y desperdicio, registra entradas y ajustes |
+| Administración / Finanzas | Confirma anticipos, libera la salida (G5), factura en Cashflow, cobra, cierra la OT (G6) |
+| Gerencia General (administradores) | Excepción sin anticipo, salida con saldo, cambios sin costo; asigna supervisores de área |
 
-Los montos (precio de una orden, monto vendido de un proyecto) solo los ven Finanzas, la dirección y quien gestiona.
+Los accesos «Coordinación», «Almacén» y «Finanzas» se dan en **Personas → editar → Accesos adicionales**.
 
-## Proyectos
+Cada colaborador ve las OT que pasan por las áreas de su departamento, las que pidió o vendió y en las que trabaja. Los montos solo los ven Administración, Coordinación, la dirección y quien vendió.
 
-Un proyecto agrupa las tareas y órdenes de un mismo trabajo grande, por ejemplo el Torneo Superior o un sitio web con su tienda. Tiene tres vistas: **Tabla**, **Tablero** por estado y **Cronograma**. Dentro de cada proyecto están sus tareas (en tablero o cronograma), sus órdenes, una conversación y los números: horas trabajadas y, para quien gestiona, cuánto se vendió, cuánto se facturó y el margen.
+## Pantallas
 
-## Tiempo y carga
+- **Órdenes de trabajo:** tablero de OT por etapa, **Por área** (la cola de cada área con sus Órdenes de Área: E1 espera G1, E2, E3, E4, E5), tabla y calendario. Arriba, los números del día: por revisar en G0, devueltas, vencidas, listas para entregar, entregadas por cerrar y % a tiempo.
+- **OT:** pestañas F-01 (lo que llenó Comercial y el G0), Áreas (con los vales de traspaso), Entrega y cierre (acta, facturas, costo real y margen), Cambios y Conversación.
+- **Orden de Área:** las compuertas G1 → E3 → G4 → G3 → G2 en una línea, y lo que toca hacer ahora aparece arriba. Especificación del formato, etapas, materiales, incidencias, costos y archivos del área.
+- **Imprimir:** F-01, cada Orden de Área (F-02 a F-10) y el acta F-12 salen llenas, listas para imprimir o guardar en PDF.
+- **Bitácora F-15:** descarga en Excel (CSV) de todas las OT con fechas, áreas, rondas, retrabajos, monto, costo y margen.
+- **Indicadores:** por área y por semana: terminadas, % a tiempo, cola, vencidas, rechazos en G1, traspasos rechazados, retrabajos por causa, minutos perdidos, rondas de G4 y desperdicio. Y de las OT: solicitadas, liberadas, devueltas en G0, entregadas, a tiempo y margen de las cerradas.
+- **Almacén:** vales por autorizar, por despachar y despachados; materiales con existencia, punto de reposición (avisa al llegar), costo promedio y kardex.
+- **Áreas y tiempos:** supervisores de cada área y la tabla de tiempos estándar (Tabla 8.2), que el formulario de la OT sugiere al llenar los días.
 
-- **Cronómetro:** se inicia desde una tarea, una orden o un proyecto, o escribiendo en qué se trabaja. Corre uno a la vez: si se empieza otro, el anterior se guarda. Mientras corre, se ve arriba en todas las pantallas. Si alguien lo olvida encendido, se cierra en 12 horas.
-- **Anotar tiempo:** para lo que se hizo sin cronómetro, como una reunión o una visita. Se puede anotar hasta un mes hacia atrás.
-- **Carga del equipo** (gerentes): para cada persona compara las horas que anotó en la semana más las horas estimadas de sus tareas pendientes con su capacidad, que es de 44 horas por defecto y se cambia en el perfil. Por encima del 100 % significa que está sobrecargada.
-- **Reporte de horas:** horas por proyecto, cliente, orden, persona o departamento, y qué porcentaje fue facturable.
+## Finanzas y Cashflow
 
-## Finanzas
-
-- **Cotización → aprobada:** al marcarla aprobada se puede crear de una vez la orden de trabajo del área, con el monto ya puesto.
-- **Facturas:** se crean desde una cotización aprobada, desde una orden lista o entregada, o desde cero. El ITBIS (18 %) se calcula por línea y hay líneas exentas. El **NCF o e-CF** se copia del sistema contable, porque la plataforma no emite comprobantes fiscales.
-- **Pagos:** se registran pagos parciales; cuando el saldo llega a cero, la factura queda **Pagada**. No se puede cobrar de más.
-- **Gastos:** con categoría, proveedor, proyecto y foto o PDF del comprobante.
-- **Rentabilidad:** por proyecto o por cliente se calcula lo facturado sin ITBIS, menos los gastos, menos el costo de las horas trabajadas (horas por el costo por hora de cada persona).
-- **Imprimir o PDF:** cada cotización y factura tiene una versión con la marca para imprimir o guardar como PDF.
+- **Cotización aprobada → OT:** al marcarla aprobada se puede crear la solicitud F-01 con el cliente, el monto y la casilla de cotización ya marcada.
+- **Anticipo:** desde la OT, **Factura de anticipo**. Al registrar su pago (o al leerlo de Cashflow), la casilla de anticipo del G0 se marca sola. También se pueden facturar **abonos** antes de entregar.
+- **Factura final:** con el acta firmada, **Facturar** crea el borrador por lo que falta (monto menos anticipos) y **Emitir en Cashflow (NCF)** la crea en Cashflow, que asigna el comprobante fiscal: crédito fiscal (31) si el cliente tiene RNC, consumo (32) si no, gubernamental (45).
+- **Pagos:** se registran aquí o se traen de Cashflow (**Traer pagos de Cashflow**, o cada día con la tarea programada).
+- **Finanzas → Cashflow:** estado de la conexión, **Probar conexión**, **Traer pagos ahora** y la bitácora de cada llamada. Sin API key funciona en **modo prueba**: NCF simulados y nada sale de la plataforma.
+- Rentabilidad, gastos, cuentas por cobrar e impresión siguen como en la versión 5.
 
 ## Automatizaciones (dirección)
 
-Son reglas del tipo «cuando pase X, haz Y». La plataforma trae cuatro:
-
-- Orden lista: avisar a quien la pidió.
-- Orden entregada: avisar a Finanzas para facturar.
-- Orden vencida: avisar al responsable y a su gerente.
-- Factura vencida: avisar a Finanzas.
-
-Cada regla puede **avisar**, **crear una tarea** o **enviar los datos a n8n** por webhook. Por n8n se conectan WhatsApp, el correo, Google Sheets o un asistente de IA. Las reglas de vencimiento se revisan con la tarea diaria (`python manage.py tareas_diarias`) y se ejecutan una sola vez por orden o factura.
+Reglas «cuando pase X, haz Y» que avisan, crean una tarea o envían los datos a **n8n**. Ahora se pueden filtrar por **área** (por ejemplo, «OT que pasan por Instalación»). La tarea diaria (`python manage.py tareas_diarias`) revisa vencimientos, avisa de las excepciones G0 sin regularizar y, si Cashflow está conectado, trae los pagos.
 
 ## Buscar y crear rápido
 
-- **Ctrl+K** (o la tecla **/**, o la lupa en el celular) busca órdenes, proyectos, clientes, tareas y, para Finanzas, facturas y cotizaciones.
-- **Crear** (el botón amarillo de arriba) abre en un toque una orden, una tarea, un proyecto, un cliente o una cotización.
+- **Ctrl+K** (o **/**) busca OT por número, solicitud o cliente, proyectos, clientes, tareas y, para Finanzas, facturas y cotizaciones.
+- **Crear** abre una OT, una tarea, un proyecto, un cliente o una cotización.
 - En los comentarios, **@usuario** le avisa a esa persona.
 
-## Formularios de cada área
+## Formatos de cada área
 
-Son formatos estándar. Se ajustan en `backend/apps/operaciones/formularios.py`: los campos, las opciones y los pasos de producción salen de ahí. No hace falta tocar la base de datos.
+Cambiar un formato es cambiar `backend/apps/operaciones/formatos.py` (no hace falta tocar la base de datos).
 
-### Impresión y rotulación
+### F-02 · Diseño (DIS)
 
-Volantes, tarjetas, lonas, viniles, letreros, rotulación de vehículos e instalación. La recibe **Impresión**.
+Departamento: Marketing. Requiere aprobación escrita del cliente (G4).
 
-| Dato | Tipo | Obligatorio |
-| --- | --- | --- |
-| Qué se imprime | Una opción: Volantes, Tarjetas de presentación, Lona / banner, Vinil adhesivo, Vinil microperforado, Rotulación de vehículo, Letrero / valla, Roll-up, Gran formato, Etiquetas, Otro | Sí |
-| Cantidad | Número | Sí |
-| Ancho (cm) | Número |  |
-| Alto (cm) | Número |  |
-| Material | Una opción: Papel couché, Papel bond, Cartulina, Lona, Vinil adhesivo, Vinil microperforado, PVC / foam, Acrílico, Metal, Lo decide producción, Otro |  |
-| Caras | Una opción: Una cara, Dos caras |  |
-| Acabados | Varias opciones: Laminado mate, Laminado brillo, Corte a la medida, Ojales, Bastidor, Troquelado, Barniz UV |  |
-| Arte | Una opción: Lo entrega el cliente, Lo diseña ADZONE, Ya está aprobado | Sí |
-| ¿Lleva instalación? | Sí / no |  |
-| Dirección de instalación o entrega | Texto largo |  |
+- **G1 · entrada:** OT Maestra liberada (E1); Tipo de trabajo definido; Medidas y formato final; Cantidad de piezas; Textos definitivos del cliente; Logo vectorial recibido; Fotografías en resolución; Referencias visuales; Manual de marca del cliente; Destino de la pieza definido; Fecha interna aceptada.
+- **Especificación:** Tipo de trabajo *, Pieza *, Formato / dimensiones, Resolución / sangrado, Perfil de color / códigos, Destino, Instrucciones creativas, concepto, colores, tipografías, referencias y restricciones, Archivos de salida requeridos, Nombre del archivo (inicia con No. OT), Versión entregada.
+- **Etapas:** Recepción y análisis del brief → Propuesta creativa → Revisión interna → Envío al cliente → Correcciones → Arte final / entrega.
+- **G3 · calidad:** Ortografía revisada; Teléfonos correctos; Dirección correcta; Redes sociales; Código QR probado; Precios y fechas; Logo en versión correcta; Medidas contra la OT; Resolución de imágenes; Sangrado y márgenes; Perfil de color; Archivo nombrado con No. OT; Respaldo guardado.
+- **G2/G5 · salida:** Arte final en el formato que exige el área receptora; Archivo editable respaldado; Aprobación del cliente adjunta; Medidas confirmadas; Cantidad de piezas confirmada.
 
-**Pasos de producción al aprobarla:** Revisar el arte y las medidas → Prueba de color aprobada por el cliente → Impresión → Acabados → Control de calidad → Empaque, entrega o instalación.
+### F-03 · Marketing digital y contenido (MKT)
 
-### Adzone TV
+Departamento: Marketing. Requiere aprobación escrita del cliente (G4).
 
-Programas, podcasts, entrevistas, transmisiones en vivo, spots y publicaciones en adzone.tv. La recibe **Adzone TV**.
+- **G1 · entrada:** OT o iguala vigente; Accesos a las cuentas del cliente; Manual de marca del cliente; Objetivos de la campaña definidos; Público objetivo definido; Calendario de fechas clave; Presupuesto de pauta confirmado; Fecha interna aceptada.
+- **Especificación:** Período que cubre *, No. de posts, No. de historias, No. de reels / videos, Plataformas *, Ejes temáticos · Branding %, Servicios %, Ofertas %, Educación %, Otro %, Estrategia, mensajes clave, tono y llamados a la acción, Piezas solicitadas a otras áreas, Presupuesto de pauta (RD$).
+- **Etapas:** Análisis del brief y objetivos → Elaboración del plan de contenido → Aprobación del cliente → Emisión de OA a Diseño / Audiovisuales → Programación y publicación → Monitoreo y comunidad → Reporte de resultados.
+- **G3 · calidad:** Plan aprobado antes de producir; Piezas revisadas contra el manual de marca; Copys revisados y sin errores; Hashtags y menciones correctos; Horarios de publicación definidos; Pauta configurada y verificada; Enlaces probados; Reporte con métricas del período.
+- **G2/G5 · salida:** Piezas publicadas según calendario; Evidencia de publicación adjunta; Reporte de resultados entregado al cliente; Pauta liquidada y conciliada con Administración.
 
-| Dato | Tipo | Obligatorio |
-| --- | --- | --- |
-| Producción | Una opción: Programa, Podcast, Entrevista, Transmisión en vivo, Cobertura de evento, Spot / comercial, Nota para el periódico digital | Sí |
-| Programa o espacio | Texto |  |
-| Grabación | Fecha y hora |  |
-| Lugar | Una opción: Estudio 1, Estudio 2, Exterior / locación del cliente |  |
-| Duración (minutos) | Número |  |
-| Invitados o talento | Texto largo |  |
-| Equipo técnico | Varias opciones: Cámaras, Iluminación, Audio / micrófonos, Teleprompter, Transmisión en vivo, Drone |  |
-| Dónde se publica | Varias opciones: YouTube, Facebook, Instagram, TikTok, adzone.tv, Canal de TV |  |
-| Patrocinador | Texto |  |
+### F-04 · Audiovisuales (AUD)
 
-**Pasos de producción al aprobarla:** Guion y pauta → Confirmar invitados y estudio → Grabación → Edición → Revisión final → Publicación y difusión.
+Departamento: Audiovisual. Requiere aprobación escrita del cliente (G4).
 
-### Call center
+- **G1 · entrada:** OT Maestra liberada; Plan de contenido o guion recibido; Fecha y hora de grabación confirmada con el cliente; Locación y acceso confirmados; Lista de tomas definida; Formato y duración de salida definidos; Equipo disponible y reservado; Fecha interna aceptada.
+- **Especificación:** Tipo de trabajo *, Fecha y hora de grabación, Locación / dirección, Duración final, Formatos de salida, Equipo requerido, Guion, lista de tomas, personas o productos que aparecen, música y referencias, Respaldo del material (ubicación 1), Respaldo del material (ubicación 2).
+- **Etapas:** Estudio del plan y preparación de equipo → Grabación / sesión → Respaldo del material (mismo día) → Edición → Revisión interna → Envío al cliente → Correcciones → Exportación final.
+- **G3 · calidad:** Audio nivelado y sin ruido; Colorimetría consistente; Logos y textos correctos; Duración exacta por plataforma; Subtítulos si aplica; Derechos de música verificados; Exportado en todos los formatos; Doble respaldo confirmado; Miniatura generada.
+- **G2/G5 · salida:** Piezas exportadas y nombradas con No. OT; Aprobación del cliente adjunta; Material bruto respaldado y ubicado; Entregado a Marketing para publicación.
 
-Atención al cliente, ventas, cobros, soporte, encuestas y agendamiento. La recibe **Call Center**.
+### F-05 · Podcast · Adzone TV (POD)
 
-| Dato | Tipo | Obligatorio |
-| --- | --- | --- |
-| Servicio | Una opción: Atención al cliente, Ventas / telemercadeo, Cobros, Soporte técnico, Encuestas, Agendamiento de citas | Sí |
-| Canales | Varias opciones: Llamadas entrantes, Llamadas salientes, WhatsApp, Correo, Chat web | Sí |
-| Agentes | Número | Sí |
-| Horario | Texto |  |
-| Inicio de la campaña | Fecha |  |
-| Fin de la campaña | Fecha |  |
-| Guion | Una opción: Lo entrega el cliente, Lo prepara ADZONE, Ya está aprobado |  |
-| Meta de contactos | Número |  |
-| Meta de conversión (%) | Número |  |
-| Base de datos y herramientas | Texto largo |  |
+Departamento: Adzone TV.
 
-**Pasos de producción al aprobarla:** Recibir la base de datos y el guion → Capacitar a los agentes → Configurar líneas y herramientas → Arranque de la campaña → Informe de resultados.
+> Antes de grabar: prueba de audio, luz y encuadre 30 minutos antes; consentimiento de uso de imagen firmado por cada invitado.
 
-### Marketing digital
+- **G1 · entrada:** OT Maestra liberada; Tema y escaleta recibidos; Invitados confirmados con hora de llegada; Consentimiento de uso de imagen previsto; Duración objetivo definida; Cantidad de clips derivados definida; Arte de portada disponible o solicitado; Estudio reservado.
+- **Especificación:** Episodio No., Título / tema *, Fecha y hora de grabación, Duración objetivo, Clips derivados, Invitado(s) · nombre y cargo exactos para rótulos, Moderador / host, Montaje técnico, Escaleta / bloques del episodio, Plataformas de destino.
+- **Etapas:** Preparación y prueba de estudio → Grabación → Respaldo del material → Edición del episodio → Generación de clips → Revisión interna → Aprobación → Publicación / entrega.
+- **G3 · calidad:** Niveles de audio por canal; Sincronía entre cámaras; Nombres y cargos correctos en rótulos; Duración de clips por plataforma; Portada y miniatura listas; Descripción y capítulos redactados; Consentimientos firmados archivados; Doble respaldo confirmado.
+- **G2/G5 · salida:** Episodio máster exportado; Clips exportados por plataforma; Portada y descripción entregadas; Entregado a Marketing para publicación.
 
-Redes sociales, campañas pagadas, diseño gráfico, estrategia, SEO y relaciones públicas. La recibe **Marketing**.
+### F-06 · Impresión (IMP)
 
-| Dato | Tipo | Obligatorio |
-| --- | --- | --- |
-| Servicio | Una opción: Manejo de redes, Campaña pagada, Diseño gráfico, Estrategia / plan, Correo masivo, SEO, Relaciones públicas, Campaña política | Sí |
-| Redes | Varias opciones: Instagram, Facebook, TikTok, LinkedIn, X, YouTube, Google, WhatsApp |  |
-| Piezas | Número |  |
-| Objetivo | Una opción: Alcance, Interacción, Tráfico, Mensajes, Clientes potenciales, Ventas |  |
-| Presupuesto de pauta (RD$) | Monto |  |
-| Primera publicación | Fecha |  |
-| Público objetivo | Texto largo |  |
+Departamento: Impresión.
 
-**Pasos de producción al aprobarla:** Brief con el cliente → Estrategia y calendario → Diseño y textos → Aprobación del cliente → Programación / publicación → Informe de resultados.
+> Prohibido corregir el arte en máquina. Todo error de archivo se devuelve a Diseño con el vale de traspaso marcado como rechazado.
 
-### Audiovisual
+- **G1 · entrada:** Arte final aprobado por el cliente (adjunto); PDF en curvas, escala declarada; Sangrado correcto para el equipo; Perfil de color definido; Medidas confirmadas contra la OT; Cantidad y caras definidas; Material y acabados especificados; Existencia confirmada con Almacén; Vale de material emitido; Fecha interna aceptada.
+- **Especificación:** Producto, medidas y material *, Material / sustrato *, Marca / referencia, Espesor / gramaje, Color, Equipo asignado, Perfil / modo, Pasadas, Resolución, Secado / curado, Tinta blanca / barniz, Prueba de color, Corte y acabados.
+- **Etapas:** Preprensa y verificación del archivo → Prueba de color → Impresión → Corte / acabado → Empaque → Entrega.
+- **G3 · calidad:** Medidas verificadas con cinta; Cantidad completa; Color contra prueba aprobada; Sin bandas, rayas ni marcas; Laminado sin burbujas; Ojales y dobleces según especificación; Piezas limpias; Empaque protegido; Identificado con No. OT; Fotografías tomadas.
+- **G2/G5 · salida:** Piezas contadas e identificadas con No. OT; Empacadas y protegidas; Sobrante de material devuelto a almacén; Consumo y desperdicio registrados; Liberación de Administración si sale al cliente (G5).
 
-Videos, reels, spots, fotografía, cobertura de eventos, drone y animación 3D. La recibe **Audiovisual**.
+### F-07 · Letreros (LET)
 
-| Dato | Tipo | Obligatorio |
-| --- | --- | --- |
-| Pieza | Una opción: Video corporativo, Reel / video corto, Spot, Fotografía de producto, Cobertura de evento, Animación 3D / VFX, Tomas con drone | Sí |
-| Rodaje | Fecha y hora |  |
-| Locación | Texto |  |
-| Duración final (segundos) | Número |  |
-| Formatos | Varias opciones: Horizontal 16:9, Vertical 9:16, Cuadrado 1:1, Retrato 4:5 |  |
-| Música | Una opción: Con licencia, Original, La entrega el cliente, Sin música |  |
-| Rondas de cambios incluidas | Número |  |
-| Entregables | Texto largo |  |
+Departamento: Impresión.
 
-**Pasos de producción al aprobarla:** Guion / storyboard → Preproducción → Rodaje → Edición y color → Revisión con el cliente → Entrega final.
+- **G1 · entrada:** Arte final aprobado con medidas reales; Levantamiento del sitio con fotografías; Tipo de letrero e iluminación definidos; Superficie de instalación confirmada; Voltaje y punto eléctrico confirmados; Altura y medio de acceso definidos; Permisos gestionados si aplica; Material disponible en almacén; Fecha interna aceptada.
+- **Especificación:** Tipo de trabajo *, Iluminación, Piezas y medidas, Materiales principales, Frente, Retorno, Espesor / calibre, Estructura / bastidor, Acabado / color, Tipo de LED, Temperatura de color, Fuente de poder, Voltaje, Registro / acceso de mantenimiento, Superficie, Medio de acceso, Equipo de protección obligatorio, Sistema de fijación / plantilla, Horario permitido de instalación.
+- **Etapas:** Diseño técnico y despiece → Corte / conformado → Encajonamiento → Pintura / acabado → Ensamble e iluminación → Pruebas de encendido → Embalaje → Instalación.
+- **G3 · calidad:** Estructura firme; Soldaduras revisadas; LED probados por bloque; Fuente probada bajo carga; Cableado protegido; Iluminación uniforme; Acabado sin golpes; Medidas contra el levantamiento; Plantilla de fijación lista; Fotografías tomadas.
+- **G2/G5 · salida:** Letrero probado encendido antes de salir; Piezas protegidas para transporte; Herramientas y equipo de seguridad cargados; Plantilla y tornillería incluidas; Liberación de Administración (G5).
 
-### Desarrollo y tecnología
+### F-08 · Fabricación (FAB)
 
-Sitios web, landing pages, apps, tiendas en línea, integraciones, automatizaciones y soporte. La recibe **Tecnología**.
+Departamento: Impresión.
 
-| Dato | Tipo | Obligatorio |
-| --- | --- | --- |
-| Qué se desarrolla | Una opción: Sitio web, Landing page, App web, App móvil, Tienda en línea, Integración / automatización, Mantenimiento / soporte | Sí |
-| Dominio | Texto |  |
-| Hosting | Una opción: Servidor de ADZONE, Del cliente, Por definir |  |
-| Integraciones | Varias opciones: WhatsApp, Pasarela de pago, CRM, n8n, Google Analytics, Meta Pixel, Correo |  |
-| ¿El contenido está listo? | Una opción: Sí, Parcial, No |  |
-| Lanzamiento | Fecha |  |
-| Funciones principales | Texto largo |  |
+- **G1 · entrada:** Plano o archivo de corte recibido; Material, espesor y calibre definidos; Tolerancias definidas; Tipo de unión y acabado definidos; Cantidad confirmada; Existencia de material confirmada; Vale de almacén emitido; Fecha interna aceptada.
+- **Especificación:** Pieza, medidas y materiales *, Material principal *, Espesor / calibre, Marca / referencia, Color, Procesos requeridos, Equipo / máquina, Plano / archivo, Tolerancia / precisión, Tipo de unión / acabado, Seguridad obligatoria.
+- **Etapas:** Preparación / trazado → Corte / mecanizado → Doblado / perforado → Soldadura / ensamble → Pintura / terminación → Empaque / entrega.
+- **G3 · calidad:** Medidas dentro de tolerancia; Escuadra y nivelación; Soldaduras sin porosidad; Sin rebabas ni filos cortantes; Acabado uniforme; Cantidad completa; Empaque protegido para transporte; Identificado con No. OT; Fotografías tomadas.
+- **G2/G5 · salida:** Piezas contadas y protegidas; Consumo y desperdicio registrados; Sobrante devuelto a almacén; Herrajes y tornillería incluidos; Entregado a Letreros / Eventos / Instalación.
 
-**Pasos de producción al aprobarla:** Requerimientos → Diseño (maqueta) → Desarrollo → Pruebas → Aprobación del cliente → Publicación y capacitación.
+### F-09 · Producción de eventos (EVT)
 
-### Administración y finanzas
+Departamento: Impresión.
 
-Pagos a proveedores, compras, nómina, facturación, cobros, conciliaciones e impuestos. La recibe **Administración**.
+- **G1 · entrada:** OT Maestra liberada; Fecha, hora de montaje y de inicio confirmadas; Dirección y contacto del local; Levantamiento del sitio con fotos y medidas; Cantidad de invitados; Listado de piezas y estructuras definido; Requerimientos eléctricos confirmados; Permisos y accesos gestionados; Hora límite de desmontaje acordada; Fecha de corte de producción fijada (48 h antes).
+- **Especificación:** Tipo de evento *, Fecha del evento *, Hora de montaje, Hora de inicio, Invitados, Local / dirección exacta, Contacto en sitio (nombre y teléfono), Elementos del montaje, Piezas solicitadas a otras áreas (fecha de corte: 48 h antes del montaje), Vehículos asignados, Cuadrilla (cantidad y nombres), Supervisor en sitio, Hora de salida del taller, Herramientas y equipo, Plan de contingencia (lluvia, falla eléctrica, retraso del local).
+- **Etapas:** Levantamiento del sitio → Plan de montaje por hora → Emisión de OA a las áreas → Recepción de piezas en almacén → Carga y traslado → Montaje → Supervisión durante el evento → Desmontaje → Retorno e inventario.
+- **G3 · calidad:** Montaje conforme al plano; Estructuras aseguradas y ancladas; Pruebas eléctricas realizadas; Prueba de sonido y video; Branding alineado al manual del cliente; Área limpia antes de la entrega; Rutas de evacuación despejadas; Reporte fotográfico completo; Inventario de retorno verificado.
+- **G2/G5 · salida:** Evento montado y aprobado por el cliente; Acta de conformidad firmada; Reporte fotográfico entregado; Material devuelto e inventariado; Daños o faltantes reportados a Coordinación.
 
-| Dato | Tipo | Obligatorio |
-| --- | --- | --- |
-| Gestión | Una opción: Pago a proveedor, Compra de materiales, Nómina, Facturación a cliente, Cobro a cliente, Conciliación bancaria, Impuestos / declaración, Caja chica, Otro | Sí |
-| Proveedor o beneficiario | Texto |  |
-| Monto | Monto |  |
-| Moneda | Una opción: RD$, US$ |  |
-| Forma de pago | Una opción: Transferencia, Cheque, Efectivo, Tarjeta |  |
-| ¿Requiere comprobante fiscal? | Sí / no |  |
-| Detalle | Texto largo |  |
+### F-10 · Desarrollo de software y apps (SOF)
 
-**Pasos de producción al aprobarla:** Revisar soporte y montos → Aprobación → Ejecutar el pago o la gestión → Archivar comprobante.
+Departamento: Tecnología. Requiere aprobación escrita del cliente (G4).
 
+> Cada entrega tiene su propio G4. Todo cambio pedido después de aceptada una entrega es cambio de alcance cobrable (F-14), no corrección.
+
+- **G1 · entrada:** OT Maestra liberada; Documento de alcance funcional firmado; Criterios de aceptación escritos; Accesos y credenciales recibidos; Identidad visual del cliente recibida; Hosting, dominio y correo definidos; Responsable técnico del cliente identificado; Cronograma de entregas acordado.
+- **Especificación:** Tipo de solución *, Tecnología / stack, Hosting / servidor, Dominio, Repositorio, Módulos y entregas, Fecha de puesta en producción, Capacitación al cliente, Manual entregado, Período de garantía, Credenciales entregadas a (nombre y cargo), Respaldo automático configurado (frecuencia).
+- **Etapas:** Levantamiento funcional → Arquitectura y estimación → Desarrollo por entregas → Pruebas funcionales → Despliegue a ambiente de prueba → Aprobación del cliente → Despliegue a producción → Capacitación y entrega.
+- **G3 · calidad:** Criterios de aceptación cumplidos uno por uno; Probado en móvil y escritorio; Velocidad de carga aceptable; Formularios probados con datos reales; Certificado SSL activo; Respaldo automático configurado; Accesos administrativos entregados; Código versionado en el repositorio; Manual de usuario entregado.
+- **G2/G5 · salida:** Sistema en producción y funcionando; Acta de aceptación firmada por el cliente; Credenciales entregadas y registradas; Capacitación realizada; Garantía y soporte explicados por escrito.
+
+### F-12 · Instalación (INS)
+
+Departamento: Impresión.
+
+- **G1 · entrada:** OT Maestra liberada; Piezas listas y liberadas por las áreas; Dirección del sitio y contacto confirmados; Acceso y horario confirmados con el cliente; Ruta, vehículo y chofer asignados; Permisos en mano si aplica.
+- **Especificación:** Modalidad *, Dirección del sitio, Contacto en sitio, Fecha y hora.
+- **Etapas:** Carga y verificación → Traslado → Instalación / entrega → Verificación con el cliente → Acta firmada.
+- **G3 · calidad:** Medidas verificadas; Cantidad completa; Color y acabado correctos; Sin defectos ni golpes; Fijación segura y nivelada; Pruebas eléctricas realizadas; Iluminación probada; Funcionamiento verificado con el cliente; Área limpia; Material sobrante retirado; Fotografías antes / durante / después.
+- **G2/G5 · salida:** Acta de entrega firmada por el cliente; Fotografías adjuntas; Material sobrante devuelto a almacén.
+
+### CC-01 · Call Center (CCT)
+
+Departamento: Call Center. Requiere aprobación escrita del cliente (G4).
+
+- **G1 · entrada:** OT Maestra liberada; Base de datos de contactos recibida; Guion aprobado por el cliente; Líneas y herramientas configuradas; Agentes asignados y capacitados; Metas de contacto y conversión definidas; Fecha interna aceptada.
+- **Especificación:** Servicio *, Canales *, Agentes *, Horario, Inicio de la campaña, Fin de la campaña, Meta de contactos, Meta de conversión (%), Base de datos y herramientas.
+- **Etapas:** Recepción de base de datos y guion → Capacitación de agentes → Configuración de líneas → Arranque de la campaña → Seguimiento diario → Informe de resultados.
+- **G3 · calidad:** Guion seguido en llamadas monitoreadas; Registro completo de cada contacto; Metas del período medidas; Quejas atendidas y documentadas; Datos del cliente protegidos.
+- **G2/G5 · salida:** Informe de resultados entregado al cliente; Base de datos actualizada devuelta; Grabaciones respaldadas.
+
+### AD-01 · Gestión administrativa (ADM)
+
+Departamento: Administración.
+
+- **G1 · entrada:** Soporte del gasto o gestión recibido; Monto y beneficiario confirmados; Presupuesto disponible; Fecha límite definida.
+- **Especificación:** Gestión *, Proveedor o beneficiario, Monto, Moneda, Forma de pago, ¿Requiere comprobante fiscal?, Detalle.
+- **Etapas:** Revisar soporte y montos → Aprobación → Ejecutar la gestión → Archivar comprobante.
+- **G3 · calidad:** Montos verificados contra el soporte; Aprobación registrada; Comprobante archivado.
+- **G2/G5 · salida:** Gestión registrada en el sistema contable; Soporte digital adjunto.
+
+\* obligatorio para dar la especificación por completa.

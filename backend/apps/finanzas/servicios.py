@@ -71,11 +71,27 @@ def factura_desde(origen, quien, lineas=None, **campos):
         for l in origen.lineas.all():
             LineaFactura.objects.create(documento=factura, descripcion=l.descripcion, cantidad=l.cantidad,
                                         precio=l.precio, aplica_itbis=l.aplica_itbis, orden=l.orden)
-    else:  # orden de trabajo
-        factura = Factura.objects.create(cliente=origen.cliente, proyecto=origen.proyecto, orden=origen,
-                                         titulo=f"{origen.numero} · {origen.titulo}", creada_por=quien, **campos)
-        LineaFactura.objects.create(documento=factura, descripcion=f"{origen.get_tipo_display()}: {origen.titulo}",
-                                    cantidad=1, precio=origen.monto or 0)
+    else:  # OT Maestra
+        anticipo = campos.pop('anticipo', False)
+        monto_anticipo = campos.pop('monto_anticipo', None)
+        titulo = f"{origen.codigo} · {origen.titulo}"
+        factura = Factura.objects.create(cliente=origen.cliente, proyecto=origen.proyecto, orden=origen, es_anticipo=anticipo,
+                                         cotizacion=origen.cotizacion, titulo=("Anticipo · " if anticipo else "") + titulo[:180],
+                                         creada_por=quien, **campos)
+        if anticipo:
+            LineaFactura.objects.create(documento=factura, descripcion=f"Anticipo {origen.codigo}: {origen.titulo}"[:255],
+                                        cantidad=1, precio=monto_anticipo or origen.anticipo_requerido or 0)
+        else:
+            previos = Factura.objects.filter(orden=origen, es_anticipo=True).exclude(estado__in=['ANULADA', 'BORRADOR'])
+            ya = sum((f.subtotal for f in previos), Decimal('0'))
+            if origen.cotizacion_id and not ya and origen.monto == origen.cotizacion.subtotal:
+                for l in origen.cotizacion.lineas.all():
+                    LineaFactura.objects.create(documento=factura, descripcion=l.descripcion, cantidad=l.cantidad,
+                                                precio=l.precio, aplica_itbis=l.aplica_itbis, orden=l.orden)
+            else:
+                nota = f" (menos anticipo {', '.join(f.ncf or f.numero for f in previos)})" if ya else ''
+                LineaFactura.objects.create(documento=factura, descripcion=f"{origen.titulo}{nota}"[:255], cantidad=1,
+                                            precio=max(Decimal('0'), (origen.monto or Decimal('0')) - ya))
     factura.recalcular()
     return factura
 
@@ -92,6 +108,9 @@ def registrar_pago(factura, quien, monto, **datos):
     pago = Pago.objects.create(factura=factura, monto=monto, registrado_por=quien, **datos)
     factura.actualizar_pagos()
     disparar('PAGO_RECIBIDO', pago, quien)
+    if factura.orden_id:
+        from apps.operaciones.servicios_ot import revisar_anticipo
+        revisar_anticipo(factura.orden)
     if factura.orden and factura.orden.solicitada_por:
         avisar([factura.orden.solicitada_por], 'FINANZAS', f"Pago recibido: {factura.numero}",
                f"{factura.cliente} pagó {pago.monto:,.2f}. Saldo: {factura.saldo:,.2f}.", enlace=f"/ordenes/{factura.orden_id}",

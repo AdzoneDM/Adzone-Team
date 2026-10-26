@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from apps.desempeno.permisos import EsAdministrador
-from apps.operaciones.formularios import TIPOS
+from apps.operaciones.formatos import AREAS
 from apps.operaciones.models import OrdenTrabajo
 from .models import ACCIONES, EVENTOS, Ejecucion, Regla
 from .serializers import DESTINOS, EjecucionSerializer, ReglaSerializer
@@ -27,7 +27,7 @@ def catalogo_view(request):
         'destinos': [{'valor': 'responsable', 'nombre': 'Responsable'}, {'valor': 'solicitante', 'nombre': 'Quien la pidió'},
                      {'valor': 'jefes', 'nombre': 'Gerente del departamento'}, {'valor': 'finanzas', 'nombre': 'Finanzas'},
                      {'valor': 'administradores', 'nombre': 'Dirección'}],
-        'tipos': [{'valor': k, 'nombre': v['nombre']} for k, v in TIPOS.items()],
+        'areas': [{'valor': k, 'nombre': v['nombre']} for k, v in AREAS.items()],
         'estados': [{'valor': k, 'nombre': v} for k, v in OrdenTrabajo.ESTADOS],
         'variables': ['{numero}', '{titulo}', '{cliente}', '{estado_nombre}', '{responsable}', '{monto}', '{fecha_compromiso}',
                       '{saldo}', '{vencimiento}'],

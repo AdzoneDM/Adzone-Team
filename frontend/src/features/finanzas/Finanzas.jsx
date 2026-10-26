@@ -6,6 +6,7 @@ import { eliminarDocumento, facturarOrden, guardarGasto, listarDocumentos, lista
 import { dinero, fechaCorta, hoyISO, horas, mesActual } from "@/lib/formato";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, Panel, Pestanas, SelectorMes, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 import { DetalleDocumento, EditorDocumento, EstadoDoc } from "./documentos";
+import Cashflow from "./Cashflow";
 
 function Tarjeta({ etiqueta, valor, nota, tono }) {
   return (
@@ -286,14 +287,14 @@ export default function Finanzas() {
   };
   return (
     <div>
-      <Cabecera titulo="Finanzas" descripcion="Cotizaciones, facturas, cobros y gastos conectados a las órdenes y proyectos. La contabilidad formal y los comprobantes fiscales siguen en el sistema contable." />
+      <Cabecera titulo="Finanzas" descripcion="Cotizaciones, facturas, cobros y gastos conectados a las OT y proyectos. La factura fiscal (NCF / e-CF) se emite en Cashflow desde aquí; la contabilidad formal sigue allá." />
       <Pestanas className="mb-5 max-w-3xl" valor={ver} onCambio={cambiar} opciones={[
         { valor: "resumen", etiqueta: "Resumen" }, { valor: "cotizaciones", etiqueta: "Cotizaciones" }, { valor: "facturas", etiqueta: "Facturas" },
-        { valor: "gastos", etiqueta: "Gastos" }, { valor: "rentabilidad", etiqueta: "Rentabilidad" },
+        { valor: "gastos", etiqueta: "Gastos" }, { valor: "rentabilidad", etiqueta: "Rentabilidad" }, { valor: "cashflow", etiqueta: "Cashflow" },
       ]} />
       {ver === "cotizaciones" ? <ListaDocumentos key="c" tipo="cotizaciones" abrirId={abrirId} />
         : ver === "facturas" ? <ListaDocumentos key="f" tipo="facturas" abrirId={abrirId} />
-          : ver === "gastos" ? <Gastos /> : ver === "rentabilidad" ? <Rentabilidad /> : <Resumen onFacturar={facturar} />}
+          : ver === "gastos" ? <Gastos /> : ver === "rentabilidad" ? <Rentabilidad /> : ver === "cashflow" ? <Cashflow /> : <Resumen onFacturar={facturar} />}
     </div>
   );
 }

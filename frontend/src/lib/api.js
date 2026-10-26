@@ -91,9 +91,9 @@ export const entregarTarea = (id, { nota, enlace, archivos = [] }) => {
   archivos.forEach((a) => f.append("archivos", a, a.name));
   return api(`${D}/tareas/${id}/entregar/`, { method: "POST", body: f });
 };
-export const validarTarea = (id, calificacion_calidad, comentario_evaluacion) =>
-  api(`${D}/tareas/${id}/validar/`, { method: "POST", body: { calificacion_calidad, comentario_evaluacion } });
-export const devolverTarea = (id, comentario_revision) => api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: { comentario_revision } });
+export const validarTarea = (id, calificacion_calidad, comentario_evaluacion, extra = {}) =>
+  api(`${D}/tareas/${id}/validar/`, { method: "POST", body: { calificacion_calidad, comentario_evaluacion, ...extra } });
+export const devolverTarea = (id, comentario_revision, extra = {}) => api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: { comentario_revision, ...extra } });
 export const reabrirTarea = (id, motivo) => api(`${D}/tareas/${id}/reabrir/`, { method: "POST", body: { motivo } });
 export const cancelarTarea = (id, motivo) => api(`${D}/tareas/${id}/cancelar/`, { method: "POST", body: { motivo } });
 export const recordarTarea = (id, mensaje) => api(`${D}/tareas/${id}/recordar/`, { method: "POST", body: { mensaje } });
@@ -157,15 +157,47 @@ export const resumenOrdenes = (params) => api(`${O}/ordenes/resumen/${q(params)}
 export const ordenCompleta = (id) => api(`${O}/ordenes/${id}/completo/`);
 export const guardarOrden = (o) => (o.id ? api(`${O}/ordenes/${o.id}/`, { method: "PATCH", body: o }) : api(`${O}/ordenes/`, { method: "POST", body: o }));
 export const eliminarOrden = (id) => api(`${O}/ordenes/${id}/`, { method: "DELETE" });
-export const aprobarOrden = (id, datos) => api(`${O}/ordenes/${id}/aprobar/`, { method: "POST", body: datos });
-export const moverOrden = (id, estado, detalle = "") => api(`${O}/ordenes/${id}/mover/`, { method: "POST", body: { estado, detalle } });
-export const reanudarOrden = (id) => api(`${O}/ordenes/${id}/reanudar/`, { method: "POST" });
-export const entregarOrden = (id, recibido_por, nota) => api(`${O}/ordenes/${id}/entregar/`, { method: "POST", body: { recibido_por, nota } });
-export const cancelarOrden = (id, motivo) => api(`${O}/ordenes/${id}/cancelar/`, { method: "POST", body: { motivo } });
+const accionOT = (id, accion, body) => api(`${O}/ordenes/${id}/${accion}/`, { method: "POST", body });
+export const liberarOrden = (id, datos = {}) => accionOT(id, "liberar", datos);
+export const rechazarG0 = (id, causa, devuelto_a) => accionOT(id, "rechazar_g0", { causa, devuelto_a });
+export const reenviarOrden = (id) => accionOT(id, "reenviar");
+export const confirmarAnticipo = (id) => accionOT(id, "confirmar_anticipo");
+export const excepcionG0 = (id, motivo) => accionOT(id, "excepcion", { motivo });
+export const agregarArea = (id, fila) => accionOT(id, "agregar_area", fila);
+export const pausarOrden = (id, motivo) => accionOT(id, "pausar", { motivo });
+export const reanudarOrden = (id) => accionOT(id, "reanudar");
+export const cancelarOrden = (id, motivo) => accionOT(id, "cancelar", { motivo });
+export const cerrarOrden = (id) => accionOT(id, "cerrar");
+export const calcularCompromiso = (datos) => api(`${O}/ordenes/calcular/`, { method: "POST", body: datos });
+export const costosOrden = (id) => api(`${O}/ordenes/${id}/costos/`);
+export const crearActa = (id, datos) => accionOT(id, "actas", datos);
+export const crearCambio = (id, datos) => accionOT(id, "cambios", datos);
+export const indicadoresProduccion = (params) => api(`${O}/ordenes/indicadores/${q(params)}`);
+export const urlBitacora = (params) => `${O}/ordenes/bitacora/${q(params)}`;
+// Órdenes de Área (F-02 a F-10)
+export const listarAreas = (params) => api(`${O}/areas/${q(params)}`);
+export const areaCompleta = (id) => api(`${O}/areas/${id}/completo/`);
+export const guardarArea = (id, datos) => api(`${O}/areas/${id}/`, { method: "PATCH", body: datos });
+export const accionArea = (id, accion, body) => api(`${O}/areas/${id}/${accion}/`, { method: "POST", body });
+export const incidenciaArea = (id, datos) => accionArea(id, "incidencias", datos);
+export const costosArea = (id) => api(`${O}/areas/${id}/costos/`);
+export const listarTraspasos = (params) => api(`${O}/traspasos/${q(params)}`);
+export const recibirTraspaso = (id, datos) => api(`${O}/traspasos/${id}/recibir/`, { method: "POST", body: datos });
+export const guardarActa = (id, datos) => api(`${O}/actas/${id}/`, { method: "PATCH", body: datos });
+export const accionActa = (id, accion, body) => api(`${O}/actas/${id}/${accion}/`, { method: "POST", body });
+export const obtenerActa = (id) => api(`${O}/actas/${id}/`);
+export const listarCambios = (params) => api(`${O}/cambios/${q(params)}`);
+export const accionCambio = (id, accion, body) => api(`${O}/cambios/${id}/${accion}/`, { method: "POST", body });
+export const configAreas = () => api(`${O}/config-areas/`);
+export const guardarConfigArea = (id, datos) => api(`${O}/config-areas/${id}/`, { method: "PATCH", body: datos });
+export const tiemposEstandar = () => api(`${O}/tiempos/`);
+export const guardarTiempo = (t) => (t.id ? api(`${O}/tiempos/${t.id}/`, { method: "PATCH", body: t }) : api(`${O}/tiempos/`, { method: "POST", body: t }));
+export const eliminarTiempo = (id) => api(`${O}/tiempos/${id}/`, { method: "DELETE" });
 export const comentarOrden = (id, texto) => api(`${O}/ordenes/${id}/comentarios/`, { method: "POST", body: { texto } });
-export const subirArchivosOrden = (id, archivos) => {
+export const subirArchivosOrden = (id, archivos, extra = {}) => {
   const fd = new FormData();
   archivos.forEach((a) => fd.append("archivos", a));
+  Object.entries(extra).forEach(([k, v]) => v != null && v !== "" && fd.append(k, v));
   return api(`${O}/ordenes/${id}/archivos/`, { method: "POST", body: fd });
 };
 export const quitarArchivo = (id) => api(`${O}/archivos/${id}/`, { method: "DELETE" });
@@ -204,7 +236,7 @@ export const obtenerDocumento = (tipo, id) => api(`${F}/${tipo}/${id}/`);
 export const guardarDocumento = (tipo, d) => (d.id ? api(`${F}/${tipo}/${d.id}/`, { method: "PATCH", body: d }) : api(`${F}/${tipo}/`, { method: "POST", body: d }));
 export const eliminarDocumento = (tipo, id) => api(`${F}/${tipo}/${id}/`, { method: "DELETE" });
 export const accionDocumento = (tipo, id, accion, body) => api(`${F}/${tipo}/${id}/${accion}/`, { method: "POST", body });
-export const facturarOrden = (orden) => api(`${F}/facturas/desde_orden/`, { method: "POST", body: { orden } });
+export const facturarOrden = (orden, extra = {}) => api(`${F}/facturas/desde_orden/`, { method: "POST", body: { orden, ...extra } });
 export const registrarPago = (factura, pago) => api(`${F}/facturas/${factura}/pagos/`, { method: "POST", body: pago });
 export const borrarPago = (id) => api(`${F}/pagos/${id}/`, { method: "DELETE" });
 export const guardarGasto = (g, comprobante) => {
@@ -222,3 +254,21 @@ export const listarReglas = () => api(`${A}/reglas/`);
 export const guardarRegla = (r) => (r.id ? api(`${A}/reglas/${r.id}/`, { method: "PATCH", body: r }) : api(`${A}/reglas/`, { method: "POST", body: r }));
 export const eliminarRegla = (id) => api(`${A}/reglas/${id}/`, { method: "DELETE" });
 export const ejecuciones = () => api(`${A}/ejecuciones/`);
+
+// Almacén (F-11)
+const AL = "/api/almacen";
+export const listarMateriales = (params) => api(`${AL}/materiales/${q(params)}`);
+export const guardarMaterial = (m) => (m.id ? api(`${AL}/materiales/${m.id}/`, { method: "PATCH", body: m }) : api(`${AL}/materiales/`, { method: "POST", body: m }));
+export const accionMaterial = (id, accion, body) => api(`${AL}/materiales/${id}/${accion}/`, { method: "POST", body });
+export const movimientosMaterial = (id) => api(`${AL}/materiales/${id}/movimientos/`);
+export const listarVales = (params) => api(`${AL}/vales/${q(params)}`);
+export const resumenVales = () => api(`${AL}/vales/resumen/`);
+export const pedirVale = (datos) => api(`${AL}/vales/`, { method: "POST", body: datos });
+export const accionVale = (id, accion, body) => api(`${AL}/vales/${id}/${accion}/`, { method: "POST", body });
+
+// Integración con Cashflow
+const CF = "/api/integraciones/cashflow";
+export const estadoCashflow = () => api(`${CF}/`);
+export const probarCashflow = () => api(`${CF}/probar/`, { method: "POST" });
+export const sincronizarCashflow = () => api(`${CF}/sincronizar/`, { method: "POST" });
+export const clienteACashflow = (id) => api(`${CF}/clientes/${id}/`, { method: "POST" });

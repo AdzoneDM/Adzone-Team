@@ -93,9 +93,14 @@ export const reloj = (min) => {
 };
 
 export const ESTADOS_ORDEN = {
-  SOLICITADA: "Solicitada", APROBADA: "Aprobada", EN_PRODUCCION: "En producción", CONTROL_CALIDAD: "Control de calidad",
-  LISTA: "Lista para entregar", ENTREGADA: "Entregada", EN_PAUSA: "En pausa", CANCELADA: "Cancelada",
+  SOLICITADA: "Solicitud en G0", DEVUELTA: "Devuelta a Comercial", LIBERADA: "E1 · Liberada", EN_PRODUCCION: "En producción",
+  LISTA: "Lista para entregar", ENTREGADA: "E6 · Entregada", CERRADA: "E7 · Cerrada", EN_PAUSA: "En pausa", CANCELADA: "Cancelada",
 };
+export const ESTADOS_OA = {
+  EMITIDA: "E1 · Espera G1", RECHAZADA: "Rechazada en G1", RECIBIDA: "E2 · Recibida", EN_EJECUCION: "E3 · En ejecución",
+  EN_APROBACION: "E4 · Con el cliente", TERMINADA: "E5 · Terminada", CANCELADA: "Cancelada",
+};
+export const PRIORIDADES_OTM = { N: "Normal", U: "Urgente", E: "Emergencia" };
 
 export const PRIORIDADES_OT = { BAJA: "Baja", NORMAL: "Normal", ALTA: "Alta", URGENTE: "Urgente" };
 

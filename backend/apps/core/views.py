@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
 from apps.desempeno.permisos import LecturaOAdministrador, es_administrador, puede_validar, puesto_de
-from apps.operaciones.permisos import es_finanzas, gestiona_algo
+from apps.operaciones.permisos import areas_que_supervisa, es_almacen, es_coordinacion, es_finanzas, gestiona_algo
 from .models import Departamento
 from .serializers import DepartamentoSerializer
 
@@ -47,6 +47,9 @@ def datos_usuario(user):
         'departamento_id': puesto.departamento_id if puesto else None,
         'es_finanzas': es_finanzas(user),
         'gestiona': gestiona_algo(user),
+        'es_coordinacion': es_coordinacion(user),
+        'es_almacen': es_almacen(user),
+        'mis_areas': areas_que_supervisa(user),
     }
 
 

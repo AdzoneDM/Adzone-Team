@@ -28,6 +28,8 @@ urlpatterns = [
     path('api/tiempo/', include('apps.tiempo.urls')),
     path('api/finanzas/', include('apps.finanzas.urls')),
     path('api/automatizaciones/', include('apps.automatizaciones.urls')),
+    path('api/almacen/', include('apps.almacen.urls')),
+    path('api/integraciones/', include('apps.integraciones.urls')),
     # Todo lo demás es la app web (React). Los archivos (JS, CSS, íconos) los sirve WhiteNoise.
     re_path(r'^(?!api/|admin/|static/).*$', app_web),
 ]

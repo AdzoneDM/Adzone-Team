@@ -29,6 +29,11 @@ const MiTiempo = lazy(() => import("@/features/tiempo/MiTiempo"));
 const Finanzas = lazy(() => import("@/features/finanzas/Finanzas"));
 const Imprimir = lazy(() => import("@/features/finanzas/Imprimir"));
 const Automatizaciones = lazy(() => import("@/features/automatizaciones/Automatizaciones"));
+const OrdenArea = lazy(() => import("@/features/ordenes/OrdenArea"));
+const Indicadores = lazy(() => import("@/features/ordenes/Indicadores"));
+const ImprimirFormato = lazy(() => import("@/features/ordenes/ImprimirFormato"));
+const AjustesProduccion = lazy(() => import("@/features/ordenes/AjustesProduccion"));
+const Almacen = lazy(() => import("@/features/almacen/Almacen"));
 
 function Protegida({ children, admin, supervisor, finanzas }) {
   const { usuario, esAdmin, puedeValidar, esFinanzas } = useSesion();
@@ -47,6 +52,9 @@ export default function App() {
       <Routes>
         <Route path="/entrar" element={usuario ? <Navigate to="/" replace /> : <Entrar />} />
         <Route path="/login" element={<Navigate to="/entrar" replace />} />
+        <Route path="/imprimir/ot/:id" element={<Protegida><ImprimirFormato tipo="ot" /></Protegida>} />
+        <Route path="/imprimir/oa/:id" element={<Protegida><ImprimirFormato tipo="oa" /></Protegida>} />
+        <Route path="/imprimir/acta/:id" element={<Protegida><ImprimirFormato tipo="acta" /></Protegida>} />
         <Route path="/imprimir/:tipo/:id" element={<Protegida finanzas><Imprimir /></Protegida>} />
         <Route element={<Protegida><Estructura /></Protegida>}>
           <Route index element={<Inicio />} />
@@ -54,7 +62,11 @@ export default function App() {
           <Route path="organigrama" element={<Organigrama />} />
           <Route path="mi-cuenta" element={<MiCuenta />} />
           <Route path="ordenes" element={<Ordenes />} />
+          <Route path="ordenes/indicadores" element={<Indicadores />} />
           <Route path="ordenes/:id" element={<OrdenDetalle />} />
+          <Route path="ordenes/:id/areas/:oaId" element={<OrdenArea />} />
+          <Route path="almacen" element={<Almacen />} />
+          <Route path="produccion/ajustes" element={<AjustesProduccion />} />
           <Route path="proyectos" element={<Proyectos />} />
           <Route path="proyectos/:id" element={<ProyectoDetalle />} />
           <Route path="clientes" element={<Clientes />} />

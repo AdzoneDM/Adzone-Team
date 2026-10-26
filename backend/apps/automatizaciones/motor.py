@@ -28,9 +28,11 @@ def contexto(objeto):
     modelo = objeto._meta.model_name
     d = {'modelo': modelo, 'id': objeto.pk}
     if modelo == 'ordentrabajo':
-        d.update(numero=objeto.numero, titulo=objeto.titulo, cliente=objeto.cliente.nombre, tipo=objeto.tipo,
-                 tipo_nombre=objeto.get_tipo_display(), estado=objeto.estado, estado_nombre=objeto.get_estado_display(),
-                 departamento_id=objeto.departamento_id, departamento=objeto.departamento.nombre,
+        areas = sorted({a.area for a in objeto.areas.all()} or {p.get('area') for p in objeto.plan_areas if p.get('area')})
+        d.update(numero=objeto.codigo, titulo=objeto.titulo, cliente=objeto.cliente.nombre, areas=areas,
+                 area=areas[0] if areas else '', prioridad=objeto.get_prioridad_display(),
+                 estado=objeto.estado, estado_nombre=objeto.get_estado_display(),
+                 departamento_id=objeto.departamento_id, departamento=objeto.departamento.nombre if objeto.departamento else '',
                  responsable=objeto.responsable.get_full_name() if objeto.responsable else '',
                  fecha_compromiso=str(objeto.fecha_compromiso or ''), monto=str(objeto.monto or ''),
                  enlace=f"/ordenes/{objeto.pk}")
@@ -53,7 +55,10 @@ def contexto(objeto):
 
 
 def _coincide(regla, datos):
-    for campo in ('tipo', 'estado', 'departamento_id'):
+    area = (regla.condiciones or {}).get('area')
+    if area and area not in (datos.get('areas') or []):
+        return False
+    for campo in ('estado', 'departamento_id'):
         esperado = (regla.condiciones or {}).get(campo)
         if esperado not in (None, '', []) and str(datos.get(campo)) != str(esperado):
             return False
@@ -187,7 +192,7 @@ def revisar_vencimientos():
     from apps.operaciones.models import OrdenTrabajo
     hoy = timezone.localdate()
     total = 0
-    for orden in OrdenTrabajo.objects.filter(estado__in=['APROBADA', 'EN_PRODUCCION', 'CONTROL_CALIDAD', 'EN_PAUSA'],
+    for orden in OrdenTrabajo.objects.filter(estado__in=['LIBERADA', 'EN_PRODUCCION', 'EN_PAUSA'],
                                              fecha_compromiso__lt=hoy):
         total += disparar('ORDEN_VENCIDA', orden, una_sola_vez=True)
     for tarea in Tarea.objects.filter(estado__in=['PENDIENTE', 'EN_PROGRESO'], fecha_limite__lt=hoy):

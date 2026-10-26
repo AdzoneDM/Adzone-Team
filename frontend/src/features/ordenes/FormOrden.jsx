@@ -1,189 +1,228 @@
-// Pedir o editar una orden de trabajo. Primero se elige el área; el formulario cambia según el área.
+// OT Maestra (F-01): Comercial la llena y la entrega a Coordinación. Coordinación la numera al liberarla (G0).
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { guardarOrden, listarProyectos } from "@/lib/api";
-import { PRIORIDADES_OT, hoyISO, sumarDias } from "@/lib/formato";
+import { ArrowDown, ArrowUp, Calculator, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { calcularCompromiso, guardarOrden, listarProyectos } from "@/lib/api";
+import { PRIORIDADES_OTM, dinero, fechaCorta, hoyISO, sumarDias } from "@/lib/formato";
 import { useRecurso } from "@/lib/recursos";
 import { useSesion } from "@/lib/sesion";
-import { SelectorCliente } from "@/components/Selectores";
+import { SelectorCliente, SelectorPersona } from "@/components/Selectores";
 import { Alerta, Boton, Campo, Cargando, Modal, cx } from "@/components/ui";
-import { ICONOS } from "./piezas";
+import { AreaChip, CampoFormato, Checklist } from "./piezas";
 
-function CampoDinamico({ campo, valor, onCambio, error }) {
-  const props = { className: "campo", value: valor ?? "", onChange: (e) => onCambio(e.target.value) };
-  const ancho = campo.ancho === "completo" || ["largo", "multiple"].includes(campo.tipo) ? "sm:col-span-2" : "";
-  const etiqueta = campo.etiqueta + (campo.requerido ? "" : " (opcional)");
-  if (campo.tipo === "multiple") {
-    const lista = Array.isArray(valor) ? valor : [];
-    return (
-      <fieldset className={ancho}>
-        <legend className="etiqueta">{etiqueta}</legend>
-        <div className="flex flex-wrap gap-2">
-          {campo.opciones.map((o) => {
-            const on = lista.includes(o);
-            return (
-              <button key={o} type="button" aria-pressed={on} onClick={() => onCambio(on ? lista.filter((x) => x !== o) : [...lista, o])}
-                className={cx("min-h-10 rounded-full border px-3.5 text-sm font-medium", on ? "border-azul bg-azul text-white" : "border-linea bg-white hover:border-azul")}>{o}</button>
-            );
-          })}
-        </div>
-        {error && <p className="mt-1 text-[13px] text-rojo">{error}</p>}
-      </fieldset>
-    );
-  }
-  if (campo.tipo === "sino") {
-    return (
-      <label className={cx("flex min-h-11 items-center gap-2.5 self-end rounded-lg border border-linea px-3 text-[15px]", ancho)}>
-        <input type="checkbox" checked={!!valor} onChange={(e) => onCambio(e.target.checked)} className="size-4 accent-azul" /> {campo.etiqueta}
-      </label>
-    );
-  }
+const ANTICIPO = "Anticipo confirmado por Administración";
+
+function Seccion({ numero, titulo, ayuda, children }) {
   return (
-    <Campo etiqueta={etiqueta} ayuda={campo.ayuda} error={error} className={ancho}>
-      {(id) => campo.tipo === "opcion" ? (
-        <select id={id} {...props}><option value="">Elige…</option>{campo.opciones.map((o) => <option key={o}>{o}</option>)}</select>
-      ) : campo.tipo === "largo" ? <textarea id={id} rows={3} {...props} />
-        : campo.tipo === "fecha" ? <input id={id} type="date" {...props} />
-          : campo.tipo === "fechahora" ? <input id={id} type="datetime-local" {...props} />
-            : ["numero", "dinero"].includes(campo.tipo) ? <input id={id} type="number" inputMode="decimal" min={0} step="any" {...props} />
-              : <input id={id} {...props} maxLength={200} />}
-    </Campo>
+    <section className="rounded-xl border border-linea p-4">
+      <h3 className="mb-0.5 flex items-center gap-2 text-base font-semibold"><span className="flex size-6 items-center justify-center rounded-full bg-noche text-xs text-white num">{numero}</span>{titulo}</h3>
+      {ayuda && <p className="mb-3 text-sm text-gris">{ayuda}</p>}
+      <div className={cx(!ayuda && "mt-3")}>{children}</div>
+    </section>
   );
 }
 
-export function ElegirArea({ catalogo, onElegir }) {
+function FilaArea({ fila, i, total, catalogo, tiempos, onCambio, onQuitar, onMover }) {
+  const [abierta, setAbierta] = useState(false);
+  const area = catalogo.areas.find((a) => a.codigo === fila.area);
+  const sugeridos = tiempos.filter((t) => t.area === fila.area);
+  const poner = (k) => (v) => onCambio({ ...fila, [k]: v });
   return (
-    <ul className="grid gap-3 sm:grid-cols-2">
-      {catalogo.map((t) => {
-        const Icono = ICONOS[t.icono];
-        return (
-          <li key={t.tipo}>
-            <button type="button" onClick={() => onElegir(t)} className="flex h-full w-full items-start gap-3 rounded-xl border border-linea bg-white p-4 text-left hover:border-azul hover:bg-azul/[0.03]">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-azul/10 text-azul"><Icono className="size-5" /></span>
-              <span><span className="block font-semibold">{t.nombre}</span><span className="mt-0.5 block text-sm text-gris">{t.descripcion}</span></span>
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+    <li className="rounded-xl border border-linea bg-white p-3">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,180px)_80px_minmax(0,1fr)_120px_auto]">
+        <Campo etiqueta="Área">{(id) => (
+          <select id={id} className="campo" value={fila.area || ""} onChange={(e) => onCambio({ ...fila, area: e.target.value, especificacion: {} })}>
+            <option value="">Elige…</option>
+            {catalogo.areas.map((a) => <option key={a.codigo} value={a.codigo}>{a.codigo} · {a.nombre}</option>)}
+          </select>
+        )}</Campo>
+        <Campo etiqueta="Orden" ayuda="Igual = a la vez">{(id) => <input id={id} type="number" min={1} max={20} className="campo" value={fila.secuencia ?? i + 1} onChange={(e) => poner("secuencia")(e.target.value)} />}</Campo>
+        <Campo etiqueta="Qué produce">{(id) => <input id={id} className="campo" value={fila.que_produce || ""} onChange={(e) => poner("que_produce")(e.target.value)} placeholder="Ej.: arte final de 4 lonas" maxLength={255} />}</Campo>
+        <Campo etiqueta="Días estándar">{(id) => (
+          <>
+            <input id={id} type="number" min={0} step="0.5" className="campo" list={`t-${i}`} value={fila.tiempo_estandar_dias ?? ""} onChange={(e) => poner("tiempo_estandar_dias")(e.target.value)} />
+            <datalist id={`t-${i}`}>{sugeridos.map((t) => <option key={t.id} value={t.dias}>{t.trabajo}</option>)}</datalist>
+          </>
+        )}</Campo>
+        <div className="flex items-end gap-1">
+          <button type="button" aria-label="Subir" disabled={i === 0} onClick={() => onMover(-1)} className="flex size-11 items-center justify-center rounded-lg border border-linea disabled:opacity-30"><ArrowUp className="size-4" /></button>
+          <button type="button" aria-label="Bajar" disabled={i === total - 1} onClick={() => onMover(1)} className="flex size-11 items-center justify-center rounded-lg border border-linea disabled:opacity-30"><ArrowDown className="size-4" /></button>
+          <button type="button" aria-label="Quitar área" onClick={onQuitar} className="flex size-11 items-center justify-center rounded-lg border border-linea text-rojo"><Trash2 className="size-4" /></button>
+        </div>
+      </div>
+      {sugeridos.length > 0 && <p className="mt-1.5 text-xs text-gris">Tabla de tiempos: {sugeridos.map((t) => `${t.trabajo} ${Number(t.dias)} d`).join(" · ")}</p>}
+      {area && (
+        <div className="mt-2">
+          <button type="button" onClick={() => setAbierta(!abierta)} aria-expanded={abierta} className="inline-flex items-center gap-1 text-sm font-medium text-azul">
+            <ChevronDown className={cx("size-4 transition", abierta && "rotate-180")} />Especificación de {area.formato} (opcional, la completa el área)
+          </button>
+          {abierta && (
+            <div className="mt-3 grid gap-4 rounded-lg bg-fondo/60 p-3 sm:grid-cols-2">
+              {area.especificacion.map((c) => <CampoFormato key={c.clave} campo={c} valor={fila.especificacion?.[c.clave]}
+                onCambio={(v) => onCambio({ ...fila, especificacion: { ...(fila.especificacion || {}), [c.clave]: v } })} />)}
+            </div>
+          )}
+        </div>
+      )}
+    </li>
   );
 }
 
 export default function FormOrden({ abierto, onCerrar, inicial, onGuardada }) {
-  const { usuario } = useSesion();
+  const { usuario, esFinanzas } = useSesion();
   const [catalogo] = useRecurso("catalogo");
-  const [tipo, setTipo] = useState(null);
   const [f, setF] = useState({});
   const [proyectos, setProyectos] = useState([]);
-  const [errores, setErrores] = useState({});
+  const [calculo, setCalculo] = useState(null);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const editando = !!inicial?.id;
-  const veMontos = usuario?.es_finanzas || usuario?.gestiona;
 
   useEffect(() => {
     if (!abierto) return;
-    setError(""); setErrores({});
-    if (inicial?.id) {
-      setF({ ...inicial, cliente: String(inicial.cliente), proyecto: inicial.proyecto ? String(inicial.proyecto) : "", detalles: { ...inicial.detalles } });
+    setError(""); setCalculo(null);
+    if (editando) {
+      setF({ ...inicial, cliente: String(inicial.cliente), proyecto: inicial.proyecto ? String(inicial.proyecto) : "",
+        asesor_comercial: inicial.asesor_comercial ? String(inicial.asesor_comercial) : "", plan_areas: inicial.plan_areas?.length ? inicial.plan_areas : [{}],
+        g0: { ...inicial.g0 }, monto: inicial.monto ?? "", anticipo_requerido: inicial.anticipo_requerido ?? "" });
     } else {
-      setF({ titulo: "", descripcion: "", cliente: inicial?.cliente ? String(inicial.cliente) : "", proyecto: inicial?.proyecto ? String(inicial.proyecto) : "",
-        prioridad: "NORMAL", fecha_requerida: sumarDias(hoyISO(), 5), monto: "", detalles: {} });
+      setF({ titulo: "", descripcion: "", exclusiones: "", cliente: inicial?.cliente ? String(inicial.cliente) : "", proyecto: inicial?.proyecto ? String(inicial.proyecto) : "",
+        contacto: "", telefono: "", correo: "", direccion_entrega: "", tipo_cliente: "RECURRENTE", asesor_comercial: String(usuario.id),
+        numero_cotizacion: "", prioridad: "N", rondas_incluidas: 2, fecha_requerida: sumarDias(hoyISO(), 7), monto: "", anticipo_requerido: "",
+        plan_areas: [{ area: "", secuencia: 1, que_produce: "" }], g0: {} });
     }
-    setTipo(null);
-  }, [abierto, inicial]);
-
-  useEffect(() => {
-    if (!catalogo || !abierto) return;
-    const t = inicial?.tipo ? catalogo.find((c) => c.tipo === inicial.tipo) : null;
-    if (t) setTipo(t);
-  }, [catalogo, abierto, inicial]);
+  }, [abierto, inicial, editando, usuario]);
 
   useEffect(() => {
     if (!f.cliente) { setProyectos([]); return; }
     listarProyectos({ cliente: f.cliente, activos: 1 }).then(setProyectos).catch(() => setProyectos([]));
   }, [f.cliente]);
 
-  const det = (clave) => (v) => setF((x) => ({ ...x, detalles: { ...x.detalles, [clave]: v } }));
+  const poner = (k) => (e) => setF({ ...f, [k]: e?.target ? e.target.value : e });
+  const plan = f.plan_areas || [];
+  const ponerPlan = (lista) => { setF({ ...f, plan_areas: lista }); setCalculo(null); };
+  const filasValidas = () => plan.filter((p) => p.area).map((p, i) => ({ ...p, secuencia: Number(p.secuencia || i + 1),
+    tiempo_estandar_dias: p.tiempo_estandar_dias === "" || p.tiempo_estandar_dias == null ? undefined : Number(p.tiempo_estandar_dias) }));
+
+  const calcular = async () => {
+    setError("");
+    try { setCalculo(await calcularCompromiso({ plan_areas: filasValidas(), prioridad: f.prioridad, rondas_incluidas: f.rondas_incluidas })); }
+    catch (e) { setError(e.message); }
+  };
 
   const guardar = async (e) => {
     e.preventDefault();
-    setError(""); setErrores({});
-    if (!f.titulo?.trim()) return setError("Escribe un título corto: qué se va a hacer.");
+    setError("");
+    if (!f.titulo?.trim()) return setError("Escribe el nombre del proyecto o trabajo.");
     if (!f.cliente) return setError("Elige el cliente (para trabajos internos, «ADZONE Digital Marketing»).");
-    const faltan = tipo.campos.filter((c) => c.requerido && [undefined, "", null].includes(f.detalles[c.clave]) || (c.requerido && c.tipo === "multiple" && !(f.detalles[c.clave] || []).length));
-    if (faltan.length) {
-      setErrores(Object.fromEntries(faltan.map((c) => [c.clave, `Falta «${c.etiqueta}».`])));
-      return setError(`Completa: ${faltan.map((c) => c.etiqueta).join(", ")}.`);
-    }
+    const filas = filasValidas();
+    if (!filas.length) return setError("Agrega al menos un área (sección 3).");
+    if (filas.some((x) => !x.que_produce?.trim())) return setError("Anota qué produce cada área.");
     setGuardando(true);
     try {
       const datos = {
-        id: f.id, tipo: tipo.tipo, titulo: f.titulo.trim(), descripcion: f.descripcion || "", cliente: Number(f.cliente),
-        proyecto: f.proyecto ? Number(f.proyecto) : null, prioridad: f.prioridad, fecha_requerida: f.fecha_requerida || null,
-        detalles: f.detalles,
+        id: f.id, titulo: f.titulo.trim(), descripcion: f.descripcion || "", exclusiones: f.exclusiones || "", cliente: Number(f.cliente),
+        proyecto: f.proyecto ? Number(f.proyecto) : null, contacto: f.contacto || "", telefono: f.telefono || "", correo: f.correo || "",
+        direccion_entrega: f.direccion_entrega || "", tipo_cliente: f.tipo_cliente, asesor_comercial: f.asesor_comercial ? Number(f.asesor_comercial) : null,
+        numero_cotizacion: f.numero_cotizacion || "", prioridad: f.prioridad, rondas_incluidas: Number(f.rondas_incluidas) || 2,
+        fecha_requerida: f.fecha_requerida || null, plan_areas: filas, g0: f.g0 || {},
+        monto: f.monto === "" ? null : f.monto, anticipo_requerido: f.anticipo_requerido === "" ? null : f.anticipo_requerido,
       };
-      if (veMontos) datos.monto = f.monto === "" || f.monto == null ? null : f.monto;
       const o = await guardarOrden(datos);
       onGuardada(o, editando);
-    } catch (err) {
-      setError(err.message);
-      if (err.data?.detalles) setErrores(err.data.detalles);
-    }
+    } catch (err) { setError(err.message); }
     setGuardando(false);
   };
 
-  const titulo = editando ? `Editar ${inicial.numero}` : tipo ? `Nueva orden · ${tipo.nombre}` : "Nueva orden de trabajo";
+  const g0Items = (catalogo?.g0 || []).map((x) => x.texto);
+  const despuesDeLiberar = editando && !["SOLICITADA", "DEVUELTA"].includes(inicial.estado);
   return (
-    <Modal abierto={abierto} onCerrar={onCerrar} ancho="md:max-w-3xl" titulo={titulo}
-      descripcion={!tipo ? "¿Qué área hará el trabajo?" : editando ? null : `La recibe ${tipo.departamento} para aprobarla.`}
-      pie={tipo && <>
-        {!editando && <Boton variante="fantasma" icono={ArrowLeft} onClick={() => setTipo(null)} className="mr-auto">Cambiar área</Boton>}
-        <Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton>
-        <Boton type="submit" form="form-orden" cargando={guardando}>{editando ? "Guardar cambios" : "Pedir orden"}</Boton>
-      </>}>
-      {!catalogo ? <Cargando /> : !tipo ? <ElegirArea catalogo={catalogo} onElegir={setTipo} /> : (
-        <form id="form-orden" onSubmit={guardar} className="space-y-5">
+    <Modal abierto={abierto} onCerrar={onCerrar} ancho="md:max-w-4xl" titulo={editando ? `Editar ${inicial.codigo}` : "Nueva OT Maestra (F-01)"}
+      descripcion={editando ? inicial.titulo : "Comercial la entrega completa a Coordinación de Producción, que la revisa (G0) y le asigna el número."}
+      pie={<><Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton>
+        <Boton type="submit" form="form-orden" cargando={guardando}>{editando ? "Guardar cambios" : "Entregar a Coordinación"}</Boton></>}>
+      {!catalogo ? <Cargando /> : (
+        <form id="form-orden" onSubmit={guardar} className="space-y-4">
           {error && <Alerta>{error}</Alerta>}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo etiqueta="Título" className="sm:col-span-2" ayuda="Ej.: Lona 3x2 del Torneo Superior">
-              {(id) => <input id={id} className="campo" value={f.titulo || ""} onChange={(e) => setF({ ...f, titulo: e.target.value })} maxLength={200} autoFocus={!editando} />}
-            </Campo>
-            <SelectorCliente valor={f.cliente} onCambio={(v) => setF({ ...f, cliente: v, proyecto: "" })} />
-            <Campo etiqueta="Proyecto (opcional)">
-              {(id) => (
-                <select id={id} className="campo" value={f.proyecto || ""} onChange={(e) => setF({ ...f, proyecto: e.target.value })} disabled={!proyectos.length}>
-                  <option value="">{f.cliente && !proyectos.length ? "Este cliente no tiene proyectos activos" : "Ninguno"}</option>
+          <Seccion numero="1" titulo="Datos del cliente">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectorCliente valor={f.cliente} onCambio={(v) => setF({ ...f, cliente: v, proyecto: "" })} />
+              <Campo etiqueta="Tipo de cliente">{(id) => (
+                <select id={id} className="campo" value={f.tipo_cliente || "RECURRENTE"} onChange={poner("tipo_cliente")}>
+                  {catalogo.tipos_cliente.map((t) => <option key={t.valor} value={t.valor}>{t.nombre}</option>)}
+                </select>
+              )}</Campo>
+              <Campo etiqueta="Persona de contacto">{(id) => <input id={id} className="campo" value={f.contacto || ""} onChange={poner("contacto")} maxLength={150} />}</Campo>
+              <Campo etiqueta="Teléfono / WhatsApp">{(id) => <input id={id} className="campo" inputMode="tel" value={f.telefono || ""} onChange={poner("telefono")} maxLength={40} />}</Campo>
+              <Campo etiqueta="Correo (opcional)">{(id) => <input id={id} type="email" className="campo" value={f.correo || ""} onChange={poner("correo")} />}</Campo>
+              <Campo etiqueta="Dirección de entrega / instalación">{(id) => <input id={id} className="campo" value={f.direccion_entrega || ""} onChange={poner("direccion_entrega")} maxLength={255} />}</Campo>
+              <SelectorPersona etiqueta="Asesor comercial" valor={f.asesor_comercial} onCambio={(v) => setF({ ...f, asesor_comercial: v })} />
+              <Campo etiqueta="Proyecto (opcional)">{(id) => (
+                <select id={id} className="campo" value={f.proyecto || ""} onChange={poner("proyecto")} disabled={!proyectos.length}>
+                  <option value="">{f.cliente && !proyectos.length ? "Sin proyectos activos" : "Ninguno"}</option>
                   {proyectos.map((p) => <option key={p.id} value={p.id}>{p.codigo} · {p.nombre}</option>)}
                 </select>
-              )}
-            </Campo>
-            <Campo etiqueta="Para cuándo la pide el cliente">
-              {(id) => <input id={id} type="date" className="campo" value={f.fecha_requerida || ""} onChange={(e) => setF({ ...f, fecha_requerida: e.target.value })} />}
-            </Campo>
-            <Campo etiqueta="Prioridad">
-              {(id) => (
-                <select id={id} className="campo" value={f.prioridad} onChange={(e) => setF({ ...f, prioridad: e.target.value })}>
-                  {Object.entries(PRIORIDADES_OT).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              )}
-            </Campo>
-          </div>
-
-          <section className="rounded-xl border border-linea bg-fondo/50 p-4">
-            <h3 className="mb-3 text-base font-semibold">Datos de {tipo.nombre.toLowerCase()}</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {tipo.campos.map((c) => <CampoDinamico key={c.clave} campo={c} valor={f.detalles?.[c.clave]} onCambio={det(c.clave)} error={errores[c.clave]} />)}
+              )}</Campo>
             </div>
-          </section>
+          </Seccion>
 
-          <Campo etiqueta="Indicaciones (opcional)" ayuda="Lo que el equipo debe saber: referencias, colores, contacto en sitio…">
-            {(id) => <textarea id={id} className="campo" rows={3} value={f.descripcion || ""} onChange={(e) => setF({ ...f, descripcion: e.target.value })} />}
-          </Campo>
-          {veMontos && (
-            <Campo etiqueta="Monto acordado con el cliente (opcional)" ayuda="Sin ITBIS. Solo lo ven Finanzas y quien gestiona.">
-              {(id) => <input id={id} type="number" min={0} step="any" inputMode="decimal" className="campo sm:max-w-xs" value={f.monto ?? ""} onChange={(e) => setF({ ...f, monto: e.target.value })} />}
-            </Campo>
+          <Seccion numero="2" titulo="Alcance del trabajo" ayuda="Descripción, cantidades, piezas y resultado esperado. Lo que no está aquí no está incluido.">
+            <div className="grid gap-4">
+              <Campo etiqueta="Nombre del proyecto / trabajo">{(id) => <input id={id} className="campo" value={f.titulo || ""} onChange={poner("titulo")} maxLength={200} placeholder="Ej.: Lonas 3×2 del Torneo Superior" />}</Campo>
+              <Campo etiqueta="Alcance">{(id) => <textarea id={id} rows={4} className="campo" value={f.descripcion || ""} onChange={poner("descripcion")} />}</Campo>
+              <Campo etiqueta="Exclusiones (opcional)" ayuda="Lo que NO incluye: evita discusiones en la entrega.">{(id) => <textarea id={id} rows={2} className="campo" value={f.exclusiones || ""} onChange={poner("exclusiones")} />}</Campo>
+            </div>
+          </Seccion>
+
+          <Seccion numero="3" titulo="Áreas que intervienen y secuencia" ayuda="En el orden en que trabajan. Las que tienen el mismo número van a la vez. Coordinación emite una Orden de Área por cada fila.">
+            {despuesDeLiberar ? (
+              <div className="flex flex-wrap gap-1.5">{plan.map((p, i) => <AreaChip key={i} area={p.area} />)}<p className="w-full text-sm text-gris">Ya liberada: las áreas se agregan desde la OT («Agregar área»).</p></div>
+            ) : (
+              <>
+                <ol className="space-y-3">
+                  {plan.map((fila, i) => (
+                    <FilaArea key={i} fila={fila} i={i} total={plan.length} catalogo={catalogo} tiempos={catalogo.tiempos || []}
+                      onCambio={(nueva) => ponerPlan(plan.map((x, j) => (j === i ? nueva : x)))}
+                      onQuitar={() => ponerPlan(plan.filter((_, j) => j !== i))}
+                      onMover={(d) => { const l = [...plan]; [l[i], l[i + d]] = [l[i + d], l[i]]; ponerPlan(l); }} />
+                  ))}
+                </ol>
+                <Boton variante="secundario" tam="sm" icono={Plus} className="mt-3" onClick={() => ponerPlan([...plan, { area: "", secuencia: (Number(plan.at(-1)?.secuencia) || plan.length) + 1, que_produce: "" }])}>Agregar área</Boton>
+              </>
+            )}
+          </Seccion>
+
+          <Seccion numero="4" titulo="Fechas y prioridad" ayuda="Fecha comprometida = tiempo estándar + cola del área + aprobación del cliente (24 h × rondas) + colchón (20 %, emergencia 30 %).">
+            <div className="grid gap-4 sm:grid-cols-4">
+              <Campo etiqueta="Fecha que pide el cliente">{(id) => <input id={id} type="date" className="campo" value={f.fecha_requerida || ""} onChange={poner("fecha_requerida")} />}</Campo>
+              <Campo etiqueta="Prioridad">{(id) => (
+                <select id={id} className="campo" value={f.prioridad || "N"} onChange={(e) => { setF({ ...f, prioridad: e.target.value }); setCalculo(null); }}>
+                  {Object.entries(PRIORIDADES_OTM).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              )}</Campo>
+              <Campo etiqueta="Rondas de cambios incluidas">{(id) => <input id={id} type="number" min={0} max={10} className="campo" value={f.rondas_incluidas ?? 2} onChange={poner("rondas_incluidas")} />}</Campo>
+              <div className="flex items-end"><Boton variante="secundario" icono={Calculator} onClick={calcular} className="w-full">Calcular</Boton></div>
+            </div>
+            {calculo && (
+              <div className={cx("mt-3 rounded-lg p-3 text-sm", f.fecha_requerida && calculo.fecha_compromiso > f.fecha_requerida ? "bg-amarillo-50" : "bg-verde-50")}>
+                <p className="font-semibold">Fecha comprometida sugerida: {fechaCorta(calculo.fecha_compromiso)} <span className="font-normal text-gris">({Number(calculo.dias_habiles)} días hábiles)</span></p>
+                <p className="text-gris">Estándar {Number(calculo.tiempo_estandar_dias)} d · cola {Number(calculo.cola_dias)} d · aprobación {Number(calculo.aprobacion_dias)} d · colchón {calculo.colchon_pct} %</p>
+                {f.fecha_requerida && calculo.fecha_compromiso > f.fecha_requerida && <p className="mt-1 font-medium text-[#7a5000]">El cliente la pide antes: negocia la fecha o súbele la prioridad.</p>}
+              </div>
+            )}
+          </Seccion>
+
+          <Seccion numero="5" titulo="Cotización y dinero">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Campo etiqueta="No. de cotización">{(id) => <input id={id} className="campo" value={f.numero_cotizacion || ""} onChange={poner("numero_cotizacion")} maxLength={40} placeholder="COT-…" />}</Campo>
+              <Campo etiqueta="Monto total RD$ (sin ITBIS)">{(id) => <input id={id} type="number" min={0} step="any" className="campo" value={f.monto ?? ""} onChange={poner("monto")} />}</Campo>
+              <Campo etiqueta="Anticipo requerido RD$" ayuda={f.monto ? `50 % = ${dinero(Number(f.monto) / 2)}` : ""}>{(id) => <input id={id} type="number" min={0} step="any" className="campo" value={f.anticipo_requerido ?? ""} onChange={poner("anticipo_requerido")} />}</Campo>
+            </div>
+          </Seccion>
+
+          {!despuesDeLiberar && (
+            <Seccion numero="G0" titulo="Compuerta de apertura" ayuda="Coordinación no numera la OT si falta una casilla. El anticipo lo confirma Administración (o se marca solo al leer el pago en Cashflow).">
+              <Checklist items={g0Items} valor={f.g0 || {}} onCambio={(v) => setF({ ...f, g0: esFinanzas ? v : { ...v, [ANTICIPO]: !!f.g0?.[ANTICIPO] } })} />
+            </Seccion>
           )}
         </form>
       )}

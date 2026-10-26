@@ -5,6 +5,8 @@ import { fechaCorta, hace } from "@/lib/formato";
 import { refrescarAvisos } from "@/app/Estructura";
 import { EquipoTarea, Evidencias, Historial, Pasos } from "@/features/tareas/componentes";
 import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, EntradaEstrellas, Insignia, Modal, PrioridadTarea, Vacio, cx, useAviso } from "@/components/ui";
+import { useRecurso } from "@/lib/recursos";
+import { Checklist } from "@/features/ordenes/piezas";
 
 const aTiempo = (t) => t.fecha_completada <= t.fecha_limite;
 
@@ -15,14 +17,18 @@ function Revision({ tarea, onListo }) {
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(null);
   const [verHistorial, setVerHistorial] = useState(false);
+  const [g3, setG3] = useState({});
+  const [causa, setCausa] = useState("");
+  const [catalogo] = useRecurso("catalogo");
+  const oa = tarea.oa_info;
 
-  useEffect(() => { setCalidad(0); setComentario(""); setError(""); setVerHistorial(false); }, [tarea.id]);
+  useEffect(() => { setCalidad(0); setComentario(""); setError(""); setVerHistorial(false); setG3(tarea.oa_info?.g3_marcados || {}); setCausa(""); }, [tarea.id, tarea.oa_info]);
 
   const validar = async () => {
     if (!calidad) { setError("Califica la calidad (1 a 5 estrellas) para validarla."); return; }
     setEnviando("validar");
     try {
-      await validarTarea(tarea.id, calidad, comentario.trim());
+      await validarTarea(tarea.id, calidad, comentario.trim(), oa ? { g3 } : {});
       avisar(`Validada. Ya cuenta para el puntaje de ${[tarea.colaborador_nombre, ...(tarea.companeros_nombres || [])].join(" y ")}.`);
       onListo(tarea.id);
     } catch (e) { setError(e.message); setEnviando(null); }
@@ -31,7 +37,7 @@ function Revision({ tarea, onListo }) {
     if (comentario.trim().length < 5) { setError("Para devolverla, escribe qué debe corregir."); return; }
     setEnviando("devolver");
     try {
-      await devolverTarea(tarea.id, comentario.trim());
+      await devolverTarea(tarea.id, comentario.trim(), oa ? { g3, causa_retrabajo: causa || null } : {});
       avisar(`Devuelta a ${tarea.colaborador_nombre} con tu comentario.`);
       onListo(tarea.id);
     } catch (e) { setError(e.message); setEnviando(null); }
@@ -62,6 +68,17 @@ function Revision({ tarea, onListo }) {
 
       <div className="space-y-4 rounded-xl border border-linea bg-fondo/60 p-4">
         {error && <Alerta>{error}</Alerta>}
+        {oa && (
+          <div className="rounded-lg border border-linea bg-white p-3">
+            <Checklist items={oa.g3} valor={g3} onCambio={setG3} titulo={`G3 · Control de calidad de ${oa.numero}`}
+              ayuda="Validar es firmar el control de calidad interno: el trabajo no sale del área sin todas las casillas." />
+            {oa.requiere_g4 && !oa.g4_aprobado && <Alerta tono="amarillo" className="mt-2">Falta la aprobación escrita del cliente (G4) en la Orden de Área.</Alerta>}
+            <Campo etiqueta="Si la devuelves: causa del retrabajo (opcional)" className="mt-3">
+              {(id) => <select id={id} className="campo" value={causa} onChange={(e) => setCausa(e.target.value)}>
+                <option value="">Solo corrección, sin registrar retrabajo</option>{(catalogo?.causas_retrabajo || []).map((c) => <option key={c}>{c}</option>)}</select>}
+            </Campo>
+          </div>
+        )}
         <EntradaEstrellas valor={calidad} onCambio={(v) => { setCalidad(v); setError(""); }} nombre={`calidad-${tarea.id}`} />
         <Campo etiqueta="Comentario" ayuda="Opcional al validar. Si la devuelves, di exactamente qué corregir.">
           {(id) => <textarea id={id} className="campo bg-white" rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} />}

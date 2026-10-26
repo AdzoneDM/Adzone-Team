@@ -1,18 +1,10 @@
-"""Lo que pasa cuando una orden cambia: historial, avisos, tarea de producción y automatizaciones."""
+"""Utilidades de órdenes: historial, avisos, pausa/cancelación y comentarios. El flujo de compuertas está en servicios_ot."""
 import re
 
 from django.contrib.auth.models import User
-from django.db import transaction
-from django.utils import timezone
 
-from apps.desempeno import servicios as tareas_srv
-from apps.desempeno.models import PasoTarea, Tarea
 from apps.desempeno.servicios import avisar, nombre
-from .formularios import TIPOS
 from .models import EventoOrden, OrdenTrabajo
-
-PRIORIDAD_TAREA = {'BAJA': 'BAJA', 'NORMAL': 'MEDIA', 'ALTA': 'ALTA', 'URGENTE': 'ALTA'}
-
 
 def disparar(evento, objeto, quien=None, **extra):
     from apps.automatizaciones.motor import disparar as _disparar
@@ -38,91 +30,48 @@ def jefes_de_departamento(departamento_id):
     return jefes or list(administradores())
 
 
-def al_crear(orden, quien):
-    registrar(orden, quien, 'Orden solicitada')
-    avisar(jefes_de_departamento(orden.departamento_id), 'ORDEN', f"Nueva orden {orden.numero}: {orden.titulo}",
-           f"{nombre(quien)} la pidió para {orden.cliente}. Revísala y apruébala.", enlace=enlace(orden), excepto=quien)
-    disparar('ORDEN_CREADA', orden, quien)
-
-
-def cambiar_estado(orden, nuevo, quien, detalle='', forzar=False):
-    """Mueve la orden respetando el flujo. Devuelve un texto de error o None."""
-    if nuevo == orden.estado:
-        return None
-    if not forzar and nuevo not in OrdenTrabajo.TRANSICIONES.get(orden.estado, []):
-        return (f"Una orden «{orden.get_estado_display()}» no puede pasar a "
-                f"«{dict(OrdenTrabajo.ESTADOS)[nuevo]}».")
-    if nuevo == 'LISTA' and not forzar and orden.tareas.filter(estado__in=['PENDIENTE', 'EN_PROGRESO', 'EN_REVISION']).exists():
-        return "Faltan tareas por terminar y validar antes de marcarla lista."
-    anterior = orden.get_estado_display()
-    if nuevo == 'EN_PAUSA':
-        orden.estado_antes_pausa = orden.estado
-    orden.estado = nuevo
-    if nuevo == 'LISTA':
-        orden.fecha_lista = timezone.now()
-    orden.save()
-    registrar(orden, quien, f"{anterior} → {orden.get_estado_display()}", detalle)
-    destinatarios = [orden.responsable, *orden.equipo.all()]
-    if nuevo in ('LISTA', 'ENTREGADA', 'CANCELADA'):
-        destinatarios.append(orden.solicitada_por)
-    avisar(destinatarios, 'ORDEN', f"{orden.numero} · {orden.get_estado_display()}", f"{orden.titulo} ({orden.cliente}).",
+def pausar(orden, quien, motivo):
+    if orden.estado not in OrdenTrabajo.PRODUCCION:
+        return "Solo se pausa una OT en producción."
+    orden.estado_antes_pausa = orden.estado
+    orden.estado = 'EN_PAUSA'
+    orden.save(update_fields=['estado', 'estado_antes_pausa'])
+    registrar(orden, quien, "En pausa", motivo)
+    avisar([orden.responsable, *[oa.responsable for oa in orden.areas.all()]], 'ORDEN', f"{orden.codigo} en pausa", motivo,
            enlace=enlace(orden), excepto=quien)
     disparar('ORDEN_ESTADO', orden, quien)
-    return None
 
 
-@transaction.atomic
-def aprobar(orden, quien, responsable, equipo, fecha_compromiso, pasos=None, crear_tarea=True):
-    orden.responsable = responsable
-    orden.fecha_compromiso = fecha_compromiso
-    orden.aprobada_por = quien
-    orden.fecha_aprobacion = timezone.now()
-    orden.save()
-    orden.equipo.set([u for u in equipo if u.pk != responsable.pk])
-    tarea = None
-    if crear_tarea:
-        pasos = pasos if pasos is not None else TIPOS[orden.tipo]['pasos']
-        tarea = Tarea.objects.create(
-            titulo=f"{orden.numero} · {orden.titulo}", descripcion=orden.descripcion, cliente=orden.cliente.nombre,
-            colaborador=responsable, asignada_por=quien, prioridad=PRIORIDAD_TAREA[orden.prioridad],
-            fecha_limite=fecha_compromiso, fecha_inicio=timezone.localdate(), orden=orden, proyecto=orden.proyecto)
-        tarea.companeros.set(orden.equipo.all())
-        for i, texto in enumerate(p.strip() for p in pasos if p and p.strip()):
-            PasoTarea.objects.create(tarea=tarea, texto=texto[:255], orden=i)
-        tareas_srv.al_asignar(tarea, quien)
-    error = cambiar_estado(orden, 'APROBADA', quien, f"Responsable: {nombre(responsable)}. Compromiso: {fecha_compromiso:%d/%m/%Y}.")
-    if error is None:
-        avisar([orden.solicitada_por], 'ORDEN', f"Aprobada: {orden.numero}",
-               f"{nombre(responsable)} la tiene a cargo. Fecha comprometida: {fecha_compromiso:%d/%m/%Y}.",
-               enlace=enlace(orden), excepto=quien)
-    return tarea
+def reanudar(orden, quien):
+    if orden.estado != 'EN_PAUSA':
+        return "La OT no está en pausa."
+    orden.estado = orden.estado_antes_pausa if orden.estado_antes_pausa in OrdenTrabajo.PRODUCCION else 'LIBERADA'
+    orden.save(update_fields=['estado'])
+    registrar(orden, quien, "Reanudada")
+    from .servicios_ot import sincronizar_orden
+    sincronizar_orden(orden, quien)
+    disparar('ORDEN_ESTADO', orden, quien)
 
 
-def entregar(orden, quien, recibido_por, nota=''):
-    orden.fecha_entrega = timezone.localdate()
-    orden.recibido_por = recibido_por
-    orden.save(update_fields=['fecha_entrega', 'recibido_por', 'fecha_modificacion'])
-    return cambiar_estado(orden, 'ENTREGADA', quien, f"Recibió: {recibido_por}. {nota}".strip())
+def cancelar(orden, quien, motivo):
+    if orden.estado in ('ENTREGADA', 'CERRADA', 'CANCELADA'):
+        return "Esta OT ya no se puede cancelar."
+    orden.estado = 'CANCELADA'
+    orden.motivo_cancelacion = motivo
+    orden.save(update_fields=['estado', 'motivo_cancelacion'])
+    orden.areas.filter(estado__in=['EMITIDA', 'RECHAZADA', 'RECIBIDA', 'EN_EJECUCION', 'EN_APROBACION']).update(estado='CANCELADA')
+    orden.tareas.filter(estado__in=['PENDIENTE', 'EN_PROGRESO', 'EN_REVISION']).update(estado='CANCELADA')
+    registrar(orden, quien, "Cancelada", motivo)
+    avisar([orden.solicitada_por, orden.asesor_comercial, orden.responsable, *[oa.responsable for oa in orden.areas.all()]],
+           'ORDEN', f"Cancelada: {orden.codigo}", motivo, enlace=enlace(orden), excepto=quien)
+    disparar('ORDEN_ESTADO', orden, quien)
 
 
 def sincronizar_desde_tareas(tarea, quien):
-    """La orden sigue a sus tareas: empezar → producción, entregar → calidad, validar todo → lista."""
-    orden = tarea.orden
-    if orden is None or orden.estado not in ('APROBADA', 'EN_PRODUCCION', 'CONTROL_CALIDAD', 'LISTA'):
-        return
-    estados = list(orden.tareas.exclude(estado='CANCELADA').values_list('estado', flat=True))
-    if not estados:
-        return
-    if all(e == 'COMPLETADA' for e in estados):
-        nuevo = 'LISTA'
-    elif any(e == 'EN_REVISION' for e in estados) and not any(e in ('PENDIENTE', 'EN_PROGRESO') for e in estados):
-        nuevo = 'CONTROL_CALIDAD'
-    elif any(e in ('EN_PROGRESO', 'COMPLETADA', 'EN_REVISION') for e in estados):
-        nuevo = 'EN_PRODUCCION'
-    else:
-        return
-    if nuevo != orden.estado:
-        cambiar_estado(orden, nuevo, quien, f"Por la tarea «{tarea.titulo}».", forzar=True)
+    """La Orden de Área sigue a su tarea (empezar → E3)."""
+    if tarea.oa_id:
+        from .servicios_ot import sincronizar_desde_tarea
+        sincronizar_desde_tarea(tarea, quien)
 
 
 MENCION = re.compile(r'@([\w.\-]+)')
@@ -139,8 +88,9 @@ def mencionados(texto, excepto=None):
 def al_comentar(comentario):
     objeto = comentario.orden or comentario.proyecto
     if comentario.orden:
-        titulo, link = f"{comentario.orden.numero}", enlace(comentario.orden)
-        interesados = [comentario.orden.responsable, comentario.orden.solicitada_por, *comentario.orden.equipo.all()]
+        o = comentario.orden
+        titulo, link = o.codigo, enlace(o)
+        interesados = [o.responsable, o.solicitada_por, o.asesor_comercial, *o.equipo.all(), *[oa.responsable for oa in o.areas.all()]]
     else:
         titulo, link = comentario.proyecto.codigo, f"/proyectos/{comentario.proyecto.pk}"
         interesados = [comentario.proyecto.responsable, *comentario.proyecto.miembros.all()]

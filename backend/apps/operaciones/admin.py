@@ -1,6 +1,9 @@
 from django.contrib import admin
 
-from .models import ArchivoOrden, Cliente, Comentario, EventoOrden, OrdenTrabajo, Proyecto
+from .models import (
+    Acta, ArchivoOrden, AreaConfig, Cliente, Comentario, EventoOrden, Firma, Incidencia, OrdenArea, OrdenTrabajo, Proyecto,
+    SolicitudCambio, TiempoEstandar, Traspaso,
+)
 
 
 @admin.register(Cliente)
@@ -31,13 +34,55 @@ class ArchivoInline(admin.TabularInline):
     exclude = ('archivo',)
 
 
+class AreaInline(admin.TabularInline):
+    model = OrdenArea
+    extra = 0
+    fields = ('numero', 'area', 'secuencia', 'que_produce', 'responsable', 'estado', 'fecha_entrega_interna')
+    readonly_fields = ('numero',)
+
+
 @admin.register(OrdenTrabajo)
 class OrdenAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'tipo', 'titulo', 'cliente', 'departamento', 'responsable', 'estado', 'fecha_compromiso')
-    list_filter = ('tipo', 'estado', 'departamento', 'prioridad')
-    search_fields = ('numero', 'titulo', 'cliente__nombre')
+    list_display = ('solicitud', 'numero', 'titulo', 'cliente', 'prioridad', 'estado', 'fecha_compromiso')
+    list_filter = ('estado', 'prioridad', 'tipo_cliente')
+    search_fields = ('numero', 'solicitud', 'titulo', 'cliente__nombre')
     filter_horizontal = ('equipo',)
-    inlines = [ArchivoInline, EventoInline]
+    inlines = [AreaInline, ArchivoInline, EventoInline]
+
+
+@admin.register(OrdenArea)
+class OrdenAreaAdmin(admin.ModelAdmin):
+    list_display = ('numero', 'area', 'que_produce', 'responsable', 'estado', 'fecha_entrega_interna')
+    list_filter = ('area', 'estado')
+    search_fields = ('numero', 'que_produce', 'orden__titulo')
+
+
+@admin.register(AreaConfig)
+class AreaConfigAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'departamento', 'activa')
+    filter_horizontal = ('supervisores',)
+
+
+@admin.register(Traspaso)
+class TraspasoAdmin(admin.ModelAdmin):
+    list_display = ('numero', 'orden', 'oa', 'compuerta', 'entrega_area', 'recibe_area', 'resultado', 'entrega_fecha')
+    list_filter = ('compuerta', 'resultado')
+
+
+@admin.register(Acta)
+class ActaAdmin(admin.ModelAdmin):
+    list_display = ('numero', 'orden', 'modalidad', 'fecha', 'conformidad', 'firmada')
+
+
+@admin.register(SolicitudCambio)
+class CambioAdmin(admin.ModelAdmin):
+    list_display = ('numero', 'orden', 'tipo', 'estado', 'costo_retrabajo', 'monto_cliente', 'fecha')
+    list_filter = ('tipo', 'estado')
+
+
+admin.site.register(TiempoEstandar)
+admin.site.register(Incidencia)
+admin.site.register(Firma)
 
 
 admin.site.register(Comentario)

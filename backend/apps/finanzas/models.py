@@ -37,6 +37,10 @@ class Documento(models.Model):
     total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     creada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    cashflow_id = models.CharField(max_length=60, blank=True, help_text="Id del documento en Cashflow.")
+    cashflow_numero = models.CharField(max_length=40, blank=True)
+    cashflow_estado = models.CharField(max_length=40, blank=True)
+    cashflow_sincronizado = models.DateTimeField(null=True, blank=True)
 
     PREFIJO = ''
 
@@ -101,6 +105,7 @@ class Factura(Documento):
     orden = models.ForeignKey(OrdenTrabajo, on_delete=models.SET_NULL, null=True, blank=True, related_name='facturas')
     cotizacion = models.ForeignKey(Cotizacion, on_delete=models.SET_NULL, null=True, blank=True, related_name='facturas')
     pagado = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    es_anticipo = models.BooleanField(default=False, help_text="Factura del anticipo que exige la compuerta G0.")
 
     @property
     def saldo(self):
@@ -136,6 +141,7 @@ class Pago(models.Model):
     referencia = models.CharField(max_length=100, blank=True)
     registrado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    cashflow_id = models.CharField(max_length=60, blank=True, help_text="Recibo de ingreso en Cashflow (si vino de allá).")
 
     class Meta:
         ordering = ['-fecha', '-id']

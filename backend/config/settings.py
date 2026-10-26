@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'apps.tiempo',
     'apps.finanzas',
     'apps.automatizaciones',
+    'apps.almacen',
+    'apps.integraciones',
     'corsheaders',
     'rest_framework',
     'django_filters',
@@ -202,3 +204,12 @@ LOGGING = {
 # Automatizaciones: firma de los webhooks hacia n8n (cabecera X-Adzone-Firma, HMAC-SHA256 del cuerpo)
 AUTOMATIZACIONES_SECRETO = env('AUTOMATIZACIONES_SECRETO', '')
 AUTOMATIZACIONES_SINCRONO = False
+
+# Cashflow (cashflow.do): facturación fiscal, clientes, cotizaciones y cobros.
+# Sin CASHFLOW_API_KEY la integración trabaja en modo de prueba (simula respuestas para poder usar todo el flujo).
+CASHFLOW_API_URL = env('CASHFLOW_API_URL', 'https://api.cashflow.do')
+CASHFLOW_API_KEY = env('CASHFLOW_API_KEY', '')
+CASHFLOW_AUTH_HEADER = env('CASHFLOW_AUTH_HEADER', 'Authorization')
+CASHFLOW_AUTH_PREFIX = env('CASHFLOW_AUTH_PREFIX', 'Bearer ')
+CASHFLOW_TIMEOUT = int(env('CASHFLOW_TIMEOUT', '20'))
+CASHFLOW_MODO = 'real' if CASHFLOW_API_KEY and env('CASHFLOW_MODO', 'real') == 'real' else 'prueba'

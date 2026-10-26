@@ -63,7 +63,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Tarea.objects.select_related(
             'colaborador__perfil__puesto_trabajo__departamento', 'asignada_por', 'validada_por',
-            'kpi_asignado__plantilla_kpi', 'proyecto', 'orden',
+            'kpi_asignado__plantilla_kpi', 'proyecto', 'orden', 'oa',
         ).prefetch_related('evidencias', 'pasos', 'companeros')
         if not es_administrador(user):
             subs = subordinados(user)
@@ -212,6 +212,13 @@ class TareaViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         validacion = ValidacionSerializer(data=request.data)
         validacion.is_valid(raise_exception=True)
+        if tarea.oa_id:  # Orden de Área: validar es firmar el control de calidad (G3)
+            from apps.operaciones.servicios_ot import ErrorFlujo, validar_g3
+            try:
+                validar_g3(tarea.oa, request.user, request.data.get('g3') or {},
+                           validacion.validated_data.get('comentario_evaluacion', ''))
+            except ErrorFlujo as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         tarea.calificacion_calidad = validacion.validated_data['calificacion_calidad']
         tarea.comentario_evaluacion = validacion.validated_data.get('comentario_evaluacion', '')
         tarea.estado = 'COMPLETADA'
@@ -231,6 +238,10 @@ class TareaViewSet(viewsets.ModelViewSet):
         rechazo = RechazoSerializer(data=request.data)
         rechazo.is_valid(raise_exception=True)
         tarea.comentario_revision = rechazo.validated_data['comentario_revision']
+        if tarea.oa_id:
+            from apps.operaciones.servicios_ot import rechazar_g3
+            rechazar_g3(tarea.oa, request.user, request.data.get('g3') or {}, tarea.comentario_revision,
+                        request.data.get('causa_retrabajo') or None)
         tarea.estado = 'EN_PROGRESO'
         tarea.fecha_completada = None
         tarea.rondas_revision += 1

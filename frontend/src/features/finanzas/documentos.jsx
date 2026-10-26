@@ -1,10 +1,9 @@
 // Cotizaciones y facturas: editor de líneas, detalle con acciones y pagos.
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Ban, CheckCircle2, Copy, Plus, Printer, Receipt, Send, Trash2, X } from "lucide-react";
+import { Ban, CheckCircle2, CloudUpload, Copy, Plus, Printer, Receipt, RefreshCw, Send, Trash2, X } from "lucide-react";
 import { accionDocumento, borrarPago, eliminarDocumento, guardarDocumento, listarProyectos, registrarPago } from "@/lib/api";
 import { dinero, fechaCorta, hoyISO, sumarDias } from "@/lib/formato";
-import { useRecurso } from "@/lib/recursos";
 import { SelectorCliente } from "@/components/Selectores";
 import { Alerta, Boton, Campo, Modal, cx, useAviso, useConfirmar } from "@/components/ui";
 
@@ -112,7 +111,7 @@ export function EditorDocumento({ tipo, abierto, inicial, onCerrar, onGuardado }
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {esCot ? <Campo etiqueta="Condiciones">{(id) => <textarea id={id} rows={2} className="campo" value={f.condiciones || ""} onChange={(e) => setF({ ...f, condiciones: e.target.value })} />}</Campo>
-            : <Campo etiqueta="NCF / e-CF (opcional)" ayuda="Cópialo del sistema contable al emitirla.">{(id) => <input id={id} className="campo" value={f.ncf || ""} onChange={(e) => setF({ ...f, ncf: e.target.value })} maxLength={20} />}</Campo>}
+            : <Campo etiqueta="NCF / e-CF (opcional)" ayuda="Si la emites en Cashflow, el NCF llega solo.">{(id) => <input id={id} className="campo" value={f.ncf || ""} onChange={(e) => setF({ ...f, ncf: e.target.value })} maxLength={20} />}</Campo>}
           <Campo etiqueta="Notas">{(id) => <textarea id={id} rows={2} className="campo" value={f.notas || ""} onChange={(e) => setF({ ...f, notas: e.target.value })} />}</Campo>
         </div>
       </form>
@@ -126,7 +125,6 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const navigate = useNavigate();
-  const [catalogo] = useRecurso("catalogo");
   const [pago, setPago] = useState(null);
   const [aprobar, setAprobar] = useState(null);
   const [ncf, setNcf] = useState("");
@@ -145,6 +143,7 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
   }
   if (esCot) {
     if (doc.estado === "BORRADOR") botones.push(<Boton key="en" icono={Send} onClick={() => accion("enviar", {}, "Marcada como enviada al cliente.")}>Marcar enviada</Boton>);
+    if (!doc.cashflow_id && doc.estado !== "RECHAZADA") botones.push(<Boton key="cf" variante="secundario" icono={CloudUpload} onClick={() => accion("cashflow", {}, "Cotización enviada a Cashflow.")}>Enviar a Cashflow</Boton>);
     if (["BORRADOR", "ENVIADA"].includes(doc.estado)) {
       botones.push(<Boton key="re" variante="secundario" icono={X} onClick={() => accion("rechazar", {}, "Cotización rechazada.")}>Rechazada</Boton>);
       botones.push(<Boton key="ap" icono={CheckCircle2} onClick={() => setAprobar("")}>Aprobada por el cliente</Boton>);
@@ -152,7 +151,12 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
     if (doc.estado === "APROBADA") botones.push(<Boton key="fa" icono={Receipt} onClick={async () => { const f = await accion("facturar", {}, "Factura creada en borrador."); if (f) navigate(`/finanzas?ver=facturas&id=${f.id}`); }}>Facturar</Boton>);
     botones.push(<Boton key="du" variante="secundario" icono={Copy} onClick={async () => { const n = await accion("duplicar", {}, "Copia creada en borrador."); if (n) onEditar(n); }}>Duplicar</Boton>);
   } else {
-    if (doc.estado === "BORRADOR") botones.push(<Boton key="em" icono={Send} onClick={() => accion("emitir", {}, "Factura emitida. Ya cuenta en cuentas por cobrar.")}>Emitir</Boton>);
+    if (["BORRADOR", "EMITIDA"].includes(doc.estado) && !doc.cashflow_id) botones.push(<Boton key="cf" icono={CloudUpload} onClick={() => accion("cashflow", {}, "Factura emitida en Cashflow con su NCF.")}>Emitir en Cashflow (NCF)</Boton>);
+    if (doc.estado === "BORRADOR") botones.push(<Boton key="em" variante="secundario" icono={Send} onClick={() => accion("emitir", {}, "Factura emitida solo aquí (sin Cashflow).")}>Emitir sin Cashflow</Boton>);
+    if (doc.cashflow_id && ["EMITIDA", "PAGADA"].includes(doc.estado)) botones.push(<Boton key="cs" variante="secundario" icono={RefreshCw} onClick={async () => {
+      const r = await accion("cashflow_actualizar", {}, "Actualizada desde Cashflow.");
+      if (r?.pagos_nuevos) avisar(`${r.pagos_nuevos} pago(s) nuevo(s) desde Cashflow.`);
+    }}>Traer pagos de Cashflow</Boton>);
     if (doc.estado === "EMITIDA") botones.push(<Boton key="pa" variante="acento" icono={Plus} onClick={() => setPago({ monto: doc.saldo, fecha: hoyISO(), metodo: "TRANSFERENCIA", referencia: "" })}>Registrar pago</Boton>);
     if (["BORRADOR", "EMITIDA"].includes(doc.estado) && !doc.pagos.length) botones.push(<Boton key="an" variante="peligro" icono={Ban} onClick={async () => {
       if (await confirmar({ titulo: `¿Anular ${doc.numero}?`, mensaje: "Deja de contar como facturado y por cobrar.", boton: "Anular", peligro: true })) accion("anular", { motivo: "" }, "Factura anulada.");
@@ -171,6 +175,8 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
           {!esCot && doc.vencimiento && <span className={cx(doc.vencida ? "font-medium text-rojo" : "text-gris")}>Vence {fechaCorta(doc.vencimiento)}</span>}
           {doc.orden && <Link to={`/ordenes/${doc.orden}`} className="text-azul hover:underline">{doc.orden_numero}</Link>}
           {doc.cotizacion_numero && <span className="text-gris">De {doc.cotizacion_numero}</span>}
+          {doc.es_anticipo && <span className="rounded-full bg-azul/10 px-2 py-0.5 text-xs font-medium text-azul">Anticipo</span>}
+          {doc.cashflow_id && <span className="rounded-full bg-verde-50 px-2 py-0.5 text-xs font-medium text-verde">En Cashflow{doc.cashflow_numero ? ` · ${doc.cashflow_numero}` : ""}{doc.cashflow_estado ? ` · ${doc.cashflow_estado}` : ""}</span>}
         </div>
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-gris"><tr><th className="py-1.5">Descripción</th><th className="text-right">Cant.</th><th className="text-right">Precio</th><th className="text-right">Importe</th></tr></thead>
@@ -187,7 +193,7 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
         </dl>
         {!esCot && doc.estado !== "ANULADA" && (
           <div className="flex flex-wrap items-end gap-2 rounded-xl bg-fondo p-3">
-            <Campo etiqueta="NCF / e-CF" className="flex-1">{(id) => <input id={id} className="campo bg-white" value={ncf} onChange={(e) => setNcf(e.target.value)} maxLength={20} placeholder="B0100000001 / E310000000001" />}</Campo>
+            <Campo etiqueta={doc.cashflow_id ? "NCF / e-CF (lo asignó Cashflow)" : "NCF / e-CF (si se emitió fuera de Cashflow)"} className="flex-1">{(id) => <input id={id} className="campo bg-white" value={ncf} onChange={(e) => setNcf(e.target.value)} maxLength={20} placeholder="B0100000001 / E310000000001" />}</Campo>
             <Boton variante="secundario" disabled={ncf === (doc.ncf || "")} onClick={async () => { try { onCambio(await guardarDocumento(tipo, { id: doc.id, ncf })); avisar("NCF guardado."); } catch (e) { avisar(e.message, "rojo"); } }}>Guardar NCF</Boton>
           </div>
         )}
@@ -226,14 +232,12 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
         )}
         {aprobar !== null && (
           <div className="space-y-3 rounded-xl border border-verde/40 bg-verde-50/60 p-4">
-            <h3 className="font-semibold">¿Crear la orden de trabajo de una vez?</h3>
-            <select className="campo bg-white" value={aprobar} onChange={(e) => setAprobar(e.target.value)} aria-label="Área de la orden">
-              <option value="">No, solo marcarla aprobada</option>
-              {(catalogo || []).map((t) => <option key={t.tipo} value={t.tipo}>Sí, orden de {t.nombre.toLowerCase()}</option>)}
-            </select>
+            <h3 className="font-semibold">¿Crear la OT Maestra de una vez?</h3>
+            <label className="flex items-center gap-2.5 text-[15px]"><input type="checkbox" className="size-4 accent-azul" checked={aprobar === "1"} onChange={(e) => setAprobar(e.target.checked ? "1" : "")} />
+              Sí: crear la solicitud (F-01) con el cliente, el monto y la cotización marcada en G0. Comercial completa las áreas y la entrega a Coordinación.</label>
             <div className="flex justify-end gap-2"><Boton variante="secundario" onClick={() => setAprobar(null)}>Volver</Boton>
               <Boton icono={CheckCircle2} onClick={async () => {
-                const r = await accion("aprobar", aprobar ? { crear_orden: aprobar } : {}, aprobar ? "Aprobada. Se pidió la orden al departamento." : "Cotización aprobada.");
+                const r = await accion("aprobar", aprobar ? { crear_orden: true } : {}, aprobar ? "Aprobada. Se creó la solicitud de OT: completa las áreas." : "Cotización aprobada.");
                 if (r?.orden_creada) navigate(`/ordenes/${r.orden_creada.id}`);
               }}>Confirmar</Boton></div>
           </div>

@@ -92,25 +92,32 @@ class CotizacionViewSet(viewsets.ModelViewSet):
             return error
         servicios.disparar('COTIZACION_APROBADA', cot, request.user)
         orden = None
-        tipo = request.data.get('crear_orden')
-        if tipo:
-            from apps.operaciones import servicios as op_srv
-            from apps.operaciones.formularios import TIPOS
-            from apps.core.models import Departamento
-            if tipo not in TIPOS:
-                return Response({"detail": "Tipo de orden desconocido."}, status=status.HTTP_400_BAD_REQUEST)
-            depto = Departamento.objects.filter(nombre=TIPOS[tipo]['departamento']).first()
-            if depto is None:
-                return Response({"detail": f"No existe el departamento {TIPOS[tipo]['departamento']}."}, status=status.HTTP_400_BAD_REQUEST)
+        if request.data.get('crear_orden'):
+            from apps.operaciones import servicios_ot
+            from apps.operaciones.formatos import G0
             orden = OrdenTrabajo.objects.create(
-                tipo=tipo, titulo=(cot.titulo or f"Según {cot.numero}")[:200], cliente=cot.cliente, proyecto=cot.proyecto,
-                departamento=depto, descripcion="\n".join(f"• {l.cantidad:g} × {l.descripcion}" for l in cot.lineas.all()),
-                monto=cot.subtotal, solicitada_por=request.user, detalles={})
-            op_srv.registrar(orden, request.user, f"Creada desde la cotización {cot.numero}")
-            op_srv.al_crear(orden, request.user)
+                titulo=(cot.titulo or f"Según {cot.numero}")[:200], cliente=cot.cliente, proyecto=cot.proyecto, cotizacion=cot,
+                numero_cotizacion=cot.numero, descripcion="\n".join(f"• {l.cantidad:g} × {l.descripcion}" for l in cot.lineas.all()),
+                monto=cot.subtotal, solicitada_por=request.user, asesor_comercial=cot.creada_por or request.user,
+                contacto=cot.cliente.contacto, telefono=cot.cliente.telefono, correo=cot.cliente.correo,
+                direccion_entrega=cot.cliente.direccion, g0={dict(G0)['cotizacion_aprobada']: True})
+            servicios_ot.registrar(orden, request.user, f"Solicitud creada desde la cotización {cot.numero}")
+            servicios_ot.al_solicitar(orden, request.user)
         datos = self.get_serializer(cot).data
-        datos['orden_creada'] = {'id': orden.pk, 'numero': orden.numero} if orden else None
+        datos['orden_creada'] = {'id': orden.pk, 'numero': orden.codigo} if orden else None
         return Response(datos)
+
+    @action(detail=True, methods=['post'])
+    def cashflow(self, request, pk=None):
+        """Envía la cotización a Cashflow."""
+        from apps.integraciones.cashflow.cliente import CashflowError
+        from apps.integraciones.cashflow.servicios import enviar_cotizacion
+        cot = self.get_object()
+        try:
+            enviar_cotizacion(cot, request.user)
+        except CashflowError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(cot).data)
 
     @action(detail=True, methods=['post'])
     def facturar(self, request, pk=None):
@@ -159,9 +166,35 @@ class FacturaViewSet(viewsets.ModelViewSet):
         orden = OrdenTrabajo.objects.filter(pk=request.data.get('orden')).first()
         if orden is None:
             return Response({"detail": "No encontré esa orden."}, status=status.HTTP_404_NOT_FOUND)
-        if orden.facturas.exclude(estado='ANULADA').exists():
-            return Response({"detail": f"{orden.numero} ya tiene factura."}, status=status.HTTP_400_BAD_REQUEST)
-        factura = servicios.factura_desde(orden, request.user)
+        anticipo = bool(request.data.get('anticipo'))
+        vivas = orden.facturas.exclude(estado='ANULADA')
+        facturado = sum((f.subtotal for f in vivas), Decimal('0'))
+        pendiente = (orden.monto or Decimal('0')) - facturado
+        monto = None
+        if anticipo:
+            # Anticipos y abonos antes de entregar: el primero por el anticipo requerido; los demás, por lo que se indique.
+            try:
+                monto = Decimal(str(request.data.get('monto'))) if request.data.get('monto') not in (None, '') else None
+            except Exception:  # noqa: BLE001
+                return Response({"monto": ["Monto inválido."]}, status=status.HTTP_400_BAD_REQUEST)
+            if monto is None:
+                monto = orden.anticipo_requerido if not vivas.filter(es_anticipo=True).exists() else pendiente
+            if not monto or monto <= 0:
+                return Response({"detail": "Anota el monto del anticipo."}, status=status.HTTP_400_BAD_REQUEST)
+            if monto > pendiente:
+                return Response({"detail": f"Solo quedan RD$ {pendiente:,.2f} por facturar en {orden.codigo}."},
+                                status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # F-12: sin acta firmada no se factura.
+            if orden.estado not in ('ENTREGADA', 'CERRADA'):
+                return Response({"detail": "Sin acta de entrega firmada no se factura. Si es el anticipo, factúralo como anticipo."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if vivas.filter(es_anticipo=False).exists():
+                return Response({"detail": f"{orden.codigo} ya tiene factura."}, status=status.HTTP_400_BAD_REQUEST)
+            if pendiente <= 0:
+                return Response({"detail": f"{orden.codigo} ya quedó facturada completa con los anticipos."},
+                                status=status.HTTP_400_BAD_REQUEST)
+        factura = servicios.factura_desde(orden, request.user, anticipo=anticipo, monto_anticipo=monto)
         return Response(self.get_serializer(factura).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
@@ -169,10 +202,42 @@ class FacturaViewSet(viewsets.ModelViewSet):
         f = self.get_object()
         if f.estado != 'BORRADOR':
             return Response({"detail": "Ya fue emitida."}, status=status.HTTP_400_BAD_REQUEST)
+        if f.orden_id and not f.es_anticipo and f.orden.estado not in ('ENTREGADA', 'CERRADA'):
+            return Response({"detail": "Sin acta de entrega firmada no se factura."}, status=status.HTTP_400_BAD_REQUEST)
         if f.total <= 0:
             return Response({"detail": "La factura está en cero."}, status=status.HTTP_400_BAD_REQUEST)
         servicios.emitir(f, request.user, int(request.data.get('dias_credito') or 30))
         return Response(self.get_serializer(f).data)
+
+    @action(detail=True, methods=['post'])
+    def cashflow(self, request, pk=None):
+        """Crea la factura fiscal en Cashflow (asigna NCF / e-CF) y la deja emitida aquí."""
+        from apps.integraciones.cashflow.cliente import CashflowError
+        from apps.integraciones.cashflow.servicios import emitir_factura
+        f = self.get_object()
+        if f.estado not in ('BORRADOR', 'EMITIDA'):
+            return Response({"detail": "Solo se envía una factura en borrador o emitida."}, status=status.HTTP_400_BAD_REQUEST)
+        if f.orden_id and not f.es_anticipo and f.orden.estado not in ('ENTREGADA', 'CERRADA'):
+            return Response({"detail": "Sin acta de entrega firmada no se factura."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            emitir_factura(f, request.user)
+        except CashflowError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(self.get_queryset().get(pk=f.pk)).data)
+
+    @action(detail=True, methods=['post'])
+    def cashflow_actualizar(self, request, pk=None):
+        """Trae de Cashflow el estado, el NCF y los pagos."""
+        from apps.integraciones.cashflow.cliente import CashflowError
+        from apps.integraciones.cashflow.servicios import actualizar_factura
+        f = self.get_object()
+        try:
+            nuevos = actualizar_factura(f, request.user)
+        except CashflowError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        datos = self.get_serializer(self.get_queryset().get(pk=f.pk)).data
+        datos['pagos_nuevos'] = nuevos
+        return Response(datos)
 
     @action(detail=True, methods=['post'])
     def anular(self, request, pk=None):
@@ -280,8 +345,13 @@ def resumen_view(request):
         d['saldo'] += f.saldo
         if f.vencida:
             d['vencido'] += f.saldo
-    sin_facturar = (OrdenTrabajo.objects.filter(estado__in=['LISTA', 'ENTREGADA']).exclude(cliente__tipo='INTERNO')
-                    .exclude(facturas__estado__in=['BORRADOR', 'EMITIDA', 'PAGADA']).select_related('cliente').distinct())
+    # Entregadas (acta firmada) a las que todavía les falta facturar parte del monto.
+    sin_facturar = []
+    for o in (OrdenTrabajo.objects.filter(estado='ENTREGADA', monto__gt=0).exclude(cliente__tipo='INTERNO')
+              .select_related('cliente').prefetch_related('facturas')):
+        facturado = sum((f.subtotal for f in o.facturas.all() if f.estado not in ('ANULADA',)), Decimal('0'))
+        if facturado < o.monto:
+            sin_facturar.append(o)
     cot_abiertas = Cotizacion.objects.filter(estado__in=['BORRADOR', 'ENVIADA'])
     return Response({
         'mes': inicio.isoformat()[:7],
@@ -295,7 +365,7 @@ def resumen_view(request):
         'antiguedad': servicios.antiguedad(hoy),
         'gastos_por_categoria': [{'categoria': k, 'monto': redondear(v)} for k, v in sorted(por_categoria.items(), key=lambda x: -x[1])],
         'deudores': sorted(deudores.values(), key=lambda d: -d['saldo'])[:8],
-        'por_facturar': [{'id': o.pk, 'numero': o.numero, 'titulo': o.titulo, 'cliente': o.cliente.nombre, 'estado': o.estado,
+        'por_facturar': [{'id': o.pk, 'numero': o.codigo, 'titulo': o.titulo, 'cliente': o.cliente.nombre, 'estado': o.estado,
                           'estado_nombre': o.get_estado_display(), 'monto': o.monto, 'fecha_entrega': o.fecha_entrega}
                          for o in sin_facturar[:30]],
         'cotizaciones_abiertas': {'cantidad': cot_abiertas.count(),

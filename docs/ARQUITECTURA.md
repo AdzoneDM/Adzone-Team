@@ -35,6 +35,14 @@ Total = peso de tareas × nota de tareas + resto × cumplimiento de KPIs (60/40 
 - `components/ui.jsx`: sistema de piezas (Boton, Modal, Campo, Insignia, TiraMes…). Colores en `index.css` (`@theme`).
 - `lib/api.js`: todas las llamadas a la API.
 
+### Formatos ADZONE (v6)
+
+- `operaciones/formatos.py`: los formatos F-01 a F-10 como datos (G0, G1, especificación, etapas, G3, G2, G4). El frontend los dibuja desde `/api/operaciones/ordenes/catalogo/`.
+- `operaciones/servicios_ot.py`: la máquina de estados (G0 → E1 → G1/E2 → E3 → G4/E4 → G3 → G2/G5/E5 → acta F-12/E6 → G6/E7), costos reales y saldo. Toda transición pasa por aquí y deja historial y avisos.
+- `operaciones/indicadores.py`: indicadores semanales por área.
+- `almacen/`: materiales, movimientos de inventario y vales F-11 (`servicios.py`).
+- `integraciones/cashflow/`: `rutas.py` (endpoints), `mapeo.py` (campos), `cliente.py` (HTTP real y simulador), `servicios.py` (qué se hace con Cashflow; cada llamada queda en `SincronizacionCashflow`).
+
 ### Órdenes de trabajo
 
 `SOLICITADA → APROBADA → EN_PRODUCCION → CONTROL_CALIDAD → LISTA → ENTREGADA`, más `EN_PAUSA` y `CANCELADA`. Las transiciones válidas están en `OrdenTrabajo.TRANSICIONES` y todo cambio pasa por `operaciones/servicios.cambiar_estado`, que deja historial, envía avisos y dispara las automatizaciones. Al aprobar se crea la tarea de producción. Después, `sincronizar_desde_tareas` mueve la orden según sus tareas: empezar la lleva a producción, entregar a control de calidad y validar todas a lista. Desde `desempeno.servicios.tras_cambio` se llama en cada cambio de una tarea.

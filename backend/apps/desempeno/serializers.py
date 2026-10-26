@@ -76,14 +76,27 @@ class TareaSerializer(serializers.ModelSerializer):
                                         required=False, write_only=True)
     progreso = serializers.SerializerMethodField()
     proyecto_nombre = serializers.CharField(source='proyecto.nombre', read_only=True, default=None)
-    orden_numero = serializers.CharField(source='orden.numero', read_only=True, default=None)
+    orden_numero = serializers.SerializerMethodField()
+    oa_info = serializers.SerializerMethodField()
+
+    def get_orden_numero(self, t):
+        return t.orden.codigo if t.orden_id else None
+
+    def get_oa_info(self, t):
+        """Si la tarea es una Orden de Área: lo que el supervisor firma al validar (G3) y si falta el cliente (G4)."""
+        if not t.oa_id:
+            return None
+        oa = t.oa
+        return {'id': oa.pk, 'numero': oa.numero, 'area': oa.area, 'area_nombre': oa.get_area_display(), 'orden': oa.orden_id,
+                'g3': oa.formato['g3'], 'g3_marcados': oa.g3, 'requiere_g4': oa.requiere_g4, 'g4_aprobado': oa.g4_aprobado,
+                'estado': oa.estado}
 
     class Meta:
         model = Tarea
         fields = [
             'id', 'titulo', 'descripcion', 'cliente',
             'colaborador', 'companeros', 'companeros_nombres', 'pasos', 'pasos_texto', 'progreso',
-            'proyecto', 'proyecto_nombre', 'orden', 'orden_numero', 'fecha_inicio', 'horas_estimadas', 'colaborador_nombre', 'colaborador_puesto', 'colaborador_departamento',
+            'proyecto', 'proyecto_nombre', 'orden', 'orden_numero', 'oa', 'oa_info', 'fecha_inicio', 'horas_estimadas', 'colaborador_nombre', 'colaborador_puesto', 'colaborador_departamento',
             'asignada_por', 'asignada_por_nombre',
             'kpi_asignado', 'kpi_nombre',
             'prioridad', 'estado', 'fecha_limite', 'fecha_completada', 'a_tiempo', 'a_la_primera',
@@ -96,7 +109,7 @@ class TareaSerializer(serializers.ModelSerializer):
         # El estado y la calificación solo cambian con las acciones (iniciar, entregar, validar,
         # devolver, reabrir), que dejan historial y avisos. Editar no salta el flujo.
         read_only_fields = [
-            'asignada_por', 'estado', 'orden', 'fecha_completada', 'evidencia_nota', 'evidencia_enlace',
+            'asignada_por', 'estado', 'orden', 'oa', 'fecha_completada', 'evidencia_nota', 'evidencia_enlace',
             'validada_por', 'fecha_validacion', 'comentario_revision', 'calificacion_calidad',
             'comentario_evaluacion', 'rondas_revision',
         ]

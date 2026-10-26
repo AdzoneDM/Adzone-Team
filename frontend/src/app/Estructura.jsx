@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  Bell, BellRing, Building, Building2, CircleCheckBig, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
+  Bell, BellRing, Boxes, Building, Building2, SlidersHorizontal, CircleCheckBig, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
   ListChecks, LogOut, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
@@ -13,7 +13,7 @@ import { Avatar, cx } from "@/components/ui";
 import Buscador from "@/app/Buscador";
 import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/tiempo/cronometro";
 
-function secciones({ esAdmin, puedeValidar, esFinanzas }) {
+function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, misAreas = [] }) {
   const s = [
     { titulo: "Mi trabajo", items: [
       { a: "/", texto: "Inicio", icono: House, fin: true },
@@ -26,6 +26,8 @@ function secciones({ esAdmin, puedeValidar, esFinanzas }) {
       { a: "/clientes", texto: "Clientes", icono: Building },
     ] },
   ];
+  if (esAlmacen || esCoordinacion || esFinanzas || misAreas.length) s[1].items.splice(1, 0, { a: "/almacen", texto: "Almacén", icono: Boxes });
+  if (esAdmin || esCoordinacion) s[1].items.push({ a: "/produccion/ajustes", texto: "Áreas y tiempos", icono: SlidersHorizontal });
   if (puedeValidar) {
     s.push({ titulo: "Mi equipo", items: [
       { a: "/validar", texto: "Por validar", icono: CircleCheckBig, cuenta: "por_validar" },
@@ -237,7 +239,7 @@ function Crear({ sesion }) {
     return () => document.removeEventListener("mousedown", fuera);
   }, [abierto]);
   const opciones = [
-    { texto: "Orden de trabajo", sub: "Impresión, TV, call center, marketing…", a: "/ordenes?nueva=1", icono: ClipboardList },
+    { texto: "Orden de trabajo (F-01)", sub: "Se entrega a Coordinación para el G0", a: "/ordenes?nueva=1", icono: ClipboardList },
     sesion.puedeValidar && { texto: "Tarea para mi equipo", sub: "Con pasos, fecha y responsable", a: "/equipo?ver=tareas&nueva=1", icono: ListChecks },
     (sesion.gestiona || sesion.esFinanzas) && { texto: "Proyecto", sub: "Agrupa tareas y órdenes", a: "/proyectos?nuevo=1", icono: FolderKanban },
     { texto: "Cliente", sub: "Datos de contacto", a: "/clientes?nuevo=1", icono: Building },

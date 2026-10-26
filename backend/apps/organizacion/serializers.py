@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from .models import PerfilUsuario, PuestoDeTrabajo
 
-ROLES = ['Administrador', 'Gerente de Departamento', 'Colaborador', 'Finanzas']
+ROLES = ['Administrador', 'Gerente de Departamento', 'Colaborador', 'Finanzas', 'Coordinación', 'Almacén']
 
 
 class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
