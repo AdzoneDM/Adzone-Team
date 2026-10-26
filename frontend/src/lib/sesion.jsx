@@ -44,6 +44,8 @@ export function SesionProvider({ children }) {
     recargar,
     esAdmin: !!usuario?.es_administrador,
     puedeValidar: !!usuario?.puede_validar,
+    esFinanzas: !!usuario?.es_finanzas,
+    gestiona: !!usuario?.gestiona,
   };
   return <SesionCtx.Provider value={valor}>{children}</SesionCtx.Provider>;
 }

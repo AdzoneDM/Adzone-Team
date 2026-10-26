@@ -75,12 +75,15 @@ class TareaSerializer(serializers.ModelSerializer):
     pasos_texto = serializers.ListField(child=serializers.CharField(max_length=255, allow_blank=True),
                                         required=False, write_only=True)
     progreso = serializers.SerializerMethodField()
+    proyecto_nombre = serializers.CharField(source='proyecto.nombre', read_only=True, default=None)
+    orden_numero = serializers.CharField(source='orden.numero', read_only=True, default=None)
 
     class Meta:
         model = Tarea
         fields = [
             'id', 'titulo', 'descripcion', 'cliente',
-            'colaborador', 'companeros', 'companeros_nombres', 'pasos', 'pasos_texto', 'progreso', 'colaborador_nombre', 'colaborador_puesto', 'colaborador_departamento',
+            'colaborador', 'companeros', 'companeros_nombres', 'pasos', 'pasos_texto', 'progreso',
+            'proyecto', 'proyecto_nombre', 'orden', 'orden_numero', 'fecha_inicio', 'horas_estimadas', 'colaborador_nombre', 'colaborador_puesto', 'colaborador_departamento',
             'asignada_por', 'asignada_por_nombre',
             'kpi_asignado', 'kpi_nombre',
             'prioridad', 'estado', 'fecha_limite', 'fecha_completada', 'a_tiempo', 'a_la_primera',
@@ -93,7 +96,7 @@ class TareaSerializer(serializers.ModelSerializer):
         # El estado y la calificación solo cambian con las acciones (iniciar, entregar, validar,
         # devolver, reabrir), que dejan historial y avisos. Editar no salta el flujo.
         read_only_fields = [
-            'asignada_por', 'estado', 'fecha_completada', 'evidencia_nota', 'evidencia_enlace',
+            'asignada_por', 'estado', 'orden', 'fecha_completada', 'evidencia_nota', 'evidencia_enlace',
             'validada_por', 'fecha_validacion', 'comentario_revision', 'calificacion_calidad',
             'comentario_evaluacion', 'rondas_revision',
         ]
@@ -134,14 +137,6 @@ class TareaSerializer(serializers.ModelSerializer):
         if not pasos:
             return None
         return {'hechos': sum(1 for p in pasos if p.hecho), 'total': len(pasos)}
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        colaborador = attrs.get('colaborador') or getattr(self.instance, 'colaborador', None)
-        companeros = attrs.get('companeros')
-        if companeros is not None and colaborador is not None:
-            attrs['companeros'] = [u for u in companeros if u.pk != colaborador.pk]
-        return attrs
 
     def _guardar_pasos(self, tarea, textos):
         if textos is None:
@@ -191,6 +186,13 @@ class TareaSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"kpi_asignado": "Ese KPI se anota a mano cada mes; solo los KPIs automáticos se alimentan de tareas."}
             )
+        companeros = data.get('companeros')
+        if companeros is not None and colaborador is not None:
+            data['companeros'] = [u for u in companeros if u.pk != colaborador.pk]  # el responsable no es su propio compañero
+        inicio = data.get('fecha_inicio', getattr(self.instance, 'fecha_inicio', None))
+        limite = data.get('fecha_limite', getattr(self.instance, 'fecha_limite', None))
+        if inicio and limite and inicio > limite:
+            raise serializers.ValidationError({"fecha_inicio": "Empieza después de su fecha límite."})
         return data
 
 

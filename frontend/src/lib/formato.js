@@ -69,3 +69,47 @@ export const PRIORIDADES = { ALTA: "Alta", MEDIA: "Media", BAJA: "Baja" };
 export const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
 export const puntos = (n, dec = 0) => (n == null ? "—" : Number(n).toLocaleString("es-DO", { maximumFractionDigits: dec, minimumFractionDigits: 0 }));
+
+/** RD$ 12,500.00 · sin decimales si es redondo */
+export const dinero = (n, moneda = "DOP") => {
+  if (n == null || n === "") return "—";
+  const v = Number(n);
+  const txt = v.toLocaleString("es-DO", { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  return `${moneda === "USD" ? "US$" : "RD$"} ${txt}`;
+};
+
+/** 135 → "2 h 15 min" */
+export const horas = (min) => {
+  const m = Math.round(Number(min) || 0);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
+};
+
+/** 135 → "2:15" para el cronómetro y las tablas */
+export const reloj = (min) => {
+  const m = Math.max(0, Math.round(Number(min) || 0));
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+};
+
+export const ESTADOS_ORDEN = {
+  SOLICITADA: "Solicitada", APROBADA: "Aprobada", EN_PRODUCCION: "En producción", CONTROL_CALIDAD: "Control de calidad",
+  LISTA: "Lista para entregar", ENTREGADA: "Entregada", EN_PAUSA: "En pausa", CANCELADA: "Cancelada",
+};
+
+export const PRIORIDADES_OT = { BAJA: "Baja", NORMAL: "Normal", ALTA: "Alta", URGENTE: "Urgente" };
+
+export const ESTADOS_PROYECTO = { PLANIFICADO: "Planificado", EN_CURSO: "En curso", EN_PAUSA: "En pausa", TERMINADO: "Terminado", CANCELADO: "Cancelado" };
+
+export const sumarDias = (iso, n) => {
+  const f = aFecha(iso);
+  f.setDate(f.getDate() + n);
+  return `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, "0")}-${String(f.getDate()).padStart(2, "0")}`;
+};
+
+export const lunesDe = (iso) => {
+  const f = aFecha(iso);
+  return sumarDias(iso, -((f.getDay() + 6) % 7));
+};
+
+export const diaSemana = (iso, largo = false) => aFecha(iso).toLocaleDateString("es-DO", { weekday: largo ? "long" : "short" });

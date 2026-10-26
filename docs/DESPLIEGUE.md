@@ -48,7 +48,9 @@ Plesk necesita la extensión **Python** (Phusion Passenger). Si no aparece en «
    - archivo de inicio: `passenger_wsgi.py`;
    - entorno virtual: `kpi-app/venv`.
 7. **SSL:** activa **Let's Encrypt** en el subdominio. Sin HTTPS, el celular no deja instalar la app.
-8. **Tarea programada diaria (7:00 a. m.):** `cd /var/www/vhosts/adzone.marketing/kpi-app/backend && ../venv/bin/python manage.py tareas_diarias`. Crea las tareas recurrentes de la semana y avisa lo que vence al día siguiente. Sin esta tarea, las recurrentes igual se crean cuando alguien abre sus tareas.
+8. **Tarea programada diaria (7:00 a. m.):** `cd /var/www/vhosts/adzone.marketing/kpi-app/backend && ../venv/bin/python manage.py tareas_diarias`. Crea las tareas recurrentes de la semana, avisa lo que vence al día siguiente y ejecuta las automatizaciones de vencidas (órdenes, tareas y facturas). Sin esta tarea, las recurrentes igual se crean cuando alguien abre sus tareas, pero los avisos de vencidas no salen.
+9. **Archivos privados:** `MEDIA_ROOT` guarda evidencias, archivos de órdenes y comprobantes de gastos. Tiene que estar fuera de la carpeta pública e incluirse en el respaldo diario junto con la base de datos.
+10. **n8n (opcional):** define `AUTOMATIZACIONES_SECRETO` en `.env` y usa la misma clave en n8n para verificar la cabecera `X-Adzone-Firma`.
 
 ## 3 · Comprobar
 
@@ -68,6 +70,10 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Si vienes de la versión 4
+
+`migrate` crea las tablas de clientes, proyectos, órdenes, tiempo, finanzas y automatizaciones, y carga las cuatro automatizaciones base. Vuelve a correr `python manage.py departamentos_oficiales --aplicar` para crear **Call Center**. Finanzas entra con cualquier persona del departamento Administración; también se puede crear el grupo «Finanzas» en el administrador.
+
 ### Si vienes de la versión «Adzone KPIs»
 
 La base de datos sirve tal cual: las migraciones nuevas solo agregan columnas (colores de departamento, cliente, compañeros y pasos). Después de `migrate`, corre una vez:
@@ -77,4 +83,4 @@ python manage.py departamentos_oficiales            # muestra cómo quedará cad
 python manage.py departamentos_oficiales --aplicar  # lo hace
 ```
 
-Pasa los puestos a los 7 departamentos oficiales y borra los departamentos viejos que queden vacíos (los que tengan Empleados del Mes guardados se conservan). Haz un respaldo de la base antes.
+Pasa los puestos a los departamentos oficiales y borra los departamentos viejos que queden vacíos (los que tengan Empleados del Mes guardados se conservan). Haz un respaldo de la base antes.

@@ -8,6 +8,7 @@ import { refrescarAvisos } from "@/app/Estructura";
 import { DetalleTarea, EntregarModal, EquipoTarea, Evidencias, Progreso, Vencimiento } from "@/features/tareas/componentes";
 import { Alerta, Boton, Cargando, EstadoTarea, Estrellas, Pestanas, PrioridadTarea, SelectorMes, Vacio, cx, useAviso } from "@/components/ui";
 import { MiMes } from "@/features/inicio/Inicio";
+import BotonCronometro from "@/features/tiempo/BotonCronometro";
 
 function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, iniciando }) {
   const devuelta = tarea.comentario_revision && tarea.estado === "EN_PROGRESO";
@@ -28,6 +29,7 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, iniciando }) {
         </button>
         {(tarea.estado === "PENDIENTE" || tarea.estado === "EN_PROGRESO") && (
           <div className="grid grid-cols-2 gap-2 md:flex">
+            <BotonCronometro tarea={tarea.id} className="hidden md:inline-flex" />
             {tarea.estado === "PENDIENTE" && <Boton variante="secundario" icono={Play} onClick={() => onIniciar(tarea)} cargando={iniciando === tarea.id}>Empezar</Boton>}
             <Boton variante="acento" icono={Send} onClick={() => onEntregar(tarea)} className={tarea.estado === "EN_PROGRESO" ? "col-span-2" : ""}>
               {devuelta ? "Entregar de nuevo" : "Entregar"}
@@ -132,9 +134,10 @@ export default function MisTareas() {
 
       <DetalleTarea tarea={detalle} abierto={!!detalle} onCerrar={cerrar}
         onCambio={(t) => setTareas((l) => l.map((x) => (x.id === t.id ? t : x)))}
-        pie={detalle && (detalle.estado === "PENDIENTE" || detalle.estado === "EN_PROGRESO") && (
+        pie={detalle && (detalle.estado === "PENDIENTE" || detalle.estado === "EN_PROGRESO") && (<>
+          <BotonCronometro tarea={detalle.id} />
           <Boton variante="acento" icono={Send} onClick={() => { cerrar(); setEntregando(detalle); }}>Entregar</Boton>
-        )} />
+        </>)} />
 
       <EntregarModal tarea={entregando} abierto={!!entregando} onCerrar={() => setEntregando(null)}
         onEntregada={(t) => {

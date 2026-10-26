@@ -2,28 +2,37 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  Bell, Building2, ChartNoAxesColumn, CircleCheckBig, ClipboardList, Ellipsis, House, KeyRound, ListChecks, LogOut,
-  BellRing, Network, Settings2, SquarePen, Target, Trophy, Users, X,
+  Bell, BellRing, Building, Building2, CircleCheckBig, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
+  ListChecks, LogOut, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
-import { hace } from "@/lib/formato";
+import { hace, reloj } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import Marca from "@/components/Marca";
 import { Avatar, cx } from "@/components/ui";
+import Buscador from "@/app/Buscador";
+import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/tiempo/cronometro";
 
-function secciones({ esAdmin, puedeValidar }) {
+function secciones({ esAdmin, puedeValidar, esFinanzas }) {
   const s = [
     { titulo: "Mi trabajo", items: [
       { a: "/", texto: "Inicio", icono: House, fin: true },
       { a: "/mis-tareas", texto: "Mis tareas", icono: ListChecks },
+      { a: "/tiempo", texto: "Tiempo", icono: Clock },
+    ] },
+    { titulo: "Operación", items: [
+      { a: "/ordenes", texto: "Órdenes de trabajo", icono: ClipboardList },
+      { a: "/proyectos", texto: "Proyectos", icono: FolderKanban },
+      { a: "/clientes", texto: "Clientes", icono: Building },
     ] },
   ];
   if (puedeValidar) {
     s.push({ titulo: "Mi equipo", items: [
       { a: "/validar", texto: "Por validar", icono: CircleCheckBig, cuenta: "por_validar" },
-      { a: "/equipo", texto: "Equipo y tareas", icono: ClipboardList },
+      { a: "/equipo", texto: "Equipo y tareas", icono: Users },
     ] });
   }
+  if (esFinanzas) s.push({ titulo: "Finanzas", items: [{ a: "/finanzas", texto: "Finanzas", icono: Wallet }] });
   if (esAdmin) {
     s.push({ titulo: "Resultados", items: [
       { a: "/desempeno", texto: "Desempeño y ranking", icono: Trophy },
@@ -35,6 +44,7 @@ function secciones({ esAdmin, puedeValidar }) {
       { a: "/personas", texto: "Personas", icono: Users },
       { a: "/plantillas-kpi", texto: "Plantillas de KPI", icono: Target },
       { a: "/configuracion", texto: "Reglas del puntaje", icono: Settings2 },
+      { a: "/automatizaciones", texto: "Automatizaciones", icono: Zap },
     ] });
   } else {
     s[0].items.push({ a: "/organigrama", texto: "Organigrama", icono: Network });
@@ -102,7 +112,7 @@ function Recordatorio({ datos, refrescar }) {
           <p className="font-medium text-tinta">{a.titulo}{pendientes.length > 1 && <span className="font-normal text-gris"> · y {pendientes.length - 1} más</span>}</p>
           {a.mensaje && <p className="text-sm text-[#5c3d00]">{a.mensaje}</p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full justify-end gap-2 md:w-auto">
           <button type="button" onClick={() => entendido(false)} className="min-h-10 rounded-lg px-3 text-sm font-medium text-[#5c3d00] hover:bg-amarillo/30">Entendido</button>
           {a.enlace && <button type="button" onClick={() => entendido(true)} className="min-h-10 rounded-lg bg-noche px-3.5 text-sm font-medium text-white">Ver tarea</button>}
         </div>
@@ -215,12 +225,79 @@ function Enlace({ item, cuentas, onClick }) {
   );
 }
 
+/** Botón «Crear»: lo que más se hace, a un toque desde cualquier pantalla. */
+function Crear({ sesion }) {
+  const [abierto, setAbierto] = useState(false);
+  const navigate = useNavigate();
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const fuera = (e) => ref.current && !ref.current.contains(e.target) && setAbierto(false);
+    document.addEventListener("mousedown", fuera);
+    return () => document.removeEventListener("mousedown", fuera);
+  }, [abierto]);
+  const opciones = [
+    { texto: "Orden de trabajo", sub: "Impresión, TV, call center, marketing…", a: "/ordenes?nueva=1", icono: ClipboardList },
+    sesion.puedeValidar && { texto: "Tarea para mi equipo", sub: "Con pasos, fecha y responsable", a: "/equipo?ver=tareas&nueva=1", icono: ListChecks },
+    (sesion.gestiona || sesion.esFinanzas) && { texto: "Proyecto", sub: "Agrupa tareas y órdenes", a: "/proyectos?nuevo=1", icono: FolderKanban },
+    { texto: "Cliente", sub: "Datos de contacto", a: "/clientes?nuevo=1", icono: Building },
+    sesion.esFinanzas && { texto: "Cotización", sub: "Con ITBIS calculado", a: "/finanzas?ver=cotizaciones&nueva=1", icono: Wallet },
+  ].filter(Boolean);
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setAbierto((a) => !a)} aria-expanded={abierto} aria-label="Crear"
+        className="flex h-10 items-center gap-1.5 rounded-lg bg-amarillo px-3 text-sm font-semibold text-tinta hover:bg-amarillo-600">
+        <Plus className="size-4" /><span className="hidden sm:inline">Crear</span>
+      </button>
+      {abierto && (
+        <ul className="absolute right-0 top-12 z-50 w-72 overflow-hidden rounded-xl border border-linea bg-white p-1.5 shadow-xl">
+          {opciones.map((o) => (
+            <li key={o.a}><button type="button" onClick={() => { setAbierto(false); navigate(o.a); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-fondo">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-azul/10 text-azul"><o.icono className="size-4" /></span>
+              <span><span className="block text-sm font-medium">{o.texto}</span><span className="block text-xs text-gris">{o.sub}</span></span></button></li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** El cronómetro corriendo, siempre visible arriba. */
+function CronometroBarra() {
+  const { activo, minutos, detener } = useCronometro();
+  const navigate = useNavigate();
+  if (!activo) return null;
+  return (
+    <div className="flex h-10 items-center overflow-hidden rounded-lg border border-rojo/30 bg-rojo-50">
+      <button type="button" onClick={() => navigate("/tiempo")} className="flex h-full min-w-0 items-center gap-2 pl-3 pr-2 text-sm" title={nombreRegistro(activo)}>
+        <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-rojo opacity-60" /><span className="relative inline-flex size-2 rounded-full bg-rojo" /></span>
+        <span className="hidden max-w-40 truncate lg:inline">{nombreRegistro(activo)}</span>
+        <span className="font-semibold num">{reloj(minutos)}</span>
+      </button>
+      <button type="button" onClick={detener} className="flex h-full items-center border-l border-rojo/20 px-2.5 text-rojo hover:bg-rojo/10" aria-label="Detener cronómetro"><Square className="size-4 fill-current" /></button>
+    </div>
+  );
+}
+
 export default function Estructura() {
+  return <CronometroProvider><EstructuraInterna /></CronometroProvider>;
+}
+
+function EstructuraInterna() {
   const sesion = useSesion();
   const { usuario, logout } = sesion;
   const [datos, refrescar] = useAvisos();
   const [mas, setMas] = useState(false);
+  const [buscando, setBuscando] = useState(false);
   const location = useLocation();
+  useEffect(() => {
+    const tecla = (e) => {
+      const escribiendo = /input|textarea|select/i.test(document.activeElement?.tagName || "") || document.activeElement?.isContentEditable;
+      if ((e.key === "k" && (e.ctrlKey || e.metaKey)) || (e.key === "/" && !escribiendo)) { e.preventDefault(); setBuscando(true); }
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, []);
   const grupos = secciones(sesion);
   useEffect(() => { setMas(false); }, [location.pathname]);
 
@@ -228,10 +305,10 @@ export default function Estructura() {
   const inferior = [
     { a: "/", texto: "Inicio", icono: House, fin: true },
     { a: "/mis-tareas", texto: "Mis tareas", icono: ListChecks },
+    { a: "/ordenes", texto: "Órdenes", icono: ClipboardList },
   ];
   if (sesion.puedeValidar) inferior.push({ a: "/validar", texto: "Validar", icono: CircleCheckBig, cuenta: "por_validar" });
-  if (sesion.esAdmin) inferior.push({ a: "/desempeno", texto: "Ranking", icono: ChartNoAxesColumn });
-  else if (sesion.puedeValidar) inferior.push({ a: "/equipo", texto: "Equipo", icono: ClipboardList });
+  else inferior.push({ a: "/tiempo", texto: "Tiempo", icono: Clock });
   const usados = new Set(inferior.map((i) => i.a));
   const resto = grupos.flatMap((g) => g.items).filter((i) => !usados.has(i.a));
 
@@ -252,13 +329,19 @@ export default function Estructura() {
       </aside>
 
       {/* Barra superior: campanita (PC) y marca + campanita (celular) */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-linea bg-fondo/90 px-4 backdrop-blur md:h-16 md:justify-end md:px-8">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-linea bg-fondo/90 px-4 backdrop-blur md:h-16 md:px-8">
         <Link to="/" className="md:hidden" aria-label="Inicio"><Marca oscuro={false} className="text-[15px]" /></Link>
-        <div className="flex items-center gap-2">
-          <span className="hidden text-sm text-gris md:inline">{usuario.departamento}</span>
+        <button type="button" onClick={() => setBuscando(true)} className="hidden h-10 w-full max-w-sm items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm text-gris hover:border-azul/40 md:flex">
+          <Search className="size-4" /> Buscar órdenes, clientes, tareas…<kbd className="ml-auto rounded border border-linea px-1.5 text-xs">Ctrl K</kbd>
+        </button>
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <CronometroBarra />
+          <button type="button" onClick={() => setBuscando(true)} className="flex size-10 items-center justify-center rounded-lg text-gris hover:bg-white md:hidden" aria-label="Buscar"><Search className="size-5" /></button>
+          <Crear sesion={sesion} />
           <Campanita datos={datos} refrescar={refrescar} />
         </div>
       </header>
+      <Buscador abierto={buscando} onCerrar={() => setBuscando(false)} />
 
       <Recordatorio datos={datos} refrescar={refrescar} />
 

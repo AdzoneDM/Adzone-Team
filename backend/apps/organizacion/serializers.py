@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from .models import PerfilUsuario, PuestoDeTrabajo
 
-ROLES = ['Administrador', 'Gerente de Departamento', 'Colaborador']
+ROLES = ['Administrador', 'Gerente de Departamento', 'Colaborador', 'Finanzas']
 
 
 class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
@@ -86,13 +86,17 @@ class UserSerializer(serializers.ModelSerializer):
     puesto_id = serializers.IntegerField(source='perfil.puesto_trabajo_id', read_only=True, default=None)
     departamento = serializers.CharField(source='perfil.puesto_trabajo.departamento.nombre', read_only=True, default=None)
     roles = serializers.SerializerMethodField()
+    horas_semana = serializers.DecimalField(source='perfil.horas_semana', max_digits=4, decimal_places=1, required=False,
+                                            min_value=1, max_value=80)
+    costo_hora = serializers.DecimalField(source='perfil.costo_hora', max_digits=10, decimal_places=2, required=False,
+                                          allow_null=True, min_value=0)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'nombre', 'is_active', 'last_login',
             'password', 'puesto_trabajo_id', 'perfil', 'puesto', 'puesto_id', 'departamento',
-            'groups', 'roles', 'roles_asignados',
+            'groups', 'roles', 'roles_asignados', 'horas_semana', 'costo_hora',
         ]
         read_only_fields = ['last_login']
         extra_kwargs = {
@@ -145,10 +149,13 @@ class UserSerializer(serializers.ModelSerializer):
             user.save(update_fields=['is_staff'])
 
     def create(self, validated_data):
-        puesto = validated_data.pop('perfil', {}).get('puesto_trabajo')
+        perfil_data = validated_data.pop('perfil', {})
         roles = validated_data.pop('roles_asignados', ['Colaborador'])
         user = User.objects.create_user(**validated_data)
-        user.perfil.puesto_trabajo = puesto
+        user.perfil.puesto_trabajo = perfil_data.get('puesto_trabajo')
+        for campo in ('horas_semana', 'costo_hora'):
+            if campo in perfil_data:
+                setattr(user.perfil, campo, perfil_data[campo])
         user.perfil.save()
         self._roles(user, roles or ['Colaborador'])
         return user
@@ -158,9 +165,11 @@ class UserSerializer(serializers.ModelSerializer):
         if password:
             instance.set_password(password)
         perfil_data = validated_data.pop('perfil', {})
-        if 'puesto_trabajo' in perfil_data:
+        if perfil_data:
             perfil, _ = PerfilUsuario.objects.get_or_create(user=instance)
-            perfil.puesto_trabajo = perfil_data['puesto_trabajo']
+            for campo in ('puesto_trabajo', 'horas_semana', 'costo_hora'):
+                if campo in perfil_data:
+                    setattr(perfil, campo, perfil_data[campo])
             perfil.save()
         roles = validated_data.pop('roles_asignados', None)
         instance = super().update(instance, validated_data)

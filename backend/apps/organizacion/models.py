@@ -63,6 +63,12 @@ class PerfilUsuario(models.Model):
         related_name="perfiles_usuarios",
         verbose_name="Puesto de Trabajo"
     )
+    horas_semana = models.DecimalField(
+        max_digits=4, decimal_places=1, default=44, verbose_name="Horas por semana",
+        help_text="Capacidad semanal para medir la carga (jornada legal en RD: 44 horas).")
+    costo_hora = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Costo por hora (RD$)",
+        help_text="Solo lo ve Finanzas. Sirve para calcular la rentabilidad de cada proyecto.")
     fecha_creacion_perfil = models.DateTimeField(auto_now_add=True)
     fecha_modificacion_perfil = models.DateTimeField(auto_now=True)
 

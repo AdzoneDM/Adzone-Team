@@ -32,6 +32,15 @@ def avisar(destinatarios, tipo, titulo, mensaje='', tarea=None, enlace='', excep
                                     mensaje=mensaje, tarea=tarea, enlace=enlace)
 
 
+def tras_cambio(tarea, quien, evento=None):
+    """La orden de trabajo sigue a su tarea y las automatizaciones se enteran."""
+    from apps.operaciones.servicios import sincronizar_desde_tareas
+    sincronizar_desde_tareas(tarea, quien)
+    if evento:
+        from apps.automatizaciones.motor import disparar
+        disparar(evento, tarea, quien=quien)
+
+
 def al_asignar(tarea, quien):
     registrar(tarea, quien, 'CREADA')
     avisar([tarea.colaborador, *tarea.companeros.all()], 'ASIGNADA', f"Nueva tarea: {tarea.titulo}",
@@ -44,6 +53,7 @@ def al_entregar(tarea, quien):
     ronda = f" (entrega n.º {tarea.rondas_revision + 1})" if tarea.rondas_revision else ''
     avisar(revisores_de(tarea.colaborador), 'ENTREGADA', f"Por validar: {tarea.titulo}",
            f"{nombre(quien)} la entregó{ronda}.", tarea=tarea, enlace='/validar', excepto=quien)
+    tras_cambio(tarea, quien, 'TAREA_ENTREGADA')
 
 
 def al_validar(tarea, quien):
@@ -52,18 +62,21 @@ def al_validar(tarea, quien):
     avisar([tarea.colaborador, *tarea.companeros.all()], 'VALIDADA', f"Validada: {tarea.titulo}",
            f"{nombre(quien)} validó tu entrega{estrellas}. Ya cuenta para tu puntaje.",
            tarea=tarea, enlace='/mis-tareas?ver=validadas', excepto=quien)
+    tras_cambio(tarea, quien, 'TAREA_VALIDADA')
 
 
 def al_devolver(tarea, quien):
     registrar(tarea, quien, 'DEVUELTA', tarea.comentario_revision)
     avisar([tarea.colaborador, *tarea.companeros.all()], 'DEVUELTA', f"Para corregir: {tarea.titulo}",
            tarea.comentario_revision, tarea=tarea, enlace='/mis-tareas', excepto=quien)
+    tras_cambio(tarea, quien)
 
 
 def al_reabrir(tarea, quien, motivo):
     registrar(tarea, quien, 'REABIERTA', motivo)
     avisar([tarea.colaborador, *tarea.companeros.all()], 'REABIERTA', f"Reabierta: {tarea.titulo}",
            motivo or f"{nombre(quien)} la volvió a poner en revisión.", tarea=tarea, enlace='/mis-tareas', excepto=quien)
+    tras_cambio(tarea, quien)
 
 
 # ---------------------------------------------------------------------------

@@ -13,7 +13,8 @@ function mensajeDeError(data, status) {
   if (status >= 500) return "El servidor tuvo un problema. Inténtalo de nuevo en un momento.";
   if (data && typeof data === "object") {
     const partes = Object.entries(data).map(([clave, valor]) => {
-      const texto = Array.isArray(valor) ? valor.join(" ") : typeof valor === "object" ? JSON.stringify(valor) : valor;
+      const texto = Array.isArray(valor) ? valor.join(" ")
+        : valor && typeof valor === "object" ? Object.values(valor).flat().join(" ") : valor;
       return ["detail", "non_field_errors", "error"].includes(clave) ? texto : `${CAMPOS[clave] || clave}: ${texto}`;
     });
     if (partes.length) return partes.join(" ");
@@ -27,6 +28,10 @@ const CAMPOS = {
   ponderacion: "Peso", supervisor: "Supervisor", departamento: "Departamento", dia_mes: "Día del mes",
   comentario_revision: "Comentario", calificacion_calidad: "Calidad", archivos: "Archivos", actual: "Contraseña actual",
   nueva: "Contraseña nueva", peso_tareas: "Peso de tareas", nota_tarde: "Nota por entrega tarde", tramos_bono: "Tramos del bono",
+  detalles: "Datos de la orden", cliente: "Cliente", proyecto: "Proyecto", responsable: "Responsable",
+  fecha_compromiso: "Fecha comprometida", recibido_por: "Recibido por", motivo: "Motivo", lineas: "Líneas", monto: "Monto",
+  minutos: "Tiempo", fecha: "Fecha", fecha_inicio: "Inicio", fecha_fin: "Entrega", concepto: "Concepto", parametros: "Acción",
+  condiciones: "Condición", comprobante: "Comprobante", texto: "Comentario",
 };
 
 export class ApiError extends Error {
@@ -143,3 +148,77 @@ export const eliminarPlantilla = (id) => api(`/api/kpis/plantillas-kpi/${id}/`, 
 export const kpisAsignados = (params) => api(`/api/kpis/kpis-asignados/${q(params)}`);
 export const guardarKpiAsignado = (k) => (k.id ? api(`/api/kpis/kpis-asignados/${k.id}/`, { method: "PATCH", body: k }) : api("/api/kpis/kpis-asignados/", { method: "POST", body: k }));
 export const eliminarKpiAsignado = (id) => api(`/api/kpis/kpis-asignados/${id}/`, { method: "DELETE" });
+
+// Operación: clientes, proyectos y órdenes de trabajo
+const O = "/api/operaciones";
+export const catalogoOrdenes = () => api(`${O}/ordenes/catalogo/`);
+export const listarOrdenes = (params) => api(`${O}/ordenes/${q(params)}`);
+export const resumenOrdenes = (params) => api(`${O}/ordenes/resumen/${q(params)}`);
+export const ordenCompleta = (id) => api(`${O}/ordenes/${id}/completo/`);
+export const guardarOrden = (o) => (o.id ? api(`${O}/ordenes/${o.id}/`, { method: "PATCH", body: o }) : api(`${O}/ordenes/`, { method: "POST", body: o }));
+export const eliminarOrden = (id) => api(`${O}/ordenes/${id}/`, { method: "DELETE" });
+export const aprobarOrden = (id, datos) => api(`${O}/ordenes/${id}/aprobar/`, { method: "POST", body: datos });
+export const moverOrden = (id, estado, detalle = "") => api(`${O}/ordenes/${id}/mover/`, { method: "POST", body: { estado, detalle } });
+export const reanudarOrden = (id) => api(`${O}/ordenes/${id}/reanudar/`, { method: "POST" });
+export const entregarOrden = (id, recibido_por, nota) => api(`${O}/ordenes/${id}/entregar/`, { method: "POST", body: { recibido_por, nota } });
+export const cancelarOrden = (id, motivo) => api(`${O}/ordenes/${id}/cancelar/`, { method: "POST", body: { motivo } });
+export const comentarOrden = (id, texto) => api(`${O}/ordenes/${id}/comentarios/`, { method: "POST", body: { texto } });
+export const subirArchivosOrden = (id, archivos) => {
+  const fd = new FormData();
+  archivos.forEach((a) => fd.append("archivos", a));
+  return api(`${O}/ordenes/${id}/archivos/`, { method: "POST", body: fd });
+};
+export const quitarArchivo = (id) => api(`${O}/archivos/${id}/`, { method: "DELETE" });
+export const listarClientes = (params) => api(`${O}/clientes/${q(params)}`);
+export const obtenerCliente = (id) => api(`${O}/clientes/${id}/`);
+export const resumenCliente = (id) => api(`${O}/clientes/${id}/resumen/`);
+export const guardarCliente = (c) => (c.id ? api(`${O}/clientes/${c.id}/`, { method: "PATCH", body: c }) : api(`${O}/clientes/`, { method: "POST", body: c }));
+export const eliminarCliente = (id) => api(`${O}/clientes/${id}/`, { method: "DELETE" });
+export const listarProyectos = (params) => api(`${O}/proyectos/${q(params)}`);
+export const obtenerProyecto = (id) => api(`${O}/proyectos/${id}/`);
+export const detalleProyecto = (id) => api(`${O}/proyectos/${id}/detalle/`);
+export const guardarProyecto = (p) => (p.id ? api(`${O}/proyectos/${p.id}/`, { method: "PATCH", body: p }) : api(`${O}/proyectos/`, { method: "POST", body: p }));
+export const eliminarProyecto = (id) => api(`${O}/proyectos/${id}/`, { method: "DELETE" });
+export const comentariosProyecto = (id) => api(`${O}/proyectos/${id}/comentarios/`);
+export const comentarProyecto = (id, texto) => api(`${O}/proyectos/${id}/comentarios/`, { method: "POST", body: { texto } });
+export const directorio = () => api(`${O}/directorio/`);
+export const buscar = (texto, signal) => api(`${O}/buscar/${q({ q: texto })}`, { signal });
+
+// Tiempo
+const T = "/api/tiempo";
+export const cronometroActivo = () => api(`${T}/activo/`);
+export const iniciarCronometro = (datos) => api(`${T}/iniciar/`, { method: "POST", body: datos });
+export const detenerCronometro = () => api(`${T}/detener/`, { method: "POST" });
+export const miSemana = (fecha) => api(`${T}/semana/${q({ fecha })}`);
+export const guardarRegistro = (r) => (r.id ? api(`${T}/registros/${r.id}/`, { method: "PATCH", body: r }) : api(`${T}/registros/`, { method: "POST", body: r }));
+export const eliminarRegistro = (id) => api(`${T}/registros/${id}/`, { method: "DELETE" });
+export const cargaSemanal = (fecha) => api(`${T}/equipo/${q({ fecha })}`);
+export const reporteTiempo = (params) => api(`${T}/reporte/${q(params)}`);
+
+// Finanzas
+const F = "/api/finanzas";
+export const resumenFinanzas = (mes) => api(`${F}/resumen/${q({ mes })}`);
+export const rentabilidad = (params) => api(`${F}/rentabilidad/${q(params)}`);
+export const listarDocumentos = (tipo, params) => api(`${F}/${tipo}/${q(params)}`);
+export const obtenerDocumento = (tipo, id) => api(`${F}/${tipo}/${id}/`);
+export const guardarDocumento = (tipo, d) => (d.id ? api(`${F}/${tipo}/${d.id}/`, { method: "PATCH", body: d }) : api(`${F}/${tipo}/`, { method: "POST", body: d }));
+export const eliminarDocumento = (tipo, id) => api(`${F}/${tipo}/${id}/`, { method: "DELETE" });
+export const accionDocumento = (tipo, id, accion, body) => api(`${F}/${tipo}/${id}/${accion}/`, { method: "POST", body });
+export const facturarOrden = (orden) => api(`${F}/facturas/desde_orden/`, { method: "POST", body: { orden } });
+export const registrarPago = (factura, pago) => api(`${F}/facturas/${factura}/pagos/`, { method: "POST", body: pago });
+export const borrarPago = (id) => api(`${F}/pagos/${id}/`, { method: "DELETE" });
+export const guardarGasto = (g, comprobante) => {
+  if (!comprobante) return g.id ? api(`${F}/gastos/${g.id}/`, { method: "PATCH", body: g }) : api(`${F}/gastos/`, { method: "POST", body: g });
+  const fd = new FormData();
+  Object.entries(g).forEach(([k, v]) => { if (v !== null && v !== undefined && k !== "id") fd.append(k, v); });
+  fd.append("comprobante", comprobante);
+  return g.id ? api(`${F}/gastos/${g.id}/`, { method: "PATCH", body: fd }) : api(`${F}/gastos/`, { method: "POST", body: fd });
+};
+
+// Automatizaciones
+const A = "/api/automatizaciones";
+export const catalogoAutomatizaciones = () => api(`${A}/catalogo/`);
+export const listarReglas = () => api(`${A}/reglas/`);
+export const guardarRegla = (r) => (r.id ? api(`${A}/reglas/${r.id}/`, { method: "PATCH", body: r }) : api(`${A}/reglas/`, { method: "POST", body: r }));
+export const eliminarRegla = (id) => api(`${A}/reglas/${id}/`, { method: "DELETE" });
+export const ejecuciones = () => api(`${A}/ejecuciones/`);

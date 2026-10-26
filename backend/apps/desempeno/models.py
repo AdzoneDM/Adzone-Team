@@ -50,6 +50,14 @@ class Tarea(models.Model):
     )
     prioridad = models.CharField(max_length=10, choices=PRIORIDAD_CHOICES, default='MEDIA')
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='PENDIENTE')
+    proyecto = models.ForeignKey('operaciones.Proyecto', on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='tareas', verbose_name="Proyecto")
+    orden = models.ForeignKey('operaciones.OrdenTrabajo', on_delete=models.SET_NULL, null=True, blank=True,
+                              related_name='tareas', verbose_name="Orden de trabajo")
+    fecha_inicio = models.DateField(null=True, blank=True, verbose_name="Empieza",
+                                    help_text="Para el cronograma. Si está vacía, se toma la fecha de creación.")
+    horas_estimadas = models.DecimalField(max_digits=6, decimal_places=1, null=True, blank=True,
+                                          verbose_name="Horas estimadas", help_text="Para medir la carga de cada persona.")
     fecha_limite = models.DateField(verbose_name="Fecha Límite")
     kpi_asignado = models.ForeignKey(
         KPIAsignado,
@@ -311,6 +319,11 @@ class Notificacion(models.Model):
         ('EMPLEADO_MES', 'Empleado del Mes'),
         ('RECORDATORIO', 'Recordatorio del supervisor'),
         ('PIDE_TRABAJO', 'Pide más trabajo'),
+        ('ORDEN', 'Orden de trabajo'),
+        ('PROYECTO', 'Proyecto'),
+        ('MENCION', 'Te mencionaron'),
+        ('FINANZAS', 'Finanzas'),
+        ('AUTOMATIZACION', 'Automatización'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",

@@ -63,7 +63,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Tarea.objects.select_related(
             'colaborador__perfil__puesto_trabajo__departamento', 'asignada_por', 'validada_por',
-            'kpi_asignado__plantilla_kpi',
+            'kpi_asignado__plantilla_kpi', 'proyecto', 'orden',
         ).prefetch_related('evidencias', 'pasos', 'companeros')
         if not es_administrador(user):
             subs = subordinados(user)
@@ -87,6 +87,12 @@ class TareaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(titulo__icontains=params['buscar'][:100])
         if params.get('vencidas') == '1':
             queryset = queryset.filter(estado__in=['PENDIENTE', 'EN_PROGRESO'], fecha_limite__lt=timezone.localdate())
+        if params.get('proyecto'):
+            queryset = queryset.filter(proyecto_id=params['proyecto'])
+        if params.get('orden'):
+            queryset = queryset.filter(orden_id=params['orden'])
+        if params.get('desde') and params.get('hasta'):
+            queryset = queryset.filter(fecha_limite__range=(params['desde'], params['hasta']))
         return queryset
 
     def list(self, request, *args, **kwargs):
@@ -162,6 +168,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         tarea.estado = 'EN_PROGRESO'
         tarea.save()
         servicios.registrar(tarea, request.user, 'INICIADA')
+        servicios.tras_cambio(tarea, request.user)
         return self._respuesta(tarea)
 
     @action(detail=True, methods=['post'])
@@ -266,6 +273,7 @@ class TareaViewSet(viewsets.ModelViewSet):
             tarea.estado = 'EN_PROGRESO'   # marcar un paso es empezar
             tarea.save(update_fields=['estado', 'fecha_modificacion'])
             servicios.registrar(tarea, request.user, 'INICIADA')
+            servicios.tras_cambio(tarea, request.user)
         return self._respuesta(tarea)
 
     @action(detail=True, methods=['post'])
@@ -289,6 +297,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         tarea.estado = 'CANCELADA'
         tarea.save()
         servicios.registrar(tarea, request.user, 'CANCELADA', request.data.get('motivo', ''))
+        servicios.tras_cambio(tarea, request.user)
         return self._respuesta(tarea)
 
 

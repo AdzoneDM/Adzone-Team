@@ -56,6 +56,10 @@ INSTALLED_APPS = [
     'apps.kpis',
     'apps.organizacion',
     'apps.desempeno',
+    'apps.operaciones',
+    'apps.tiempo',
+    'apps.finanzas',
+    'apps.automatizaciones',
     'corsheaders',
     'rest_framework',
     'django_filters',
@@ -194,3 +198,7 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': 'WARNING'},
     'loggers': {'adzone': {'handlers': ['console'], 'level': 'INFO', 'propagate': False}},
 }
+
+# Automatizaciones: firma de los webhooks hacia n8n (cabecera X-Adzone-Firma, HMAC-SHA256 del cuerpo)
+AUTOMATIZACIONES_SECRETO = env('AUTOMATIZACIONES_SECRETO', '')
+AUTOMATIZACIONES_SINCRONO = False

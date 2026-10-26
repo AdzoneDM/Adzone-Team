@@ -19,12 +19,22 @@ const Personas = lazy(() => import("@/features/organizacion/Personas"));
 const PlantillasKpi = lazy(() => import("@/features/kpis/PlantillasKpi"));
 const Configuracion = lazy(() => import("@/features/desempeno/Configuracion"));
 const MiCuenta = lazy(() => import("@/features/cuenta/MiCuenta"));
+const Ordenes = lazy(() => import("@/features/ordenes/Ordenes"));
+const OrdenDetalle = lazy(() => import("@/features/ordenes/OrdenDetalle"));
+const Proyectos = lazy(() => import("@/features/proyectos/Proyectos"));
+const ProyectoDetalle = lazy(() => import("@/features/proyectos/ProyectoDetalle"));
+const Clientes = lazy(() => import("@/features/clientes/Clientes"));
+const ClienteDetalle = lazy(() => import("@/features/clientes/ClienteDetalle"));
+const MiTiempo = lazy(() => import("@/features/tiempo/MiTiempo"));
+const Finanzas = lazy(() => import("@/features/finanzas/Finanzas"));
+const Imprimir = lazy(() => import("@/features/finanzas/Imprimir"));
+const Automatizaciones = lazy(() => import("@/features/automatizaciones/Automatizaciones"));
 
-function Protegida({ children, admin, supervisor }) {
-  const { usuario, esAdmin, puedeValidar } = useSesion();
+function Protegida({ children, admin, supervisor, finanzas }) {
+  const { usuario, esAdmin, puedeValidar, esFinanzas } = useSesion();
   const location = useLocation();
   if (!usuario) return <Navigate to="/entrar" replace state={{ desde: location.pathname + location.search }} />;
-  if ((admin && !esAdmin) || (supervisor && !puedeValidar)) return <Navigate to="/" replace />;
+  if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (finanzas && !esFinanzas)) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -37,11 +47,21 @@ export default function App() {
       <Routes>
         <Route path="/entrar" element={usuario ? <Navigate to="/" replace /> : <Entrar />} />
         <Route path="/login" element={<Navigate to="/entrar" replace />} />
+        <Route path="/imprimir/:tipo/:id" element={<Protegida finanzas><Imprimir /></Protegida>} />
         <Route element={<Protegida><Estructura /></Protegida>}>
           <Route index element={<Inicio />} />
           <Route path="mis-tareas" element={<MisTareas />} />
           <Route path="organigrama" element={<Organigrama />} />
           <Route path="mi-cuenta" element={<MiCuenta />} />
+          <Route path="ordenes" element={<Ordenes />} />
+          <Route path="ordenes/:id" element={<OrdenDetalle />} />
+          <Route path="proyectos" element={<Proyectos />} />
+          <Route path="proyectos/:id" element={<ProyectoDetalle />} />
+          <Route path="clientes" element={<Clientes />} />
+          <Route path="clientes/:id" element={<ClienteDetalle />} />
+          <Route path="tiempo" element={<MiTiempo />} />
+          <Route path="finanzas" element={<Protegida finanzas><Finanzas /></Protegida>} />
+          <Route path="automatizaciones" element={<Protegida admin><Automatizaciones /></Protegida>} />
           <Route path="validar" element={<Protegida supervisor><Validar /></Protegida>} />
           <Route path="equipo" element={<Protegida supervisor><Equipo /></Protegida>} />
           <Route path="desempeno" element={<Protegida admin><Desempeno /></Protegida>} />

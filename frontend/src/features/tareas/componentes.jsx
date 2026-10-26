@@ -196,6 +196,9 @@ export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
           <div><dt className="text-gris">Responsable</dt><dd className="font-medium">{tarea.colaborador_nombre}</dd></div>
           {tarea.companeros_nombres?.length > 0 && <div><dt className="text-gris">Con</dt><dd className="font-medium">{tarea.companeros_nombres.join(", ")}</dd></div>}
           {tarea.cliente && <div><dt className="text-gris">Cliente</dt><dd className="font-medium">{tarea.cliente}</dd></div>}
+          {tarea.orden && <div><dt className="text-gris">Orden de trabajo</dt><dd className="font-medium"><a href={`/ordenes/${tarea.orden}`} className="text-azul hover:underline">{tarea.orden_numero}</a></dd></div>}
+          {tarea.proyecto && <div><dt className="text-gris">Proyecto</dt><dd className="font-medium"><a href={`/proyectos/${tarea.proyecto}`} className="text-azul hover:underline">{tarea.proyecto_nombre}</a></dd></div>}
+          {tarea.horas_estimadas && <div><dt className="text-gris">Estimado</dt><dd className="font-medium">{Number(tarea.horas_estimadas)} h</dd></div>}
           <div><dt className="text-gris">Fecha límite</dt><dd className="font-medium">{fechaCorta(tarea.fecha_limite)}</dd></div>
           <div><dt className="text-gris">Asignada por</dt><dd className="font-medium">{tarea.asignada_por_nombre || "—"}</dd></div>
           {tarea.kpi_nombre && <div className="col-span-2 sm:col-span-3"><dt className="text-gris">Suma al KPI</dt><dd className="flex items-center gap-1.5 font-medium"><Target className="size-4 text-azul" />{tarea.kpi_nombre}</dd></div>}

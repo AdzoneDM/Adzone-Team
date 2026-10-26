@@ -49,7 +49,7 @@ export function FormPuesto({ abierto, inicial, deptos, puestos, onCerrar, onGuar
 // Los colores de los 7 departamentos oficiales (texto, fondo). Elegir de aquí evita colores ilegibles.
 const PALETAS = [
   ["#2f3a4f", "#eef1f6"], ["#1d4189", "#e6edfa"], ["#56298f", "#f0e9fb"], ["#a3170f", "#fde8e7"],
-  ["#8a4300", "#fdeedd"], ["#7a5000", "#fff4d6"], ["#0d6455", "#e2f4f1"],
+  ["#8a4300", "#fdeedd"], ["#7a5000", "#fff4d6"], ["#0d6455", "#e2f4f1"], ["#0b5e7a", "#e0f2f8"],
 ];
 
 export default function Puestos() {

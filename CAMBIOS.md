@@ -1,5 +1,54 @@
 # Cambios
 
+## 5.0 · 26/10/2026 · Operación completa: órdenes, proyectos, tiempo y finanzas
+
+Adzone Team deja de ser solo tareas y KPIs: ahora lleva el trabajo diario de toda la agencia, de la cotización al cobro.
+
+### Órdenes de trabajo
+- **Siete áreas con su propio formulario:** impresión y rotulación, Adzone TV, call center, marketing digital, audiovisual, desarrollo y administración. Por ejemplo, impresión pide medidas, material, acabados e instalación; Adzone TV pide estudio, fecha de grabación, equipo y plataformas; call center pide canales, agentes y metas.
+- **Recorrido completo:** solicitada → aprobada → en producción → control de calidad → lista → entregada, más pausa y cancelación con motivo. No se puede saltar etapas.
+- **Al aprobar,** el gerente elige responsable, equipo y fecha comprometida, y se crea la **tarea de producción con los pasos del área**. La orden avanza sola con su tarea y, al validarla, queda lista.
+- **Tablero arrastrable** (como Monday), tabla y calendario. Indicadores de órdenes abiertas, por aprobar, vencidas, entregadas en el mes y porcentaje a tiempo.
+- **Archivos** protegidos (artes, PDF, fotos; hasta 25 MB), **conversación con @menciones** e historial completo.
+- **Entrega con nombre de quien recibe.** Finanzas recibe el aviso para facturar.
+
+### Proyectos y clientes
+- **Clientes:** directorio con contacto, RNC, proyectos, órdenes y, para Finanzas, facturado, cobrado y saldo.
+- **Proyectos:** tabla, tablero y **cronograma (Gantt)** con la línea de hoy. Cada proyecto tiene sus tareas en tablero o cronograma, sus órdenes, una conversación, horas trabajadas y, para quien gestiona, monto vendido, facturado y margen.
+- Las tareas ahora tienen **proyecto, fecha de inicio y horas estimadas**.
+
+### Tiempo y carga
+- **Cronómetro** siempre visible en la barra superior: se inicia desde una tarea, una orden o un proyecto, y solo corre uno a la vez. Empezarlo en una tarea pendiente la marca como empezada.
+- **Mi semana:** gráfico por día y registros, con opción de anotar tiempo a mano hasta un mes atrás.
+- **Carga del equipo:** horas anotadas más horas pendientes estimadas, comparadas con la capacidad de cada persona (44 horas por defecto). Avisa de la sobrecarga.
+- **Reporte de horas** por proyecto, cliente, orden, persona o departamento, con el porcentaje facturable.
+
+### Finanzas operativas (Administración y dirección)
+- **Cotizaciones** con ITBIS del 18 % calculado por línea y líneas exentas. Al aprobarlas se puede crear la orden de trabajo de una vez.
+- **Facturas** desde una cotización, desde una orden o desde cero. Se emiten con días de crédito y se les anota el NCF o e-CF del sistema contable.
+- **Pagos** parciales; la factura queda pagada sola y no se puede cobrar de más.
+- **Gastos** por categoría, con proveedor, proyecto y comprobante.
+- **Resumen del mes:** facturado, cobrado, gastos, resultado, por cobrar, vencido, **antigüedad de cuentas por cobrar**, clientes que deben y **órdenes sin facturar**.
+- **Rentabilidad** por proyecto o cliente: facturado sin ITBIS, menos gastos, menos costo de las horas.
+- Versión **para imprimir o PDF** de cotizaciones y facturas con la marca.
+
+### Automatizaciones y n8n
+- Reglas «cuando pase X, haz Y» con diez eventos: órdenes, tareas, cotizaciones, facturas y pagos. Las acciones son **avisar**, **crear una tarea** y **webhook a n8n**, firmado con HMAC si se configura `AUTOMATIZACIONES_SECRETO`.
+- La plataforma trae cuatro reglas: orden lista, orden entregada (aviso a Finanzas), orden vencida y factura vencida.
+- Una regla con error no frena el trabajo y queda en la bitácora. Las de vencimiento se ejecutan una sola vez por orden o factura.
+
+### Para trabajar más rápido
+- **Buscador global con Ctrl+K** (o la tecla /).
+- Botón **Crear** en todas las pantallas.
+- El inicio muestra las órdenes a tu cargo y, a quien gestiona, las que esperan aprobación y las vencidas.
+- En el celular, la barra inferior tiene Inicio, Mis tareas, Órdenes y Validar (o Tiempo), y las acciones de cada orden quedan abajo, al alcance del pulgar.
+- Nuevo departamento oficial: **Call Center**.
+
+### Pruebas
+- **Backend:** 70 pruebas automáticas, 23 de ellas nuevas para órdenes, permisos, flujo, tiempo, finanzas, automatizaciones y buscador.
+- **Navegador:** se recorrió el ciclo completo de punta a punta (pedir → aprobar con arrastre → cronómetro → pasos → entregar → validar → entregar al cliente → facturar → cobrar), además del buscador y las automatizaciones, en PC y celular.
+
+
 ## 4.0 · 24/10/2026 · Adzone Team y KPIs, una sola plataforma
 
 ### Lo que llega de Adzone Team

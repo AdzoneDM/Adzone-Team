@@ -1,7 +1,7 @@
 // Service worker de Adzone Team: permite instalar la app y abrirla aunque la señal sea mala.
 // Estrategia "red primero": siempre se intenta traer lo más reciente; la caché solo
 // se usa sin conexión. Los datos (/api) y las evidencias (/media) nunca se guardan.
-const CACHE = "adzone-team-v3";
+const CACHE = "adzone-team-v5";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Award, CircleCheckBig, Trophy } from "lucide-react";
-import { miResumen, tablero } from "@/lib/api";
+import { listarOrdenes, miResumen, resumenOrdenes, tablero } from "@/lib/api";
 import { mesActual, nombreMes, plural, primerNombre, vencimiento } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
+import { TarjetaOrden } from "@/features/ordenes/piezas";
+import { useNavigate } from "react-router-dom";
 import { Alerta, Avatar, Barra, Boton, Cargando, LeyendaTira, Panel, PrioridadTarea, Puntaje, TiraMes, cx } from "@/components/ui";
 
 /** Cabecera azul: el mes de la persona hecho de tareas. */
@@ -114,6 +116,34 @@ function Cifra({ etiqueta, valor, tono, a }) {
     : <div className="rounded-xl border border-linea bg-white px-5 py-4">{contenido}</div>;
 }
 
+/** Órdenes de trabajo que me tocan hoy y, para quien gestiona, lo que espera aprobación o está vencido. */
+function OperacionHoy({ gestiona }) {
+  const navigate = useNavigate();
+  const [mias, setMias] = useState(null);
+  const [res, setRes] = useState(null);
+  useEffect(() => {
+    listarOrdenes({ mias: 1, abiertas: 1 }).then(setMias).catch(() => setMias([]));
+    if (gestiona) resumenOrdenes().then(setRes).catch(() => {});
+  }, [gestiona]);
+  if (!mias || (!mias.length && !res?.por_aprobar && !res?.vencidas)) return null;
+  const orden = [...mias].sort((a, b) => (a.fecha_compromiso || a.fecha_requerida || "9").localeCompare(b.fecha_compromiso || b.fecha_requerida || "9"));
+  return (
+    <section>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold">Órdenes de trabajo</h2>
+        <Link to="/ordenes" className="text-sm font-medium text-azul hover:underline">Ver tablero</Link>
+      </div>
+      {res && (res.por_aprobar > 0 || res.vencidas > 0) && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {res.por_aprobar > 0 && <Link to="/ordenes" className="rounded-full bg-amarillo-50 px-3.5 py-1.5 text-sm font-medium text-[#7a5000] hover:bg-amarillo/30">{plural(res.por_aprobar, "orden espera", "órdenes esperan")} aprobación</Link>}
+          {res.vencidas > 0 && <Link to="/ordenes?ver=tabla&vencidas=1" className="rounded-full bg-rojo-50 px-3.5 py-1.5 text-sm font-medium text-[#a3170f] hover:bg-rojo/15">{plural(res.vencidas, "orden vencida", "órdenes vencidas")}</Link>}
+        </div>
+      )}
+      {orden.length > 0 && <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{orden.slice(0, 6).map((o) => <li key={o.id}><TarjetaOrden orden={o} onAbrir={() => navigate(`/ordenes/${o.id}`)} /></li>)}</ul>}
+    </section>
+  );
+}
+
 export default function Inicio() {
   const { usuario } = useSesion();
   const [datos, setDatos] = useState(null);
@@ -151,6 +181,8 @@ export default function Inicio() {
         )}
         <MuroDeHonor muro={datos.muro} />
       </div>
+
+      <OperacionHoy gestiona={!!usuario.gestiona} />
 
       {eq && (
         <>

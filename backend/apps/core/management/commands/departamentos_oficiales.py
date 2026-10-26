@@ -1,5 +1,5 @@
 """
-Deja los 7 departamentos oficiales de Adzone con sus colores y ubica cada puesto en el suyo.
+Deja los departamentos oficiales de Adzone con sus colores y ubica cada puesto en el suyo.
 
     python manage.py departamentos_oficiales            # muestra lo que haría, sin cambiar nada
     python manage.py departamentos_oficiales --aplicar  # lo hace
@@ -21,6 +21,7 @@ OFICIALES = [
     ('Impresión', '#8a4300', '#fdeedd', 'Impresión digital, rotulación, instalación y eventos.'),
     ('Administración', '#7a5000', '#fff4d6', 'Finanzas, contabilidad y tesorería.'),
     ('Tecnología', '#0d6455', '#e2f4f1', 'Desarrollo, innovación y ciberseguridad.'),
+    ('Call Center', '#0b5e7a', '#e0f2f8', 'Atención al cliente, ventas, cobros y soporte por teléfono y chat.'),
 ]
 
 # Puesto → departamento. Lo que no está aquí se decide por el departamento anterior.
@@ -50,6 +51,8 @@ POR_DEPARTAMENTO = [
     ('Audiovisual', 'Audiovisual'),
     ('Marketing', 'Marketing'),
     ('TV', 'Adzone TV'),
+    ('Call', 'Call Center'),
+    ('BPO', 'Call Center'),
 ]
 
 
@@ -64,7 +67,7 @@ def destino(puesto):
 
 
 class Command(BaseCommand):
-    help = 'Crea los 7 departamentos oficiales con sus colores y ubica los puestos.'
+    help = 'Crea los departamentos oficiales con sus colores y ubica los puestos.'
 
     def add_arguments(self, parser):
         parser.add_argument('--aplicar', action='store_true', help='Hacer los cambios (sin esto solo se muestran).')
