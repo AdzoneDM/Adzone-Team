@@ -779,5 +779,16 @@ class OrganigramaTests(TestCase):
         self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Encargado de Ventas y Cuentas').supervisor.nombre, 'Director Comercial')
         self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Community Manager').supervisor.nombre, 'Encargado de Medios Digitales')
         self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Director Comercial').departamento.nombre, 'Comercial')
+        soporte = PuestoDeTrabajo.objects.get(nombre='Soporte Técnico (TI)')
+        self.assertIn('Atender las solicitudes de soporte', soporte.funciones_principales)  # descripción cargada
+        from apps.kpis.models import KPIAsignado
+        kpis = KPIAsignado.objects.filter(puesto_trabajo=soporte)
+        self.assertEqual(kpis.count(), 4)
+        self.assertEqual(sum(k.ponderacion for k in kpis), 100)
+        herrero = KPIAsignado.objects.filter(puesto_trabajo__nombre='Herrero', es_entrada_manual=False)
+        self.assertEqual(herrero.count(), 2)  # automáticos: tareas validadas y rondas
+        PuestoDeTrabajo.objects.filter(pk=soporte.pk).update(funciones_principales='Escrita a mano')
         call_command('organigrama_2026', '--aplicar', stdout=open(os.devnull, 'w'))  # se puede repetir
+        self.assertEqual(PuestoDeTrabajo.objects.get(pk=soporte.pk).funciones_principales, 'Escrita a mano')  # no la pisa
+        self.assertEqual(KPIAsignado.objects.filter(puesto_trabajo=soporte).count(), 4)  # no duplica KPIs
         self.assertEqual(PuestoDeTrabajo.objects.filter(nombre='Gerente de Call Center').count(), 1)

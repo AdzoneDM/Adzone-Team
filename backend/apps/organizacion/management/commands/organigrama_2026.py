@@ -7,11 +7,16 @@ cambiaron de nombre (las personas se quedan en su puesto) y deja a cada puesto c
 
 Corre antes `departamentos_oficiales --aplicar` (crea Comercial y Gestión del Talento). Es seguro repetirlo.
 Los puestos que no están en el organigrama no se tocan: se listan al final para revisarlos.
+A los puestos nuevos sin descripción les carga sus funciones principales (descripciones_2026.py) y, si no tienen
+ningún KPI, los KPIs propuestos (kpis_2026.py). Nunca pisa lo que ya existe.
 """
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.core.models import Departamento
+from apps.kpis.models import KPIAsignado, PlantillaKPI
+from apps.organizacion.descripciones_2026 import funciones
+from apps.organizacion.kpis_2026 import KPIS, PLANTILLAS
 from apps.organizacion.models import PuestoDeTrabajo
 
 # Nombre anterior en la plataforma → nombre del organigrama 2026
@@ -103,12 +108,27 @@ class Command(BaseCommand):
                     self.stdout.write(f"  → {nombre}: {p.departamento} ⇒ {depto}")
                     p.departamento = deptos[depto]
                     p.save(update_fields=['departamento'])
+                if not (p.funciones_principales or '').strip() and funciones(nombre):
+                    self.stdout.write(f"  ✎ descripción de puesto cargada: {nombre}")
+                    p.funciones_principales = funciones(nombre)
+                    p.save(update_fields=['funciones_principales'])
+                if nombre in KPIS and not KPIAsignado.objects.filter(puesto_trabajo=p).exists():
+                    for kpi, peso, meta, numerica in KPIS[nombre]:
+                        unidad, menor, como = PLANTILLAS[kpi]
+                        plantilla, _ = PlantillaKPI.objects.get_or_create(
+                            nombre=kpi, defaults={'descripcion': como, 'unidad_medida': unidad, 'menor_es_mejor': menor})
+                        KPIAsignado.objects.create(puesto_trabajo=p, plantilla_kpi=plantilla, ponderacion=peso, objetivo_meta=meta,
+                                                   es_entrada_manual=numerica is None, meta_numerica=numerica)
+                    self.stdout.write(f"  ★ {len(KPIS[nombre])} KPIs asignados: {nombre}")
                 supervisor = puestos[jefe] if jefe else None
                 if p.supervisor_id != (supervisor.pk if supervisor else None):
                     self.stdout.write(f"  ↳ {nombre} reporta a {jefe or '— (cabeza)'}")
                     p.supervisor = supervisor
                     p.save(update_fields=['supervisor'])
                 puestos[nombre] = p
+            vacios = [n for n, _, _ in ORGANIGRAMA if not (puestos[n].funciones_principales or '').strip()]
+            for n in vacios:
+                self.stdout.write(self.style.WARNING(f"  Sin descripción de puesto: {n}"))
             otros = PuestoDeTrabajo.objects.exclude(nombre__in=[n for n, _, _ in ORGANIGRAMA]).order_by('nombre')
             for p in otros:
                 self.stdout.write(self.style.WARNING(f"  No está en el organigrama 2026 (se deja igual): {p.nombre} · {p.departamento}"))

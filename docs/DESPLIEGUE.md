@@ -80,7 +80,7 @@ python manage.py organigrama_2026                    # muestra lo que haría
 python manage.py organigrama_2026 --aplicar          # lo hace
 ```
 
-Luego, en **Personas**, asigna a cada persona su puesto del organigrama (los puestos nuevos llegan vacíos).
+Los puestos nuevos llegan con su descripción de puesto y sus KPIs propuestos (`backend/apps/organizacion/descripciones_2026.py` y `kpis_2026.py`); revísalos en **Departamentos y puestos** y en **Plantillas de KPI**. Luego, en **Personas**, asigna a cada persona su puesto del organigrama.
 
 ### Si vienes de la versión 5
 

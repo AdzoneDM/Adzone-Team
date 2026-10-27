@@ -1,5 +1,11 @@
 # Cambios
 
+## 6.2 · 27/10/2026 · Puestos nuevos del Organigrama 2026 completos
+
+- Los 13 puestos que agrega el organigrama ya llegan con **descripción de puesto** (funciones principales al estilo ADZONE): Presidente y Vicepresidente/Secretario del Consejo, Director Comercial, Encargado de Ventas y Cuentas, Encargado de Gestión del Talento, Encargado de Presupuestos, Facturación y Cobros, Legal y Contratos, Herrero, **Soporte Técnico (TI)**, Gerente de Call Center, Supervisor de Calidad y Monitoreo y los agentes bilingüe y español.
+- 11 de ellos llegan con **KPIs propuestos** y su ponderación (el Consejo no lleva KPIs): por ejemplo, Soporte Técnico se mide por tickets resueltos en el tiempo acordado, tiempo de respuesta, disponibilidad y mantenimientos preventivos. El Herrero tiene dos automáticos (trabajos validados y rondas de revisión).
+- `organigrama_2026 --aplicar` los carga solo donde no hay nada: nunca pisa una descripción o unos KPIs ya escritos.
+
 ## 6.1 · 26/10/2026 · Organigrama 2026, cronograma de producción, flujogramas y uso estratégico de herramientas
 
 ### Organigrama 2026
