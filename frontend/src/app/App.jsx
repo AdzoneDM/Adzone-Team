@@ -34,6 +34,7 @@ const Indicadores = lazy(() => import("@/features/ordenes/Indicadores"));
 const ImprimirFormato = lazy(() => import("@/features/ordenes/ImprimirFormato"));
 const AjustesProduccion = lazy(() => import("@/features/ordenes/AjustesProduccion"));
 const Almacen = lazy(() => import("@/features/almacen/Almacen"));
+const CallCenter = lazy(() => import("@/features/callcenter/CallCenter"));
 
 function Protegida({ children, admin, supervisor, finanzas }) {
   const { usuario, esAdmin, puedeValidar, esFinanzas } = useSesion();
@@ -41,6 +42,12 @@ function Protegida({ children, admin, supervisor, finanzas }) {
   if (!usuario) return <Navigate to="/entrar" replace state={{ desde: location.pathname + location.search }} />;
   if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (finanzas && !esFinanzas)) return <Navigate to="/" replace />;
   return children;
+}
+
+/** El agente de call center entra directo a su pantalla; el resto, al Inicio de siempre. */
+function InicioSegunRol() {
+  const { esAgente } = useSesion();
+  return esAgente ? <Navigate to="/call-center" replace /> : <Inicio />;
 }
 
 export default function App() {
@@ -57,7 +64,8 @@ export default function App() {
         <Route path="/imprimir/acta/:id" element={<Protegida><ImprimirFormato tipo="acta" /></Protegida>} />
         <Route path="/imprimir/:tipo/:id" element={<Protegida finanzas><Imprimir /></Protegida>} />
         <Route element={<Protegida><Estructura /></Protegida>}>
-          <Route index element={<Inicio />} />
+          <Route index element={<InicioSegunRol />} />
+          <Route path="call-center" element={<CallCenter />} />
           <Route path="mis-tareas" element={<MisTareas />} />
           <Route path="organigrama" element={<Organigrama />} />
           <Route path="mi-cuenta" element={<MiCuenta />} />

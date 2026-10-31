@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { CircleCheckBig, RotateCcw } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { CircleCheckBig, Paperclip, RotateCcw } from "lucide-react";
 import { devolverTarea, listarTareas, validarTarea } from "@/lib/api";
 import { fechaCorta, hace } from "@/lib/formato";
 import { refrescarAvisos } from "@/app/Estructura";
@@ -7,8 +8,14 @@ import { EquipoTarea, Evidencias, Historial, Pasos } from "@/features/tareas/com
 import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, EntradaEstrellas, Insignia, Modal, PrioridadTarea, Vacio, cx, useAviso } from "@/components/ui";
 import { useRecurso } from "@/lib/recursos";
 import { Checklist } from "@/features/ordenes/piezas";
+import { useNovedades } from "@/lib/novedades";
 
 const aTiempo = (t) => t.fecha_completada <= t.fecha_limite;
+/** Qué evidencia trae la entrega, para verlo desde la lista. */
+const resumenEvidencia = (t) => [
+  t.evidencias.length && `${t.evidencias.length} archivo${t.evidencias.length > 1 ? "s" : ""}`,
+  t.evidencia_enlace && "enlace", t.evidencia_nota?.trim() && "nota",
+].filter(Boolean).join(" · ");
 
 function Revision({ tarea, onListo }) {
   const avisar = useAviso();
@@ -102,7 +109,8 @@ function Revision({ tarea, onListo }) {
 export default function Validar() {
   const [lista, setLista] = useState(null);
   const [error, setError] = useState("");
-  const [elegida, setElegida] = useState(null);
+  const [params] = useSearchParams();
+  const [elegida, setElegida] = useState(() => Number(params.get("tarea")) || null); // viene del aviso «Por validar»
   const [esPC, setEsPC] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
 
   useEffect(() => {
@@ -122,6 +130,7 @@ export default function Validar() {
       .catch((e) => setError(e.message));
   }, [esPC]);
   useEffect(() => { cargar(); }, [cargar]);
+  useNovedades(cargar);
 
   const listo = (id) => {
     const resto = lista.filter((t) => t.id !== id);
@@ -155,7 +164,7 @@ export default function Validar() {
                       Entregó {hace(t.fecha_modificacion)}
                       {!aTiempo(t) && <Insignia tono="amarillo">Tarde</Insignia>}
                       {t.rondas_revision > 0 && <Insignia tono="rojo">Corregida</Insignia>}
-                      {t.evidencias.length > 0 && <span>{t.evidencias.length} archivo{t.evidencias.length > 1 ? "s" : ""}</span>}
+                      {resumenEvidencia(t) && <Insignia tono="verde"><Paperclip className="size-3" />Evidencia: {resumenEvidencia(t)}</Insignia>}
                     </span>
                   </span>
                 </button>

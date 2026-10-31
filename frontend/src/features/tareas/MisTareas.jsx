@@ -9,11 +9,13 @@ import { DetalleTarea, EntregarModal, EquipoTarea, Evidencias, Progreso, Vencimi
 import { Alerta, Boton, Cargando, EstadoTarea, Estrellas, Pestanas, PrioridadTarea, SelectorMes, Vacio, cx, useAviso } from "@/components/ui";
 import { MiMes } from "@/features/inicio/Inicio";
 import BotonCronometro from "@/features/tiempo/BotonCronometro";
+import { useCronometro } from "@/features/tiempo/cronometro";
+import { useNovedades } from "@/lib/novedades";
 
 function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, iniciando }) {
   const devuelta = tarea.comentario_revision && tarea.estado === "EN_PROGRESO";
   return (
-    <li className={cx("rounded-xl border bg-white", devuelta ? "border-rojo/40" : "border-linea")}>
+    <li data-guia="tarea" className={cx("rounded-xl border bg-white", devuelta ? "border-rojo/40" : "border-linea")}>
       <div className="grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6 md:px-5">
         <button type="button" onClick={() => onAbrir(tarea)} className="min-w-0 text-left">
           <p className="font-medium leading-snug text-tinta hover:text-azul">{tarea.titulo}</p>
@@ -29,9 +31,11 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, iniciando }) {
         </button>
         {(tarea.estado === "PENDIENTE" || tarea.estado === "EN_PROGRESO") && (
           <div className="grid grid-cols-2 gap-2 md:flex">
-            <BotonCronometro tarea={tarea.id} className="hidden md:inline-flex" />
-            {tarea.estado === "PENDIENTE" && <Boton variante="secundario" icono={Play} onClick={() => onIniciar(tarea)} cargando={iniciando === tarea.id}>Empezar</Boton>}
-            <Boton variante="acento" icono={Send} onClick={() => onEntregar(tarea)} className={tarea.estado === "EN_PROGRESO" ? "col-span-2" : ""}>
+            {/* «Empezar» pone el cronómetro; ya empezada, el botón permite pausarlo y retomarlo */}
+            {tarea.estado === "PENDIENTE"
+              ? <Boton variante="secundario" icono={Play} onClick={() => onIniciar(tarea)} cargando={iniciando === tarea.id}>Empezar</Boton>
+              : <BotonCronometro tarea={tarea.id} />}
+            <Boton variante="acento" icono={Send} onClick={() => onEntregar(tarea)}>
               {devuelta ? "Entregar de nuevo" : "Entregar"}
             </Boton>
           </div>
@@ -52,6 +56,7 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, iniciando }) {
 export default function MisTareas() {
   const { usuario } = useSesion();
   const avisar = useAviso();
+  const crono = useCronometro();
   const [params, setParams] = useSearchParams();
   const [tareas, setTareas] = useState(null);
   const [resumen, setResumen] = useState(null);
@@ -69,6 +74,8 @@ export default function MisTareas() {
       .catch((e) => setError(e.message));
   }, []);
   useEffect(() => { cargar(); }, [cargar]);
+  // Tareas nuevas, devueltas o validadas aparecen sin recargar la página.
+  useNovedades(cargar);
 
   const grupos = useMemo(() => {
     const lista = tareas || [];
@@ -90,6 +97,8 @@ export default function MisTareas() {
     try {
       const nueva = await iniciarTarea(t.id);
       setTareas((l) => l.map((x) => (x.id === nueva.id ? nueva : x)));
+      await crono?.refrescar();
+      avisar("Tarea empezada. El cronómetro está corriendo.");
     } catch (e) { avisar(e.message, "rojo"); }
     setIniciando(null);
   };
@@ -144,6 +153,7 @@ export default function MisTareas() {
           setEntregando(null);
           setTareas((l) => l.map((x) => (x.id === t.id ? t : x)));
           miResumen(mesActual()).then(setResumen).catch(() => {});
+          crono?.refrescar();
           refrescarAvisos();
           avisar("Entregada. Cuenta para tu avance cuando tu supervisor la valide.");
         }} />

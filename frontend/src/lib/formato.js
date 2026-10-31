@@ -87,6 +87,12 @@ export const horas = (min) => {
 };
 
 /** 135 → "2:15" para el cronómetro y las tablas */
+/** Cronómetro en marcha: 0:04:27 */
+export const relojSeg = (seg) => {
+  const s = Math.max(0, Math.floor(Number(seg) || 0));
+  return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+};
+
 export const reloj = (min) => {
   const m = Math.max(0, Math.round(Number(min) || 0));
   return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;

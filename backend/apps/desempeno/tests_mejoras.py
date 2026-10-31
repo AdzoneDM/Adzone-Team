@@ -1,4 +1,5 @@
 """Pruebas de las mejoras de octubre 2026: seguridad, evidencias, historial, avisos, recurrentes y tablero."""
+import os
 import shutil
 import tempfile
 from datetime import date, timedelta
@@ -80,6 +81,21 @@ class SeguridadTests(Base):
         self.assertEqual(r.status_code, 403)
         self.assertNotIn(propia.id, [t['id'] for t in self.c.get('/api/desempeno/tareas/?ambito=por_validar').data])
 
+    def test_entrega_con_evidencia_avisa_tambien_a_la_administracion(self):
+        con = self.tarea(self.erlin)
+        sin = self.tarea(self.erlin)
+        self.como(self.erlin)
+        self.c.post(f'/api/desempeno/tareas/{con.id}/entregar/', {'archivos': [foto('a.jpg')], 'evidencia_nota': 'Listo'}, format='multipart')
+        r = self.c.post(f'/api/desempeno/tareas/{sin.id}/entregar/', {}, format='multipart')
+        self.assertEqual(r.status_code, 400)  # sin evidencia no se puede entregar
+        aviso = Notificacion.objects.get(destinatario=self.osiris, tarea=con)
+        self.assertIn('con evidencia: 1 archivo(s), nota', aviso.mensaje)
+        self.assertEqual(aviso.enlace, f'/validar?tarea={con.id}')
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.vladi, tarea=con).exists())   # su supervisor, como siempre
+        self.assertFalse(Notificacion.objects.filter(tarea=sin).exists())
+        self.como(self.osiris)  # y la puede validar desde «Por validar»
+        self.assertIn(con.id, [t['id'] for t in self.c.get('/api/desempeno/tareas/?ambito=por_validar').data])
+
     def test_evidencia_solo_la_ven_el_colaborador_y_quien_lo_gestiona(self):
         t = self.tarea(self.erlin)
         self.como(self.erlin)
@@ -99,7 +115,8 @@ class SeguridadTests(Base):
         self.c.force_authenticate(None)
         self.assertIn(self.c.get(url).status_code, (401, 403))
         # El archivo no conserva el nombre original en el disco
-        self.assertNotIn('a.jpg', EvidenciaArchivo.objects.first().archivo.name)
+        # (se compara el nombre completo: el nombre aleatorio en hex puede terminar en «…a.jpg»)
+        self.assertNotIn(os.path.basename(EvidenciaArchivo.objects.first().archivo.name), ('a.jpg', 'b.jpg'))
 
     def test_no_acepta_archivos_peligrosos_ni_demasiados(self):
         t = self.tarea(self.erlin)
@@ -257,6 +274,39 @@ class PuntajeTests(Base):
         fila = calcular_ranking(hoy.replace(day=1))[0]
         self.assertAlmostEqual(fila['kpis'][0]['valor'], 3.33)
         self.assertAlmostEqual(fila['kpis'][0]['cumplimiento'], 90.09, places=1)
+
+    def test_evaluacion_contra_el_puntaje_minimo(self):
+        # El mes pasado: todas sus fechas límite ya vencieron
+        periodo = (timezone.localdate().replace(day=1) - timedelta(days=1)).replace(day=1)
+        dia = periodo + timedelta(days=9)
+        mes = periodo.strftime('%Y-%m')
+        validada = dict(estado='COMPLETADA', fecha_completada=dia, fecha_limite=dia)
+        for _ in range(3):  # Erlin: tres a tiempo y con 5 estrellas
+            Tarea.objects.create(titulo="Post", colaborador=self.erlin, calificacion_calidad=5, **validada)
+        for _ in range(3):  # Ashley: tres vencidas sin entregar
+            Tarea.objects.create(titulo="Post", colaborador=self.ashley, fecha_limite=dia)
+        Tarea.objects.create(titulo="App", colaborador=self.dev, calificacion_calidad=1, **validada)  # Juli: una sola
+        filas = {f['username']: f for f in calcular_ranking(periodo)}
+        self.assertEqual(filas['erlin']['evaluacion'], 'CUMPLE')
+        self.assertEqual(filas['ashley']['evaluacion'], 'BAJO_MINIMO')
+        self.assertEqual(filas['ashley']['motivos'], ['3 tarea(s) vencida(s) sin entregar'])
+        self.assertEqual(filas['dev']['evaluacion'], 'POCOS_DATOS')  # con una tarea no se juzga
+
+        # Vladimir tiene puesto y nada evaluado: sale aparte. Osiris no tiene puesto: no se evalúa.
+        self.como(self.osiris)
+        r = self.c.get('/api/desempeno/ranking/', {'mes': mes})
+        self.assertEqual(r.data['puntaje_minimo'], 70)
+        self.assertEqual([f['nombre'] for f in r.data['sin_evaluar']], ['Vladimir Gómez'])
+
+        csv = self.c.get('/api/desempeno/ranking/exportar/', {'mes': mes}).content.decode('utf-8')
+        self.assertIn('Bajo el mínimo (70)', csv)
+        self.assertIn('Sin evaluar', csv)
+
+        # El mínimo y las tareas necesarias se cambian en Reglas del puntaje
+        self.assertEqual(self.c.patch('/api/desempeno/configuracion/', {'puntaje_minimo': 101}, format='json').status_code, 400)
+        self.c.patch('/api/desempeno/configuracion/', {'puntaje_minimo': 60, 'minimo_tareas_evaluacion': 1}, format='json')
+        filas = {f['username']: f for f in calcular_ranking(periodo)}
+        self.assertEqual(filas['dev']['evaluacion'], 'BAJO_MINIMO')  # nota 50 < 60
 
     def test_configuracion_solo_admin(self):
         self.como(self.erlin)

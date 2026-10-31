@@ -9,6 +9,8 @@ export default defineConfig({
   // «@/» apunta a src/: los imports no dependen de dónde está cada archivo
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: {
+    // Túnel de Cloudflare (cloudflared tunnel --url http://localhost:5173) para abrir la app de desarrollo desde fuera
+    allowedHosts: ['.trycloudflare.com'],
     proxy: {
       // Proxy para las solicitudes /api al backend Django
       '/api': {

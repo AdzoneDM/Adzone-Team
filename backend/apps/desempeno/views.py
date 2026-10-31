@@ -16,6 +16,7 @@ from rest_framework.response import Response
 
 from apps.core.models import Departamento
 from apps.kpis.models import KPIAsignado
+from apps.tiempo import servicios as cronometro
 from . import servicios
 from .models import (
     ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, Notificacion, ResultadoKPI, Tarea, TareaRecurrente,
@@ -24,7 +25,7 @@ from .permisos import (
     EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar, puede_revisar,
     puede_validar, puesto_de, subordinados,
 )
-from .puntaje import calcular_ranking, rango_del_mes
+from .puntaje import calcular_ranking, filtrar_grupo, rango_del_mes, sin_evaluar
 from .serializers import (
     ConfiguracionSerializer, EmpleadoDelMesSerializer, EntregaSerializer, HistorialSerializer, NotificacionSerializer,
     ReaperturaSerializer, RechazoSerializer, ResultadoKPISerializer, TareaRecurrenteSerializer, TareaSerializer,
@@ -169,6 +170,8 @@ class TareaViewSet(viewsets.ModelViewSet):
         tarea.save()
         servicios.registrar(tarea, request.user, 'INICIADA')
         servicios.tras_cambio(tarea, request.user)
+        # Empezar es poner el cronómetro en esta tarea (si corría en otra cosa, se guarda lo anterior).
+        cronometro.iniciar(request.user, tarea=tarea)
         return self._respuesta(tarea)
 
     @action(detail=True, methods=['post'])
@@ -201,6 +204,10 @@ class TareaViewSet(viewsets.ModelViewSet):
                     tamano=archivo.size, ronda=tarea.rondas_revision, subido_por=request.user,
                 )
             servicios.al_entregar(tarea, request.user)
+            # Al entregar se detiene el cronómetro si corría en esta tarea.
+            corriendo = cronometro.activo(request.user)
+            if corriendo and corriendo.tarea_id == tarea.pk:
+                cronometro.detener(corriendo)
         return self._respuesta(tarea)
 
     @action(detail=True, methods=['post'])
@@ -540,8 +547,13 @@ class EmpleadoDelMesViewSet(viewsets.ModelViewSet):
 # ===========================================================================
 # Ranking, tablero, equipo, avisos y configuración
 # ===========================================================================
-def _ranking_con_candidatos(periodo):
-    ranking = calcular_ranking(periodo)
+def _grupo(request):
+    """Los agentes de call center tienen su propio ranking: ?grupo=agentes. Por defecto, el resto del equipo."""
+    return 'agentes' if request.query_params.get('grupo') == 'agentes' else 'empleados'
+
+
+def _ranking_con_candidatos(periodo, grupo='empleados'):
+    ranking = calcular_ranking(periodo, grupo=grupo)
     por_departamento = {}
     for fila in ranking:  # Ya viene ordenado: el primero elegible de cada departamento es su candidato
         if fila['departamento_id'] and fila['elegible'] and fila['departamento_id'] not in por_departamento:
@@ -559,7 +571,8 @@ def _ranking_con_candidatos(periodo):
 def ranking_view(request):
     """Ranking del mes con los candidatos sugeridos a Empleado del Mes (general y por departamento)."""
     periodo = periodo_desde_mes(request.query_params.get('mes'))
-    ranking, general, por_depto = _ranking_con_candidatos(periodo)
+    grupo = _grupo(request)
+    ranking, general, por_depto = _ranking_con_candidatos(periodo, grupo)
     config = ConfiguracionDesempeno.actual()
     return Response({
         'periodo': periodo.isoformat(),
@@ -568,7 +581,12 @@ def ranking_view(request):
         'candidato_general': general,
         'candidatos_departamento': por_depto,
         'minimo_tareas': config.minimo_tareas_empleado_mes,
-        'pendientes_validar': Tarea.objects.filter(estado='EN_REVISION', fecha_limite__range=rango_del_mes(periodo)).count(),
+        'puntaje_minimo': config.puntaje_minimo,
+        'minimo_tareas_evaluacion': config.minimo_tareas_evaluacion,
+        'grupo': grupo,
+        'sin_evaluar': sin_evaluar(periodo, ranking, grupo=grupo),
+        'pendientes_validar': Tarea.objects.filter(estado='EN_REVISION', fecha_limite__range=rango_del_mes(periodo),
+                                                   colaborador__in=filtrar_grupo(User.objects.all(), grupo)).count(),
     })
 
 
@@ -578,19 +596,29 @@ def ranking_exportar_view(request):
     """El ranking del mes en CSV (se abre en Excel) para nómina y reconocimientos."""
     periodo = periodo_desde_mes(request.query_params.get('mes'))
     respuesta = HttpResponse(content_type='text/csv; charset=utf-8')
-    respuesta['Content-Disposition'] = f'attachment; filename="ranking-{periodo:%Y-%m}.csv"'
+    grupo = _grupo(request)
+    respuesta['Content-Disposition'] = f'attachment; filename="ranking-{"call-center-" if grupo == "agentes" else ""}{periodo:%Y-%m}.csv"'
     respuesta.write('﻿')
     escritor = csv.writer(respuesta)
-    escritor.writerow(['Posición', 'Colaborador', 'Puesto', 'Departamento', 'Puntaje total', 'Puntaje tareas',
-                       'Puntaje KPIs', 'Tareas validadas', 'A tiempo', 'A la primera', 'Vencidas sin entregar',
-                       'Calidad promedio', 'Bono sugerido (%)'])
-    for f in calcular_ranking(periodo):
+    config = ConfiguracionDesempeno.actual()
+    evaluacion = {'CUMPLE': 'Cumple', 'BAJO_MINIMO': f'Bajo el mínimo ({config.puntaje_minimo})', 'POCOS_DATOS': 'Pocos datos'}
+    escritor.writerow(['Posición', 'Colaborador', 'Puesto', 'Departamento', 'Puntaje total', 'Evaluación', 'Motivos',
+                       'Puntaje tareas', 'Puntaje KPIs', 'Tareas que cuentan', 'Tareas validadas', 'A tiempo',
+                       'A la primera', 'Vencidas sin entregar', 'Calidad promedio', 'Bono sugerido (%)'])
+    ranking = calcular_ranking(periodo, config=config, grupo=grupo)
+    for f in ranking:
         t = f['tareas']
         escritor.writerow([f['posicion'], f['nombre'], f['puesto'] or '', f['departamento'] or '', f['puntaje_total'],
+                           evaluacion[f['evaluacion']], '; '.join(f['motivos']),
                            '' if f['puntaje_tareas'] is None else f['puntaje_tareas'],
                            '' if f['puntaje_kpis'] is None else f['puntaje_kpis'],
-                           t['completadas'], t['a_tiempo'], t['a_la_primera'], t['vencidas'],
+                           t['total'], t['completadas'], t['a_tiempo'], t['a_la_primera'], t['vencidas'],
                            '' if t['calidad_promedio'] is None else t['calidad_promedio'], f['bono_sugerido']])
+    for f in sin_evaluar(periodo, ranking, grupo=grupo):
+        escritor.writerow(['', f['nombre'], f['puesto'], f['departamento'] or '', '', 'Sin evaluar',
+                           f"Sin tareas vencidas ni validadas en el mes ({f['tareas_asignadas']} asignada(s)). "
+                           f"Supervisor: {f['supervisor'] or 'sin supervisor'}",
+                           '', '', 0, 0, 0, 0, 0, '', 0])
     return respuesta
 
 
@@ -611,7 +639,8 @@ def mi_resumen_view(request):
         'por_hacer': tareas.filter(estado__in=['PENDIENTE', 'EN_PROGRESO']).count(),
         'vencidas': tareas.filter(estado__in=['PENDIENTE', 'EN_PROGRESO'], fecha_limite__lt=hoy).count(),
     }
-    ranking = calcular_ranking(periodo)
+    # Cada quien se compara con su grupo: los agentes con los agentes, el resto con el resto
+    ranking = calcular_ranking(periodo, grupo='agentes' if user.groups.filter(name='Agente Call Center').exists() else 'empleados')
     mi_fila = next((f for f in ranking if f['colaborador_id'] == user.id), None)
     puesto = puesto_de(user)
 

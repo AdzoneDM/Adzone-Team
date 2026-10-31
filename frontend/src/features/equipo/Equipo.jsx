@@ -13,6 +13,7 @@ import {
 import { DetalleTarea, EquipoTarea, Progreso, Vencimiento } from "@/features/tareas/componentes";
 import Ahora from "@/features/equipo/Ahora";
 import FormTarea from "@/features/tareas/FormTarea";
+import { useNovedades } from "@/lib/novedades";
 
 function Recurrentes({ gente, onEditar, recargar, version }) {
   const [lista, setLista] = useState(null);
@@ -26,7 +27,7 @@ function Recurrentes({ gente, onEditar, recargar, version }) {
     <Panel cuerpo="p-0">
       <div className="overflow-x-auto">
         <table className="tabla">
-          <thead><tr><th>Tarea</th><th>Responsable</th><th>Se repite</th><th>Prioridad</th><th>Estado</th><th className="w-28"><span className="sr-only">Acciones</span></th></tr></thead>
+          <thead><tr><th className="min-w-56">Tarea</th><th>Responsable</th><th>Se repite</th><th>Prioridad</th><th>Estado</th><th className="w-28"><span className="sr-only">Acciones</span></th></tr></thead>
           <tbody>
             {lista.map((r) => (
               <tr key={r.id}>
@@ -75,12 +76,13 @@ export default function Equipo() {
   useEffect(() => { if (params.get("nueva") === "1") { setForm({}); params.delete("nueva"); setParams(params, { replace: true }); } }, [params, setParams]);
   const poner = (clave, valor) => { if (valor) params.set(clave, valor); else params.delete(clave); setParams(params, { replace: true }); };
 
-  const cargar = useCallback(() => {
-    setTareas(null);
+  const cargar = useCallback((silencioso) => {
+    if (silencioso !== true) setTareas(null);
     listarTareas({ ambito: "equipo", mes: vencidas ? "" : mes, colaborador, estado, vencidas: vencidas ? "1" : "" })
       .then(setTareas).catch((e) => setError(e.message));
   }, [mes, colaborador, estado, vencidas]);
   useEffect(() => { cargar(); }, [cargar, version]);
+  useNovedades(useCallback(() => cargar(true), [cargar]));
   useEffect(() => { cargarEquipo().then(setGente).catch(() => {}); }, []);
 
   const lista = useMemo(() => (tareas || []).filter((t) => !buscar || t.titulo.toLowerCase().includes(buscar.toLowerCase()))
@@ -119,7 +121,7 @@ export default function Equipo() {
   return (
     <div>
       <Cabecera titulo="Mi equipo" descripcion="En qué está cada quien, sus tareas y las que se repiten. Las tareas cuentan para el puntaje cuando las validas.">
-        <Boton icono={Plus} onClick={() => setForm({ colaborador: colaborador || "" })}>Nueva tarea</Boton>
+        <Boton icono={Plus} onClick={() => setForm({ colaborador: colaborador || "" })} data-guia="nueva-tarea">Nueva tarea</Boton>
       </Cabecera>
 
       <Pestanas className="mb-5 max-w-md" valor={vista} onCambio={(v) => poner("ver", v === "ahora" ? "" : v)}
@@ -167,13 +169,15 @@ export default function Equipo() {
               <Panel cuerpo="p-0" className="hidden md:block">
                 <div className="overflow-x-auto">
                   <table className="tabla">
-                    <thead><tr><th>Tarea</th><th>Responsable</th><th>Prioridad</th><th>Fecha límite</th><th>Estado</th><th>Calidad</th></tr></thead>
+                    <thead><tr><th className="min-w-56">Tarea</th><th>Responsable</th><th className="hidden xl:table-cell">Prioridad</th><th>Fecha límite</th><th>Estado</th><th className="hidden xl:table-cell">Calidad</th></tr></thead>
                     <tbody>
                       {lista.map((t) => (
                         <tr key={t.id} className="cursor-pointer" onClick={() => setDetalle(t)}>
                           <td className="max-w-md">
                             <button type="button" className="text-left font-medium hover:text-azul" onClick={(e) => { e.stopPropagation(); setDetalle(t); }}>{t.titulo}</button>
                             <div className="mt-0.5 flex flex-wrap gap-2 text-sm text-gris">
+                              {/* En pantallas medianas la prioridad va aquí: su columna se oculta para no apretar el título */}
+                              <span className="xl:hidden"><PrioridadTarea prioridad={t.prioridad} /></span>
                               {t.kpi_nombre && <span className="flex items-center gap-1"><Target className="size-3.5" />{t.kpi_nombre}</span>}
                               {t.es_recurrente && <span className="flex items-center gap-1"><Repeat className="size-3.5" />Recurrente</span>}
                               {t.rondas_revision > 0 && <Insignia tono="rojo">Devuelta {t.rondas_revision}×</Insignia>}
@@ -182,10 +186,10 @@ export default function Equipo() {
                             <EquipoTarea tarea={t} className="mt-0.5" />
                           </td>
                           <td className="whitespace-nowrap">{t.colaborador_nombre}{t.companeros_nombres?.length > 0 && <span className="block text-sm text-gris">+{t.companeros_nombres.length}</span>}</td>
-                          <td><PrioridadTarea prioridad={t.prioridad} /></td>
+                          <td className="hidden xl:table-cell"><PrioridadTarea prioridad={t.prioridad} /></td>
                           <td className="whitespace-nowrap"><p className="num">{fechaCorta(t.fecha_limite)}</p><Vencimiento tarea={t} /></td>
-                          <td><EstadoTarea estado={t.estado} /></td>
-                          <td><Estrellas valor={t.calificacion_calidad} /></td>
+                          <td className="whitespace-nowrap"><EstadoTarea estado={t.estado} /></td>
+                          <td className="hidden xl:table-cell"><Estrellas valor={t.calificacion_calidad} /></td>
                         </tr>
                       ))}
                     </tbody>

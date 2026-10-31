@@ -1,9 +1,10 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { Award, ChevronDown, Download, Trophy, Undo2 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Award, ChevronDown, CircleAlert, Download, Trophy, Undo2 } from "lucide-react";
 import { anularEmpleado, declararEmpleado, empleadosDelMes, ranking as cargarRanking, urlExportarRanking } from "@/lib/api";
 import { mesActual, nombreMes, plural } from "@/lib/formato";
 import {
-  Alerta, Avatar, Barra, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Puntaje, SelectorMes, Vacio, cx,
+  Alerta, Avatar, Barra, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Puntaje, SelectorMes, Vacio, cx,
   useAviso, useConfirmar,
 } from "@/components/ui";
 
@@ -38,6 +39,92 @@ function Declarar({ abierto, candidato, departamento, mes, onCerrar, onListo }) 
         {!departamento && <p className="text-sm text-gris">Todo el equipo recibe un aviso con el nombre del ganador.</p>}
       </div>
     </Modal>
+  );
+}
+
+const EVALUACION = {
+  CUMPLE: { texto: "Cumple", tono: "verde" },
+  BAJO_MINIMO: { texto: "Bajo el mínimo", tono: "rojo" },
+  POCOS_DATOS: { texto: "Pocos datos", tono: "neutro" },
+};
+
+function Contador({ n, texto, tono }) {
+  return (
+    <div className={cx("rounded-xl border px-4 py-3", tono)}>
+      <p className="font-display text-2xl font-semibold num">{n}</p>
+      <p className="text-sm">{texto}</p>
+    </div>
+  );
+}
+
+/** Quién cumple el desempeño mínimo del mes, quién no y de quién no hay datos para juzgar. */
+function RevisionMinimo({ datos, filas, sinEvaluar, mes }) {
+  const de = (e) => filas.filter((f) => f.evaluacion === e);
+  const bajo = de("BAJO_MINIMO").sort((a, b) => a.puntaje_total - b.puntaje_total);
+  const pocos = de("POCOS_DATOS");
+  return (
+    <Panel titulo={`Desempeño mínimo · ${nombreMes(mes)}`}
+      accion={<Link to="/configuracion" className="text-sm font-medium text-azul hover:underline">Mínimo: {datos.puntaje_minimo} pts</Link>}>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Contador n={de("CUMPLE").length} texto={`Cumplen (${datos.puntaje_minimo} o más)`} tono="border-verde/20 bg-verde-50 text-verde" />
+        <Contador n={bajo.length} texto="Por debajo del mínimo" tono="border-rojo/20 bg-rojo-50 text-[#a3170f]" />
+        <Contador n={pocos.length} texto="Pocos datos para juzgar" tono="border-linea bg-fondo text-gris" />
+        <Contador n={sinEvaluar.length} texto="Sin evaluar" tono="border-amarillo/40 bg-amarillo-50 text-[#7a5000]" />
+      </div>
+
+      {datos.mes_en_curso && <Alerta tono="amarillo" className="mt-4">El mes no ha terminado: estos números todavía cambian. Para decidir, usa un mes cerrado y con todo validado.</Alerta>}
+      {datos.pendientes_validar > 0 && <Alerta tono="amarillo" className="mt-4">{plural(datos.pendientes_validar, "entrega espera", "entregas esperan")} validación. Mientras no se validen, no suman: pide a los supervisores que validen antes de tomar decisiones.</Alerta>}
+
+      {bajo.length > 0 && (
+        <div className="mt-5">
+          <p className="mb-2 font-medium text-[#a3170f]">Por debajo del mínimo</p>
+          <ul className="divide-y divide-linea-suave rounded-xl border border-linea">
+            {bajo.map((f) => (
+              <li key={f.colaborador_id} className="flex flex-wrap items-start gap-x-4 gap-y-1 px-4 py-3">
+                <div className="min-w-[min(100%,12rem)] flex-1">
+                  <p className="font-medium">{f.nombre}</p>
+                  <p className="text-sm text-gris">{f.puesto || "Sin puesto"}{f.departamento ? ` · ${f.departamento}` : ""}</p>
+                  {f.motivos.length > 0 && <p className="mt-1 text-sm text-tinta">{f.motivos.join(" · ")}</p>}
+                </div>
+                <Puntaje valor={f.puntaje_total} className="text-lg" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {pocos.length > 0 && (
+        <div className="mt-5">
+          <p className="mb-1 font-medium">Pocos datos para juzgar</p>
+          <p className="mb-2 text-sm text-gris">Menos de {datos.minimo_tareas_evaluacion} tareas que ya cuentan y ningún KPI medido. Su puntaje no es base suficiente para decidir.</p>
+          <ul className="flex flex-wrap gap-2">
+            {pocos.map((f) => <li key={f.colaborador_id} className="rounded-full border border-linea bg-white px-3 py-1 text-sm">{f.nombre} <span className="text-gris">· {f.tareas.total} tarea(s) · {Math.round(f.puntaje_total)} pts</span></li>)}
+          </ul>
+        </div>
+      )}
+
+      {sinEvaluar.length > 0 && (
+        <div className="mt-5">
+          <p className="mb-1 font-medium">Sin evaluar</p>
+          <p className="mb-2 text-sm text-gris">Tienen puesto, pero en el mes no tienen tareas vencidas ni validadas, ni KPIs anotados. Antes de decidir, revisa con su supervisor si se les asignó trabajo en la plataforma.</p>
+          <div className="overflow-x-auto rounded-xl border border-linea">
+            <table className="tabla">
+              <thead><tr><th>Persona</th><th>Supervisor</th><th className="text-right">Tareas del mes</th></tr></thead>
+              <tbody>
+                {sinEvaluar.map((f) => (
+                  <tr key={f.colaborador_id}>
+                    <td><p className="font-medium">{f.nombre}</p><p className="text-sm text-gris">{f.puesto}{f.departamento ? ` · ${f.departamento}` : ""}</p></td>
+                    <td className="text-sm">{f.supervisor || <span className="text-gris">—</span>}</td>
+                    <td className="text-right text-sm num">{f.tareas_asignadas ? `${f.tareas_asignadas} (aún en plazo${f.por_validar ? ` o por validar` : ""})` : <span className="text-[#a3170f]">ninguna asignada</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      <p className="mt-4 flex items-start gap-2 text-sm text-gris"><CircleAlert className="mt-0.5 size-4 shrink-0" />El puntaje sale solo de lo que se registra en la plataforma. Es una guía: la decisión sobre cada persona la toma la dirección, revisando su caso.</p>
+    </Panel>
   );
 }
 
@@ -77,6 +164,8 @@ export default function Desempeno() {
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const [mes, setMes] = useState(mesActual());
+  const [params, setParams] = useSearchParams();
+  const grupo = params.get("grupo") === "agentes" ? "agentes" : "empleados"; // los agentes de call center se evalúan aparte
   const [datos, setDatos] = useState(null);
   const [ganadores, setGanadores] = useState([]);
   const [error, setError] = useState("");
@@ -86,14 +175,16 @@ export default function Desempeno() {
 
   const cargar = useCallback(() => {
     setDatos(null);
-    Promise.all([cargarRanking(mes), empleadosDelMes({ mes })])
+    Promise.all([cargarRanking(mes, grupo), empleadosDelMes({ mes })])
       .then(([r, g]) => { setDatos(r); setGanadores(g); })
       .catch((e) => setError(e.message));
-  }, [mes]);
+  }, [mes, grupo]);
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { setDepto(""); setAbierta(null); }, [grupo]);
 
   const departamentos = useMemo(() => [...new Map((datos?.ranking || []).filter((f) => f.departamento_id).map((f) => [f.departamento_id, f.departamento])).entries()], [datos]);
   const filas = (datos?.ranking || []).filter((f) => !depto || String(f.departamento_id) === depto);
+  const sinEvaluar = (datos?.sin_evaluar || []).filter((f) => !depto || String(f.departamento_id) === depto);
   const general = ganadores.find((g) => !g.departamento);
   const ganadorDe = (id) => ganadores.find((g) => g.departamento === id);
 
@@ -107,17 +198,23 @@ export default function Desempeno() {
     <div>
       <Cabecera titulo="Desempeño y ranking" descripcion={datos ? `Puntaje = tareas validadas (puntualidad y calidad) y cumplimiento de KPIs. Mínimo ${datos.minimo_tareas} tareas validadas para ser candidato.` : ""}>
         <SelectorMes valor={mes} onCambio={setMes} />
-        <a href={urlExportarRanking(mes)} className="inline-flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-4 text-[15px] font-medium hover:border-azul/40">
+        <a href={urlExportarRanking(mes, grupo)} className="inline-flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-4 text-[15px] font-medium hover:border-azul/40">
           <Download className="size-4" /> Descargar Excel
         </a>
       </Cabecera>
 
+      <Pestanas className="mb-5 md:w-96" valor={grupo} onCambio={(v) => { if (v === "agentes") params.set("grupo", v); else params.delete("grupo"); setParams(params, { replace: true }); }} opciones={[
+        { valor: "empleados", etiqueta: "Equipo" },
+        { valor: "agentes", etiqueta: "Call Center" },
+      ]} />
+
       {!datos ? <Cargando /> : (
         <div className="space-y-6">
           {datos.mes_en_curso && <Alerta tono="azul">El mes está en curso: el ranking es parcial. Declara al Empleado del Mes cuando termine y los supervisores hayan validado lo pendiente.</Alerta>}
-          {datos.pendientes_validar > 0 && <Alerta tono="amarillo">{plural(datos.pendientes_validar, "entrega del mes espera", "entregas del mes esperan")} validación y todavía no cuentan.</Alerta>}
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+          <RevisionMinimo datos={datos} filas={filas} sinEvaluar={sinEvaluar} mes={mes} />
+
+          {grupo === "empleados" && <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
             <section className="rounded-2xl bg-noche p-6 text-white">
               <p className="flex items-center gap-2 text-white/70 first-letter:uppercase"><Trophy className="size-4 text-amarillo" />Empleado del Mes de la empresa · {nombreMes(mes)}</p>
               {general ? (
@@ -163,9 +260,9 @@ export default function Desempeno() {
                 </ul>
               )}
             </Panel>
-          </div>
+          </div>}
 
-          <Panel titulo={`Ranking de ${nombreMes(mes)}`} cuerpo="p-0"
+          <Panel titulo={`${grupo === "agentes" ? "Ranking del call center" : "Ranking"} de ${nombreMes(mes)}`} cuerpo="p-0"
             accion={departamentos.length > 1 && (
               <select className="campo h-9 w-auto py-0 text-sm" value={depto} onChange={(e) => setDepto(e.target.value)} aria-label="Departamento">
                 <option value="">Todos los departamentos</option>
@@ -191,7 +288,8 @@ export default function Desempeno() {
                           <td className="text-right num">{f.tareas.calidad_promedio ?? "—"}</td>
                           <td className="text-right"><Puntaje valor={f.puntaje_tareas} /></td>
                           <td className="text-right"><Puntaje valor={f.puntaje_kpis} /></td>
-                          <td><div className="flex items-center gap-3"><Puntaje valor={f.puntaje_total} className="w-12 text-lg" /><Barra valor={f.puntaje_total} /></div></td>
+                          <td><div className="flex items-center gap-3"><Puntaje valor={f.puntaje_total} className="w-12 text-lg" /><Barra valor={f.puntaje_total} /></div>
+                            <Insignia tono={EVALUACION[f.evaluacion].tono} className="mt-1">{EVALUACION[f.evaluacion].texto}</Insignia></td>
                           <td className="text-right">{f.bono_sugerido ? <Insignia tono="verde">{f.bono_sugerido}%</Insignia> : <span className="text-gris">—</span>}</td>
                           <td>
                             <button type="button" onClick={() => setAbierta(abierta === f.colaborador_id ? null : f.colaborador_id)} className="rounded-lg p-1.5 text-gris hover:bg-fondo hover:text-azul"
@@ -203,7 +301,7 @@ export default function Desempeno() {
                         {abierta === f.colaborador_id && (
                           <tr><td colSpan={9} className="p-0">
                             <DetalleFila f={f} />
-                            {!general && f.elegible && (
+                            {grupo === "empleados" && !general && f.elegible && (
                               <div className="flex justify-end gap-2 bg-fondo/70 px-6 pb-5">
                                 <Boton variante="secundario" tam="sm" icono={Award} onClick={() => setDeclarando({ candidato: f })}>Declarar Empleado del Mes de la empresa</Boton>
                               </div>

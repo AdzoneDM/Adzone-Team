@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'apps.automatizaciones',
     'apps.almacen',
     'apps.integraciones',
+    'apps.callcenter',
     'corsheaders',
     'rest_framework',
     'django_filters',
@@ -147,7 +148,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'DEFAULT_THROTTLE_RATES': {'login': '10/min'},
+    # Límite de intentos de entrada: solo en el servidor. En desarrollo (y por el túnel de Cloudflare)
+    # todos llegan desde el mismo proxy local y compartirían el límite, así que se desactiva.
+    'DEFAULT_THROTTLE_RATES': {'login': None if DEBUG else env('LOGIN_LIMITE', '10/min')},
 }
 
 # La sesión dura 7 días si se marca «Recordarme»; si no, hasta cerrar el navegador.

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { cronometroActivo, detenerCronometro, iniciarCronometro } from "@/lib/api";
 import { horas } from "@/lib/formato";
 import { useAviso } from "@/components/ui";
+import { useNovedades } from "@/lib/novedades";
 
 const Ctx = createContext(null);
 
@@ -12,16 +13,14 @@ export function CronometroProvider({ children }) {
   const [, setTic] = useState(0);
   const refrescar = useCallback(() => cronometroActivo().then((r) => setActivo(r.activo)).catch(() => {}), []);
   useEffect(() => { refrescar(); }, [refrescar]);
+  // Segundero: que se vea que el cronómetro corre.
   useEffect(() => {
     if (!activo) return undefined;
-    const t = setInterval(() => setTic((x) => x + 1), 15000);
+    const t = setInterval(() => setTic((x) => x + 1), 1000);
     return () => clearInterval(t);
   }, [activo]);
-  useEffect(() => {
-    const alVolver = () => document.visibilityState === "visible" && refrescar();
-    document.addEventListener("visibilitychange", alVolver);
-    return () => document.removeEventListener("visibilitychange", alVolver);
-  }, [refrescar]);
+  // Se sincroniza con el servidor (otro dispositivo, «Empezar», «Entregar»…).
+  useNovedades(refrescar, 30000);
 
   const iniciar = async (datos) => {
     try {
@@ -40,8 +39,9 @@ export function CronometroProvider({ children }) {
       return r;
     } catch (e) { avisar(e.message, "rojo"); return null; }
   };
-  const minutos = activo ? Math.max(0, Math.floor((Date.now() - new Date(activo.inicio).getTime()) / 60000)) : 0;
-  return <Ctx.Provider value={{ activo, minutos, iniciar, detener, refrescar }}>{children}</Ctx.Provider>;
+  const segundos = activo ? Math.max(0, Math.floor((Date.now() - new Date(activo.inicio).getTime()) / 1000)) : 0;
+  const minutos = Math.floor(segundos / 60);
+  return <Ctx.Provider value={{ activo, minutos, segundos, iniciar, detener, refrescar }}>{children}</Ctx.Provider>;
 }
 
 export const useCronometro = () => useContext(Ctx);

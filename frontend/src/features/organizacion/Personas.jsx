@@ -15,6 +15,7 @@ const ACCESOS = [
   ["Finanzas", "Acceso a Finanzas", "Cotizaciones, facturas, cobros, gastos y Cashflow. El departamento de Administración ya lo tiene."],
   ["Coordinación", "Coordinación de Producción", "Recibe las OT en G0, las numera, emite las Órdenes de Área, autoriza vales y recibe los traspasos."],
   ["Almacén", "Almacén", "Despacha los vales de materiales, registra entradas y ajusta el inventario."],
+  ["Agente Call Center", "Agente de call center", "Entra a su pantalla de Call Center (campañas, metas y KPIs) y se evalúa en el ranking del call center, aparte del resto del equipo."],
 ];
 
 const rolPrincipal = (roles) => (roles.includes("Administrador") ? "Administrador" : roles.includes("Gerente de Departamento") ? "Gerente de Departamento" : "Colaborador");
@@ -43,12 +44,12 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
   const guardar = async (e) => {
     e.preventDefault();
     setError("");
-    if (!f.first_name?.trim() || !f.username?.trim() || !f.email?.trim()) return setError("Nombre, usuario y correo son obligatorios.");
+    if (!f.first_name?.trim() || !f.username?.trim()) return setError("Nombre y usuario son obligatorios.");
     setGuardando(true);
     try {
       const datos = {
         id: f.id, first_name: f.first_name.trim(), last_name: (f.last_name || "").trim(), username: f.username.trim().toLowerCase(),
-        email: f.email.trim().toLowerCase(), puesto_trabajo_id: f.puesto_trabajo_id ? Number(f.puesto_trabajo_id) : null,
+        email: (f.email || "").trim().toLowerCase(), puesto_trabajo_id: f.puesto_trabajo_id ? Number(f.puesto_trabajo_id) : null,
         roles_asignados: [f.rol, ...(f.accesos || [])], is_active: !!f.is_active,
         horas_semana: f.horas_semana || 44, costo_hora: f.costo_hora === "" || f.costo_hora == null ? null : f.costo_hora,
       };
@@ -68,7 +69,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
           <Campo etiqueta="Nombre">{(id) => <input id={id} className="campo" value={f.first_name || ""} onChange={cambiar("first_name")} autoFocus />}</Campo>
           <Campo etiqueta="Apellidos">{(id) => <input id={id} className="campo" value={f.last_name || ""} onChange={cambiar("last_name")} />}</Campo>
           <Campo etiqueta="Usuario" ayuda="Para entrar. Sin espacios.">{(id) => <input id={id} className="campo" value={f.username || ""} onChange={cambiar("username")} autoCapitalize="none" />}</Campo>
-          <Campo etiqueta="Correo" ayuda="También sirve para entrar.">{(id) => <input id={id} type="email" className="campo" value={f.email || ""} onChange={cambiar("email")} />}</Campo>
+          <Campo etiqueta="Correo (opcional)" ayuda="Si lo pones, también sirve para entrar.">{(id) => <input id={id} type="email" className="campo" value={f.email || ""} onChange={cambiar("email")} />}</Campo>
         </div>
         <Campo etiqueta="Puesto" ayuda="Define su departamento, su supervisor y sus KPIs.">
           {(id) => (
@@ -175,7 +176,7 @@ export default function Personas() {
         <Panel cuerpo="p-0">
           <div className="overflow-x-auto">
             <table className="tabla">
-              <thead><tr><th>Persona</th><th>Puesto</th><th>Rol</th><th>Último acceso</th><th className="w-16"><span className="sr-only">Acciones</span></th></tr></thead>
+              <thead><tr><th>Persona</th><th className="hidden md:table-cell">Puesto</th><th className="hidden md:table-cell">Rol</th><th className="hidden xl:table-cell">Último acceso</th><th className="w-16"><span className="sr-only">Acciones</span></th></tr></thead>
               <tbody>
                 {filtrada.map((u) => (
                   <tr key={u.id} className={u.is_active ? "" : "opacity-60"}>
@@ -184,13 +185,15 @@ export default function Personas() {
                         <Avatar nombre={u.nombre} tam="sm" />
                         <div className="min-w-0">
                           <p className="font-medium">{u.nombre}{u.id === usuario.id && <span className="ml-1.5 text-xs text-gris">(tú)</span>}</p>
-                          <p className="truncate text-sm text-gris">{u.username} · {u.email}</p>
+                          <p className="truncate text-sm text-gris">{u.username}{u.email && ` · ${u.email}`}</p>
+                          {/* En el celular, el puesto va aquí porque sus columnas se ocultan */}
+                          <p className="text-xs text-gris md:hidden">{u.puesto || "Sin puesto"}{!u.is_active && " · Desactivada"}</p>
                         </div>
                       </div>
                     </td>
-                    <td>{u.puesto ? <><p className="text-sm">{u.puesto}</p><p className="text-xs text-gris">{u.departamento}</p></> : <Insignia tono="amarillo">Sin puesto</Insignia>}</td>
-                    <td><Insignia tono={u.roles.includes("Administrador") ? "noche" : "neutro"}>{rolPrincipal(u.roles)}</Insignia>{!u.is_active && <Insignia className="ml-1">Desactivada</Insignia>}</td>
-                    <td className="whitespace-nowrap text-sm text-gris">{u.last_login ? fechaCorta(u.last_login) : "Nunca"}</td>
+                    <td className="hidden md:table-cell">{u.puesto ? <><p className="text-sm">{u.puesto}</p><p className="text-xs text-gris">{u.departamento}</p></> : <Insignia tono="amarillo">Sin puesto</Insignia>}</td>
+                    <td className="hidden md:table-cell"><Insignia tono={u.roles.includes("Administrador") ? "noche" : "neutro"}>{rolPrincipal(u.roles)}</Insignia>{!u.is_active && <Insignia className="ml-1">Desactivada</Insignia>}</td>
+                    <td className="hidden whitespace-nowrap text-sm text-gris xl:table-cell">{u.last_login ? fechaCorta(u.last_login) : "Nunca"}</td>
                     <td className="text-right"><Boton variante="fantasma" tam="sm" icono={Pencil} aria-label={`Editar a ${u.nombre}`} onClick={() => setForm(u)} /></td>
                   </tr>
                 ))}

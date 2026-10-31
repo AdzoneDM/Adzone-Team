@@ -21,6 +21,7 @@ export default function Configuracion() {
     try {
       const r = await guardarConfiguracion({
         peso_tareas: Number(f.peso_tareas), nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
+        puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion),
         tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje) })),
       });
       setF(r);
@@ -47,6 +48,18 @@ export default function Configuracion() {
             </Campo>
             <Campo etiqueta="Tareas validadas para ser candidato" ayuda="Mínimo en el mes para optar a Empleado del Mes.">
               {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.minimo_tareas_empleado_mes} onChange={(e) => setF({ ...f, minimo_tareas_empleado_mes: e.target.value })} />}
+            </Campo>
+          </div>
+        </Panel>
+
+        <Panel titulo="Desempeño mínimo">
+          <p className="mb-4 text-sm text-gris">Quien quede por debajo sale marcado en Desempeño y en el Excel, con lo que le bajó el puntaje. Con muy pocas tareas el puntaje no es justo: esas personas salen como «pocos datos».</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo etiqueta="Puntaje mínimo del mes" ayuda="De 0 a 100. Por ejemplo, 70.">
+              {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.puntaje_minimo} onChange={(e) => setF({ ...f, puntaje_minimo: e.target.value })} />}
+            </Campo>
+            <Campo etiqueta="Tareas necesarias para juzgar" ayuda="Tareas que ya cuentan en el mes (validadas o vencidas). Si la persona tiene KPIs medidos, también se juzga.">
+              {(id) => <input id={id} type="number" min={1} max={100} className="campo" value={f.minimo_tareas_evaluacion} onChange={(e) => setF({ ...f, minimo_tareas_evaluacion: e.target.value })} />}
             </Campo>
           </div>
         </Panel>

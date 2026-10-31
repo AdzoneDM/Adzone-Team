@@ -1,3 +1,4 @@
+
 from django.db import models
 
 
@@ -18,3 +19,17 @@ class Departamento(models.Model):
         verbose_name = "Departamento"
         verbose_name_plural = "Departamentos"
         ordering = ['orden', 'nombre']
+
+
+class AccesoEquipo(models.Model):
+    """Clave general del equipo. Desbloquea en un dispositivo la lista de áreas y personas para
+    elegir quién entra; no da acceso a nada más. Hay una sola fila."""
+    clave = models.CharField(max_length=128, blank=True, verbose_name="Clave (cifrada)")
+    fecha_modificacion = models.DateTimeField(auto_now=True, verbose_name="Fecha de Modificación")
+
+    def __str__(self):
+        return "Clave general del equipo"
+
+    class Meta:
+        verbose_name = "Clave general del equipo"
+        verbose_name_plural = "Clave general del equipo"

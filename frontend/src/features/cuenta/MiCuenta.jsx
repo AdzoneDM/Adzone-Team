@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { cambiarClave } from "@/lib/api";
+import { cambiarClave, cambiarClaveEquipo } from "@/lib/api";
 import { useSesion } from "@/lib/sesion";
 import { Alerta, Avatar, Boton, Cabecera, Campo, Panel, useAviso } from "@/components/ui";
 
 export default function MiCuenta() {
-  const { usuario } = useSesion();
+  const { usuario, esAdmin } = useSesion();
   const avisar = useAviso();
   const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
@@ -48,6 +48,39 @@ export default function MiCuenta() {
           <Boton type="submit" cargando={guardando}>Cambiar contraseña</Boton>
         </form>
       </Panel>
+      {esAdmin && <ClaveEquipo />}
     </div>
+  );
+}
+
+/** La clave general que se pide en la entrada antes de elegir área y persona. Solo el administrador la cambia. */
+function ClaveEquipo() {
+  const avisar = useAviso();
+  const [nueva, setNueva] = useState("");
+  const [error, setError] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  const enviar = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (nueva.length < 8) return setError("La clave del equipo necesita al menos 8 caracteres.");
+    setGuardando(true);
+    try {
+      await cambiarClaveEquipo(nueva);
+      setNueva("");
+      avisar("Clave del equipo guardada. Compártela con el equipo.");
+    } catch (err) { setError(err.message); }
+    setGuardando(false);
+  };
+
+  return (
+    <Panel titulo="Clave general del equipo">
+      <form onSubmit={enviar} className="space-y-4">
+        <p className="text-sm text-gris">Se pide al entrar, antes de elegir el área y la persona. No entra como nadie: solo muestra el directorio en ese dispositivo. Los dispositivos que ya la escribieron no la vuelven a pedir.</p>
+        {error && <Alerta>{error}</Alerta>}
+        <Campo etiqueta="Clave nueva" ayuda="Al menos 8 caracteres.">{(id) => <input id={id} type="password" className="campo" value={nueva} onChange={(e) => setNueva(e.target.value)} autoComplete="new-password" />}</Campo>
+        <Boton type="submit" cargando={guardando}>Guardar clave del equipo</Boton>
+      </form>
+    </Panel>
   );
 }

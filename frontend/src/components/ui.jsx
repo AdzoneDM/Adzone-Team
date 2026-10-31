@@ -201,7 +201,7 @@ export function AvisosProvider({ children }) {
   return (
     <AvisoCtx.Provider value={avisar}>
       {children}
-      <div className="pointer-events-none fixed inset-x-3 bottom-20 z-[60] flex flex-col items-end gap-2 md:bottom-6 md:right-6 md:left-auto" aria-live="polite">
+      <div className="pointer-events-none fixed inset-x-3 bottom-20 z-[60] flex flex-col items-end gap-2 lg:bottom-6 lg:right-6 lg:left-auto" aria-live="polite">
         {lista.map((a) => (
           <div key={a.id} className={cx("pointer-events-auto flex max-w-sm items-start gap-2 rounded-xl px-4 py-3 text-sm font-medium shadow-lg",
             a.tono === "rojo" ? "bg-[#7a1610] text-white" : "bg-noche text-white")}>
@@ -216,12 +216,15 @@ export function AvisosProvider({ children }) {
 export const useAviso = () => useContext(AvisoCtx);
 
 // ---------------------------------------------------------------- Pestañas
+// En el celular las pestañas se acomodan en filas (2 o 3 por fila) en vez de quedar cortadas a la derecha.
+const COLUMNAS_PESTANAS = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-2" };
+
 export function Pestanas({ opciones, valor, onCambio, className }) {
   return (
-    <div role="tablist" className={cx("flex gap-1 overflow-x-auto rounded-xl border border-linea bg-white p-1 [scrollbar-width:none]", className)}>
+    <div role="tablist" className={cx("grid gap-1 rounded-xl border border-linea bg-white p-1 md:flex md:overflow-x-auto md:[scrollbar-width:none]", COLUMNAS_PESTANAS[opciones.length] || "grid-cols-3", className)}>
       {opciones.map((o) => (
         <button key={o.valor} role="tab" type="button" aria-selected={valor === o.valor} onClick={() => onCambio(o.valor)}
-          className={cx("flex min-h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors",
+          className={cx("flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 md:min-w-fit rounded-lg px-2 py-1.5 text-center text-sm font-medium leading-tight transition-colors md:gap-2 md:whitespace-nowrap md:px-3 md:py-0",
             valor === o.valor ? "bg-azul text-white" : "text-gris hover:bg-fondo hover:text-tinta")}>
           {o.etiqueta}
           {o.cuenta != null && <span className={cx("rounded-full px-1.5 text-xs num", valor === o.valor ? "bg-white/20" : "bg-linea-suave")}>{o.cuenta}</span>}

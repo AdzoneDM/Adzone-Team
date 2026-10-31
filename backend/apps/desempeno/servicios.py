@@ -7,8 +7,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import HistorialTarea, Notificacion, Tarea, TareaRecurrente
-from .permisos import revisores_de
+from .models import EvidenciaArchivo, HistorialTarea, Notificacion, Tarea, TareaRecurrente
+from .permisos import administradores, revisores_de
 
 log = logging.getLogger('adzone')
 
@@ -51,8 +51,13 @@ def al_asignar(tarea, quien):
 def al_entregar(tarea, quien):
     registrar(tarea, quien, 'ENTREGADA', tarea.evidencia_nota)
     ronda = f" (entrega n.º {tarea.rondas_revision + 1})" if tarea.rondas_revision else ''
-    avisar(revisores_de(tarea.colaborador), 'ENTREGADA', f"Por validar: {tarea.titulo}",
-           f"{nombre(quien)} la entregó{ronda}.", tarea=tarea, enlace='/validar', excepto=quien)
+    archivos = EvidenciaArchivo.objects.filter(tarea=tarea).count()  # sin la caché de la tarea: los archivos son recién subidos
+    partes = [f"{archivos} archivo(s)" if archivos else '', 'enlace' if tarea.evidencia_enlace else '',
+              'nota' if tarea.evidencia_nota else '']
+    evidencia = ', '.join(p for p in partes if p)  # entregar exige evidencia: siempre hay algo
+    # Su supervisor y también la administración: cualquiera de los dos la valida desde «Por validar».
+    avisar([*revisores_de(tarea.colaborador), *administradores()], 'ENTREGADA', f"Por validar: {tarea.titulo}",
+           f"{nombre(quien)} la entregó{ronda} con evidencia: {evidencia}.", tarea=tarea, enlace=f'/validar?tarea={tarea.pk}', excepto=quien)
     tras_cambio(tarea, quien, 'TAREA_ENTREGADA')
 
 

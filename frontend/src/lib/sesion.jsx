@@ -27,8 +27,8 @@ export function SesionProvider({ children }) {
     return () => document.removeEventListener("visibilitychange", alVolver);
   }, [usuario, recargar]);
 
-  const login = async (identificador, clave, recordar) => {
-    const datos = await entrar(identificador, clave, recordar);
+  const login = async (credenciales) => {
+    const datos = await entrar(credenciales);
     setUsuario(datos.user);
     return datos.user;
   };
@@ -49,6 +49,8 @@ export function SesionProvider({ children }) {
     esCoordinacion: !!usuario?.es_coordinacion,
     esAlmacen: !!usuario?.es_almacen,
     misAreas: usuario?.mis_areas || [],
+    esAgente: !!usuario?.es_agente,
+    gestionaCallCenter: !!usuario?.gestiona_call_center,
   };
   return <SesionCtx.Provider value={valor}>{children}</SesionCtx.Provider>;
 }

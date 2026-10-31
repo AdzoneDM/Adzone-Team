@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Clock, Pencil, Play, Plus, Square, Trash2 } from "lucide-react";
 import { cargaSemanal, eliminarRegistro, guardarRegistro, listarTareas, miSemana, reporteTiempo } from "@/lib/api";
-import { diaSemana, fechaCorta, horas, hoyISO, lunesDe, reloj, sumarDias } from "@/lib/formato";
+import { diaSemana, fechaCorta, horas, hoyISO, lunesDe, reloj, relojSeg, sumarDias } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, Modal, Panel, Pestanas, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 import { nombreRegistro, useCronometro } from "./cronometro";
@@ -69,7 +69,7 @@ function FormRegistro({ abierto, inicial, onCerrar, onGuardado }) {
 }
 
 function MiSemana() {
-  const { activo, minutos, iniciar, detener } = useCronometro();
+  const { activo, segundos, iniciar, detener } = useCronometro();
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const [fecha, setFecha] = useState(hoyISO());
@@ -90,11 +90,11 @@ function MiSemana() {
           <div className="flex flex-wrap items-center gap-4">
             <span className="relative flex size-3"><span className="absolute inline-flex size-full animate-ping rounded-full bg-rojo opacity-60" /><span className="relative inline-flex size-3 rounded-full bg-rojo" /></span>
             <div className="min-w-0 flex-1"><p className="text-sm text-gris">Trabajando en</p><p className="truncate font-medium">{nombreRegistro(activo)}</p></div>
-            <p className="font-display text-3xl font-semibold num">{reloj(minutos)}</p>
+            <p className="font-display text-3xl font-semibold num">{relojSeg(segundos)}</p>
             <Boton variante="peligro" icono={Square} onClick={detener}>Detener</Boton>
           </div>
         ) : (
-          <form onSubmit={(e) => { e.preventDefault(); if (que.trim()) { iniciar({ descripcion: que.trim() }); setQue(""); } }} className="flex flex-col gap-2 sm:flex-row">
+          <form onSubmit={(e) => { e.preventDefault(); if (que.trim()) { iniciar({ descripcion: que.trim() }); setQue(""); } }} data-guia="cronometro" className="flex flex-col gap-2 sm:flex-row">
             <input className="campo" value={que} onChange={(e) => setQue(e.target.value)} placeholder="¿En qué estás trabajando? (o empieza el cronómetro desde una tarea)" aria-label="En qué trabajas" />
             <Boton type="submit" icono={Play} disabled={!que.trim()}>Empezar</Boton>
           </form>

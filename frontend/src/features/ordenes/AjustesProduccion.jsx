@@ -36,7 +36,7 @@ export default function AjustesProduccion() {
             <li key={a.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
               <AreaChip area={a.codigo} nombre={a.nombre} />
               <span className="text-sm text-gris">{a.departamento_nombre || "Sin departamento"}</span>
-              <span className="min-w-0 flex-1 text-[15px]">{a.supervisores_nombres.length ? a.supervisores_nombres.join(", ") : <span className="text-gris">El gerente del departamento</span>}</span>
+              <span className="min-w-0 flex-1 basis-40 text-[15px]">{a.supervisores_nombres.length ? a.supervisores_nombres.join(", ") : <span className="text-gris">El gerente del departamento</span>}</span>
               {esAdmin && <Boton variante="fantasma" tam="sm" onClick={() => setEditando({ ...a, supervisores: a.supervisores.map(String) })}>Cambiar</Boton>}
             </li>
           ))}
@@ -51,8 +51,8 @@ export default function AjustesProduccion() {
               {tiempos.map((t) => (
                 <tr key={t.id}>
                   <td><AreaChip area={t.area} /></td>
-                  <td>{t.trabajo}</td>
-                  <td className="text-sm text-gris">{t.referencia}</td>
+                  <td className="min-w-52">{t.trabajo}</td>
+                  <td className="min-w-52 text-sm text-gris">{t.referencia}</td>
                   <td className="text-right"><input type="number" min={0} step="any" aria-label={`Horas de ${t.trabajo}`} className="h-9 w-20 rounded-md border border-linea px-2 text-right" defaultValue={t.horas != null ? Number(t.horas) : ""}
                     onBlur={async (e) => { if (e.target.value !== "" && Number(e.target.value) !== Number(t.horas)) { try { await guardarTiempo({ id: t.id, horas: e.target.value }); listo("Horas actualizadas."); } catch (err) { avisar(err.message, "rojo"); } } }} /></td>
                   <td className="text-right"><input type="number" min={0} step="any" aria-label={`Días de ${t.trabajo}`} className="h-9 w-20 rounded-md border border-linea px-2 text-right" defaultValue={Number(t.dias)}

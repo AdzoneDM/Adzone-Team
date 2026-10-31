@@ -365,7 +365,8 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ConfiguracionDesempeno
-        fields = ['peso_tareas', 'peso_kpis', 'nota_tarde', 'minimo_tareas_empleado_mes', 'tramos_bono', 'fecha_modificacion']
+        fields = ['peso_tareas', 'peso_kpis', 'nota_tarde', 'minimo_tareas_empleado_mes', 'puntaje_minimo',
+                  'minimo_tareas_evaluacion', 'tramos_bono', 'fecha_modificacion']
 
     def validate_peso_tareas(self, value):
         if not 0 <= value <= 100:
@@ -373,6 +374,11 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
         return value
 
     def validate_nota_tarde(self, value):
+        if not 0 <= value <= 100:
+            raise serializers.ValidationError("Debe estar entre 0 y 100.")
+        return value
+
+    def validate_puntaje_minimo(self, value):
         if not 0 <= value <= 100:
             raise serializers.ValidationError("Debe estar entre 0 y 100.")
         return value

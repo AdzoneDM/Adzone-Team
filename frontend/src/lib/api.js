@@ -73,7 +73,11 @@ const D = "/api/desempeno";
 
 // Sesión
 export const sesion = () => api("/api/auth/session/");
-export const entrar = (username, password, remember_me) => api("/api/auth/login/", { method: "POST", body: { username, password, remember_me } });
+// Credenciales: { username, password, remember_me } o, desde el directorio, { user_id, password, remember_me }
+export const entrar = (credenciales) => api("/api/auth/login/", { method: "POST", body: credenciales });
+export const abrirEquipo = (clave) => api("/api/auth/equipo/", { method: "POST", body: { clave } });
+export const directorioEntrada = () => api("/api/auth/directorio/");
+export const cambiarClaveEquipo = (nueva) => api("/api/auth/clave-equipo/", { method: "POST", body: { nueva } });
 export const salir = () => api("/api/auth/logout/", { method: "POST" });
 export const cambiarClave = (actual, nueva) => api("/api/auth/cambiar-clave/", { method: "POST", body: { actual, nueva } });
 
@@ -116,8 +120,8 @@ export const planillaKPI = (mes, departamento) => api(`${D}/resultados-kpi/plani
 export const guardarPlanilla = (mes, resultados) => api(`${D}/resultados-kpi/lote/`, { method: "POST", body: { mes, resultados } });
 
 // Ranking y reconocimiento
-export const ranking = (mes) => api(`${D}/ranking/${q({ mes })}`);
-export const urlExportarRanking = (mes) => `${D}/ranking/exportar/${q({ mes })}`;
+export const ranking = (mes, grupo) => api(`${D}/ranking/${q({ mes, grupo })}`);
+export const urlExportarRanking = (mes, grupo) => `${D}/ranking/exportar/${q({ mes, grupo })}`;
 export const empleadosDelMes = (params) => api(`${D}/empleados-del-mes/${q(params)}`);
 export const declararEmpleado = (datos) => api(`${D}/empleados-del-mes/`, { method: "POST", body: datos });
 export const anularEmpleado = (id) => api(`${D}/empleados-del-mes/${id}/`, { method: "DELETE" });
@@ -272,3 +276,10 @@ export const estadoCashflow = () => api(`${CF}/`);
 export const probarCashflow = () => api(`${CF}/probar/`, { method: "POST" });
 export const sincronizarCashflow = () => api(`${CF}/sincronizar/`, { method: "POST" });
 export const clienteACashflow = (id) => api(`${CF}/clientes/${id}/`, { method: "POST" });
+
+// Call Center: campañas y agentes (los agentes se evalúan aparte)
+const CC = "/api/callcenter";
+export const resumenCallCenter = () => api(`${CC}/resumen/`);
+export const listarCampanas = (params) => api(`${CC}/campanas/${q(params)}`);
+export const guardarCampana = (c) => (c.id ? api(`${CC}/campanas/${c.id}/`, { method: "PATCH", body: c }) : api(`${CC}/campanas/`, { method: "POST", body: c }));
+export const eliminarCampana = (id) => api(`${CC}/campanas/${id}/`, { method: "DELETE" });

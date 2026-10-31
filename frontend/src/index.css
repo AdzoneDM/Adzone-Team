@@ -23,6 +23,13 @@
   --color-verde-50: #e3f5ee;
 }
 
+/* Recordatorio del supervisor: una sacudida corta para llamar la atención */
+@keyframes sacudir {
+  0%, 100% { transform: translateX(0); }
+  15%, 55% { transform: translateX(-10px) rotate(-1deg); }
+  35%, 75% { transform: translateX(10px) rotate(1deg); }
+}
+
 @layer base {
   html { -webkit-text-size-adjust: 100%; }
   body {
@@ -33,6 +40,9 @@
   .num { font-variant-numeric: tabular-nums; }
   /* Los hijos de una cuadrícula pueden encogerse: los textos largos se cortan en vez de ensanchar la página */
   .grid > * { min-width: 0; }
+
+  /* Barra de desplazamiento discreta para el menú lateral oscuro */
+  .scroll-oscuro { scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.2) transparent; }
 
   :focus-visible { outline: 3px solid var(--color-amarillo); outline-offset: 2px; border-radius: 6px; }
 }
@@ -45,11 +55,30 @@
   .ayuda { @apply mt-1 text-[13px] text-gris; }
 
   /* Tablas de PC */
-  .tabla { @apply w-full border-collapse text-sm; }
+  /* relative: lo posicionado dentro (p. ej. sr-only) queda dentro del contenedor con scroll y no ensancha la página */
+  .tabla { @apply relative w-full border-collapse text-sm; }
   .tabla th { @apply border-b border-linea px-4 py-3 text-left text-[13px] font-medium text-gris whitespace-nowrap; }
   .tabla td { @apply border-b border-linea-suave px-4 py-3 align-middle; }
   .tabla tbody tr:last-child td { @apply border-b-0; }
   .tabla tbody tr:hover td { @apply bg-fondo/60; }
+
+  /* Tabla más ancha que la pantalla: una sombra en el borde avisa que hay más columnas al deslizar.
+     Las capas «local» tapan la sombra cuando ya se llegó al borde. */
+  .overflow-x-auto:has(> .tabla) {
+    background:
+      linear-gradient(to right, white 30%, rgb(255 255 255 / 0)) left / 2.5rem 100%,
+      linear-gradient(to left, white 30%, rgb(255 255 255 / 0)) right / 2.5rem 100%,
+      radial-gradient(farthest-side at 0 50%, rgb(22 51 107 / 0.3), transparent) left / 1.25rem 100%,
+      radial-gradient(farthest-side at 100% 50%, rgb(22 51 107 / 0.3), transparent) right / 1.25rem 100%;
+    background-color: white;
+    background-repeat: no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
+
+  /* Fila de filtros que se desliza: el último se desvanece para que se note que hay más */
+  @media (width < 48rem) {
+    .desliza-chips { mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent); padding-right: 2.5rem; }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

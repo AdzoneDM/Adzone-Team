@@ -24,11 +24,11 @@ class Command(BaseCommand):
             raise CommandError(f'Error al decodificar el archivo JSON. Asegúrate de que el formato es válido.')
 
         puestos_creados_count = 0
-        puestos_actualizados_count = 0
+        puestos_actualizados_count = 0 #value for puestos
         puestos_con_error_count = 0
-
+        
         # Diccionario para mapear nombres de puestos a sus objetos creados (para asignar supervisores)
-        puestos_mapeados = {}
+        puestos_mapeados = {} # mapeo 
 
         # Primera pasada: Crear todos los puestos sin asignar supervisor
         self.stdout.write(self.style.NOTICE('--- Primera Pasada: Creando Puestos (sin supervisor) ---'))
@@ -42,12 +42,12 @@ class Command(BaseCommand):
                 puestos_con_error_count += 1
                 continue
 
-            try:
+            try: #try 
                 departamento_obj = Departamento.objects.get(nombre=nombre_departamento)
             except Departamento.DoesNotExist:
                 self.stderr.write(self.style.ERROR(f'Error: Departamento "{nombre_departamento}" no encontrado para el puesto "{nombre_puesto}". Saltando.'))
                 puestos_con_error_count += 1
-                continue
+                continue # continue value 
 
             puesto_obj, created = PuestoDeTrabajo.objects.update_or_create(
                 nombre=nombre_puesto,

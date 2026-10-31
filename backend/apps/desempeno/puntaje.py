@@ -14,6 +14,16 @@ Tareas (cuentan las que tienen fecha límite dentro del mes, salvo canceladas):
   - Peso por prioridad: Baja 1, Media 2, Alta 3.
   - Una tarea compartida cuenta igual para el responsable y para cada compañero.
 
+Evaluación contra el mínimo (ConfiguracionDesempeno.puntaje_minimo):
+  - CUMPLE: puntaje total igual o mayor que el mínimo.
+  - BAJO_MINIMO: puntaje total menor que el mínimo, con datos suficientes.
+  - POCOS_DATOS: menos de `minimo_tareas_evaluacion` tareas que ya cuentan y ningún KPI medido.
+    Un puntaje con una o dos tareas no es base para decidir sobre una persona.
+  - Quien tiene puesto y no tiene nada evaluado en el mes no entra al ranking: sale en `sin_evaluar`.
+
+Grupos: los agentes de call center (acceso «Agente Call Center») se evalúan aparte del resto.
+  grupo='empleados' deja fuera a los agentes, grupo='agentes' deja solo a los agentes y None, a todos.
+
 KPIs: promedio del cumplimiento de cada KPI (0-100), ponderado por la
 ponderación del KPI en el puesto.
   - KPIs de entrada manual: se usa el ResultadoKPI registrado del mes.
@@ -147,7 +157,76 @@ def kpis_del_mes(usuario, inicio, fin, resultados_manuales=()):
     return detalle
 
 
-def calcular_ranking(periodo, hoy=None, config=None):
+def motivos_bajo_puntaje(fila, nota_tarde=50):
+    """Lo que más le baja el puntaje a una persona, en frases cortas para explicar la evaluación."""
+    t = fila['tareas']
+    motivos = []
+    if t['vencidas']:
+        motivos.append(f"{t['vencidas']} tarea(s) vencida(s) sin entregar")
+    tarde = t['completadas'] - t['a_tiempo']
+    if tarde:
+        motivos.append(f"{tarde} entregada(s) tarde")
+    if t['calidad_promedio'] is not None and t['calidad_promedio'] < 3:
+        motivos.append(f"calidad promedio {t['calidad_promedio']} de 5")
+    for kpi in fila['kpis']:
+        if kpi['cumplimiento'] < 70:
+            motivos.append(f"KPI «{kpi['nombre']}» al {round(kpi['cumplimiento'])} %")
+    return motivos
+
+
+def evaluar(fila, config):
+    datos_suficientes = fila['tareas']['total'] >= config.minimo_tareas_evaluacion or fila['kpis_registrados'] > 0
+    if not datos_suficientes:
+        return 'POCOS_DATOS'
+    return 'CUMPLE' if fila['puntaje_total'] >= config.puntaje_minimo else 'BAJO_MINIMO'
+
+
+GRUPO_AGENTE = 'Agente Call Center'
+
+
+def filtrar_grupo(usuarios, grupo):
+    if grupo == 'agentes':
+        return usuarios.filter(groups__name=GRUPO_AGENTE)
+    if grupo == 'empleados':
+        return usuarios.exclude(groups__name=GRUPO_AGENTE)
+    return usuarios
+
+
+def sin_evaluar(periodo, ranking, hoy=None, grupo=None):
+    """Personas activas con puesto que no tienen nada evaluado en el mes (no salen en el ranking).
+
+    Sin tareas que ya cuenten ni KPIs no hay base para juzgar su desempeño: hay que revisar
+    primero si se les asignó trabajo y si su supervisor lo registra en la plataforma.
+    """
+    hoy = hoy or timezone.localdate()
+    inicio, fin = rango_del_mes(periodo)
+    evaluados = {f['colaborador_id'] for f in ranking}
+    personas = (filtrar_grupo(User.objects.filter(is_active=True, perfil__puesto_trabajo__isnull=False), grupo)
+                .exclude(id__in=evaluados)
+                .select_related('perfil__puesto_trabajo__departamento', 'perfil__puesto_trabajo__supervisor'))
+    supervisores = {}
+    for u in User.objects.filter(is_active=True, perfil__puesto_trabajo__isnull=False).select_related('perfil'):
+        supervisores.setdefault(u.perfil.puesto_trabajo_id, []).append(u.get_full_name() or u.username)
+    filas = []
+    for usuario in personas:
+        puesto = usuario.perfil.puesto_trabajo
+        tareas = Tarea.objects.filter(Q(colaborador=usuario) | Q(companeros=usuario),
+                                      fecha_limite__range=(inicio, fin)).exclude(estado='CANCELADA').distinct()
+        filas.append({
+            'colaborador_id': usuario.id,
+            'nombre': usuario.get_full_name() or usuario.username,
+            'puesto': puesto.nombre,
+            'departamento_id': puesto.departamento_id,
+            'departamento': puesto.departamento.nombre if puesto.departamento_id else None,
+            'supervisor': ', '.join(supervisores.get(puesto.supervisor_id, [])) if puesto.supervisor_id else '',
+            'tareas_asignadas': tareas.count(),
+            'por_validar': tareas.filter(estado='EN_REVISION').count(),
+        })
+    filas.sort(key=lambda f: (f['departamento'] or '', f['nombre']))
+    return filas
+
+
+def calcular_ranking(periodo, hoy=None, config=None, grupo=None):
     """Devuelve la lista de colaboradores evaluados en el mes, ordenada de mayor a menor puntaje."""
     hoy = hoy or timezone.localdate()
     config = config or ConfiguracionDesempeno.actual()
@@ -167,7 +246,7 @@ def calcular_ranking(periodo, hoy=None, config=None):
         resultados_por_usuario.setdefault(resultado.colaborador_id, []).append(resultado)
 
     ids = set(tareas_por_usuario) | set(resultados_por_usuario)
-    usuarios = User.objects.filter(id__in=ids, is_active=True).select_related('perfil__puesto_trabajo__departamento')
+    usuarios = filtrar_grupo(User.objects.filter(id__in=ids, is_active=True), grupo).select_related('perfil__puesto_trabajo__departamento')
 
     ranking = []
     for usuario in usuarios:
@@ -203,6 +282,8 @@ def calcular_ranking(periodo, hoy=None, config=None):
             'bono_sugerido': (config.bono_para(round(total, 2))
                               if resumen_tareas['completadas'] >= config.minimo_tareas_empleado_mes else 0),
         })
+        ranking[-1]['evaluacion'] = evaluar(ranking[-1], config)
+        ranking[-1]['motivos'] = motivos_bajo_puntaje(ranking[-1]) if ranking[-1]['evaluacion'] == 'BAJO_MINIMO' else []
 
     ranking.sort(key=lambda fila: (-fila['puntaje_total'], fila['nombre']))
     for posicion, fila in enumerate(ranking, start=1):

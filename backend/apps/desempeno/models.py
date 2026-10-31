@@ -383,6 +383,11 @@ class ConfiguracionDesempeno(models.Model):
     nota_tarde = models.PositiveSmallIntegerField(default=50, help_text="Puntualidad de una entrega tarde (0-100).")
     minimo_tareas_empleado_mes = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas validadas mínimas en el mes para ser candidato a Empleado del Mes.")
+    puntaje_minimo = models.PositiveSmallIntegerField(
+        default=70, help_text="Puntaje mínimo de desempeño del mes (0-100). Por debajo, la persona sale marcada.")
+    minimo_tareas_evaluacion = models.PositiveSmallIntegerField(
+        default=3, help_text="Tareas que ya cuentan en el mes para juzgar el mínimo. Con menos (y sin KPIs medidos), "
+                             "la persona sale como «pocos datos» y no como incumplimiento.")
     tramos_bono = models.JSONField(
         default=list, blank=True,
         help_text='Bono sugerido según el puntaje del mes, p. ej. [{"desde": 90, "porcentaje": 10}, {"desde": 80, "porcentaje": 5}].')

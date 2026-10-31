@@ -139,7 +139,7 @@ export default function KpisDelMes() {
       )}
 
       {pendientes.length > 0 && (
-        <div className="fixed inset-x-0 bottom-16 z-30 border-t border-linea bg-white/95 px-4 py-3 backdrop-blur md:bottom-0 md:left-64">
+        <div className="fixed inset-x-0 bottom-16 z-30 border-t border-linea bg-white/95 px-4 py-3 backdrop-blur lg:bottom-0 lg:left-64">
           <div className="mx-auto flex max-w-[1320px] items-center justify-between gap-3 md:px-4">
             <p className="text-sm text-gris">{pendientes.length} cambio(s) sin guardar en {nombreMes(mes)}. Deja «Logrado» vacío para borrar un resultado.</p>
             <div className="flex gap-2"><Boton variante="secundario" onClick={() => setCambios({})}>Descartar</Boton><Boton icono={Save} onClick={guardar} cargando={guardando}>Guardar</Boton></div>

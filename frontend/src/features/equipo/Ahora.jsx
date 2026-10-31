@@ -5,6 +5,7 @@ import { cargaEquipo, recordarTarea } from "@/lib/api";
 import { vencimiento } from "@/lib/formato";
 import { Progreso } from "@/features/tareas/componentes";
 import { Alerta, Avatar, Boton, Cargando, Vacio, cx, useAviso } from "@/components/ui";
+import { useNovedades } from "@/lib/novedades";
 
 const ESTADOS = {
   vencida: { texto: "Con tarea vencida", punto: "bg-rojo", caja: "border-rojo/40" },
@@ -75,10 +76,7 @@ export default function Ahora({ version, onAbrirTarea, onAsignar }) {
 
   const cargar = useCallback(() => { cargaEquipo().then((d) => { setDatos(d); setError(""); }).catch((e) => setError(e.message)); }, []);
   useEffect(() => { cargar(); }, [cargar, version]);
-  useEffect(() => {
-    const t = setInterval(() => { if (document.visibilityState === "visible") cargar(); }, 60000);
-    return () => clearInterval(t);
-  }, [cargar]);
+  useNovedades(cargar);
 
   const recordar = async (t) => {
     setRecordando(t.id);
@@ -114,7 +112,7 @@ export default function Ahora({ version, onAbrirTarea, onAsignar }) {
         ))}
         <Boton variante="fantasma" tam="sm" icono={RefreshCw} onClick={cargar} className="ml-auto" aria-label="Actualizar">Actualizar</Boton>
       </div>
-      <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {lista.map((p) => <Tarjeta key={p.id} p={p} onAbrirTarea={onAbrirTarea} onAsignar={onAsignar} onRecordar={recordar} recordando={recordando} />)}
       </ul>
     </div>

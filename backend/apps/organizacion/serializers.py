@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from .models import PerfilUsuario, PuestoDeTrabajo
 
-ROLES = ['Administrador', 'Gerente de Departamento', 'Colaborador', 'Finanzas', 'Coordinación', 'Almacén']
+ROLES = ['Administrador', 'Gerente de Departamento', 'Colaborador', 'Finanzas', 'Coordinación', 'Almacén', 'Agente Call Center']
 
 
 class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
@@ -101,7 +101,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['last_login']
         extra_kwargs = {
             'password': {'write_only': True, 'required': False},
-            'email': {'required': True},
+            'email': {'required': False, 'allow_blank': True},
         }
 
     def get_nombre(self, obj):
@@ -118,6 +118,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         value = value.strip().lower()
+        if not value:
+            return value
         qs = User.objects.filter(email__iexact=value)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)

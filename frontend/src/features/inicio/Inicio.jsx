@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Award, CircleCheckBig, Trophy } from "lucide-react";
 import { listarOrdenes, miResumen, resumenOrdenes, tablero } from "@/lib/api";
@@ -7,6 +7,7 @@ import { useSesion } from "@/lib/sesion";
 import { TarjetaOrden } from "@/features/ordenes/piezas";
 import { useNavigate } from "react-router-dom";
 import { Alerta, Avatar, Barra, Boton, Cargando, LeyendaTira, Panel, PrioridadTarea, Puntaje, TiraMes, cx } from "@/components/ui";
+import { useNovedades } from "@/lib/novedades";
 
 /** Cabecera azul: el mes de la persona hecho de tareas. */
 export function MiMes({ resumen, nombre }) {
@@ -151,9 +152,11 @@ export default function Inicio() {
   const [error, setError] = useState("");
   const mes = mesActual();
 
-  useEffect(() => {
+  const cargar = useCallback(() => {
     Promise.all([tablero(mes), miResumen(mes)]).then(([t, r]) => { setDatos(t); setResumen(r); }).catch((e) => setError(e.message));
   }, [mes]);
+  useEffect(() => { cargar(); }, [cargar]);
+  useNovedades(cargar);
 
   if (error) return <Alerta>{error}</Alerta>;
   if (!datos || !resumen) return <Cargando />;

@@ -130,7 +130,7 @@ export default function Ordenes() {
       <Cabecera titulo="Órdenes de trabajo" descripcion="OT Maestra (F-01) → Órdenes de Área (F-02 a F-10) → traspasos con doble firma → acta de entrega → cierre. Cada área ve su cola.">
         <a href={urlBitacora()} className="inline-flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-4 text-[15px] font-medium hover:bg-fondo"><Download className="size-4" />Bitácora F-15</a>
         <Link to="/ordenes/indicadores" className="inline-flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-4 text-[15px] font-medium hover:bg-fondo"><BarChart3 className="size-4" />Indicadores</Link>
-        <Boton icono={Plus} onClick={() => setNueva({})}>Nueva OT</Boton>
+        <Boton icono={Plus} onClick={() => setNueva({})} data-guia="nueva-ot">Nueva OT</Boton>
       </Cabecera>
 
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
@@ -164,7 +164,7 @@ export default function Ordenes() {
         </div>
       </div>
 
-      <div className="mb-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" role="group" aria-label="Filtrar por área">
+      <div className="desliza-chips mb-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] md:flex-wrap md:overflow-visible" role="group" aria-label="Filtrar por área">
         <button type="button" onClick={() => ponerAreas([])} aria-pressed={!areasSel.length}
           className={cx("h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium", !areasSel.length ? "border-noche bg-noche text-white" : "border-linea bg-white")}>Todas</button>
         {(catalogo?.areas || []).map((a) => {

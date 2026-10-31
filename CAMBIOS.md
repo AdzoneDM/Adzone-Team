@@ -1,5 +1,41 @@
 # Cambios
 
+## 6.5 · 31/10/2026 · Call Center: campañas y agentes aparte
+
+- **Agentes aparte del resto del equipo:** acceso nuevo «Agente de call center» (Personas → editar). Quien ya ocupa un puesto «Agente de Call Center…» lo recibe solo al migrar.
+- **Pantalla del agente:** entra directo a **Call Center** y solo ve lo suyo: su puntaje del mes, sus campañas activas con metas, horario, canales y el guion, y sus KPIs. No ve tareas, órdenes ni el resto del menú.
+- **Campañas** (gerencia del call center, supervisores de agentes y dirección): cliente, tipo (atención, ventas, cobros, soporte, encuestas, citas), idioma, canales, horario, fechas, metas diarias (contactos efectivos, conversión, calidad mínima), agentes asignados y guion. Se crean desde la pantalla o con **Crear → Campaña de call center**.
+- **Ranking aparte:** en Desempeño, pestañas **Equipo** y **Call Center**. Los agentes salen del ranking general, de los «sin evaluar» y del Empleado del Mes; tienen su propio ranking, su desempeño mínimo y su Excel.
+- Requiere `python manage.py migrate` (app `callcenter`).
+
+## 6.4 · 31/10/2026 · Desempeño mínimo
+
+- **Reglas del puntaje → Desempeño mínimo:** puntaje mínimo del mes (70 por defecto) y cuántas tareas hacen falta para juzgar (3 por defecto).
+- **Desempeño:** cuadro nuevo con quién **cumple**, quién está **por debajo del mínimo** (con lo que le bajó el puntaje: vencidas, tardes, calidad, KPIs flojos), quién tiene **pocos datos** y quién está **sin evaluar** (tiene puesto pero no tiene tareas ni KPIs en el mes; sale con su supervisor). En el ranking, cada persona lleva su evaluación.
+- **Excel del ranking:** columnas «Evaluación» y «Motivos», y al final las personas sin evaluar.
+- Avisa si el mes no ha terminado o si hay entregas sin validar: no suman hasta que se validen.
+- Requiere `python manage.py migrate` (migración `desempeno 0009`).
+
+### Entregas con evidencia para la administración
+- Al entregar una tarea (siempre con evidencia: nota, enlace o foto), además de su supervisor **los administradores reciben el aviso** «Por validar», con qué evidencia trae. El aviso abre la tarea directo en **Por validar**, donde la pueden validar.
+- En **Por validar** cada entrega muestra su evidencia en la lista (archivos, enlace, nota).
+- Desarrollo: `vite.config.js` acepta túneles `*.trycloudflare.com` (`cloudflared tunnel --url http://localhost:5173`; Django con `EXTRA_CSRF_ORIGINS="https://*.trycloudflare.com"`).
+
+## 6.3 · 31/10/2026 · Guía paso a paso dentro de la plataforma
+
+- **Recorrido de bienvenida:** la primera vez que alguien entra, la plataforma le muestra paso a paso dónde está todo (menú, Inicio, Mis tareas, Tiempo, Órdenes, buscar, crear y avisos), resaltando cada cosa en la pantalla. Se adapta al rol: supervisores ven también Por validar y Mi equipo; Finanzas y administración, lo suyo. Funciona en PC y celular.
+- **Botón ? (Ayuda)** arriba a la derecha: vuelve a ver el recorrido, la guía de la pantalla en la que estás y **«¿Cómo hago…?»** (entregar una tarea, usar el cronómetro, crear una OT, validar, asignar tareas, avisos, buscar, instalar la app, cambiar la contraseña). Cada guía lleva a la pantalla que hace falta.
+- **Primera vez en una pantalla:** aparece «¿Primera vez en …? Muéstrame». Se puede apagar desde la Ayuda.
+- Lo que cada persona ya vio se recuerda en su navegador. Los textos de las guías están en `frontend/src/lib/guia.js`.
+
+### Pantallas pequeñas: nada cortado
+- **Tablet (768 a 1023 px):** el menú lateral ya no le quita espacio al contenido; se usa la barra inferior como en el celular. El menú lateral aparece desde 1024 px.
+- **Pestañas** (Finanzas, Tiempo, Órdenes, Mi equipo…): en el celular se acomodan en filas en vez de quedar cortadas a la derecha.
+- **Tablas anchas:** una sombra en el borde avisa que hay más columnas al deslizar. En «Áreas y tiempos» los textos del cronograma ya no se aplastan.
+- **Filtros por área** en Órdenes: en el celular el último se desvanece (hay más deslizando); en tablet y PC bajan a otra línea.
+- **Automatizaciones:** en el celular los controles bajan a otra línea y el texto de la regla se lee completo.
+- **Mi equipo:** las tarjetas ya no cortan los nombres en tablet. El buscador de arriba ya no se parte en dos líneas.
+
 ## 6.2 · 27/10/2026 · Puestos nuevos del Organigrama 2026 completos
 
 - Los 13 puestos que agrega el organigrama ya llegan con **descripción de puesto** (funciones principales al estilo ADZONE): Presidente y Vicepresidente/Secretario del Consejo, Director Comercial, Encargado de Ventas y Cuentas, Encargado de Gestión del Talento, Encargado de Presupuestos, Facturación y Cobros, Legal y Contratos, Herrero, **Soporte Técnico (TI)**, Gerente de Call Center, Supervisor de Calidad y Monitoreo y los agentes bilingüe y español.

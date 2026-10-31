@@ -210,15 +210,16 @@ export default function FormOrden({ abierto, onCerrar, inicial, onGuardada }) {
           </Seccion>
 
           <Seccion numero="4" titulo="Fechas y prioridad" ayuda="Fecha comprometida = tiempo estándar + cola del área + aprobación del cliente (24 h × rondas) + colchón (20 %, emergencia 30 %).">
-            <div className="grid gap-4 sm:grid-cols-4">
-              <Campo etiqueta="Fecha que pide el cliente">{(id) => <input id={id} type="date" className="campo" value={f.fecha_requerida || ""} onChange={poner("fecha_requerida")} />}</Campo>
+            {/* items-end: si una etiqueta ocupa dos líneas, las casillas siguen alineadas */}
+            <div className="grid items-end gap-4 sm:grid-cols-4">
+              <Campo etiqueta="Fecha que pide el cliente">{(id) => <input id={id} type="date" className="campo h-11" value={f.fecha_requerida || ""} onChange={poner("fecha_requerida")} />}</Campo>
               <Campo etiqueta="Prioridad">{(id) => (
-                <select id={id} className="campo" value={f.prioridad || "N"} onChange={(e) => { setF({ ...f, prioridad: e.target.value }); setCalculo(null); }}>
+                <select id={id} className="campo h-11" value={f.prioridad || "N"} onChange={(e) => { setF({ ...f, prioridad: e.target.value }); setCalculo(null); }}>
                   {Object.entries(PRIORIDADES_OTM).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               )}</Campo>
-              <Campo etiqueta="Rondas de cambios incluidas">{(id) => <input id={id} type="number" min={0} max={10} className="campo" value={f.rondas_incluidas ?? 2} onChange={poner("rondas_incluidas")} />}</Campo>
-              <div className="flex items-end"><Boton variante="secundario" icono={Calculator} onClick={calcular} className="w-full">Calcular</Boton></div>
+              <Campo etiqueta="Rondas de cambios incluidas">{(id) => <input id={id} type="number" min={0} max={10} className="campo h-11" value={f.rondas_incluidas ?? 2} onChange={poner("rondas_incluidas")} />}</Campo>
+              <Boton variante="secundario" icono={Calculator} onClick={calcular} className="h-11 w-full">Calcular</Boton>
             </div>
             {calculo && (
               <div className={cx("mt-3 rounded-lg p-3 text-sm", f.fecha_requerida && calculo.fecha_compromiso > f.fecha_requerida ? "bg-amarillo-50" : "bg-verde-50")}>

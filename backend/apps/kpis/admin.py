@@ -6,7 +6,7 @@ class PlantillaKPIAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'unidad_medida', 'fecha_creacion', 'fecha_modificacion')
     search_fields = ('nombre', 'descripcion', 'unidad_medida')
     list_filter = ('unidad_medida',)
-    list_per_page = 25
+    list_per_page = 25 
 
 @admin.register(KPIAsignado)
 class KPIAsignadoAdmin(admin.ModelAdmin):
@@ -32,6 +32,6 @@ class KPIAsignadoAdmin(admin.ModelAdmin):
     get_plantilla_kpi_nombre.admin_order_field = 'plantilla_kpi__nombre' # Permite ordenar por este campo
 
     def get_puesto_trabajo_nombre(self, obj):
-        return obj.puesto_trabajo.nombre
+        return obj.puesto_trabajo.nombre # puestos 
     get_puesto_trabajo_nombre.short_description = 'Puesto de Trabajo'
     get_puesto_trabajo_nombre.admin_order_field = 'puesto_trabajo__nombre'

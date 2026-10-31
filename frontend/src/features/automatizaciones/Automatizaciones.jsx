@@ -126,7 +126,8 @@ export default function Automatizaciones() {
             return (
               <li key={r.id} className={cx("flex flex-wrap items-center gap-4 rounded-xl border bg-white p-4", r.activa ? "border-linea" : "border-dashed border-linea opacity-70")}>
                 <span className={cx("flex size-10 shrink-0 items-center justify-center rounded-xl", r.activa ? "bg-amarillo-50 text-[#a86a00]" : "bg-linea-suave text-gris")}><I className="size-5" /></span>
-                <div className="min-w-0 flex-1">
+                {/* Con poco ancho, los controles bajan a otra línea en vez de aplastar el texto */}
+                <div className="min-w-[min(100%,13rem)] flex-1">
                   <p className="font-semibold">{r.nombre}</p>
                   <p className="text-sm text-gris">{frase(r, cat)}</p>
                   <p className="mt-0.5 text-xs text-gris">{r.veces ? `Se ejecutó ${r.veces} vez/veces · última ${fechaHora(r.ultima_vez)}` : "Todavía no se ha ejecutado"}</p>
