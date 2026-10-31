@@ -40,13 +40,8 @@ PLANTILLAS = {
 }
 
 # Puesto → [(KPI, ponderación %, meta, automático con meta numérica)]
+# (Director Comercial, Ventas y Cuentas y Gestión del Talento ya tienen sus KPIs oficiales en kpis_oficiales.py.)
 KPIS = {
-    'Director Comercial': [('Ventas cerradas vs. meta', 40, 'Meta mensual de ventas', None), ('Conversión de cotizaciones', 30, '≥ 40 %', None),
-                           ('Clientes nuevos', 30, '≥ 3 al mes', None)],
-    'Encargado de Ventas y Cuentas': [('OT aceptadas en G0 a la primera', 30, '≥ 90 %', None), ('Cotizaciones enviadas', 25, '≥ 20 al mes', None),
-                                      ('Satisfacción del cliente', 25, '≥ 90 %', None), ('Conversión de cotizaciones', 20, '≥ 35 %', None)],
-    'Encargado de Gestión del Talento': [('Vacantes cubiertas a tiempo', 35, '≥ 90 %', None), ('Rotación de personal', 35, '≤ 3 % mensual', None),
-                                         ('Plan de capacitación cumplido', 30, '100 %', None)],
     'Encargado de Presupuestos, Facturación y Cobros': [('Facturas emitidas a tiempo', 35, '≥ 95 %', None), ('Cartera vencida', 35, '≤ 10 %', None),
                                                          ('Cotizaciones entregadas en 24 h', 30, '≥ 90 %', None)],
     'Legal y Contratos': [('Contratos revisados a tiempo', 50, '≥ 95 %', None), ('Documentación legal vigente', 50, '100 %', None)],

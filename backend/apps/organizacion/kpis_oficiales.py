@@ -1,0 +1,339 @@
+"""
+KPIs oficiales de cada puesto, según «Descripción de Puestos – ADZONE» (sección KPIS, con su ponderación).
+
+`python manage.py puestos_oficiales --aplicar` los asigna. Cómo se miden en la plataforma:
+
+- Cada mes, el supervisor anota en «KPIs del mes» el valor alcanzado; la meta numérica viene llenada desde aquí
+  y el texto del documento queda como «objetivo» del KPI.
+- `%`: porcentaje logrado contra la meta del documento (p. ej. 95 % de entregas a tiempo).
+- «menor es mejor» con meta 0 (incidentes, devoluciones, errores): 0 = 100 % de cumplimiento; cualquier caso = 0 %.
+- Calificaciones (9/10, 4/5): se anota la calificación promedio del mes.
+- Metas trimestrales (p. ej. 2 prototipos por trimestre): se anota el **% de avance del plan del trimestre**
+  (al día con el plan = 100). Llevan periodicidad «Trimestral» para que se vean distintas.
+- Lo cualitativo (políticas, trabajo en equipo, apoyo a otras áreas): % que el supervisor evalúa (100 = cumplió).
+"""
+
+PCT, PLAN, CERO, NOTA10, NOTA5 = '%', '% del plan', 'casos', 'puntos (1-10)', 'puntos (1-5)'
+
+# Plantillas compartidas: nombre → (unidad, menor es mejor, cómo se mide)
+COMUNES = {
+    'Cumplimiento de políticas y procedimientos': (
+        PCT, False, "Apego a las políticas, procesos y protocolos internos (sin amonestaciones ni fallas de documentación). "
+                    "El supervisor evalúa de 0 a 100."),
+    'Trabajo en equipo (metas del departamento)': (
+        PCT, False, "Vela porque su departamento cumpla las metas asignadas y apoya a sus compañeros con los trabajos pendientes. "
+                    "El supervisor evalúa de 0 a 100."),
+    'Organización de archivos y protocolos del área': (
+        PCT, False, "Archivos nombrados, versionados y guardados según los protocolos de diseño y audiovisuales. "
+                    "El supervisor evalúa de 0 a 100."),
+    'Entregas a tiempo según cronograma': (
+        PCT, False, "Trabajos entregados con la calidad pedida dentro del cronograma aprobado ÷ trabajos del mes."),
+    'Soporte técnico a departamentos y clientes': (
+        PCT, False, "Solicitudes de soporte de los departamentos internos y de clientes atendidas ÷ recibidas."),
+    'Capacitación del trimestre': (
+        PLAN, False, "Capacitaciones, talleres o certificaciones del trimestre realizadas ÷ previstas (al día con el plan = 100)."),
+    'Satisfacción del cliente': (
+        PCT, False, "Promedio de las encuestas post servicio del mes, en porcentaje."),
+    'Innovación implementada en el trimestre': (
+        PLAN, False, "Mejoras, técnicas, herramientas o formatos nuevos implementados ÷ los previstos para el trimestre."),
+    'Incidentes de seguridad': (
+        CERO, True, "Accidentes, incidentes o brechas de seguridad del mes. Meta: cero."),
+    'Mantenimiento preventivo al día': (
+        PCT, False, "Mantenimientos preventivos (equipos, vehículos, máquinas, estudio) hechos ÷ programados en el mes."),
+    'Rondas de revisión por trabajo': (
+        'rondas', True, "Rondas promedio de cambios hasta la versión final aprobada. Menor es mejor."),
+    'Errores técnicos en entregas': (
+        CERO, True, "Devoluciones por errores técnicos u ortográficos (formato, resolución, audio, arte final). Meta: cero."),
+    'Eficiencia del presupuesto': (
+        PCT, True, "Desvío del costo real contra el presupuesto (eventos, producciones). Menor es mejor."),
+    'Retención de clientes': (
+        PCT, False, "Clientes o cuentas que renuevan o siguen activos ÷ clientes del período."),
+    'Clientes nuevos': (
+        PLAN, False, "Cuentas nuevas captadas ÷ meta del trimestre (al día con el plan = 100)."),
+}
+
+# Puesto (nombre en la plataforma) → [(KPI, ponderación, unidad, menor es mejor, meta, periodicidad, objetivo del documento)]
+# unidad / menor None = plantilla compartida (COMUNES). Periodicidad: 'M' mensual, 'T' trimestral, 'A' anual.
+K = {}
+
+K['CEO / Director General'] = [
+    ('Crecimiento de ingresos', 25, PCT, False, 15, 'A', "Ingresos mayores en más de 15 % al año anterior."),
+    ('Margen neto de utilidad', 20, PCT, False, 10, 'A', "Margen neto mayor a 10 % (rentabilidad sobre ventas)."),
+    ('Satisfacción del cliente', 20, None, None, 85, 'M', "Más de 85 % de satisfacción en encuestas post servicio."),
+    ('Retención de talento clave', 15, PCT, False, 90, 'A', "Más de 90 % del personal clave retenido en el año."),
+    ('Iniciativas de innovación', 20, PLAN, False, 100, 'A', "Más de 2 iniciativas de innovación implementadas al año."),
+]
+K['Director Comercial'] = [
+    ('Metas de ventas', 40, PCT, False, 100, 'T', "Cumplimiento de las metas de ventas trimestrales."),
+    ('Clientes nuevos', 20, None, None, 100, 'T', "Al menos 3 cuentas nuevas de alto valor por trimestre."),
+    ('Retención de clientes', 10, None, None, 85, 'T', "Retención igual o mayor a 85 % de las cuentas existentes (cartera activa y renovaciones)."),
+    ('Satisfacción del cliente', 10, None, None, 80, 'M', "Más de 80 % (más de 4 de 5 en encuestas post servicio)."),
+    ('Desempeño del equipo comercial', 10, PCT, False, 100, 'T', "Productividad y evaluaciones del equipo comercial."),
+    ('Proyectos de cultura organizacional', 5, PCT, False, 100, 'T', "Participación activa en proyectos de cultura organizacional."),
+    ('Cumplimiento de políticas y procedimientos', 5, None, None, 100, 'M', "Evaluado con KPIs internos y la retroalimentación de Gestión del Talento."),
+]
+K['Encargado de Gestión del Talento'] = [
+    ('Tiempo de contratación', 10, 'días', True, 30, 'M', "Menos de 30 días promedio por vacante, con contrataciones de calidad."),
+    ('Retención de personal clave', 15, PCT, False, 85, 'T', "Más de 85 % de retención trimestral del personal clave."),
+    ('Evaluaciones de desempeño completadas', 15, PCT, False, 100, 'T', "100 % del personal evaluado por trimestre, con retroalimentación documentada."),
+    ('Actividades de formación', 15, PLAN, False, 100, 'T', "Más de 2 actividades de formación internas o externas por trimestre."),
+    ('Satisfacción del colaborador', 10, NOTA5, False, 4, 'T', "Encuesta de satisfacción del colaborador: promedio mayor a 4 de 5."),
+    ('Acciones de cultura organizacional', 15, PLAN, False, 100, 'T', "Más de 2 acciones de cultura (actividades, campañas o reconocimientos) por trimestre."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "100 %: sin amonestaciones ni fallas en documentación."),
+    ('Liderazgo y coaching', 10, PLAN, False, 100, 'T', "1 actividad o proceso de liderazgo/coaching con el personal por trimestre."),
+]
+K['Encargado de Ventas y Cuentas'] = [
+    ('Clientes nuevos', 20, None, None, 100, 'T', "Mínimo 3 cuentas nuevas por trimestre."),
+    ('Satisfacción del cliente', 20, None, None, 90, 'M', "Más de 90 % en encuestas post servicio."),
+    ('Retención de clientes', 20, None, None, 95, 'T', "Retención de clientes actuales mayor a 95 %."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "100 % de cumplimiento."),
+    ('Capacitación del trimestre', 5, None, None, 100, 'T', "Mínimo 1 capacitación trimestral (comercial, marketing, habilidades blandas)."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Colaboración y apoyo a las metas del equipo."),
+    ('Ventas cruzadas', 5, PLAN, False, 100, 'T', "Al menos 2 ventas cruzadas efectivas."),
+    ('Gestión de cobros de la cartera', 15, PCT, False, 100, 'M', "100 % de gestión de cobros de la cartera asignada cada mes."),
+]
+
+K['Gerente de Tecnología y Desarrollo'] = [
+    ('Disponibilidad de sistemas (uptime)', 10, PCT, False, 99, 'M', "Más de 99 % de tiempo activo de sistemas y plataformas críticas."),
+    ('Proyectos TI a tiempo y en presupuesto', 20, PCT, False, 100, 'M', "100 % de proyectos entregados en plazo y presupuesto."),
+    ('Mejoras de procesos o automatizaciones', 10, PLAN, False, 100, 'T', "Dos mejoras por trimestre (proceso, herramienta, automatización o integración)."),
+    ('Incidentes de seguridad', 20, None, None, 0, 'M', "0 brechas significativas no controladas; incidentes críticos resueltos en menos de 1 hora."),
+    ('Satisfacción de usuarios internos', 10, PCT, False, 90, 'T', "Más de 90 % de colaboradores satisfechos con las herramientas y el soporte TI."),
+    ('Capacitación del trimestre', 5, None, None, 100, 'T', "100 % del equipo técnico con al menos 1 capacitación o certificación trimestral."),
+    ('Soporte técnico a departamentos y clientes', 5, None, None, 100, 'M', "Soporte técnico a los departamentos internos y a los clientes de Adzone."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Encargado de Innovación y Desarrollo'] = [
+    ('Prototipos funcionales', 20, PLAN, False, 100, 'T', "2 prototipos o demos funcionales por trimestre (internos o para clientes potenciales)."),
+    ('Innovación implementada en el trimestre', 10, None, None, 100, 'T', "1 innovación tecnológica o de proceso por trimestre que optimice la eficiencia o reduzca costos en 5 %."),
+    ('Adopción de proyectos de innovación', 10, PCT, False, 80, 'T', "Al menos 80 % de los proyectos de innovación adoptados y usados por los equipos."),
+    ('Procesos automatizados', 15, PLAN, False, 100, 'T', "Automatizar al menos un proceso clave por trimestre, reduciendo 5 % su tiempo."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+    ('Soporte técnico a departamentos y clientes', 20, None, None, 100, 'M', "Soporte técnico a los departamentos internos y a los clientes de Adzone."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Capacitación del trimestre', 10, None, None, 100, 'T', "Al menos una capacitación en tecnología, innovación y desarrollo por trimestre."),
+]
+K['Encargado de Ciberseguridad y Desarrollo'] = [
+    ('Incidentes de seguridad', 20, None, None, 0, 'M', "Cero incidentes graves (acceso no autorizado, pérdida de datos, brechas)."),
+    ('Proyectos sin vulnerabilidades', 20, PCT, False, 95, 'M', "Al menos 95 % de los proyectos entregados sin errores graves ni vulnerabilidades."),
+    ('Estándares de desarrollo seguro', 15, PCT, False, 100, 'M', "Revisión de código, pruebas automatizadas, control de versiones."),
+    ('Parches, monitoreo y certificados', 10, PCT, False, 100, 'M', "Parches aplicados, monitoreo de amenazas y certificados renovados a tiempo."),
+    ('Entregas sin retrasos técnicos', 10, PCT, False, 100, 'M', "Requerimientos entregados en el tiempo estimado, sin retrasos por errores técnicos."),
+    ('Soporte técnico a departamentos y clientes', 10, None, None, 100, 'M', "Soporte técnico a los departamentos internos y a los clientes de Adzone."),
+    ('Capacitación del trimestre', 5, None, None, 100, 'T', "Al menos una formación o certificación trimestral en tecnología, desarrollo o ciberseguridad."),
+    ('Cumplimiento de políticas y procedimientos', 5, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+]
+
+K['Coordinadora Financiera y Administrativa'] = [
+    ('Cumplimiento del presupuesto operativo', 20, PCT, False, 95, 'M', "95 % a 100 % de cumplimiento del presupuesto operativo (gasto real dentro de lo aprobado)."),
+    ('Ahorro en costos operativos', 10, PCT, False, 5, 'T', "Más de 5 % de ahorro contra el trimestre anterior, sin afectar la calidad."),
+    ('Cumplimiento tributario (DGII)', 10, PCT, False, 100, 'M', "Obligaciones fiscales presentadas a tiempo y sin objeciones: 0 multas o retrasos."),
+    ('Logística interna y servicios generales', 10, PCT, False, 100, 'M', "Oficinas, insumos, tecnología básica y proveedores (internet, limpieza, seguridad) al día."),
+    ('Documentación legal vigente', 10, PCT, False, 100, 'M', "Estatutos, registros, certificaciones, licencias, seguros y permisos sin vencimientos."),
+    ('Contratos y licitaciones correctos', 20, PCT, False, 100, 'M', "Contratos con clientes, proveedores y licitaciones revisados con calidad y protegiendo a Adzone."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 95, 'M', "Adherencia a políticas internas y procesos estandarizados: 95 % a 100 %."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+]
+K['Encargado de Contabilidad y Tesorería'] = [
+    ('Ajustes contables post cierre', 20, CERO, True, 0, 'M', "Contabilidad correcta a la primera: ajustes o correcciones detectados después del cierre."),
+    ('Estados financieros a tiempo', 20, PCT, False, 100, 'M', "100 % de los meses, estados financieros entregados dentro del plazo definido."),
+    ('Cumplimiento tributario (DGII)', 20, PCT, False, 100, 'M', "100 % de declaraciones y pagos de impuestos a tiempo, sin multas."),
+    ('Cobros y pagos según política', 10, PCT, False, 100, 'M', "Días de cobro y de pago a proveedores alineados con la política, sin mora."),
+    ('Días para conciliar bancos', 20, 'días', True, 5, 'M', "Conciliación bancaria completa en menos de 5 días hábiles tras el fin de mes."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+]
+
+K['Gerente de Eventos e Impresiones'] = [
+    ('Eventos con calidad dentro del presupuesto', 20, PCT, False, 100, 'M', "Eventos ejecutados con calidad y excelencia dentro del presupuesto asignado."),
+    ('Montajes y desmontajes a tiempo', 20, PCT, False, 100, 'M', "100 % de montaje y desmontaje en los tiempos planificados."),
+    ('Satisfacción del cliente', 15, None, None, 90, 'M', "Más de 90 % en las encuestas post evento."),
+    ('Innovación implementada en el trimestre', 15, None, None, 100, 'T', "Más de 1 iniciativa innovadora o sostenible en eventos por trimestre."),
+    ('Incidentes de seguridad', 10, None, None, 0, 'M', "0 incidentes mayores; 100 % de protocolos de calidad y seguridad cumplidos."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Coordinador de Producción de Eventos y Catering'] = [
+    ('Eventos sin retrasos', 20, PCT, False, 95, 'M', "Más de 95 % de los eventos con montaje y catering según el horario planificado."),
+    ('Satisfacción del cliente', 20, None, None, 90, 'M', "Evaluación del cliente u organizador sobre logística y coordinación: 90/100."),
+    ('Eficiencia del presupuesto', 20, None, None, 5, 'M', "Desvío menor a 5 % entre el presupuesto planificado y el costo real del evento."),
+    ('Contingencias resueltas', 20, PCT, False, 100, 'M', "Imprevistos resueltos sin afectar el evento: 0 eventos con fallas logísticas graves (evalúa el Gerente)."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Asistente de Catering y Servicios Generales'] = [
+    ('Cronograma de limpieza y organización', 25, PCT, False, 100, 'M', "100 % del cronograma de limpieza y organización cumplido."),
+    ('Reducción de desperdicio de insumos', 15, PCT, False, 10, 'T', "Desperdicio de insumos menor en 10 % al trimestre anterior."),
+    ('Requerimientos internos atendidos', 20, PCT, False, 100, 'M', "100 % de los requerimientos de mantenimiento y catering atendidos."),
+    ('Satisfacción interna', 15, PCT, False, 80, 'T', "Más de 80 % en las encuestas internas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "100 % de cumplimiento."),
+    ('Asistencia a capacitaciones y reuniones', 10, PCT, False, 100, 'M', "100 % de asistencia a capacitaciones y reuniones de seguimiento."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Trabajo en equipo y actitud positiva."),
+]
+K['Técnico de Servicios Generales'] = [
+    ('Tareas asignadas en tiempo y forma', 20, PCT, False, 95, 'M', "Más de 95 % de las tareas asignadas cumplidas en tiempo y forma."),
+    ('Asistencia y puntualidad', 20, PCT, False, 100, 'M', "Asistencia y puntualidad mensual perfecta."),
+    ('Errores críticos en montaje', 10, CERO, True, 0, 'M', "0 incidencias o errores críticos en montaje."),
+    ('Evaluación del Gerente de Eventos', 10, PCT, False, 85, 'T', "Evaluación de desempeño del Gerente de Eventos mayor a 85 %."),
+    ('Equipo y herramientas en buen estado', 15, PCT, False, 100, 'M', "Equipo y herramientas asignadas en estado óptimo."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+    ('Apoyo a otras áreas y mantenimiento', 10, PCT, False, 100, 'M', "Disposición para apoyar a las demás áreas, infraestructura y mantenimiento."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Velar porque sus compañeros cumplan con la meta asignada."),
+]
+K['Técnico de Instalación y Rotulación'] = [
+    ('Instalaciones sin retrabajo', 20, PCT, False, 100, 'M', "100 % libres de errores mayores; menos de 5 % con ajustes menores."),
+    ('Montajes a tiempo', 20, PCT, False, 95, 'M', "Más de 95 % de las instalaciones dentro del tiempo estimado."),
+    ('Satisfacción del cliente interno', 20, NOTA5, False, 4, 'M', "Valoración del equipo de eventos/diseño sobre la instalación: promedio 4 de 5."),
+    ('Incidentes de seguridad', 20, None, None, 0, 'M', "0 incidentes; 100 % de uso de EPP y protocolos en cada trabajo."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Chofer de Transporte'] = [
+    ('Entregas puntuales', 20, PCT, False, 95, 'M', "Más de 95 % de los viajes llegan a tiempo o antes al evento o cliente."),
+    ('Incidentes de seguridad', 20, None, None, 0, 'M', "0 accidentes de tránsito prevenibles; récord de conducción segura."),
+    ('Mantenimiento preventivo al día', 20, None, None, 100, 'M', "100 % de los mantenimientos del vehículo según cronograma."),
+    ('Satisfacción del cliente interno', 20, NOTA5, False, 4, 'M', "Calificación del equipo de eventos sobre apoyo y actitud: más de 4 de 5."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Encargado de Impresiones'] = [
+    ('Impresiones a la primera', 25, PCT, False, 98, 'M', "Más de 98 % de impresiones sin reimpresión por errores (reprocesos menores a 2 %)."),
+    ('Impresiones a tiempo', 20, PCT, False, 100, 'M', "100 % de las órdenes de impresión entregadas a tiempo a montaje o evento."),
+    ('Desperdicio de material', 20, PCT, True, 3, 'M', "Menos de 3 % de desperdicio (papel, vinil) con cortes e impresiones agrupadas."),
+    ('Disponibilidad de máquinas', 10, PCT, False, 95, 'M', "Paradas no planificadas menores a 5 % del tiempo laboral (95 %+ de disponibilidad)."),
+    ('Fidelidad de impresión al diseño', 10, NOTA10, False, 9, 'M', "Evaluación del equipo creativo sobre la fidelidad al diseño original: 9 de 10."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Operador de Maquinarias'] = [
+    ('Trabajos entregados en plazo', 20, PCT, False, 95, 'M', "Al menos 95 % de los proyectos entregados dentro del plazo."),
+    ('Errores o reclamos de impresión y acabado', 20, PCT, True, 2, 'M', "Tasa de errores o reclamos por fallas de impresión o acabado menor a 2 %."),
+    ('Mantenimiento preventivo al día', 15, None, None, 100, 'M', "100 % del mantenimiento preventivo y limpieza mensual."),
+    ('Desperdicio de material', 15, PCT, True, 10, 'M', "Menos de 10 % de desperdicio de insumos sobre lo previsto."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "100 % de cumplimiento."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Asistencia a capacitaciones técnicas', 10, PCT, False, 100, 'M', "100 % de asistencia a capacitaciones técnicas de impresión y seguridad."),
+]
+
+K['Gerente de Marketing y Audiovisuales'] = [
+    ('Campañas que cumplen sus metas', 20, PCT, False, 90, 'M', "Más de 90 % de campañas que alcanzan los objetivos acordados con el cliente (leads, alcance)."),
+    ('Entregas a tiempo según cronograma', 25, None, None, 100, 'M', "100 % de proyectos y campañas lanzados a tiempo, con calidad y sin errores."),
+    ('Satisfacción del cliente', 20, None, None, 85, 'M', "Más de 85 % de satisfacción con el trabajo de marketing y audiovisual."),
+    ('Crecimiento de audiencia digital', 10, PCT, False, 15, 'T', "Más de 15 % trimestral de crecimiento promedio (seguidores, engagement o tráfico)."),
+    ('Innovación implementada en el trimestre', 10, None, None, 100, 'T', "Más de 1 iniciativa, herramienta o formato creativo nuevo por trimestre."),
+    ('Organización de archivos y protocolos del área', 10, None, None, 100, 'M', "Que todo su equipo cumpla la organización de archivos y los protocolos de diseño y audiovisuales."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+]
+K['Encargado de Creatividad'] = [
+    ('Conceptos creativos aprobados', 35, 'conceptos', False, 3, 'M', "Más de 3 conceptos o campañas creativas aprobadas por clientes al mes (9 en el trimestre)."),
+    ('Entregas a tiempo según cronograma', 25, None, None, 90, 'M', "Más de 90 % de los proyectos creativos entregados a tiempo."),
+    ('Satisfacción del cliente', 20, None, None, 80, 'M', "Más de 80 % en originalidad y calidad creativa."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Respeto de los procesos y protocolos (brief, revisiones, aprobaciones internas)."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+]
+K['Encargado de Medios Digitales'] = [
+    ('Entregas a tiempo según cronograma', 15, None, None, 100, 'M', "Cumplimiento del cronograma de producción en campañas clave."),
+    ('Calidad visual de entregas', 10, PCT, False, 100, 'M', "Evaluación interna más la retroalimentación del cliente."),
+    ('Coordinación entre departamentos', 15, PCT, False, 100, 'M', "Flujo sin cuellos de botella entre departamentos."),
+    ('Errores técnicos en entregas', 15, None, None, 0, 'M', "Cero errores técnicos en piezas entregadas (formatos, resolución, ortografía)."),
+    ('Mejora continua del equipo', 10, PCT, False, 100, 'M', "Participación en iniciativas de mejora continua del equipo."),
+    ('Organización de archivos y protocolos del área', 15, None, None, 100, 'M', "Organización de archivos y protocolos de marketing y audiovisuales."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas internas y colaboración en cultura."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Aporte al trabajo en equipo."),
+]
+K['Community Manager'] = [
+    ('Crecimiento del engagement', 20, PCT, False, 10, 'M', "Engagement en redes 10 % mayor cada mes (30 % trimestral)."),
+    ('Respuestas en menos de 24 h', 10, PCT, False, 90, 'M', "90 % de comentarios y mensajes respondidos en menos de 24 horas."),
+    ('Contenidos publicados', 20, 'contenidos', False, 20, 'M', "Al menos 20 contenidos al mes que cumplan calidad, alcance y formato."),
+    ('Contenido viral', 10, PLAN, False, 100, 'T', "Al menos 1 contenido viral por trimestre (150 %+ del alcance promedio mensual)."),
+    ('Entregas a tiempo según cronograma', 20, None, None, 100, 'M', "Cumplimiento con la calidad y los cronogramas de entrega."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Diseñador Gráfico Senior'] = [
+    ('Entregas a tiempo según cronograma', 15, None, None, 100, 'M', "Cumplimiento con la calidad y los cronogramas de entrega."),
+    ('Propuestas aprobadas en primera ronda', 20, PCT, False, 100, 'M', "Propuestas gráficas seleccionadas en concursos o aprobadas en primera ronda."),
+    ('Artes finales sin correcciones mayores', 15, PCT, False, 100, 'M', "Proyectos entregados sin correcciones mayores en el arte final."),
+    ('Organización de archivos y protocolos del área', 10, None, None, 100, 'M', "Organización de archivos y protocolos de diseño."),
+    ('Capacitación del trimestre', 10, None, None, 100, 'T', "Al menos 1 capacitación creativa o taller de actualización por trimestre."),
+    ('Apoyo al diseñador junior', 10, PCT, False, 100, 'M', "Orientación y apoyo al crecimiento del diseñador junior."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Apoyar al equipo con los trabajos pendientes."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Diseñador Gráfico Junior'] = [
+    ('Entregas a tiempo según cronograma', 20, None, None, 95, 'M', "Más de 95 % de entregas puntuales según el cronograma aprobado."),
+    ('Errores técnicos en entregas', 20, None, None, 0, 'M', "Piezas sin errores de ortografía, formato o resolución."),
+    ('Evaluación del gerente de marketing', 20, NOTA10, False, 8, 'M', "Retroalimentación del gerente de marketing y audiovisuales: 8 de 10 o más."),
+    ('Capacitación del trimestre', 10, None, None, 100, 'T', "Al menos 1 capacitación trimestral interna o externa."),
+    ('Organización de archivos y protocolos del área', 10, None, None, 100, 'M', "Organización de archivos y protocolos de diseño."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Trabajo en equipo y apoyo a colegas de Marketing y Audiovisuales."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+
+K['Encargado de Producción Audiovisual'] = [
+    ('Entregas a tiempo según cronograma', 20, None, None, 100, 'M', "100 % de proyectos audiovisuales a tiempo, salvo cambios de alcance justificados."),
+    ('Satisfacción del cliente', 20, None, None, 90, 'M', "Más de 90 % de retroalimentación positiva de clientes o gerencia sobre los videos."),
+    ('Eficiencia del presupuesto', 10, None, None, 5, 'M', "Excedente máximo de 5 % del costo real contra el presupuesto de cada producción."),
+    ('Organización de archivos y protocolos del área', 10, None, None, 100, 'M', "Organización de archivos y protocolos de marketing y audiovisuales."),
+    ('Rondas de revisión por trabajo', 10, None, None, 2, 'M', "Menos de 2 rondas de cambios hasta la versión final aprobada."),
+    ('Innovación implementada en el trimestre', 10, None, None, 100, 'T', "Al menos 1 recurso técnico innovador por trimestre (drones, cámara 360°, animación)."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Apoyar a sus compañeros para sacar los trabajos pendientes."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Coordinador de Contenido y Podcast'] = [
+    ('Grabaciones sin fallas técnicas', 20, PCT, False, 95, 'M', "Al menos 95 % de las grabaciones sin fallas técnicas mayores."),
+    ('Entregas a tiempo según cronograma', 15, None, None, 100, 'M', "Episodios y cápsulas entregados según el cronograma."),
+    ('Satisfacción de invitados y equipo', 15, NOTA10, False, 9, 'M', "Experiencia en el estudio evaluada en 9 de 10."),
+    ('Innovación implementada en el trimestre', 15, None, None, 100, 'T', "Al menos una mejora técnica o de formato por trimestre."),
+    ('Ideas de contenido nuevas', 10, 'ideas', False, 2, 'M', "Al menos 2 ideas de contenido nuevas al mes en la planificación editorial."),
+    ('Organización de archivos y protocolos del área', 10, None, None, 100, 'M', "Organización del archivo audiovisual y mantenimiento del estudio."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Trabajo en equipo."),
+]
+K['Especialista en Fotografía y Video'] = [
+    ('Material aprobado en la primera revisión', 20, PCT, False, 85, 'M', "Más de 85 % de tomas útiles aprobadas a la primera, sin rehacer sesiones."),
+    ('Entrega del material preliminar a tiempo', 20, PCT, False, 100, 'M', "Dentro de 48 h para fotos de eventos; 5 días hábiles para shootings planificados."),
+    ('Variedad y creatividad del material', 10, NOTA10, False, 9, 'M', "Evaluación del equipo creativo sobre diversidad y calidad de tomas: 9 de 10."),
+    ('Organización de archivos y protocolos del área', 10, None, None, 100, 'M', "Organización de archivos y protocolos de marketing y audiovisuales."),
+    ('Mantenimiento preventivo al día', 10, None, None, 100, 'M', "0 sesiones canceladas por fallas de equipo; 100 % del mantenimiento preventivo."),
+    ('Material usado en piezas finales', 10, PCT, False, 70, 'M', "Más de 70 % de las fotos y videos capturados se usan en piezas finales."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Apoyar a sus compañeros para sacar los trabajos pendientes."),
+]
+K['Editor Audiovisual'] = [
+    ('Innovación implementada en el trimestre', 20, None, None, 100, 'T', "Innovar en al menos 2 proyectos con nuevas técnicas de edición."),
+    ('Entregas a tiempo según cronograma', 20, None, None, 100, 'M', "Cumplimiento con la calidad y los cronogramas de entrega."),
+    ('Rondas de revisión por trabajo', 10, None, None, 3, 'M', "Menos de 3 rondas de revisión para llegar a la versión final."),
+    ('Organización de archivos y protocolos del área', 10, None, None, 100, 'M', "Organización de archivos y protocolos de ediciones."),
+    ('Errores técnicos en entregas', 10, None, None, 0, 'M', "0 devoluciones por errores técnicos u ortografía (audio mal mezclado, formato incorrecto)."),
+    ('Satisfacción con el montaje', 5, NOTA10, False, 9, 'M', "Clientes y equipo valoran en 9 de 10 cómo el video o las fotos cuentan la historia."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+K['Editor de Animación, 3D y VFX'] = [
+    ('Piezas animadas entregadas', 10, PLAN, False, 100, 'T', "Mínimo 9 piezas animadas por trimestre."),
+    ('Organización de archivos y protocolos del área', 15, None, None, 100, 'M', "Organización de archivos y protocolos de marketing y audiovisuales."),
+    ('Entregas a tiempo según cronograma', 20, None, None, 95, 'M', "Más de 95 % de entregas puntuales según el cronograma aprobado."),
+    ('Calidad técnica del render', 10, PCT, False, 100, 'M', "Render sin errores, alta resolución, arte final aprobado."),
+    ('Rondas de revisión por trabajo', 10, None, None, 2, 'M', "Máximo 2 iteraciones para llegar a la versión final."),
+    ('Innovación implementada en el trimestre', 10, None, None, 100, 'T', "Técnicas nuevas o efectos innovadores aplicados por trimestre."),
+    ('Retos y campañas creativas', 10, PCT, False, 100, 'M', "Participación en retos o campañas creativas internas y externas."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y orden documental de archivos."),
+    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Trabajo en equipo y colaboración transversal."),
+]
+
+KPIS_OFICIALES = K
+PERIODICIDAD = {'M': 'MENSUAL', 'T': 'TRIMESTRAL', 'A': 'ANUAL'}
+
+
+def objetivo(meta, unidad, menor, texto):
+    """Lo que pide el documento para este KPI en este puesto (máx. 255). La meta numérica va aparte."""
+    return texto[:255]
+
+
+def plantilla_de(nombre, unidad, menor):
+    """(unidad, menor_es_mejor, descripción) de un KPI, sea compartido o propio del puesto."""
+    if unidad is None:
+        return COMUNES[nombre]
+    return unidad, menor, None

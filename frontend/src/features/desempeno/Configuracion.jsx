@@ -22,7 +22,7 @@ export default function Configuracion() {
       const r = await guardarConfiguracion({
         peso_tareas: Number(f.peso_tareas), nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
         puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion),
-        tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje) })),
+        tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje), ...(t.proporcional ? { proporcional: true } : {}) })),
       });
       setF(r);
       avisar("Reglas guardadas. El ranking ya se calcula con ellas.");
@@ -65,7 +65,8 @@ export default function Configuracion() {
         </Panel>
 
         <Panel titulo="Bono sugerido" accion={<Boton variante="secundario" tam="sm" icono={Plus} onClick={() => setF({ ...f, tramos_bono: [...tramos, { desde: "", porcentaje: "" }] })}>Tramo</Boton>}>
-          <p className="mb-4 text-sm text-gris">Según el puntaje del mes. Aparece en el ranking y en el Excel como guía; la dirección decide.</p>
+          <p className="mb-4 text-sm text-gris">Según el puntaje del mes. Aparece en el ranking y en el Excel como guía; la dirección decide.
+            Política de las descripciones de puesto: 100 % → 10 % del salario; de 80 % a 99 % → proporcional; menos de 80 % → no aplica.</p>
           {tramos.length === 0 && <p className="text-sm text-gris">Sin tramos: no se sugiere bono.</p>}
           <ul className="space-y-3">
             {tramos.map((t, i) => (
@@ -75,6 +76,10 @@ export default function Configuracion() {
                 </label>
                 <label className="text-sm text-gris">Bono (% del salario)
                   <input type="number" min={0} max={100} step="any" className="campo mt-1 w-36" value={t.porcentaje} onChange={(e) => ponerTramo(i, "porcentaje", e.target.value)} />
+                </label>
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input type="checkbox" className="accent-azul" checked={!!t.proporcional} onChange={(e) => ponerTramo(i, "proporcional", e.target.checked)} />
+                  Proporcional al puntaje
                 </label>
                 <Boton variante="fantasma" icono={Trash2} className="text-rojo" aria-label="Quitar tramo" onClick={() => setF({ ...f, tramos_bono: tramos.filter((_, j) => j !== i) })} />
               </li>

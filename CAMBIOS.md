@@ -1,5 +1,16 @@
 # Cambios
 
+## 7.0 · 31/10/2026 · Personal real, descripciones de puesto y KPIs oficiales
+
+- **Descripciones de puesto completas** (documento «Descripción de Puestos – ADZONE», 28 puestos): además de las funciones, cada puesto trae **objetivo, perfil ideal, compensación variable, beneficios y alineación con la cultura**. Se ven en la página del puesto y se editan en «Editar puesto».
+- **KPIs oficiales con su ponderación** para los 28 puestos (204 asignaciones, 93 KPIs). Los repetidos (políticas y procedimientos, trabajo en equipo, organización de archivos, entregas a tiempo…) usan una sola plantilla. Cada uno trae su meta numérica, unidad, si «menor es mejor» y su periodicidad (mensual, trimestral o anual). Las metas trimestrales se anotan como % de avance del plan del trimestre.
+- **Organigrama:** entran **Encargado de Producción Audiovisual** (reporta a la Gerente de Marketing; de él depende el Coordinador de Contenido y Podcast) y **Técnico de Servicios Generales** (reporta al Coordinador de Eventos y Catering). «Encargado(a) de…» se renombra a «Encargado de…».
+- **Bono según la política de las descripciones:** 100 % → 10 % del salario; de 80 % a 99 % → proporcional; menos de 80 % → no aplica. En Reglas del puntaje, cada tramo puede ser «proporcional al puntaje». Si los tramos seguían como venían de fábrica, se cambian solos al migrar.
+- **Salario y nómina en cada persona** (solo administración): salario mensual, en qué nómina cobra y, si no se pone uno propio, el costo por hora se calcula del salario (÷ 23.83 días ÷ 8 h, como la nómina). En Personas hay una columna de salario.
+- **Carga del personal:** `cargar_equipo` acepta `accesos`, `salario_mensual`, `nomina` y `horas_semana`; a los agentes les da el acceso de Call Center. El archivo con el personal real va en `datos_privados/` (no se sube a GitHub).
+- Comando nuevo: `python manage.py puestos_oficiales --aplicar`.
+- Requiere `python manage.py migrate` (organizacion 0005, desempeno 0010).
+
 ## 6.5 · 31/10/2026 · Call Center: campañas y agentes aparte
 
 - **Agentes aparte del resto del equipo:** acceso nuevo «Agente de call center» (Personas → editar). Quien ya ocupa un puesto «Agente de Call Center…» lo recibe solo al migrar.

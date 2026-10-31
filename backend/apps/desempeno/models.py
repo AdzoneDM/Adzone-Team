@@ -390,10 +390,13 @@ class ConfiguracionDesempeno(models.Model):
                              "la persona sale como «pocos datos» y no como incumplimiento.")
     tramos_bono = models.JSONField(
         default=list, blank=True,
-        help_text='Bono sugerido según el puntaje del mes, p. ej. [{"desde": 90, "porcentaje": 10}, {"desde": 80, "porcentaje": 5}].')
+        help_text='Bono sugerido según el puntaje, p. ej. [{"desde": 100, "porcentaje": 10}, '
+                  '{"desde": 80, "porcentaje": 10, "proporcional": true}]. «Proporcional»: porcentaje × puntaje ÷ 100.')
     fecha_modificacion = models.DateTimeField(auto_now=True)
 
-    TRAMOS_POR_DEFECTO = [{"desde": 90, "porcentaje": 10}, {"desde": 80, "porcentaje": 5}]
+    # Política de las descripciones de puesto: 100 % → 10 % del salario; 80 %-99 % → proporcional; menos de 80 % → nada.
+    TRAMOS_POR_DEFECTO = [{"desde": 100, "porcentaje": 10}, {"desde": 80, "porcentaje": 10, "proporcional": True}]
+    TRAMOS_ANTERIORES = [{"desde": 90, "porcentaje": 10}, {"desde": 80, "porcentaje": 5}]
 
     @property
     def peso_kpis(self):
@@ -411,7 +414,10 @@ class ConfiguracionDesempeno(models.Model):
             return 0
         for tramo in sorted(self.tramos_bono or [], key=lambda t: -float(t.get('desde', 0))):
             if puntaje >= float(tramo.get('desde', 0)):
-                return float(tramo.get('porcentaje', 0))
+                porcentaje = float(tramo.get('porcentaje', 0))
+                if tramo.get('proporcional'):
+                    porcentaje = porcentaje * min(float(puntaje), 100.0) / 100
+                return round(porcentaje, 2)
         return 0
 
     class Meta:

@@ -70,6 +70,24 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Puestos oficiales y personal (versión 7.0)
+
+Después de `migrate` y del organigrama (sección siguiente):
+
+```bash
+python manage.py puestos_oficiales --aplicar          # descripciones de puesto y KPIs con ponderación
+# personal real: backend/datos_privados/personal_adzone_2026.json (no se sube a GitHub)
+python manage.py cargar_equipo datos_privados/personal_adzone_2026.json           # muestra lo que haría
+python manage.py cargar_equipo datos_privados/personal_adzone_2026.json --aplicar # crea las cuentas
+```
+
+Las contraseñas iniciales salen una sola vez en pantalla: guárdalas y entrégalas en persona. Antes de cargar, completa el
+correo de cada quien en el archivo y asigna el puesto de quienes vienen «sin cargo» en la nómina.
+
+En una base nueva (sin puestos todavía), el orden es: `departamentos_oficiales --aplicar` →
+`cargar_puestos datos_iniciales/organigrama_adzone.json` → `organigrama_2026 --aplicar` → `puestos_oficiales --aplicar` →
+`cargar_equipo … --aplicar`.
+
 ### Organigrama 2026 (versión 6.1)
 
 Después de `migrate` (que también carga el cronograma de producción):

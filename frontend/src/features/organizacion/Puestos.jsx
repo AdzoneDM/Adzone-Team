@@ -4,6 +4,9 @@ import { Briefcase, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { departamentos as cargarDeptos, eliminarDepartamento, eliminarPuesto, guardarDepartamento, guardarPuesto, puestos as cargarPuestos } from "@/lib/api";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, Panel, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 
+const SECCIONES = [["objetivo", "Objetivo del puesto", 3], ["perfil_ideal", "Perfil ideal", 4], ["compensacion_variable", "Compensación variable", 4],
+  ["beneficios", "Beneficios adicionales", 3], ["alineacion_cultural", "Alineación con la cultura", 4]];
+
 export function FormPuesto({ abierto, inicial, deptos, puestos, onCerrar, onGuardado }) {
   const [f, setF] = useState({});
   const [error, setError] = useState("");
@@ -16,7 +19,8 @@ export function FormPuesto({ abierto, inicial, deptos, puestos, onCerrar, onGuar
     if (!f.nombre?.trim() || !f.departamento) return setError("Escribe el nombre y elige el departamento.");
     setGuardando(true);
     try {
-      const p = await guardarPuesto({ id: f.id, nombre: f.nombre.trim(), departamento: Number(f.departamento), supervisor: f.supervisor ? Number(f.supervisor) : null, funciones_principales: f.funciones_principales || "" });
+      const p = await guardarPuesto({ id: f.id, nombre: f.nombre.trim(), departamento: Number(f.departamento), supervisor: f.supervisor ? Number(f.supervisor) : null, funciones_principales: f.funciones_principales || "",
+        ...Object.fromEntries(SECCIONES.map(([c]) => [c, f[c] || ""])) });
       onGuardado(p);
     } catch (err) { setError(err.message); }
     setGuardando(false);
@@ -41,6 +45,16 @@ export function FormPuesto({ abierto, inicial, deptos, puestos, onCerrar, onGuar
         <Campo etiqueta="Funciones principales" ayuda="Una función por línea.">
           {(id) => <textarea id={id} className="campo" rows={7} value={f.funciones_principales || ""} onChange={(e) => setF({ ...f, funciones_principales: e.target.value })} />}
         </Campo>
+        <details className="rounded-md border border-linea-suave" open={SECCIONES.some(([c]) => f[c])}>
+          <summary className="flex min-h-11 cursor-pointer items-center px-4 font-medium">Resto de la descripción de puesto</summary>
+          <div className="space-y-4 px-4 pb-4">
+            {SECCIONES.map(([campo, etiqueta, filas]) => (
+              <Campo key={campo} etiqueta={etiqueta} ayuda={campo === "objetivo" ? undefined : "Un punto por línea."}>
+                {(id) => <textarea id={id} className="campo" rows={filas} value={f[campo] || ""} onChange={(e) => setF({ ...f, [campo]: e.target.value })} />}
+              </Campo>
+            ))}
+          </div>
+        </details>
       </form>
     </Modal>
   );

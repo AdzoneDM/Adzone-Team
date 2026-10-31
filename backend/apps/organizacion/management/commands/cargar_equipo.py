@@ -6,7 +6,13 @@ Crea o actualiza las cuentas del equipo desde un JSON privado (ver datos_inicial
 
 A cada cuenta nueva se le genera una contraseña inicial que se muestra una sola vez.
 Las cuentas que ya existen conservan su contraseña.
+
+Campos de cada persona: usuario, nombre, apellido, correo, puesto, administrador (sí/no), accesos (lista de roles,
+p. ej. ["Gerente de Departamento", "Finanzas"]), salario_mensual, nomina, horas_semana, activo.
+Si hay salario y no hay costo_hora, el costo por hora se calcula del salario (salario ÷ 23.83 ÷ 8).
+Quien ocupa un puesto «Agente de Call Center…» recibe el acceso «Agente Call Center».
 """
+from decimal import Decimal, InvalidOperation
 import json
 import secrets
 
@@ -15,6 +21,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.organizacion.models import PerfilUsuario, PuestoDeTrabajo
+from apps.organizacion.serializers import ROLES
 
 
 def clave_inicial():
@@ -56,15 +63,41 @@ class Command(BaseCommand):
                 user.email = p.get('correo', user.email)
                 user.is_active = p.get('activo', True)
                 user.save()
+                accesos = list(p.get('accesos') or [])
                 if p.get('administrador'):
-                    user.groups.add(grupo_admin)
+                    accesos.append('Administrador')
+                for rol in accesos:
+                    if rol not in ROLES:
+                        self.stdout.write(self.style.WARNING(f"  Acceso desconocido para {usuario}: {rol}"))
+                        continue
+                    user.groups.add(grupo_admin if rol == 'Administrador' else Group.objects.get_or_create(name=rol)[0])
+                if 'Administrador' in accesos and not user.is_staff:
+                    user.is_staff = True
+                    user.save(update_fields=['is_staff'])
                 puesto = puestos.get((p.get('puesto') or '').lower())
                 if p.get('puesto') and puesto is None:
                     self.stdout.write(self.style.WARNING(f"  Puesto no encontrado para {usuario}: {p['puesto']}"))
                 perfil, _ = PerfilUsuario.objects.get_or_create(user=user)
                 if puesto:
                     perfil.puesto_trabajo = puesto
-                    perfil.save()
+                    if puesto.nombre.startswith('Agente de Call Center'):
+                        user.groups.add(Group.objects.get_or_create(name='Agente Call Center')[0])
+                if not user.groups.exists():
+                    user.groups.add(Group.objects.get_or_create(name='Colaborador')[0])
+                try:
+                    if p.get('horas_semana'):
+                        perfil.horas_semana = Decimal(str(p['horas_semana']))
+                    if p.get('salario_mensual') is not None:
+                        perfil.salario_mensual = Decimal(str(p['salario_mensual']))
+                    if p.get('costo_hora') is not None:
+                        perfil.costo_hora = Decimal(str(p['costo_hora']))
+                    elif perfil.salario_mensual:
+                        perfil.costo_hora = PerfilUsuario.costo_hora_de_salario(perfil.salario_mensual, perfil.horas_semana)
+                except InvalidOperation:
+                    self.stdout.write(self.style.WARNING(f"  Salario u horas no válidos para {usuario}: se dejan igual"))
+                if 'nomina' in p:
+                    perfil.nomina = p['nomina'] or ''
+                perfil.save()
                 self.stdout.write(f"{'+ nueva ' if nuevo else '  actualizada '} {usuario} · {puesto.nombre if puesto else 'sin puesto'}")
 
             if not aplicar:

@@ -98,7 +98,10 @@ export default function PuestoDetalle() {
 
   if (error) return <Alerta>{error}</Alerta>;
   if (!p) return <Cargando />;
-  const funciones = (p.funciones_principales || "").split("\n").map((x) => x.trim()).filter(Boolean);
+  const lineas = (texto) => (texto || "").split("\n").map((x) => x.trim()).filter(Boolean);
+  const funciones = lineas(p.funciones_principales);
+  const descripcion = [["Perfil ideal", p.perfil_ideal], ["Compensación variable", p.compensacion_variable],
+    ["Beneficios adicionales", p.beneficios], ["Alineación con la cultura", p.alineacion_cultural]].filter(([, t]) => lineas(t).length);
   const suma = kpis.filter((k) => k.activo).reduce((s, k) => s + Number(k.ponderacion), 0);
 
   return (
@@ -112,6 +115,13 @@ export default function PuestoDetalle() {
         </div>
         <Boton variante="secundario" icono={Pencil} onClick={() => setEditando(true)}>Editar puesto</Boton>
       </header>
+
+      {p.objetivo && (
+        <section aria-label="Objetivo del puesto" className="mb-6 max-w-4xl rounded-lg border-l-4 border-azul bg-azul/5 px-5 py-4">
+          <p className="text-sm font-semibold uppercase tracking-wide text-azul">Objetivo del puesto</p>
+          <p className="mt-1 text-[15px] leading-relaxed">{p.objetivo}</p>
+        </section>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Panel titulo="Funciones principales">
@@ -127,11 +137,12 @@ export default function PuestoDetalle() {
                 <table className="tabla">
                   <thead><tr><th>KPI</th><th>Cómo se mide</th><th className="text-right">Meta</th><th className="text-right">Peso</th><th className="w-24"><span className="sr-only">Acciones</span></th></tr></thead>
                   <tbody>
-                    {kpis.map((k) => (
+                    {[...kpis].sort((a, b) => b.activo - a.activo || Number(b.ponderacion) - Number(a.ponderacion)).map((k) => (
                       <tr key={k.id} className={k.activo ? "" : "opacity-55"}>
                         <td><p className="font-medium">{k.nombre}</p>{k.objetivo_meta && <p className="text-sm text-gris">{k.objetivo_meta}</p>}{!k.activo && <Insignia>Inactivo</Insignia>}</td>
                         <td>{k.es_entrada_manual ? <Insignia>Manual</Insignia> : <Insignia tono="azul">Automático</Insignia>}</td>
-                        <td className="text-right num">{k.meta_numerica ?? "—"} <span className="text-sm text-gris">{k.plantilla_kpi_detalle?.unidad_medida}</span></td>
+                        <td className="whitespace-nowrap text-right"><span className="num">{k.meta_numerica == null ? "—" : `${k.plantilla_kpi_detalle?.menor_es_mejor && Number(k.meta_numerica) > 0 ? "≤ " : ""}${Number(k.meta_numerica).toLocaleString("es-DO")}`}</span>
+                          <span className="block text-sm text-gris">{k.plantilla_kpi_detalle?.unidad_medida}{k.periodicidad_objetivo && k.periodicidad_objetivo !== "MENSUAL" ? ` · ${k.periodicidad_objetivo.toLowerCase()}` : ""}</span></td>
                         <td className="text-right num">{Number(k.ponderacion)}%</td>
                         <td className="whitespace-nowrap text-right">
                           <Boton variante="fantasma" tam="sm" icono={Pencil} aria-label={`Editar ${k.nombre}`} onClick={() => setFormKpi(k)} />
@@ -153,6 +164,23 @@ export default function PuestoDetalle() {
           )}
         </Panel>
       </div>
+
+      {descripcion.length > 0 && (
+        <Panel titulo="Descripción del puesto" className="mt-6">
+          <div className="space-y-2">
+            {descripcion.map(([titulo, texto]) => (
+              <details key={titulo} className="group rounded-md border border-linea-suave">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 font-medium">
+                  {titulo}<span className="text-sm text-gris group-open:hidden">Ver</span><span className="hidden text-sm text-gris group-open:inline">Ocultar</span>
+                </summary>
+                <ul className="list-disc space-y-2 px-4 pb-4 pl-9 text-[15px] leading-relaxed marker:text-gris">
+                  {lineas(texto).map((x, i) => <li key={i}>{x}</li>)}
+                </ul>
+              </details>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       <FormKpi abierto={!!formKpi} inicial={formKpi} puestoId={id} plantillas={plantillas} asignadas={kpis.map((k) => k.plantilla_kpi_detalle?.id)}
         onCerrar={() => setFormKpi(null)} onGuardado={() => { avisar("KPI guardado."); setFormKpi(null); cargar(); }} />

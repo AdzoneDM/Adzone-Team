@@ -1,0 +1,1037 @@
+{
+ "_fuente": "Descripción de Puestos – ADZONE (PDF oficial, 106 páginas). Generado para puestos_oficiales.",
+ "puestos": [
+  {
+   "puesto": "Editor Audiovisual",
+   "nombre_documento": "Editor Audiovisual",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "",
+   "funciones": [
+    "Edición de fotos y videos: Ensambla tomas de fotos y videos en secuencias coherentes y atractivas conforme a lo solicitado, guion/storyboard, editando spots publicitarios, videos y fotos corporativas, cápsulas para redes, etc.",
+    "Selección de Tomas: Filtra el material bruto eligiendo las mejores tomas; corta y ajusta clips e imágenes para mantener un ritmo dinámico y contar la historia de manera efectiva.",
+    "Postproducción: Agrega transiciones, títulos y gráficos animados (motion graphics básicos) asegurando que el estilo sea consistente con la identidad visual de la marca y fácil de seguir.",
+    "Audio: Limpia audio (elimina ruidos), sincroniza voz con imagen, equilibra niveles de música/ FX /voz; inserta música de fondo y efectos de sonido según requerimientos emocionales del video o edición. Colorización: Aplica corrección de color para uniformar la apariencia entre tomas y realzar la atmósfera deseada (contraste, saturación, temperatura de color adecuados).",
+    "Revisión y Feedback: Presenta cortes preliminares al gerente de marketing incorpora retroalimentación ágilmente iterando versiones hasta la edición final; mantiene una estructura ordenada de versiones de archivo.",
+    "Exportación y Formatos: Exporta el video o las imágenes finales en los formatos y resoluciones necesarios para distintos usos (TV, YouTube, Instagram), cuidando la calidad y comprobando que no haya errores técnicos en la reproducción.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto se deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Técnico o Lic. en Producción Audiovisual, Edición de Video o similar; o trayectoria sólida como editor.",
+    "1+ año editando fotos y videos con software profesional (Premiere Pro, Cap Cut, DaVinci Resolve); nociones de After Effects para crear/integrar gráficos animados sencillos.",
+    "Sentido narrativo: sabe cómo enganchar emocionalmente al espectador con ritmo, música y timing, construyendo un relato audiovisual cautivador.",
+    "Conoce requerimientos técnicos de diferentes plataformas: adapta cortes a duración y formato (vertical, cuadrado, horizontal) según destino (Stories IG vs YouTube).",
+    "Organizado trabajando con gran cantidad de clips: nombra secuencias y archivos ordenadamente, respalda proyectos, y puede retomar ediciones antiguas fácilmente gracias a su orden.",
+    "Obsesión por los detalles: detecta frames sobrantes, pequeños desajustes de audio o color y los corrige antes de entregar.",
+    "Competencias Clave: Paciencia y concentración prolongada, administración del tiempo (cumple deadlines ajustados), receptividad a la crítica, pasión por la calidad audiovisual."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral: 10% de salario base por eficiencia y calidad. Si entrega proyectos puntuales, con pocos cambios tras primer corte de videos e imágenes y sin errores técnicos, obtiene bono completo. Retrasos por su causa o rehacer por fallos reduce bono. Logros especiales: si un video o foto que editó gana premio o se viraliza notablemente, puede recibir un bono extra por su contribución creativa. Desarrollo profesional incentivado: acceso a plugins de software, librerías de efectos, o cursos avanzados (color grading, motion design) patrocinados tras trimestres de muy buen rendimiento, reforzando su capacidad de mantener a Adzone en la punta tecnológica.",
+    "Condiciones del bono: 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [
+    "Días adicionales de descanso por cumplimiento destacado.",
+    "Premios anuales por desempeño destacado (viajes, reconocimientos y bonificaciones).",
+    "Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone.",
+    "Participación en programas de formación, desarrollo personal y actividades de integración."
+   ],
+   "alineacion_cultural": [
+    "Aunque detrás de escena, su trabajo es fruto de la colaboración del equipo: junta el esfuerzo de guionistas, camarógrafos, videografos y diseñadores en un producto final coherente. Abraza la retroalimentación como parte del proceso, lo que refleja respeto y apertura. Cuando el gerente de marketing pide ajustes, lo toma profesionalmente sabiendo que es para mejorar el resultado. Su perfeccionismo con calidad y cumplimiento de lo prometido encarna la integridad: Adzone promete videos y fotos de alto nivel y él se asegura de cumplir esa promesa cuadro a cuadro. Comparte el crédito en los logros: si un video o foto es elogiado, resalta el trabajo bien hecho o la música acertada, mostrando humildad y fomentando reconocimiento colectivo. Al reutilizar tomas e imágenes en distintos cortes o hacer ediciones modulares eficientes, evita trabajo redundante, contribuyendo a la sostenibilidad operativa del equipo (más valor en menos tiempo). En síntesis, su dedicación a pulir cada detalle sin perder de vista los plazos ejemplifica los valores de excelencia y confiabilidad que Adzone desea en su cultura. CEO / Director General"
+   ]
+  },
+  {
+   "puesto": "Gerente de Tecnología y Desarrollo",
+   "nombre_documento": "Gerente de Tecnología y Desarrollo",
+   "area_documento": "Gerencia de Tecnología y Desarrollo",
+   "objetivo": "",
+   "funciones": [
+    "Visión Tecnológica: Define la estrategia tecnológica de Adzone, identificando plataformas, herramientas y desarrollos requeridos para mejorar servicios digitales y eficientizar operaciones internas.",
+    "Liderazgo de Proyectos TI: Supervisa proyectos de desarrollo de software tanto internos (ej. app de gestión de eventos, implementación de CRM) como externos para clientes, garantizando cumplimiento de requerimientos y calidad.",
+    "Infraestructura de TI: Asegura funcionamiento de redes, servidores, sitios web, respaldos y seguridad informática, mitigando riesgos de caídas o brechas.",
+    "Fomenta iniciativas de investigación y desarrollo: explora tecnologías emergentes (AI, realidad aumentada, automatización) que puedan integrarse en campañas o procesos, realizando pilotos para evaluar su valor.",
+    "Gestión del Equipo Técnico: Asigna proyectos según especialidades (front-end, back-end, seguridad, soporte), mentoríza, provee recursos y evalúa su desempeño, promoviendo la formación continua en nuevas habilidades.",
+    "Alianza Negocio-TI: Colabora con otras gerencias para alinear soluciones tecnológicas a necesidades del negocio: con Marketing para analítica avanzada, con Comercial para herramientas CRM, con Finanzas para sistemas de gestión, actuando como traductor entre mundo técnico y operativo.",
+    "Buenas Prácticas: Implementa metodologías (ágiles, DevOps) y estándares de documentación, prueba y deployment para asegurar entregas confiables; también establece planes de capacitación para su equipo en nuevas tecnologías.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Ing. en Sistemas, Ciencias de la Computación o similar; posgrado o certif. en gestión de proyectos TI (Scrum, PMP) valorado.",
+    "2 años en desarrollo de software o gestión de TI, con 2 años liderando equipos/proyectos complejos.",
+    "Conocimientos amplios: lenguajes de programación web (JavaScript/Node, Python, PHP, etc.), bases de datos, administración de servidores/cloud (AWS, Azure), ciberseguridad básica, y metodologías ágiles. No necesita programar a diario, pero debe entender arquitectura y guiar soluciones.",
+    "Visionario pero práctico: al tanto de tendencias (big data, IA), sabe elegir cuáles aportan valor real a Adzone en lugar de subirse a modas sin beneficio claro.",
+    "Habilidades de gestión y comunicación: traduce requerimientos de negocio a especificaciones técnicas claras, y justifica proyectos TI en términos de ROI o eficiencia a la dirección en lenguaje simple.",
+    "Competencias Clave: Liderazgo innovador, resolución de problemas complejos, planificación estratégica, adaptabilidad (tecnología cambia rápido), mentalidad analítica, enfoque en seguridad y confiabilidad."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral 10% salario base por metas tecnológicas logradas (sistemas estables, proyectos en tiempo, innovación implementada). Si todos los sistemas corren con 99% uptime, se implementó la innovación prevista y no hubo incidentes mayores, bono completo. Además:",
+    "Bono por Proyecto: Un porcentaje del sueldo (5%) extra al finalizar proyectos clave dentro de plazo y presupuesto establecido (ej. lanzamiento exitoso de la nueva plataforma de eventos y venta exitosa del mismo).",
+    "Ahorro o Ingresos: Si sus iniciativas ahorran costos (migración a infraestructura más económica) o generan nuevos ingresos (producto digital creado), puede otorgarse bonificación proporcional.",
+    "Condiciones del bono: 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [
+    "Certificaciones sin costo en tecnologías emergentes.",
+    "Acceso a ferias y eventos de innovación.",
+    "Días adicionales de descanso por desempeño destacado.",
+    "Premios anuales por desempeño destacado (viajes, reconocimientos y bonificaciones).",
+    "Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone.",
+    "Participación en programas de formación, desarrollo personal y actividades de integración."
+   ],
+   "alineacion_cultural": [
+    "Personifica el espíritu de innovación de Adzone, explorando cómo la tecnología da ventaja competitiva. Fomenta colaboración multidisciplinaria, integrando TI con todas las áreas para que la tecnología sea un habilitador. Opera con honestidad en manejo de datos y con respeto hacia usuarios (internos y clientes) diseñando soluciones centradas en la experiencia del usuario. Reconoce a sus ingenieros por logros (exalta cuando un desarrollador resuelve un bug crítico o implementa una mejora), promoviendo reconocimiento en un área que a veces solo recibe atención cuando algo falla. Incorpora conciencia de sostenibilidad en TI: optimiza recursos (servidores eficientes, recicla equipos antiguos de forma responsable) y puede liderar iniciativas verdes (ej. reducir huella digital), reforzando el compromiso de Adzone con la responsabilidad social. Gerente de Tecnologia y Desarrollo"
+   ]
+  },
+  {
+   "puesto": "Encargado de Innovación y Desarrollo",
+   "nombre_documento": "Encargado en Innovación y Desarrollo",
+   "area_documento": "Gerencia de Tecnología y Desarrollo",
+   "objetivo": "",
+   "funciones": [
+    "Investiga y prototipa nuevas soluciones tecnológicas que Adzone podría ofrecer o usar internamente (apps interactivas para campañas, realidad aumentada en eventos, herramientas de automatización de marketing).",
+    "Desarrollo de MVPs: Construye Minimum Viable Products (demos funcionales) para probar conceptos innovadores rápidamente, escribiendo código y armando maquetas en semanas para demostrar viabilidad.",
+    "Exploración de Herramientas: Prueba APIs, frameworks y plataformas emergentes, manteniendo un “laboratorio” de ideas (AI, chatbots, VR, data analytics avanzado) para ver qué puede adaptarse a la oferta de Adzone.",
+    "Soporte Creativo: Trabaja con equipos creativos y de cuentas para materializar ideas tech: si Marketing quiere una activación digital novedosa, diseña cómo lograrla técnicamente y la desarrolla (ej. un mini - juego web para una campaña).",
+    "Automatización Interna: Identifica tareas repetitivas en la operación interna y crea scripts o pequeñas herramientas para automatizarlas, mejorando productividad (ej. script que combine datos de distintas fuentes para un reporte).",
+    "Documentación de Prototipos: Documenta sus prototipos (objetivo, instalación, uso) para que, si se decide escalarlos, el equipo principal pueda entender y continuar su trabajo.",
+    "Difusión de Innovación: Presenta periódicamente al Gerente de tecnología y a la dirección pequeñas demostraciones de lo que está desarrollando, recibiendo feedback y generando entusiasmo interno por nuevas posibilidades tecnológicas.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Desarrollador Full-Stack o Ingeniero de Software con mentalidad “hacker” creativa.",
+    "2 años en desarrollo de software con evidencia de proyectos personales o profesionales innovadores.",
+    "Polivalente en tecnología: conoce varios lenguajes (JavaScript, Python, etc.), frameworks modernos (React, Angular, Node), algo de desarrollo móvil, y aprende rápido nuevas herramientas.",
+    "Altamente curioso y autodidacta: siempre probando librerías nuevas, leyendo sobre tech emergente, dispuesto a salir de su zona de confort técnica.",
+    "Enfocado en soluciones: le motiva resolver problemas de formas inéditas más que seguir rutinas establecidas.",
+    "Cómodo con el fracaso constructivo: entiende que no todas las ideas prosperan, pero saca lecciones de cada prototipo fallido para mejorar el siguiente.",
+    "Competencias Clave: Creatividad técnica, iniciativa, pasión por “lo nuevo”, resiliencia (prueba-error), autonomía, y comunicación para explicar conceptos complejos en simple a compañeros no técnicos."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral del 10% salario base vinculado a aportes de innovación: completar prototipos planificados y lograr que al menos uno se convierta en proyecto formal en ese periodo. Si sus experimentos llevan a un nuevo servicio vendible o a una mejora clave interna, se bonifica el logro. Asimismo, si un prototipo no planeado surge y resulta valioso, también se reconoce. INCENTIVOS ADICIONALES:",
+    "Si una de sus soluciones genera un ingreso (se vende a cliente) o ahorro significativo, recibir una porción de ese valor como premio especial. Acceso a certificaciones y cursos en innovación, transformación digital e inteligencia artificial. Oportunidad de asistir a conferencias y eventos tecnológicos nacionales e internacionales. Bonos adicionales por proyectos que generen ahorros significativos o mejoren la eficiencia en un 20% o más. Días libres adicionales por desarrollo e implementación exitosa de innovaciones clave. Desarrollo de carrera profesional dentro de la empresa. Y por supuesto, se le da visibilidad: presentaciones en reuniones generales lo posicionan como catalizador de nuevas ideas, lo cual es un reconocimiento motivador en sí.",
+    "Condiciones del bono: 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "Es la personificación de la innovación y creatividad técnica en Adzone – su rol es explorar lo que nadie más tiene tiempo de explorar. Colabora con todas las áreas en proyectos piloto, rompiendo silos y contagiando mentalidad experimental. Practica honestidad intelectual: si una idea no funciona, lo admite, extrae el aprendizaje y sigue adelante, modelando que equivocarse es parte del camino a la mejora. Su entusiasmo e inventiva inspiran a colegas, creando una atmósfera donde probar cosas nuevas es bienvenido. La dirección valora su capacidad de ver futuro y le da reconocimiento cuando una de sus ideas prende – es una fuente de orgullo interno. Orienta sus innovaciones a resolver problemas reales o agregar valor tangible, mostrando responsabilidad y visión de sostenibilidad: la tecnología no por moda, sino para mejorar la empresa o nuestros servicios, un equilibrio que refleja la filosofía de Adzone de innovar con propósito. Gerente de Tecnologia y Desarrollo"
+   ]
+  },
+  {
+   "puesto": "Encargado de Ciberseguridad y Desarrollo",
+   "nombre_documento": "Encargado Ciberseguridad y Desarrollo",
+   "area_documento": "Gerencia de Tecnología y Desarrollo",
+   "objetivo": "",
+   "funciones": [
+    "Seguridad de la Infraestructura: Monitorea redes y sistemas en busca de actividades sospechosas o intentos de intrusión; administra firewalls, antivirus y otras defensas para prevenir ataques.",
+    "Auditorías de Seguridad: Realiza análisis de vulnerabilidades y pruebas de penetración periódicas en sitios web, aplicaciones y servidores, identificando brechas y aplicando parches/configuraciones para fortalecerlos.",
+    "Gestión de Accesos: Administra usuarios y permisos en sistemas; implementa autenticación 2FA donde posible; aplica “principio de mínimo privilegio” para limitar accesos solo a lo necesario por rol.",
+    "Políticas y Concientización: Desarrolla políticas de seguridad de la información (uso aceptable de TI, política de backups, respuesta a incidentes) y entrena al personal en buenas prácticas (evitar phishing, manejo seguro de datos).",
+    "Respaldo y Continuidad: Asegura respaldos regulares de datos críticos, prueba restauraciones para verificar integridad, y prepara planes de recuperación ante desastres (disaster recovery) para reanudar operaciones rápidamente tras un incidente grave.",
+    "Administración de Sistemas: Mantiene servidores (físicos/cloud), bases de datos y servicios de correo; instala actualizaciones de software y parches de seguridad; optimiza rendimiento y resuelve problemas complejos de sistemas que soporte de 1er nivel no pueda.",
+    "Asesoría en Desarrollo Seguro: Revisa proyectos de software para que sigan prácticas de codificación segura (validación de inputs, encriptación de datos sensibles) e instaura revisiones de seguridad en el ciclo de desarrollo.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Ing. en Sistemas, Administrador de Redes o Seguridad Informática; certificaciones (CEH, CompTIA Security+, CISSP, etc.) muy valoradas.",
+    "2 años administrando sistemas TI y/o en roles de ciberseguridad (configurando servidores, redes, gestionando incidentes de seguridad).",
+    "Familiaridad con herramientas de seguridad: IDS/IPS, scanners de vulnerabilidades (Nessus, OpenVAS), análisis de logs (Splunk), pentesting básico (Nmap, Metasploit).",
+    "Conocimientos sólidos en sistemas operativos (Linux / Windows server), redes (TCP/ IP, VPN, VLANs), bases de datos, y mejores prácticas de seguridad (OWASP Top 10).",
+    "Meticuloso y prevenido: capaz de detectar patrones anómalos en logs, anticipar vectores de ataque y remediarlos antes de que sucedan.",
+    "Calmado y metódico bajo presión: en un incidente, sigue plan de respuesta sin pánico, comunicando a partes necesarias.",
+    "Competencias Clave: Proactividad (refuerza antes de que algo falle), actualización constante (amenazas evolucionan, él también), confidencialidad, y pedagogía (explica seguridad a usuarios en términos claros)."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral 10% salario base por mantener “la casa segura”: ningún incidente grave y sistemas estables. Si en el trimestre no hay caídas significativas ni brechas, backups correctos, políticas cumplidas, entrega de proyectos en Adzone en tiempo establecido, recibe bono completo. Si ocurre un incidente, se evalúa daño/gestión: si se contuvo rápido sin pérdidas, podría mantener bono parcial; si fue por negligencia, se pierde. BONOS ESPECIALES:",
+    "Si detecta proactivamente una amenaza seria evitando daño (ej. descubre intento de hackeo dirigido y lo bloquea), puede recibir un extra por su vigilancia. Incentivos de desarrollo: financiamiento de certificaciones (CEH, CCNA Security) y cursos avanzados, y membresías en comunidades de seguridad, manteniéndolo al tope del conocimiento – inversión en su crecimiento que revierte en mayor protección para Adzone. Desarrollo de carrera profesional dentro de la empresa.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "Su rol garantiza la lealtad y responsabilidad hacia la empresa y sus clientes al proteger información sensible. Es un guardián silencioso pero vital, que permite al resto trabajar tranquilos – un ejemplo de servicio y colaboración con toda la organización al anticiparse a problemas. Fomenta respeto por las normas enseñando a compañeros la importancia de la seguridad (sin culpa ni burla cuando alguien comete un error, sino educando con paciencia). Adzone reconoce que en seguridad muchas veces “no pasa nada” gracias a su labor, y celebra esa normalidad como un éxito (destacándolo en juntas internas, por ejemplo, “cero incidentes este trimestre gracias a nuestras políticas”), integrándolo al reconocimiento cultural. Su enfoque en prevención es un pilar de la sostenibilidad del negocio. Evita costosos contratiempos y resguarda la reputación. Aunque no siempre visible, su compromiso con la ética y la confidencialidad fortalece los valores de confianza y honestidad en la empresa. En suma, mantiene la base sobre la cual la creatividad y el negocio pueden florecer sin interrupciones, totalmente alineado con la visión integral de Adzone. ADZONE DIGITAL MARKETING SRL DESCRIPCIÓN DE PUESTO Consejo"
+   ]
+  },
+  {
+   "puesto": "CEO / Director General",
+   "nombre_documento": "CEO / Director General",
+   "area_documento": "Dirección General",
+   "objetivo": "Guiar la estrategia general de la empresa, garantizando el cumplimiento de los objetivos financieros, creativos y culturales de Adzone.",
+   "funciones": [
+    "Definir la estrategia general de la empresa y establecer los objetivos anuales, asegurando el crecimiento sostenible y la rentabilidad del negocio.",
+    "Supervisar el desempeño de todas las gerencias departamentales, brindando dirección y apoyo para el cumplimiento de sus metas.",
+    "Representar a Adzone ante clientes clave, alianzas estratégicas y eventos de la industria, fortaleciendo la imagen y relaciones de la empresa.",
+    "Garantizar la eficiencia financiera y el óptimo uso de los recursos en coordinación con la Gerencia Financiera, revisando presupuestos y proponiendo mejoras en costos y rentabilidad.",
+    "Fomentar la innovación en servicios y procesos, impulsando iniciativas creativas que mantengan a la agencia a la vanguardia del marketing digital.",
+    "Asegurar el cumplimiento de la cultura organizacional y los valores corporativos en todas las áreas, promoviendo un ambiente de trabajo colaborativo y ético.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Título universitario en Administración de Empresas, Publicidad, Marketing o carrera afín (maestría deseable).",
+    "Experiencia mínima de 3 a 5 años en puestos de dirección o gerencia general, preferiblemente en agencias de marketing o industrias creativas.",
+    "Habilidades demostradas de liderazgo estratégico, toma de decisiones, negociación y gestión de equipos multidisciplinarios.",
+    "Conocimiento sólido del mercado publicitario y tendencias digitales, capacidad para identificar oportunidades de negocio e innovar en la oferta de servicios.",
+    "Competencias clave: pensamiento estratégico, comunicación efectiva, orientación a resultados, integridad y visión para promover la mejora continua."
+   ],
+   "compensacion_variable": [
+    "Bono anual por cumplimiento de metas organizacionales, equivalente a aproximadamente 20% del salario anual si la empresa alcanza o supera sus objetivos clave (crecimiento, rentabilidad y satisfacción) en el año fiscal. Adicionalmente, el director general puede participar en un esquema de participación en utilidades de la empresa cuando los resultados exceden las metas. Este bono se calcula con base en los KPIs anteriores: si se logra el 100% de las metas, se activa el pago completo del bono, y proporciones parciales por cumplimientos intermedios. (Por ejemplo, si el crecimiento y la rentabilidad superan las metas, pero la satisfacción de clientes queda ligeramente por debajo, el bono se ajustará proporcionalmente.)"
+   ],
+   "beneficios": [
+    "Días adicionales de descanso por cumplimiento destacado.",
+    "Premios anuales bonificaciones). por desempeño destacado (viajes, reconocimientos y",
+    "Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone.",
+    "Participación en programas de formación, desarrollo personal y actividades de integración."
+   ],
+   "alineacion_cultural": [
+    "El director general predica con el ejemplo los valores de Adzone. Promueve la colaboración integrando a todos los departamentos bajo metas comunes, fomenta la innovación incentivando nuevas ideas y proyectos, demuestra respeto y honestidad en la toma de decisiones y trata a los colaboradores con equidad. Reconoce públicamente los logros del equipo directivo, reforzando la motivación y el sentido de pertenencia. Asimismo, orienta la estrategia hacia la sostenibilidad del negocio, buscando un crecimiento responsable en lo económico y en el impacto social/ambiental de las operaciones. CEO / Director General"
+   ]
+  },
+  {
+   "puesto": "Director Comercial",
+   "nombre_documento": "Director Comercial",
+   "area_documento": "Dirección Comercial",
+   "objetivo": "Dirigir la estrategia comercial de la agencia asegurando el cumplimiento de metas de ventas, expansión de la cartera de clientes y fortalecimiento de relaciones comerciales. Es responsable de liderar y desarrollar al equipo comercial y de garantizar la alineación de las actividades con la cultura organizacional y los objetivos estratégicos de Adzone.",
+   "funciones": [
+    "Estrategia Comercial y Ventas:",
+    "Diseñar, implementar y supervisar la estrategia de ventas de la agencia.",
+    "Establecer metas comerciales claras y medibles para el equipo.",
+    "Analizar tendencias de mercado, identificar oportunidades de negocio y desarrollar planes para su aprovechamiento.",
+    "Garantizar el cumplimiento de los indicadores de venta, captación de nuevos clientes y fidelización de los actuales.",
+    "Gestión del Equipo Comercial",
+    "Liderar y supervisar al equipo de ventas y cuentas, promoviendo el cumplimiento de metas individuales y grupales.",
+    "Coordinar la capacitación continua del personal comercial en técnicas de ventas, comunicación y manejo de objeciones.",
+    "Evaluar el desempeño del equipo con base en KPIs establecidos y retroalimentación trimestral.",
+    "Relaciones con Clientes Clave",
+    "Establecer y mantener relaciones estratégicas con clientes de alto valor.",
+    "Actuar como enlace principal con cuentas clave y participar en negociaciones relevantes.",
+    "Supervisar la calidad del servicio al cliente desde el punto de vista comercial.",
+    "Desarrollo de Propuestas y Presentaciones Comerciales",
+    "Coordinar la elaboración de propuestas comerciales personalizadas junto al equipo creativo y de producción.",
+    "Participar en licitaciones, presentaciones corporativas y reuniones comerciales de alto nivel.",
+    "Responsabilidad",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing.",
+    "Asegurar que el equipo comercial actúe conforme a los valores de Adzone: respeto, innovación, honestidad y compromiso.",
+    "Participar en programas internos de reconocimiento, team building y campañas de cultura empresarial."
+   ],
+   "perfil_ideal": [
+    "Formación académica en Mercadeo, Administración, Negocios, Comunicación, Publicidad o áreas afines.",
+    "Experiencia mínima de 5 años en liderazgo comercial, preferiblemente en áreas de marketing, experiencia del cliente, negocios o publicidad.",
+    "Habilidades fuertes en negociación, comunicación persuasiva, liderazgo, gestión por resultados y orientación al cliente.",
+    "Conocimiento de herramientas CRM, KPIs comerciales y metodologías de ventas consultivas."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral por cumplimiento de metas organizacionales, equivalente a aproximadamente 10% del salario base trimestral, si el Director Comercial y su equipo alcanzan o superan los objetivos clave definidos para el período (ventas, captación de clientes, retención, satisfacción del cliente y desempeño del equipo). Adicionalmente, el Director Comercial podrá ser considerado para participar en bonificaciones especiales por logros sobresalientes, como la incorporación de clientes estratégicos adicionales, liderazgo en actividades de cultura organizacional, o resultados comerciales excepcionales.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "Respeto y Honestidad: El director comercial será modelo de liderazgo ético en interacciones con clientes y equipo, respetando procesos y siendo transparente en negociaciones y reportes.",
+    "Innovación: Debe incentivar propuestas creativas comerciales y nuevas estrategias de fidelización o captación de clientes, participando activamente en iniciativas como hackatones o foros internos de ideas.",
+    "Compromiso: Se espera su involucramiento directo en actividades culturales como celebraciones, almuerzos, reconocimientos y talleres de cultura interna.",
+    "Desarrollo del Talento: Debe colaborar con Gestión del Talento en mentorías, capacitaciones y seguimiento de indicadores de su equipo, promoviendo un liderazgo transformacional. Director Comercial"
+   ]
+  },
+  {
+   "puesto": "Encargado de Gestión del Talento",
+   "nombre_documento": "Encargado(a) de Gestión del Talento",
+   "area_documento": "Dirección Comercial",
+   "objetivo": "Diseñar, implementar y supervisar estrategias que aseguren la atracción, desarrollo, bienestar y retención del talento, promoviendo una cultura organizacional basada en respeto, innovación, honestidad y compromiso. Es responsable de gestionar los procesos clave del ciclo de vida del colaborador y de garantizar la alineación entre las capacidades del equipo y los objetivos estratégicos de la agencia.",
+   "funciones": [
+    "Reclutamiento y Selección:",
+    "Diseñar y ejecutar procesos de atracción de talento alineados con el perfil cultural de Adzone.",
+    "Gestionar entrevistas, evaluaciones y contrataciones garantizando eficiencia y calidad.",
+    "Gestionar junto a administración y contabilidad los contratos, beneficios y cumplimiento de las normativas laborales (TSS, Ministerio de Trabajo, nomina, compensación variable, vacaciones, días libres, etc).",
+    "Evaluación del Desempeño:",
+    "Implementar sistemas trimestrales de evaluación de desempeño y retroalimentación.",
+    "Coordinar junto a los líderes de área el análisis de desempeño individual y por equipo.",
+    "Desarrollo Organizacional y Planes de Carrera:",
+    "Diseñar planes de sucesión, expedientes de colaboradores completos con todos su histórico (Digital y físico) y desarrollo profesional por competencias.",
+    "Implementar iniciativas que fomenten la promoción interna.",
+    "Clima y Cultura Organizacional:",
+    "Coordinar encuestas de clima y acciones de mejora continua.",
+    "Liderar celebraciones culturales, programas de reconocimiento y campañas internas.",
+    "Compensación y Beneficios:",
+    "Coordinar junto a dirección los planes de compensación variable.",
+    "Sugerir y gestionar beneficios internos alineados al bienestar del colaborador.",
+    "Gestión por Competencias:",
+    "Diseñar y actualizar el mapa de competencias de Adzone.",
+    "Coordinar procesos de evaluación y formación basados en competencias claves.",
+    "Capacitación y Desarrollo:",
+    "Desarrollar un plan anual de formación técnica y habilidades blandas.",
+    "Coordinar talleres, mentorías, certificaciones y alianzas con instituciones como INFOTEP.",
+    "Retención de Talento:",
+    "Diseñar estrategias para elevar el sentido de pertenencia y reducir rotación.",
+    "Acompañar el ciclo de vida del colaborador con programas de bienestar y motivación.",
+    "Liderazgo y Coaching:",
+    "Brindar acompañamiento personalizado a líderes de equipo.",
+    "Coordinar programas de liderazgo y coaching organizacional.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Licenciatura en Psicología Industrial, Administración, Recursos Humanos o carreras afines.",
+    "Experiencia mínima de 1 año en roles de gestión de talento o cultura organizacional.",
+    "Conocimiento de técnicas de selección, herramientas de evaluación, coaching, gestión por competencias y clima laboral.",
+    "Habilidades interpersonales, planificación, comunicación, empatía y liderazgo."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral por cumplimiento de metas organizacionales, equivalente a aproximadamente 10% del salario base trimestral, si el Encargado de Gestión del Talento y su equipo alcanzan o superan los objetivos clave definidos para el período (retención, clima laboral, desempeño, cultura y formación del equipo).",
+    "Adicionalmente, el Encargado de Gestión del Talento podrá ser considerado para participar en bonificaciones especiales por logros sobresalientes, como la implementación de estrategias de cultura destacadas, liderazgo en procesos de transformación organizacional o contribuciones excepcionales al desarrollo del equipo.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "Debe ser embajador(a) de los valores de Respeto, Honestidad, Innovación y Compromiso.",
+    "Facilitar el paso de “empleado a colaborador” promoviendo sentido de pertenencia.",
+    "Liderar con ejemplo ético y profesional en todas las interacciones internas.",
+    "Priorizar el bienestar y el desarrollo del talento como pilares del éxito organizacional.",
+    "Participar activamente en acciones de responsabilidad social y sostenibilidad. Director Comercial"
+   ]
+  },
+  {
+   "puesto": "Encargado de Ventas y Cuentas",
+   "nombre_documento": "Encargado(a) de Ventas y Cuentas",
+   "area_documento": "Dirección Comercial",
+   "objetivo": "Gestionar, desarrollar y fidelizar las cuentas asignadas de Adzone Digital Marketing, asegurando el crecimiento de la facturación, la satisfacción del cliente y el cumplimiento de los objetivos comerciales. Debe mantener una cartera sana, impulsar la captación de nuevos clientes, asegurar la gestión efectiva de cobros y garantizar el seguimiento de políticas internas, calidad del servicio y mejora continua de sus habilidades comerciales.",
+   "funciones": [
+    "Gestión Comercial:",
+    "Captar nuevos clientes y fidelizar los existentes mediante seguimiento personalizado y análisis de necesidades.",
+    "Elaborar y presentar propuestas comerciales efectivas con apoyo del equipo creativo.",
+    "Realizar ventas cruzadas con la cartera actual, promoviendo nuevos servicios o productos.",
+    "Atención y Retención de Clientes:",
+    "Mantener contacto mensual con los clientes clave.",
+    "Resolver inquietudes, garantizar la calidad del servicio y elevar el índice de satisfacción.",
+    "Monitorear la tasa de retención y aplicar estrategias de mejora.",
+    "Gestión de Cobranzas:",
+    "Realizar seguimiento puntual a la facturación y cobros mensuales.",
+    "Coordinar con administración para asegurar una gestión eficiente de la cartera.",
+    "Cumplimiento de Políticas:",
+    "Aplicar los lineamientos definidos por la Dirección Comercial y las políticas organizacionales.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados.",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing.",
+    "Capacitación y Desarrollo:",
+    "Participar activamente en al menos una capacitación de ventas, negociación o gestión de cuentas por trimestre.",
+    "Colaboración y Trabajo en Equipo:",
+    "Velar por el cumplimiento de metas grupales del departamento comercial.",
+    "Participar en proyectos, reuniones y actividades culturales internas.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing.",
+    "Indicadores de seguimiento: Número de cuentas nuevas; Evaluaciones de satisfacción del cliente; Tasa de retención activa en CRM; Reportes de cobranza mensual; Registro de asistencia a capacitaciones.",
+    "Acciones esperadas: Seguimiento mensual personalizado a clientes clave; Optimización de la experiencia del cliente desde la primera reunión; Análisis de necesidades y propuestas personalizadas; Participación en campañas culturales y reuniones de equipo; Reporte trimestral de resultados y cumplimiento de KPIs."
+   ],
+   "perfil_ideal": [],
+   "compensacion_variable": [
+    "Bono trimestral: Hasta un 10% del salario base trimestral, condicionado al cumplimiento total o proporcional de los KPIs.",
+    "Comisión adicional: 10% sobre las ventas cerradas por iniciativa propia o cuentas asignadas.",
+    "Condiciones para mantener el derecho al bono: No presentar más de 2 tardanzas injustificadas ni amonestaciones en el trimestre."
+   ],
+   "beneficios": [
+    "Acceso a mentorías internas en ventas y atención al cliente.",
+    "Premios anuales por desempeño comercial (viajes, reconocimientos y bonificaciones).",
+    "Días libres por desempeño destacado.",
+    "Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone."
+   ],
+   "alineacion_cultural": [
+    "Su rol promueve la confianza, servicio y compromiso hacia los clientes y hacia la empresa, ya que representa la voz comercial de Adzone en cada interacción. Es un constructor silencioso pero esencial de relaciones duraderas, cuidando cada detalle del trato comercial y garantizando que el cliente perciba los valores de la marca en cada contacto.",
+    "Fomenta el respeto y la empatía, escuchando activamente las necesidades del cliente sin juzgar, y retroalimentando a su equipo con humildad cuando algo puede mejorarse. Cuando ocurre una situación crítica, no reacciona con culpa o frustración, sino que educa al equipo con paciencia y orientación constructiva.",
+    "Su enfoque en la fidelización y el seguimiento constante es también una muestra de lealtad y responsabilidad, que impacta directamente en la sostenibilidad del negocio y la satisfacción del cliente. Celebra cada cuenta renovada, cada recomendación espontánea de un cliente feliz, como un triunfo cultural, destacándolo en juntas internas y reconociendo públicamente los logros del equipo.",
+    "Aunque su labor es principalmente externa, mantiene viva la cultura interna al participar en actividades de integración, mentorías y celebraciones, sabiendo que el buen clima interno potencia la experiencia del cliente.",
+    "Finalmente, su pasión comercial está equilibrada con ética profesional, demostrando que es posible vender sin presionar, ganar sin manipular, y crecer cuidando. Su ejemplo sostiene el valor de la honestidad y crea un entorno donde la creatividad comercial y la excelencia en el servicio florecen sin interrupciones, alineado a la visión integral de Adzone Digital Marketing. Gerente de Eventos e Impresiones"
+   ]
+  },
+  {
+   "puesto": "Técnico de Servicios Generales",
+   "nombre_documento": "Técnico de Servicios Generales",
+   "area_documento": "Gerencia de Eventos e Impresiones",
+   "objetivo": "Brindar soporte operativo en las actividades de montaje, mantenimiento y logística de eventos dentro y fuera de la empresa, asegurando la correcta ejecución de tareas físicas y técnicas con calidad, puntualidad y actitud de servicio, alineado a los estándares y cultura de Adzone. Velar y custodiar el inventario del almacén de eventos asegurando que todo sea entregado completo y en buen estado.",
+   "funciones": [
+    "Apoyar en la carga, descarga, instalación y desmontaje de equipos, rótulos, estructuras y mobiliario para eventos o activaciones.",
+    "Realizar trabajos menores de electricidad, pintura, organización o soporte técnico según necesidad de la empresa.",
+    "Colaborar con el equipo de logística para asegurar orden, limpieza y seguridad en las áreas de trabajo.",
+    "Cumplir con rutas, asignaciones y protocolos establecidos en cada proyecto.",
+    "Reportar a tiempo fallos, incidentes o necesidades de mantenimiento preventivo.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Bachiller técnico o experiencia equivalente en servicios generales, logística o mantenimiento.",
+    "Buen estado físico, disponibilidad para horarios extendidos o fines de semana.",
+    "Responsable, puntual, colaborador y con actitud positiva.",
+    "Capacidad para trabajar en equipo, con enfoque a resultados y al detalle.",
+    "Experiencia mínima de 1 año en labores operativas de campo."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral del 10% de su salario base: por cumplimiento de tareas sin fallas, asistencia perfecta y evaluación positiva del supervisor inmediato.",
+    "Incentivo adicional: si participa en 3 o más eventos exitosos evaluados por el cliente sin fallas operativas.",
+    "Acceso a mentorías internas.",
+    "Premios anuales por desempeño destacado (viajes, reconocimientos y bonificaciones).",
+    "Días libres por desempeño destacado.",
+    "Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "Su rol refleja el compromiso de Adzone con la calidad, el trabajo en equipo y el servicio. El Técnico de Servicios Generales es un pilar operativo que permite que los eventos de la empresa se desarrollen con excelencia, apoyando con actitud proactiva, responsabilidad y orden. Su ejemplo de puntualidad y disciplina envía un mensaje de respeto por el tiempo de los demás y por los objetivos del equipo.",
+    "Promueve una cultura de colaboración, ya que no solo cumple con sus tareas, sino que también se involucra para apoyar a sus compañeros en sus metas. Aporta tranquilidad y confianza al equipo al mantener el inventario y los recursos en estado óptimo, y su atención a los detalles evita fallas, retrasos o imprevistos que puedan afectar la experiencia del cliente.",
+    "Representa los valores de honestidad y lealtad, cuidando los equipos de la empresa como si fueran propios y comunicando cualquier incidencia sin ocultamientos. Su respeto por las normas y protocolos fortalece la seguridad y orden dentro de los eventos. Aunque su labor no siempre es visible, es fundamental para que todo funcione bien. Su trabajo bien hecho permite que la creatividad, la producción y la estrategia fluyan sin interrupciones. Su actitud de servicio es ejemplo vivo de la cultura Adzone, donde todos aportan desde su rol para construir una empresa sólida, ágil y humana. CEO/ Director General"
+   ]
+  },
+  {
+   "puesto": "Gerente de Eventos e Impresiones",
+   "nombre_documento": "Gerente de Eventos e Impresiones",
+   "area_documento": "Gerencia de Eventos e Impresiones",
+   "objetivo": "",
+   "funciones": [
+    "Planificar y coordinar todos los eventos y catering de la empresa y de clientes, desde la concepción hasta la ejecución, asegurando que cumplan con los requerimientos del cliente, objetivos y público objetivo.",
+    "Supervisar las operaciones de impresión y producción gráfica (gran formato, rotulación, etc.), garantizando la calidad de los materiales impresos y su entrega a tiempo.",
+    "Gestionar el presupuesto de eventos, catering e impresiones, controlando costos y negociando con proveedores para maximizar la eficiencia sin comprometer la calidad.",
+    "Liderar al equipo de eventos (producción, catering, montaje) y al equipo técnico (instalaciones, rotulación, transporte, maquinaria), asignando tareas y velando por el cumplimiento de los cronogramas.",
+    "Desarrollar propuestas creativas para eventos, incorporando elementos innovadores y tendencias actuales que aumenten el impacto y éxito de cada evento.",
+    "Asegurar el cumplimiento de normas de seguridad industrial y protocolos de montaje en cada evento, protegiendo la integridad del equipo y de los asistentes.",
+    "Mantener comunicación constante con el cliente durante la planeación y ejecución del evento, gestionando expectativas y satisfacción del cliente.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Licenciatura en Administración de Empresas, Mercadeo, Organización de Eventos o campos relacionados.",
+    "Experiencia de 2 años en gestión de eventos corporativos, ferias o activaciones de marca, así como conocimientos en producción gráfica e impresión digital.",
+    "Habilidades de planificación, organización y resolución de problemas; capaz de manejar múltiples proyectos de eventos simultáneamente bajo presión.",
+    "Excelentes habilidades de comunicación y negociación para tratar con clientes, proveedores y personal interno.",
+    "Creatividad y conocimiento de tendencias en eventos (tecnologías de eventos, experiencias interactivas) para proponer mejoras e innovaciones.",
+    "Competencias clave: liderazgo operativo, atención al detalle, orientación al cliente, manejo de presupuesto y capacidad para trabajar en equipo."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral equivalente al 10% del salario base si se alcanzan los objetivos clave del departamento (por ejemplo, manteniendo todos los eventos en presupuesto y con alta satisfacción del cliente en el trimestre). Este bono se determina con base en los KPIs ponderados arriba: se requiere un cumplimiento total o mayor al 90% en la combinación de metas para recibir el bono completo. Adicionalmente, si un evento importante supera las expectativas (por ejemplo, recibe un reconocimiento del cliente o genera negocio recurrente), el Gerente de Eventos puede recibir un bono especial único. También se ofrecen incentivos no monetarios como capacitaciones en nuevas tecnologías de eventos o asistencia a ferias/eventos del sector al lograr consistentemente los objetivos.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "En su rol, el Gerente de Eventos e Impresiones promueve la colaboración coordinando equipos multidisciplinarios (creativos, técnicos, proveedores) para lograr un objetivo común. Impulsa la innovación incorporando ideas creativas y soluciones nuevas en la realización de eventos, manteniendo un espíritu de mejora continua. Refleja el respeto en el trato tanto al personal bajo su supervisión como a los clientes y asistentes, asegurando que cada evento se conduzca con profesionalismo y respeto mutuo. Reconoce los esfuerzos de su equipo después de cada evento exitoso, reforzando la motivación y reconocimiento interno. Además, procura sostenibilidad al adoptar prácticas eco-amigables (como materiales reciclables o reducción de desperdicios) en la producción de eventos e impresiones, alineándose con los valores de responsabilidad social de Adzone. Gerente de Eventos e Impresiones"
+   ]
+  },
+  {
+   "puesto": "Coordinador de Producción de Eventos y Catering",
+   "nombre_documento": "Encargado de Eventos y Catering",
+   "area_documento": "Gerencia de Eventos e Impresiones",
+   "objetivo": "",
+   "funciones": [
+    "Planificar el montaje y ejecución logística de eventos específicos, detallando cronogramas, asignación de personal y necesidades de recursos (equipos, mobiliario, insumos de catering).",
+    "Coordinar con proveedores de catering, sonido, iluminación y otros servicios para asegurar que cumplan con los requerimientos y tiempos establecidos para el evento.",
+    "Supervisar el montaje del evento, resolviendo inconvenientes en tiempo real y garantizando la calidad en la ambientación, decoración y disposición del espacio según lo acordado con el cliente.",
+    "Gestionar el desmontaje post - evento de forma eficiente, asegurando que se retiren todos los materiales y se restablezca el orden del lugar, evitando daños o contratiempos.",
+    "Apoyar en la elaboración de presupuestos detallados para cada evento o proyecto asignado, proporcionando al gerente la información de costos de proveedores y estimaciones de gasto.",
+    "Mantener una comunicación constante con el cliente o encargado del proyecto durante las etapas de pre - producción y ejecución, informando avances y atendiendo solicitudes de última hora.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Formación técnica o universitaria en Producción de Eventos, Gestión de Proyectos, Administración Hotelera o áreas afines.",
+    "Experiencia de al menos 1 año en organización o producción de eventos (conciertos, eventos corporativos, lanzamientos), habiendo manejado la coordinación logística integral.",
+    "Conocimiento práctico de proveedores del sector eventos (catering, alquiler de equipos, locaciones) y habilidad para negociar con ellos.",
+    "Alta capacidad organizativa y resistencia al trabajo bajo presión, con atención al detalle para que nada falte el día del evento.",
+    "Excelentes habilidades interpersonales para liderar personal temporal o proveedores durante el evento, manteniendo un ambiente de respeto y cooperación.",
+    "Competencias clave: resolución de problemas, multitarea, proactividad, orientación al servicio y creatividad en la ejecución (para improvisar soluciones decorativas/logísticas cuando es necesario)."
+   ],
+   "compensacion_variable": [
+    "Recibe un bono trimestral de hasta un 10% de su salario si los eventos a su cargo cumplen consistentemente con los estándares de puntualidad, calidad y satisfacción del cliente. Para esto, se evalúan los KPIs: por ejemplo, si en el trimestre al menos el 95% de los eventos coordinados se desarrollaron sin atrasos y con alta satisfacción del cliente, se otorgará el bono completo. Adicionalmente, por cada evento de gran magnitud coordinado exitosamente (ej. ferias internacionales, eventos VIP) puede recibir una bonificación especial única. Como reconocimiento no monetario, se le brindan oportunidades de reconocimiento interno (ej. “Empleado del mes” del área de eventos) y participación en cursos de actualización en gestión de eventos o tendencias de catering cuando se destacan en su desempeño.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Coordinador de Eventos ejemplifica la cultura de Adzone al trabajar de manera colaborativa con diferentes áreas (diseño gráfico, audiovisual, proveedores externos) para asegurar el éxito de los eventos. Muestra innovación buscando soluciones creativas ante retos logísticos y proponiendo ideas nuevas para mejorar la experiencia de los asistentes. Mantiene un trato respetuoso tanto con clientes como con todo el personal involucrado, resolviendo conflictos de forma calmada y profesional. Aprecia el reconocimiento de los aportes individuales: tras cada evento, destaca los logros del equipo (como el personal de catering o montaje) ante el Gerente. Finalmente, promueve la sostenibilidad evitando el desperdicio (por ejemplo, donando excedentes de comida, reutilizando decoraciones) y cumpliendo con normas ambientales en la disposición de residuos del evento. Gerente de Eventos e Impresiones"
+   ]
+  },
+  {
+   "puesto": "Técnico de Instalación y Rotulación",
+   "nombre_documento": "Técnico de Instalación y Rotulación",
+   "area_documento": "Gerencia de Eventos e Impresiones",
+   "objetivo": "",
+   "funciones": [
+    "Instalar elementos gráficos y rotulaciones en eventos y proyectos, incluyendo banners, vallas, letreros y otros materiales impresos, asegurando su correcta colocación, alineación y fijación.",
+    "Realizar el montaje de estructuras necesarias para exhibiciones o stands en eventos, siguiendo los planos o diseños proporcionados, y utilizando herramientas y equipos de manera segura.",
+    "Preparar previamente los materiales impresos (laminado, corte, pegado en sustratos rígidos, etc.) para que estén listos para su instalación en sitio.",
+    "Verificar las dimensiones y calces de cada pieza gráfica contra los espacios designados, haciendo ajustes menores en campo de ser necesario para lograr un acabado profesional.",
+    "Colaborar en las tareas de rotulación de vehículos, vitrinas u otros objetos cuando el servicio lo requiera, aplicando vinilos o adhesivos de forma precisa y sin defectos (burbujas, arrugas).",
+    "Mantener y operar adecuadamente las herramientas, equipos y maquinarias ligeras (andamios, taladros, cortadoras, plotter de corte) necesarias para las instalaciones, reportando cualquier desperfecto para su mantenimiento oportuno.",
+    "Cumplir estrictamente con las normas de seguridad industrial durante las instalaciones, usando los equipos de protección personal (arneses, guantes, cascos) y señalizando áreas de trabajo para prevenir accidentes.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Educación secundaria completa; capacitación técnica en rotulación, carpintería metálica o afines es valorada.",
+    "Experiencia de 2 años en instalación de rótulos publicitarios, publicidad exterior o montaje de escenografías/eventos.",
+    "Habilidad manual y destreza en el uso de herramientas (taladro, remachadora, cutter, metro), con buen entendimiento de medidas y planos simples.",
+    "Conocimiento de materiales gráficos (viniles, adhesivos, lonas, acrílicos, etc.) y técnicas de aplicación para asegurar durabilidad y buena presentación.",
+    "Condición física apta para trabajos de esfuerzo moderado, alturas y movimientos repetitivos; certificaciones en trabajo seguro en altura son un plus.",
+    "Competencias clave: atención al detalle, responsabilidad, trabajo en equipo, resolución rápida de problemas en sitio y actitud proactiva."
+   ],
+   "compensacion_variable": [
+    "El técnico de instalación puede recibir un incentivo trimestral de desempeño de hasta un 10% de su salario si mantiene altos estándares en sus KPIs. Por ejemplo, si en un trimestre todas las instalaciones se realizaron sin errores y sin incidentes de seguridad, se otorgará el bono completo. Adicionalmente, se otorgan recompensas simbólicas por desempeño destacado, como vales de consumo o reconocimiento en reuniones de equipo cuando se completen proyectos complejos bajo condiciones difíciles. La empresa provee, además, capacitación continua en nuevas técnicas de rotulación e instalación, lo cual se ofrece como beneficio ligado a la mejora en el desempeño (por ejemplo, entrenamiento en manejo de nuevas maquinarias de corte si cumple consistentemente con objetivos).",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "Este puesto aporta a la cultura de Adzone demostrando colaboración al trabajar mano a mano con diseñadores y coordinadores de eventos para materializar las ideas en el campo. El técnico muestra respeto al seguir instrucciones de diseño al pie de la letra y adaptarse a las necesidades del cliente sin quejas, manteniendo una actitud profesional. Cada instalación exitosa refleja innovación en la aplicación de técnicas creativas para resolver desafíos (por ejemplo, cómo montar un elemento difícil en un espacio reducido). La empresa fomenta el reconocimiento de su labor, valorando el esfuerzo físico y técnico que realiza para que la imagen de Adzone y de sus clientes luzca impecable. Asimismo, se alienta la sostenibilidad en su trabajo mediante el uso eficiente de materiales (minimizando desperdicios de vinil y reciclando sobras cuando es posible) y reutilizando soportes en la medida de lo viable. Gerente de Eventos e Impresiones"
+   ]
+  },
+  {
+   "puesto": "Chofer de Transporte",
+   "nombre_documento": "Chofer de Transporte",
+   "area_documento": "Gerencia de Eventos e Impresiones",
+   "objetivo": "",
+   "funciones": [
+    "Conducir los vehículos de la empresa para transportar equipos, materiales, personal y mercancías hacia los lugares de eventos o instalaciones de clientes, garantizando entregas puntuales según los cronogramas establecidos.",
+    "Cargar y descargar de forma segura el material en el vehículo (estructuras, equipos audiovisuales, impresiones, inventario, etc.), asegurando su correcta estiba y protección durante el traslado para evitar daños.",
+    "Realizar rutas óptimas considerando el tráfico y las restricciones vehiculares, para cumplir con los tiempos de llegada; en caso de contratiempos (ej. cierres viales), comunicar de inmediato y proponer rutas alternativas.",
+    "Mantener y gestionar todos los vehículos asignados en buen estado y realizar mantenimiento preventivo: revisión diaria de niveles de combustible, aceite y fluidos, verificación de llantas, frenos y luces, y reporte inmediato de cualquier desperfecto o necesidad de mantenimiento.",
+    "Cumplir con las normas de tránsito y seguridad vial en todo momento, así como con las normativas específicas para transporte de carga especial si aplica (por ejemplo, permisos de circulación para carga voluminosa).",
+    "Apoyar al equipo de eventos en labores básicas durante los montajes cuando no esté conduciendo (ej. ayudando a mover equipos), manteniendo siempre la disposición de trabajo en equipo.",
+    "Llevar registros de los viajes realizados, kilometraje, consumo de combustible y mantenimientos realizados/preventivos pendientes, para la administración eficiente de la flota vehicular.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño injustificado en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Educación básica completa; licencia de conducir categoría profesional (ej. categoría camioneta o camión liviano según requerimientos) vigente y con historial de manejo limpio.",
+    "Experiencia mínima de 3 años como chofer, preferiblemente transportando equipos delicados o trabajando en logística de eventos/mercancías.",
+    "Conocimiento de las rutas locales y del interior. Habilidad para el uso de GPS y aplicaciones de tráfico.",
+    "Persona responsable, puntual y confiable, con excelente récord de seguridad (sin accidentes mayores).",
+    "Buena condición física para mover eventualmente cargas moderadas y disposición para horarios flexibles (viajes nocturnos o madrugadas en montajes según necesidad).",
+    "Competencias clave: orientación al detalle y a la seguridad, comunicación (para coordinarse con el equipo de eventos), actitud de servicio y amabilidad, y capacidad de trabajar de forma autónoma."
+   ],
+   "compensacion_variable": [
+    "El chofer puede acceder a un bono trimestral por desempeño seguro y eficiente, hasta por un 10% de su salario base. Este bono se otorga al cumplir con las metas de puntualidad y seguridad establecidas: por ejemplo, un trimestre sin retrasos en entregas ni incidentes viales resultará en el 100% del bono. Si ocurre algún retraso menor o incidente, el bono podría reducirse proporcionalmente. Adicionalmente, la empresa incentiva la mejora continúa ofreciéndole cursos de conducción defensiva o mecánica básica (sin costo para él) al mantener un buen desempeño. También se cuenta con reconocimientos internos como “Conductor Seguro del Mes” que resaltan su labor y fomentan el reconocimiento entre sus pares.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Chofer de Transporte contribuye a la cultura de colaboración al trabajar estrechamente con los demás departamentos para cumplir las entregas y montajes. Su compromiso con la seguridad y respeto en la vía pública refleja los valores de Adzone hacia la responsabilidad y respeto a la comunidad. Mantiene una actitud de respeto y amabilidad con sus compañeros, clientes y proveedores en cada interacción. La empresa valora su confiabilidad y le brinda reconocimiento cuando sobrepasa expectativas, entendiendo que su rol es crítico para el éxito operativo (un evento no puede comenzar sin el material a tiempo). Al optimizar rutas y cuidar el mantenimiento (reducir emisiones y evitar desperdicios de combustible), también aporta a la sostenibilidad operativa y medioambiental. Gerente de Eventos e Impresiones"
+   ]
+  },
+  {
+   "puesto": "Encargado de Impresiones",
+   "nombre_documento": "Encargado de Impresiones (Especialista en Impresión Digital)",
+   "area_documento": "Gerencia de Eventos e Impresiones",
+   "objetivo": "",
+   "funciones": [
+    "Operar y mantener las máquinas de impresión digital de gran formato y otros equipos de producción gráfica (plotters, impresoras láser, cortadoras) para producir materiales visuales según las especificaciones de los proyectos.",
+    "Revisar los archivos de arte final proporcionados por el área de Diseño Gráfico, asegurándose de que estén en el formato y resolución adecuados para impresión; realizar pruebas de color (proofs) cuando sea necesario para garantizar la calidad esperada por el cliente.",
+    "Gestionar el inventario de insumos de impresión (papel, vinil, tintas, sustratos especiales) y solicitar reabastecimiento con tiempo, evitando interrupciones en la producción por falta de materiales.",
+    "Programar las colas de impresión de acuerdo a las prioridades y fechas de entrega de cada proyecto, optimizando el uso de los equipos (por ejemplo, agrupando trabajos en el mismo material para minimizar desperdicio).",
+    "Realizar el control de calidad de cada tirada: verificar que los colores, cortes y acabados cumplan con los estándares, y corregir cualquier desviación (ajustes de color, reimpresiones parciales) oportunamente.",
+    "Coordinar con el personal de instalación y acabados para la entrega oportuna del material impreso, informándoles de las especificaciones de montaje o cuidado especial de las piezas impresas.",
+    "Mantener un registro de mantenimiento de las máquinas y ejecutar la limpieza y calibraciones periódicas; gestionar soporte técnico externo cuando surjan fallas complejas, minimizando tiempos muertos.",
+    "Manejo responsable, adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Formación técnica en Artes Gráficas, Diseño Gráfico o manejo de imprenta digital; cursos específicos en operación de plotters de gran formato son un plus.",
+    "Experiencia de 3 años en imprentas digitales, rotuladoras o centros de impresión, con conocimiento práctico en calibración de color y acabados (laminado, troquelado básico).",
+    "Dominio de software RIP y herramientas de impresión (Caldera, Onyx, etc.) así como conocimientos básicos de programas de diseño (Adobe Illustrator, Photoshop) para hacer ajustes menores si se requiere.",
+    "Enfoque en detalle y calidad: capaz de detectar variaciones de color o fallas de impresión sutiles y corregirlas antes de entregar el producto final.",
+    "Buena gestión del tiempo y capacidad para manejar múltiples trabajos de impresión simultáneamente, priorizando según urgencia sin sacrificar la calidad.",
+    "Competencias clave: meticulosidad, responsabilidad, capacidad para trabajar bajo fechas de entrega estrictas, comunicación (para interactuar con diseñadores/ejecutivos sobre expectativas de impresión) y resolución de problemas técnicos."
+   ],
+   "compensacion_variable": [
+    "El especialista en impresión tiene derecho a un bono trimestral de desempeño de hasta el 10% de su salario base al cumplir con altos niveles de calidad y eficiencia. Para recibir el bono completo, debe alcanzar o exceder metas como cero reprocesos significativos y entregas puntuales en todos los proyectos durante el trimestre. En caso de pequeños desvíos (por ejemplo, una reimpresión necesaria en el período), el bono se ajustará proporcionalmente, pero se mantiene si globalmente se cumplió con la mayoría de KPI. Adicionalmente, la empresa ofrece incentivos como bonificaciones por ahorro de material (si logra reducir costos de insumos innovando en la producción) y la oportunidad de asistir a talleres o exposiciones de nuevas tecnologías de impresión digital como parte del reconocimiento a su excelencia.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "En este rol técnico, la colaboración es fundamental: el encargado de impresiones trabaja de cerca con diseñadores gráficos y coordinadores de eventos para garantizar que la visión creativa se plasme correctamente en físico. Su dedicación a la excelencia y detalle refleja respeto tanto por el trabajo creativo de sus compañeros como por las expectativas del cliente final. Se espera que aporte innovación buscando continuamente mejoras en el proceso de impresión, como nuevos materiales más ecológicos o técnicas más eficientes, en línea con la mentalidad de mejora continua de Adzone. La empresa fomenta el reconocimiento de su trabajo, entendiendo que las impresiones de calidad son la carta de presentación visual en eventos y proyectos. Asimismo, al optimizar recursos y reducir desperdicios, el especialista practica la sostenibilidad, alineándose con los valores de responsabilidad ambiental de la organización. Gerente de Eventos e Impresiones"
+   ]
+  },
+  {
+   "puesto": "Operador de Maquinarias",
+   "nombre_documento": "Operador de Maquinarias",
+   "area_documento": "Gerencia de Eventos e Impresiones (Área de Maquinarias)",
+   "objetivo": "Diseñar, operar, mantener y monitorear el funcionamiento eficiente de las máquinas de impresión, corte o acabado asignadas, garantizando la calidad de los productos, el cumplimiento de los plazos y la optimización del uso de insumos. Velar por el mantenimiento preventivo de los equipos y contribuir con una actitud colaboradora y responsable al trabajo del equipo de producción.",
+   "funciones": [
+    "Preparar, calibrar y operar correctamente las máquinas de impresión, corte, laminado u otras asignadas.",
+    "Revisar archivos o materiales antes de ejecutar cada trabajo, para asegurar que cumplan con las especificaciones.",
+    "Realizar controles de calidad durante y después del proceso de impresión o acabado.",
+    "Llevar registro de insumos utilizados, tiempos de producción y mantenimiento.",
+    "Aplicar rutinas de limpieza y mantenimiento preventivo de los equipos.",
+    "Comunicar cualquier incidencia técnica al supervisor inmediato.",
+    "Apoyar en la impresión, entrega o embalaje de trabajos finalizados cuando se requiera.",
+    "Participar en las capacitaciones técnicas y reuniones del equipo de producción.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Educación técnico o profesional en artes gráficas, diseño, impresión digital, producción o áreas afines.",
+    "Experiencia mínima de 1 año operando equipos de impresión o maquinaria industrial ligera.",
+    "Conocimientos básicos en mantenimiento, manejo de materiales y seguridad industrial.",
+    "Habilidad para trabajar bajo presión, atención al detalle y buena comunicación.",
+    "Actitud proactiva, responsable, puntual y con capacidad de trabajo en equipo."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral por cumplimiento de metas organizacionales, equivalente a hasta 10% del salario base trimestral, si el Operador de Máquinas logra los estándares de calidad, eficiencia, puntualidad y participación establecidos en los KPIs.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Operador de Máquinas representa en su día a día los valores de responsabilidad, compromiso, calidad y respeto que sostienen la cultura de Adzone. A través de su labor técnica, garantiza que el producto final cumpla con los estándares visuales y estructurales que distinguen a la empresa.",
+    "Su capacidad para resolver problemas técnicos, mantener orden y cuidar los equipos refleja el valor de honestidad y lealtad hacia la empresa, ya que protege los recursos y asegura que todo funcione bien para los demás.",
+    "Aunque su rol es operativo, se convierte en un actor clave en la innovación y mejora continua, proponiendo soluciones prácticas, optimizando procesos y compartiendo buenas prácticas con el equipo.",
+    "Al participar activamente en formaciones, mantener una actitud de servicio y colaborar en entregas o montajes cuando se requiere, demuestra su espíritu de colaborador integral, comprometido no solo con sus tareas, sino con el éxito colectivo del equipo Adzone. CEO / Director General"
+   ]
+  },
+  {
+   "puesto": "Coordinadora Financiera y Administrativa",
+   "nombre_documento": "Gerente Financiero y Administrativo",
+   "area_documento": "Gerencia Financiera y Administrativa",
+   "objetivo": "",
+   "funciones": [
+    "Gestionar y supervisar la ejecución del presupuesto anual de la empresa, controlando los gastos operativos y optimizando el uso de los recursos financieros disponibles.",
+    "Garantizar el cumplimiento de las obligaciones tributarias y financieras, coordinando con el contador las declaraciones fiscales, pagos de impuestos y presentación de estados financieros confiables.",
+    "Gestionar todas las cotizaciones con proveedores junto a contabilidad siempre buscando la rentabilidad para la empresa y la mejor calidad en el servicio solicitado tanto para los clientes, como para Adzone (Minino de 3 cotizaciones).",
+    "Coordinar la logística interna y servicios generales: mantenimiento de oficinas, insumos de oficina, tecnología básica y proveedores de servicios (internet, limpieza, seguridad), asegurando un ambiente de trabajo adecuado.",
+    "Velar por el cumplimiento de obligaciones legales y societarias: mantener actualizada la documentación legal de la empresa (RNC, registro mercantil, estatutos, PYME, permisos, etc.) y gestionar la preparación de licitaciones, contratos con clientes, y proveedores en coordinación con el área legal.",
+    "Gestionar áreas administrativas de recursos humanos en conjunto con Gestión del Talento: supervisar nómina, contratos, beneficios y cumplimiento de las normativas laborales (TSS, Ministerio de Trabajo).",
+    "Preparar informes de gestión administrativa y financiera para la Dirección General, incluyendo análisis de KPIs operativos, flujo de caja, rentabilidad por proyecto, y recomendaciones para mejorar la eficiencia y reducir costos.",
+    "Implementar procesos administrativos y herramientas (por ej. un software ERP/CRM de gestión) que aumenten la automatización y medición de objetivos internos, facilitando la toma de decisiones basada en datos.",
+    "Revisar y elaborar con el asesoramiento de abogados contratos con clientes, proveedores y aliados, asegurándose de que protejan los intereses de Adzone, cumplan con la legalidad vigente y reflejen adecuadamente los acuerdos comerciales (alcances, entregables, plazos, pagos, cláusulas de confidencialidad y propiedad intelectual, etc.).",
+    "Mantener actualizados al director general, director comercial y gerentes, en temas como cumplimiento normativo, participación en licitaciones, propiedad intelectual, y cualquier nuevo requerimiento legal que surja en las operaciones de la agencia.",
+    "Gestionar cualquier disputa o reclamación legal que involucre a la empresa: coordinar la respuesta ante quejas formales de clientes o proveedores, manejar junto con abogados externos los casos que lleguen a instancias judiciales o arbitrales, buscando resolverlos de la mejor manera para la empresa.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Licenciatura en Administración de Empresas, Contabilidad o Gestión Financiera (MBA u otras certificaciones, deseable).",
+    "Experiencia mínima de 5 años en roles gerenciales administrativos y financieros, idealmente en agencias de publicidad, empresas de servicios o PYMEs de rápido crecimiento.",
+    "Conocimiento sólido de contabilidad financiera, análisis presupuestario y normativa fiscal dominicana (impuestos DGII); habilidad para interpretar balances y estados de resultados.",
+    "Habilidades de liderazgo operativo, organización y manejo de conflictos; capacidad para coordinar equipos diversos (finanzas, administración, legal) y trabajar de la mano con otros gerentes departamentales.",
+    "Competencias clave: integridad y confiabilidad, pensamiento analítico, orientación a resultados y eficiencia, dominio de herramientas tecnológicas (Excel avanzado, sistemas contables), y excelentes habilidades de comunicación para reportar a dirección y asesorar a otras áreas."
+   ],
+   "compensacion_variable": [
+    "El Gerente Administrativo y Financiero participa en un plan de incentivos trimestrales: si se cumplen o exceden las metas definidas en los KPIs anteriores (ej., gastos bajo control, ahorro logrado, personal estable y alta satisfacción interna), recibe un bono equivalente al 10% de su salario base por trimestre. Este bono se ajusta proporcionalmente al nivel de logro (por ejemplo, un cumplimiento del 90% de las metas resultará en 9% de bono). Adicionalmente, si la empresa logra hitos financieros anuales importantes (como superar cierto margen de utilidad o implementar con éxito un sistema de gestión nuevo), puede otorgarse un bono anual extraordinario. No monetarios: acceso a capacitaciones avanzadas en finanzas o certificaciones (ej. diplomado en gestión financiera) al alcanzar objetivos, reforzando el desarrollo profesional alineado al rendimiento.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Gerente Administrativo y Financiero es guardián de la honestidad y transparencia en la empresa, asegurando que los números sean claros y que se cumplan las normas y valores éticos en la gestión de recursos. Fomenta la colaboración al servir de enlace entre las áreas administrativas y creativas/comerciales, facilitando que todos cuenten con las herramientas y apoyo necesarios para cumplir sus funciones. Impulsa la innovación en procesos internos, promoviendo mejoras tecnológicas (por ejemplo, implementar softwares de gestión) para hacer más eficiente el trabajo del equipo. Su estilo de liderazgo busca reconocer y apoyar a su equipo (contabilidad, administrativo), creando un ambiente de respeto y reconocimiento donde las contribuciones de cada uno son valoradas. Asimismo, maneja los recursos con visión de sostenibilidad, optimizando costos y eliminando derroches para garantizar la salud financiera a largo plazo y la estabilidad laboral de los colaboradores. Gerente Financiero y Administrativo"
+   ]
+  },
+  {
+   "puesto": "Encargado de Contabilidad y Tesorería",
+   "nombre_documento": "Encargado de Contabilidad y Tesorería",
+   "area_documento": "Gerencia Financiera y Administrativa",
+   "objetivo": "",
+   "funciones": [
+    "Registrar y controlar todas las operaciones contables de la empresa (ingresos, egresos, activos, pasivos), asegurando que la contabilidad esté al día y cumpla con las normas financieras y fiscales vigentes.",
+    "Preparar estados financieros periódicos (mensuales, trimestrales) incluyendo Balance General, Estado de Resultados y Flujo de Caja, brindando información precisa para la toma de decisiones gerenciales.",
+    "Gestionar la tesorería: monitorear el flujo de efectivo, programar pagos a proveedores, nóminas e impuestos, y garantizar que exista liquidez suficiente para las operaciones diarias.",
+    "Coordinar y ejecutar los procesos de cierre contable mensual y anual, calculando depreciaciones, amortizaciones, provisiones y asegurando la correcta conciliación de cuentas bancarias",
+    "Garantizar el cumplimiento tributario: elaborar y presentar a tiempo las declaraciones de impuestos requeridas (ITBIS, retenciones, ISR, etc.), minimizando riesgos de sanciones y atendiendo cualquier requerimiento de la autoridad fiscal.",
+    "Mantener ordenada la documentación contable y soportes (facturas, recibos, comprobantes fiscales), implementando sistemas de archivo físico o digital que faciliten auditorías internas o externas.",
+    "Apoyar al Gerente Administrativo en la elaboración del presupuesto anual y el control presupuestario, proporcionando datos históricos y proyecciones financieras confiables.",
+    "Elaborar presupuestos y cotizaciones para proyectos y campañas, en coordinación con el equipo comercial y de proyectos: analizar los costos de los recursos (horas de personal, producción, insumos) y definir precios competitivos que aseguren la rentabilidad esperada.",
+    "Emitir facturas a clientes de manera puntual y conforme a los acuerdos (contratos, órdenes de compra), asegurando el correcto detalle de los servicios prestados y aplicando los impuestos o retenciones según la normativa.",
+    "Llevar el control de las cuentas por cobrar: monitorear los vencimientos de facturas, enviar recordatorios de pago a los clientes cuando corresponda, y coordinar con el área comercial acciones para acelerar cobros atrasados (llamadas, reprogramaciones).",
+    "Realizar seguimiento de las cuentas por cobrar problemáticas e implementar planes de cobro: establecer acuerdos de pago con clientes morosos, generar alertas de suspensión de servicios si la política de la empresa lo indica, e involucrar asistencia legal en caso necesario de recuperaciones.",
+    "Preparar informes periódicos de gestión de ingresos: reporte de facturación mensual vs metas, estado de cuentas por cobrar y flujo de ingresos proyectado, alertando de cualquier desviación importante al Gerente Administrativo.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Licenciatura en Contabilidad o Contaduría Pública (CPA o estar en proceso de certificación es altamente valorado).",
+    "Experiencia de 4 años en roles de contabilidad general y tesorería; deseable experiencia en empresas de servicios o agencias, familiarizado con facturación de proyectos y manejo de costos indirectos.",
+    "Conocimiento actualizado de las normas contables locales (NIIF para PYMEs, etc.) y de la legislación tributaria dominicana; capacidad para preparar reportes tanto para entes regulatorios como para gerencia interna.",
+    "Manejo avanzado de software contable y hojas de cálculo; experiencia en implementación o uso de sistemas contables integrados (ej. QuickBooks, SAP Business One, Odoo, etc.).",
+    "Altamente organizado y analítico, con habilidad para detectar discrepancias o irregularidades en registros y corregirlas oportunamente.",
+    "Integridad y confiabilidad absolutas, manejando información financiera sensible con ética y confidencialidad.",
+    "Competencias clave: atención al detalle, trabajo enfocado, habilidad numérica, cumplimiento estricto de fechas límite, y buenas habilidades de comunicación para explicar hallazgos financieros a personas no financieras."
+   ],
+   "compensacion_variable": [
+    "El Contador/Tesorero es elegible a un bono anual basado en desempeño financiero y cumplimiento. Dado que su rol tiene un ciclo anual marcado por cierres y auditorías, se define un bono equivalente a hasta un 10% de su salario anual si se alcanzan objetivos como: cierres contables sin errores significativos, cero sanciones fiscales en el año, y entrega de informes en tiempo y forma todo el año. Alternativamente, la empresa puede implementar bonos semestrales de ~5% cada uno tras verificar el cumplimiento semestral de KPIs (esto para mantener motivación continua). Además del bono monetario, la empresa ofrece como incentivo cubrir costos de formación continua (ej. cursos de actualización fiscal, seminarios de NIIF) y reconoce públicamente la labor del área contable en los éxitos financieros de Adzone (lo que refuerza el reconocimiento del trabajo muchas veces silencioso del contador).",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Contador refleja los valores de honestidad y lealtad de la cultura Adzone mediante la administración transparente de las finanzas. Su escrupulosidad y precisión infunden confianza en el equipo, generando un ambiente donde prevalece el respeto a los procedimientos y a la importancia de la integridad financiera. Colabora estrechamente (colaboración) con otras áreas, por ejemplo, trabajando con Comercial para facturación o con Talento para nómina, demostrando disposición de servicio. Aunque su labor es técnica, innova en la optimización de procesos contables, como implementar nuevas herramientas digitales para eficientar reportes, alineándose con el valor de innovación. La organización se asegura de que su trabajo tenga reconocimiento, sabiendo que un buen manejo financiero es base para la sostenibilidad del negocio; por ello, los logros del Contador (ej. auditoría sin salvedades, ahorros fiscales por correcta planificación) se comparten y celebran entre el equipo directivo. CEO / Director General"
+   ]
+  },
+  {
+   "puesto": "Gerente de Marketing y Audiovisuales",
+   "nombre_documento": "Gerente de Marketing y Audiovisuales",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "",
+   "funciones": [
+    "Diseñar la estrategia general de marketing y comunicación de Adzone, así como supervisar las estrategias desarrolladas para los clientes, asegurando coherencia con los objetivos de marca y la obtención de resultados medibles.",
+    "Liderar los equipos creativos y de medios digitales, coordinando las campañas integrales desde la conceptualización hasta la producción y difusión, garantizando altos estándares de calidad en los entregables (piezas gráficas, videos, publicaciones, etc.).",
+    "Desarrollar el plan de contenido y calendario de marketing (tanto para la agencia como guía para clientes), equilibrando los diferentes canales: redes sociales, email marketing, publicidad digital, contenido audiovisual y eventos, para maximizar el alcance e impacto.",
+    "Monitorear las métricas clave de desempeño de marketing (alcance, engagement, conversiones, ROI de campañas) e impulsar mejoras continúas basadas en datos: ajustar tácticas, reasignar presupuesto a canales más efectivos, e implementar nuevas herramientas analíticas cuando sea pertinente.",
+    "Gestionar el presupuesto del departamento de marketing y audiovisuales, asegurándose de una distribución eficiente entre producción de contenido, pauta en medios y desarrollo de proyectos especiales, manteniendo gastos dentro de lo planificado.",
+    "Fomentar la creatividad e innovación en el equipo: establecer sesiones de brainstorming, promover la investigación de tendencias emergentes en marketing digital y tecnología audiovisual, y facilitar capacitaciones para el desarrollo de habilidades innovadoras del personal.",
+    "Representar al departamento frente a clientes estratégicos en presentaciones importantes, explicando las propuestas creativas y de medios, y recabando retroalimentación para ajustes que satisfagan al cliente."
+   ],
+   "perfil_ideal": [
+    "Licenciatura en Marketing, Publicidad, Comunicación o campos afines (especialización o máster en Marketing Digital o Dirección Creativa es un plus).",
+    "Experiencia de 2 años en roles de marketing o dirección creativa, con al menos 3 años en posición de liderazgo de equipos creativos/márketing digital. Ideal experiencia en agencia de publicidad o marketing digital manejando cuentas de diversos sectores.",
+    "Conocimiento amplio de herramientas de marketing digital (SEO, SEM, analítica web, redes sociales), así como de producción audiovisual y diseño gráfico, para poder guiar y entender el trabajo de sus equipos especializados.",
+    "Habilidades probadas de gestión de proyectos y personas: capaz de manejar múltiples campañas simultáneamente, coordinando cronogramas y priorizando recursos, a la vez que inspira al equipo y resuelve conflictos o cuellos de botella creativos.",
+    "Pensamiento estratégico orientado a resultados: sabe traducir objetivos de negocio en iniciativas de marketing concretas y es capaz de justificar las inversiones en medios/producción con base en retornos esperados (ROI).",
+    "Excelentes habilidades de comunicación y presentación, tanto para liderar reuniones internas como para exponer ideas a clientes de manera persuasiva y clara.",
+    "Competencias clave: liderazgo creativo, innovación, visión estratégica, coordinación interdepartamental (trabaja con Comercial, con Tecnología, etc.), adaptabilidad al cambio rápido en tendencias o prioridades del mercado."
+   ],
+   "compensacion_variable": [
+    "Como líder del departamento, el Gerente de Marketing y Audiovisuales es elegible a un bono trimestral de hasta 10% de su salario base sujeto al logro de sus indicadores. Si la mayoría de las campañas cumplen objetivos y los clientes expresan alta satisfacción, y además se mantienen tiempos y presupuestos, se activará el bono completo. Dado que su rol influye directamente en la percepción del cliente, un componente del bono puede vincularse a la retención/crecimiento de cuentas (por ejemplo, si gracias a la calidad del trabajo se renuevan contratos o se ganan cuentas nuevas, se añade una bonificación extra). Adicionalmente, se contemplan incentivos no monetarios: si el gerente logra hitos notables (ej. ganar un premio de la industria por una campaña), la empresa podría financiar su asistencia a un congreso internacional de marketing o proporcionar acciones de la compañía como reconocimiento especial.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Gerente de Marketing y Audiovisuales es un embajador de la creatividad e innovación de Adzone. Fomenta una cultura de colaboración al integrar a los distintos especialistas del equipo (diseño, medios, audiovisual, contenido) en una visión compartida de campaña, y al trabajar también mano a mano con departamentos como Comercial y Tecnología para ofrecer soluciones completas a los clientes. En su liderazgo, practica el respeto y la inclusión de ideas, escuchando a su equipo y valorando la diversidad creativa, lo cual se alinea con la filosofía de tolerancia y respeto mutuo de la empresa. Reconoce los logros individuales y colectivos (por ejemplo, felicita públicamente a un diseñador por una pieza excepcional o al community manager por una campaña viral), creando un ambiente de reconocimiento constante. Además, impulsa iniciativas con propósito, integrando mensajes de responsabilidad social o sostenibilidad en las campañas cuando es posible, demostrando el compromiso de Adzone con trascender positivamente en la sociedad. DESCRIPICION DE PUESTO Gerente de Marketing y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Encargado de Creatividad",
+   "nombre_documento": "Encargado de Creatividad",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "",
+   "funciones": [
+    "Liderar el proceso creativo en la generación de conceptos y campañas publicitarias para clientes y proyectos internos, asegurando que las ideas propuestas sean innovadoras, coherentes con la estrategia de marca y efectivas para la audiencia objetivo.",
+    "Dirigir las sesiones de brainstorming y briefings creativos con el equipo, proporcionando inspiración, referencias y guía clara sobre el enfoque que deben tener las propuestas visuales y de contenido.",
+    "Revisar y aprobar las piezas creativas clave (artes gráficas, storyboards de video, guiones de contenido) antes de presentarlas al cliente o de pasar a producción, garantizando calidad y alineamiento con la idea central.",
+    "Colaborar estrechamente con el Coordinador de Medios y otros departamentos para integrar la creatividad con los canales de difusión: adaptar ideas al formato de cada medio (digital, impreso, audiovisual) y optimizar mensajes para diferentes plataformas.",
+    "Mantenerse actualizado sobre tendencias de diseño, publicidad y cultura popular, e introducir nuevas técnicas o enfoques creativos que mantengan a Adzone a la vanguardia en propuestas (por ejemplo, uso de realidad aumentada en una campaña, storytelling transmedia, etc.).",
+    "Monitorear y desarrollar el talento creativo del equipo, brindando retroalimentación constructiva, detectando fortalezas de cada miembro y asignándoles proyectos donde puedan lucirse, a la vez que retando al equipo a salir de la zona de confort creativa.",
+    "Participar en presentaciones a clientes de alto nivel, explicando las justificaciones creativas detrás de las campañas, “vendiendo” la idea con pasión y claridad, y receptando también el feedback para refinar las propuestas cuando sea necesario."
+   ],
+   "perfil_ideal": [
+    "Licenciatura en Publicidad, Diseño Gráfico, Comunicación Audiovisual o campos afines; formación complementaria en creatividad publicitaria (cursos, talleres) y un portafolio sólido de campañas es esencial.",
+    "Experiencia de 3 años en agencias de publicidad o estudios creativos, habiendo ocupado roles de director creativo, director de arte senior o redactor creativo senior; con logros demostrables (campañas exitosas, premios creativos).",
+    "Excelente dominio de conceptos de branding, marketing y storytelling; capaz de traducir objetivos de marketing en narrativas visuales y mensajes atractivos.",
+    "Conocimiento práctico de las distintas disciplinas del equipo: diseño gráfico, producción audiovisual, copywriting, fotografía, para poder comunicarse eficazmente con cada especialista y entender las posibilidades y limitaciones de cada medio.",
+    "Alta capacidad de liderazgo inspirador: motiva al equipo a dar lo mejor de sí, maneja bien las críticas del cliente sin desmoralizar al equipo, y es capaz de mediar entre la visión creativa y las consideraciones prácticas o de negocio.",
+    "Habilidades de gestión del tiempo y organización para manejar múltiples proyectos creativos simultáneamente, estableciendo prioridades y cumpliendo deadlines sin comprometer la originalidad.",
+    "Competencias clave: creatividad e innovación fuera de serie, comunicación clara, pensamiento conceptual, pasión por las tendencias culturales, resiliencia ante cambios de dirección o retroalimentación crítica, y trabajo en equipo."
+   ],
+   "compensacion_variable": [
+    "El Encargado de Creatividad cuenta con un bono trimestral asociado al cumplimiento de sus metas clave. Si logra entregar al menos 9 conceptos fuertes en el trimestre (3 por mes) y la mayoría son aprobados por los clientes, manteniendo a la vez la puntualidad y satisfacción indicada, recibirá el 10% de bonificación sobre su salario base. A su vez, si el departamento creativo en su conjunto obtiene reconocimientos (por ejemplo, premios locales por campañas destacadas), la empresa podría otorgarle un incentivo especial. Otros incentivos incluyen la asistencia patrocinada a festivales de creatividad (como Cannes Lions, FIAP) o talleres creativos internacionales, para nutrir su inspiración y reconocer su liderazgo creativo.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Encargado de Creatividad es motor de la innovación y creatividad en Adzone, tal como promueven los valores corporativos. Trabaja en colaboración con su equipo y con otras áreas para materializar ideas integrales, demostrando que las mejores campañas nacen del trabajo conjunto y del intercambio respetuoso de ideas. Fomenta un entorno de respeto y apertura donde todas las ideas son bienvenidas, creando un espacio seguro para la expresión creativa (coherente con el valor de respeto y tolerancia). Reconoce el talento de sus colaboradores, celebrando sus aportes (ej. destacando públicamente el diseño excepcional de un artista gráfico), lo que alimenta la motivación y el reconocimiento personal. Asimismo, se asegura de que las ideas no solo sean innovadoras sino también responsables, integrando consideraciones éticas o de sostenibilidad en las propuestas (por ejemplo, campañas con mensaje social positivo o con producción eco-amigable), alineándose así con la visión de una creatividad con impacto constructivo en la sociedad Gerente De Marketing Y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Community Manager",
+   "nombre_documento": "Community Manager",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "",
+   "funciones": [
+    "Gestionar las redes sociales de Adzone y/o de los clientes asignados, planificando y ejecutando calendarios de contenido mensual que alineen los mensajes clave de la marca con fechas relevantes, lanzamientos y tendencias del momento.",
+    "Crear, programar y publicar contenidos diarios o periódicos en las diversas plataformas (Facebook, Instagram, Twitter, LinkedIn, TikTok, etc.), adaptando el formato y tono de comunicación a cada red para maximizar el impacto (imágenes, videos cortos, stories, posts interactivos).",
+    "Monitorear la interacción de la comunidad digital: responder al menos el 90% de los comentarios, mensajes directos y menciones en un lapso menor a 24 horas, fomentando conversaciones positivas, aclarando dudas e involucrando a la audiencia.",
+    "Incrementar el engagement y la base de seguidores de manera orgánica: implementar tácticas para estimular la participación (encuestas, concursos, preguntas a la audiencia) que resulten en un crecimiento mensual de aproximadamente 10% en interacciones.",
+    "Identificar oportunidades de contenido viral o de trending topics: estar atento a temas del momento (memes, retos virales, noticias relevantes) para insertar a la marca de forma creativa y oportuna, generando al menos un contenido de alto impacto viral por trimestre.",
+    "Analizar las métricas de redes sociales utilizando herramientas (Facebook Insights, Instagram Analytics, etc.): generar reportes mensuales de rendimiento, destacando crecimiento de seguidores, tasa de engagement, posts de mejor desempeño, y recomendaciones para optimizar la estrategia de contenido.",
+    "Coordinar con el equipo de diseño gráfico y audiovisual la creación de las piezas necesarias para las redes (imágenes, infografías, videos cortos), proporcionando briefs claros y asegurando que el resultado final se ajuste a las necesidades de cada publicación."
+   ],
+   "perfil_ideal": [
+    "Licenciatura o estudios técnicos en Comunicación, Publicidad, Marketing Digital o Periodismo. (Alternativamente, experiencia demostrada fuerte en manejo de comunidades online).",
+    "Experiencia de 2 años gestionando redes sociales corporativas o de marcas, con conocimiento de las mejores prácticas de publicación, horarios óptimos, y dinámica de cada plataforma.",
+    "Excelentes habilidades de redacción creativa en español (y preferiblemente inglés básico), capaz de ad",
+    "Excelentes habilidades de redacción creativa en español (y preferiblemente inglés básico), capaz de adaptar el “voice & tone” de la marca en mensajes cortos, atractivos y sin errores.",
+    "Creatividad para generar contenido original que destaque, incluyendo nociones básicas de diseño o edición de imágenes/videos para crear piezas sencillas cuando sea necesario.",
+    "Conocimiento de herramientas de gestión de redes (Hootsuite, Buffer, Meta Business Suite) para programar contenido y monitorear múltiples cuentas eficientemente.",
+    "Habilidad de servicio al cliente en entornos digitales: empatía, tacto y rapidez para atender tanto comentarios positivos como quejas o crisis en redes de manera profesional.",
+    "Competencias clave: proactividad, alta capacidad de respuesta, intuición para anticipar reacciones de la comunidad, gusto por mantenerse actualizado en cultura digital (tendencias, memes, nuevas funciones en redes sociales) y capacidad de trabajo bajo ritmo constante."
+   ],
+   "compensacion_variable": [
+    "El Community Manager podrá recibir un bono trimestral equivalente al 10% de su salario base si alcanza o supera las metas clave de engagement, respuesta y crecimiento establecidas. Por ejemplo, si en un trimestre logra aumentar significativamente la interacción en las redes y mantiene tiempos de respuesta ejemplares, se hará acreedor al bono completo. Además, Adzone incentiva la excelencia creativa con recompensas especiales: si un contenido se vuelve viral de manera destacada (excediendo ampliamente expectativas), se otorga un premio anual por contenido viral que puede ser monetario o en especie (ej. un gadget tecnológico) También se implementan incentivos de bienestar: un desempeño sobresaliente sostenido puede premiarse con días libres adicionales o reconocimientos públicos Todos estos componentes buscan motivar la dedicación y creatividad del Community Manager, clave para la presencia de marca.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Community Manager es la voz de la empresa en el mundo digital, por lo que su trabajo refleja intensamente la cultura de Adzone. Al interactuar con la audiencia con cercanía y profesionalismo, encarna el respeto y tolerancia incluso ante comentarios difíciles, alineándose con los protocolos de respeto mutuo de la compañía. Su constante vigilancia y respuesta rápida evidencian compromiso y colaboración, ya que trabaja con otras áreas (contenido, diseño) para entregar respuestas e información precisa. Las iniciativas creativas que propone en redes demuestran innovación y creatividad, tal como promueve la filosofía de Adzone de premiar las buenas ideas. Cuando destaca el aporte de seguidores o reconoce públicamente a usuarios, practica la cultura de reconocimiento, valorando a la comunidad. Finalmente, integra valores de sostenibilidad y responsabilidad en la narrativa de la marca cuando es posible (por ejemplo, compartiendo contenidos sobre iniciativas sostenibles de la empresa), ayudando a proyectar los valores organizacionales al público externo de manera coherente. Gerente De Marketing Y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Encargado de Producción Audiovisual",
+   "nombre_documento": "Encargado de Producción Audiovisual",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "",
+   "funciones": [
+    "Planificar y coordinar la producción de contenidos audiovisuales (videos promocionales, anuncios, cortometrajes corporativos, animaciones, etc.) desde la preproducción hasta la postproducción, siguiendo el brief creativo acordado.",
+    "Desarrollar guiones técnicos o storyboards basados en las ideas creativas: definir escenas, tomas, diálogos o voice - overs necesarios, y preparar el plan de rodaje (shot list, locaciones, elenco si aplica, y recursos técnicos requeridos).",
+    "Gestionar la logística de rodajes y sesiones de fotografía/video: asegurar la reserva de locaciones, permisos de filmación, castings de talento o locutores, contratación de equipo técnico externo (cámaras, iluminación, asistentes) de ser necesario, y coordinación de horarios.",
+    "Dirigir en campo las filmaciones o sesiones, liderando al equipo técnico y al talento para obtener las tomas deseadas; resolver imprevistos durante la grabación (clima, fallos técnicos, cambios solicitados) ajustando el plan sobre la marcha sin perder la esencia buscada.",
+    "Supervisar el proceso de postproducción junto al Editor: revisar los cortes de video, aportar indicaciones sobre ritmo, transiciones, música, efectos y correcciones de color, garantizando que el producto final sea de alta calidad y cumpla con los objetivos narrativos.",
+    "Controlar que el proyecto audiovisual se mantenga dentro del presupuesto y plazos establecidos: monitorear gastos (alquiler de equipos, honorarios), evitar rehacer tomas costosas salvo que sea imprescindible, y adelantar trabajo de edición en paralelo al rodaje si es posible.",
+    "Implementar estándares técnicos de producción: asegurar que todos los contenidos se generen en las resoluciones y formatos óptimos para su difusión (ej. Full HD, 4K, formatos adaptados a redes sociales) y archivar ordenadamente el material bruto y editado para uso futuro."
+   ],
+   "perfil_ideal": [
+    "Licenciatura en Comunicación Audiovisual, Cinematografía, Producción Digital o experiencia comprobada equivalente en campo audiovisual.",
+    "Experiencia de 4 años en producción de video, habiendo desempeñado roles como productor, director de producción o coordinador en proyectos audiovisuales de publicidad o contenido corporativo.",
+    "Conocimientos sólidos de técnicas de filmación, iluminación y sonido; familiaridad con equipos (cámaras DSLR/cine, micrófonos, iluminación LED) y su correcto uso para obtener resultados profesionales.",
+    "Entendimiento del proceso creativo y publicitario: capaz de traducir conceptos de marketing en escenas concretas que transmitan el mensaje deseado al espectador.",
+    "Excelentes habilidades organizativas y de gestión de proyectos: capaz de manejar múltiples elementos logísticos y un equipo diverso (desde creativos hasta técnicos) asegurando que todo confluya el día de la filmación.",
+    "Creatividad en la realización: aportar ideas de dirección de arte, encuadres innovadores o estilos narrativos que enriquezcan el video; a la vez que receptividad para ajustar la visión según feedback del director creativo o del cliente.",
+    "Competencias clave: resolución de problemas en tiempo real, liderazgo en campo, atención al detalle (para continuidad, vestuario, etc.), comunicación clara, y tolerancia al trabajo bajo presión en fechas límite."
+   ],
+   "compensacion_variable": [
+    "El Encargado de Produccion Audiovisual puede recibir una bonificación trimestral (10% del salario base) si logra sistemáticamente entregar sus proyectos con alta calidad y dentro de los plazos y costos acordados. Por ejemplo, si en un trimestre todos los videos planificados se completan a tiempo y satisfacen plenamente al cliente, el bono se otorga en su totalidad. Si ocurre algún retraso o sobrecoste significativo evitable, el bono disminuye proporcionalmente. Adicionalmente, por proyectos d especial envergadura (ej. un comercial de alto presupuesto que resulte exitoso), se puede contemplar un bono por proyecto completado exitosamente. La empresa también incentiva su desarrollo profesional: provee asistencia para cursos avanzados (ej. dirección de fotografía, postproducción avanzada) y le permite acceder a equipamiento de punta; estos beneficios suelen atarse al cumplimiento de KPIs de mejora continua y calidad en los trabajos realizados, reforzando una cultura de recompensa al mérito.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "Como productor, este rol requiere colaboración intensa con múltiples talentos (creativos, técnicos, clientes), y el éxito de cada rodaje es una demostración tangible del trabajo en equipo, valor esencial en Adzone. La innovación está presente en su día a día al buscar maneras nuevas de contar historias visuales y usar tecnología de vanguardia para sorprender a la audiencia, en sintonía con la apuesta de Adzone por creatividad y tecnología punta. Su liderazgo en el set promueve un ambiente de respeto y profesionalismo, tratando con igual consideración al cliente que visita la filmación, al actor, al técnico de luces o al asistente, asegurando que todos se sientan valorados en su contribución. Tras culminar cada proyecto, reconoce los esfuerzos del equipo de producción y edición, fomentando el reconocimiento mutuo en victorias grandes y pequeñas (ej. agradeciendo explícitamente a un camarógrafo por una toma espectacular). Además, al optimizar recursos (reutilizar escenografías, gestionar bien las horas extra) y planificar con antelación, practica la sostenibilidad en producción, evitando despilfarros y mostrando responsabilidad con el presupuesto y con el impacto (por ejemplo, minimizando residuos en rodajes), lo cual refleja los valores de Adzone más allá de la pantalla. Gerente De Marketing Y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Especialista en Fotografía y Video",
+   "nombre_documento": "Especialista en Fotografía y Video",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "",
+   "funciones": [
+    "Realizar sesiones fotográficas y filmaciones de video para las diversas necesidades de Adzone y sus clientes: cobertura de eventos, sesiones de productos, fotos corporativas, material para redes sociales, making-of de proyectos, etc., asegurando obtener tomas de alta calidad y acordes a la finalidad definida.",
+    "Preparar el equipo fotográfico y de video antes de cada sesión: cámaras (DSLR / mirrorless), lentes adecuados, iluminación (flash, softboxes, reflectores) y audio si corresponde, calibrándolos según las condiciones de luz y efecto deseados.",
+    "Dirigir, en caso de ser necesario, a las personas que van a ser fotografiadas o filmadas (ej. modelos, staff del cliente en fotos corporativas), dándoles indicaciones sencillas de pose o movimiento para lograr imágenes naturales y profesionales.",
+    "Capturar múltiples opciones de encuadre y composición creativa, experimentando con ángulos, profundidades de campo y encuadres, para proveer material variado que el equipo creativo pueda luego seleccionar y utilizar en distintos formatos.",
+    "Realizar una selección y edición básica de fotografías: descarte de tomas defectuosas, ajuste de exposición/colores en Lightroom o software similar, retoque menor (limpieza de imperfecciones, recortes) antes de entregar al equipo de diseño o al cliente. Para video, aportar en la clasificación de tomas y proveer notas al editor sobre la intención de cada clip.",
+    "Catalogar y archivar ordenadamente el material fotográfico y de video generado, manteniendo una biblioteca multimedia organizada con etiquetas o metadata, para facilitar su localización y reutilización futura en otros proyectos.",
+    "Mantenerse al día con técnicas fotográficas y cinematográficas modernas (uso de drones para tomas aéreas, cámaras lentas, hyperlapses, etc.) y proponer su aplicación cuando aporten valor a un proyecto, elevando así el nivel de producción.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Formación técnica o universitaria en Fotografía, Comunicación Audiovisual, Artes Multimedia o experiencia práctica equivalente en fotografía/videografía profesional.",
+    "Experiencia de 3 años como fotógrafo y videógrafo profesional, preferiblemente con portafolio que incluya fotografía comercial, retratos corporativos y videos promocionales.",
+    "Dominio de cámaras profesionales y sus configuraciones manuales (exposición, balance de blancos, enfoque, ISO), así como conocimiento de iluminación artificial y natural para distintas situaciones.",
+    "Conocimientos básicos de edición de fotografía (Adobe Photoshop/Lightroom) y familiaridad con edición de video (Adobe Premiere, Final Cut) para entender cómo se integrarán sus tomas en los productos finales.",
+    "Buen ojo estético y composición: principios de regla de tercios, manejo del color, narrativa visual para lograr fotos y secuencias de video atractivas y alineadas con la identidad de la marca.",
+    "Capacidad de trabajar en exteriores o interiores adaptándose a condiciones variables (clima, espacios reducidos, iluminación desafiante) y resolviendo con creatividad limitaciones técnicas.",
+    "Competencias clave: atención al detalle, paciencia y perseverancia (esperar o repetir tomas hasta lograr la imagen deseada), comunicación efectiva, y manejo del tiempo para cumplir con sesiones y entregas."
+   ],
+   "compensacion_variable": [
+    "El especialista en fotografía y video podrá recibir un bono variable trimestral del 10% en base a su desempeño. Este bonose calculará considerando la satisfacción general con su trabajo (feedback de gerentes y clientes) y el cumplimiento de metas de calidad y tiempo. Si, por ejemplo, en el semestre todas las sesiones asignadas se realizaron exitosamente y el 90% de las tomas cumplieron expectativas sin rehacer, se otorgaría el bono completo. Adicionalmente, se pueden implementar pagos extra por disponibilidad en proyectos especiales que requieran horarios atípicos (ej. bono por cubrir un evento de fin de semana) o por dominio de técnicas especializadas (ej. pilotar un dron con licencia). Como incentivo al crecimiento, Adzone puede proveerle equipamiento nuevo para uso (o subsidios para compra personal) tras periodos de buen desempeño, o costear su participación en workshops y concursos de fotografía creativa, reconociendo así su aporte artístico.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "En cada disparo de cámara, el Especialista en Foto/Video captura la esencia que Adzone quiere proyectar; su dedicación a la calidad y la innovación visual está alineada con la búsqueda constante de excelencia creativa de la empresa. Trabaja en colaboración con directores, productores y demás creativos, entendiendo que su rol es parte de un engranaje mayor para entregar un mensaje cohesivo. Durante las sesiones, demuestra respeto hacia todos los involucrados (colaboradores posando, personal del lugar, etc.), creando un ambiente cómodo que permite obtener lo mejor de cada persona fotografiada. Recibe reconocimiento cuando sus imágenes se convierten en la portada de una campaña exitosa o en una pieza muy compartida, y a su vez, él reconoce al equipo (por ejemplo, agradeciendo al asistente de iluminación cuyo trabajo hizo posible esa toma perfecta). Asimismo, su sensibilidad visual le permite destacar aspectos de sostenibilidad y responsabilidad en las imágenes (como realzar prácticas ecológicas de un cliente), contribuyendo a difundir esos valores. En suma, su labor artística y técnica es fundamental para personificar la cultura de Adzone en contenidos visuales auténticos y de alto impacto. Gerente de Eventos e Impresiones"
+   ]
+  },
+  {
+   "puesto": "Asistente de Catering y Servicios Generales",
+   "nombre_documento": "Asistente de Catering y Servicios Generales",
+   "area_documento": "Gerencia de Eventos e Impresiones",
+   "objetivo": "Garantizar el orden, la limpieza y el mantenimiento óptimo de las instalaciones de Adzone, así como la correcta preparación y atención de catering y refrigerios en eventos internos o externos, contribuyendo a un ambiente de trabajo eficiente, seguro y alineado con la cultura organizacional.",
+   "funciones": [
+    "Mantener limpios y organizados los espacios comunes, oficinas, salas de reuniones y áreas de eventos.",
+    "Mantener limpios y en buen estado los utensilios de cristalería y cubertería de eventos y Catering.",
+    "Llevar el control de la entrada y salida del inventario de eventos y catering.",
+    "Apoyar en el montaje y desmontaje de estaciones de café, refrigerios o catering durante eventos, almuerzos, cenas, capacitaciones y visitas a la empresa.",
+    "Controlar y optimizar el uso de insumos de limpieza, cocina y cafetería, evitando desperdicios.",
+    "Dar soporte con los telares, manteles y cintas que se colocan en los eventos y catering.",
+    "Cumplir con los cronogramas asignados y registrar las tareas realizadas.",
+    "Asegurar la correcta limpieza y disposición del área al final de cada jornada o evento.",
+    "Comunicar a tiempo cualquier desperfecto, daño o necesidad de reposición de inventario.",
+    "Asistir a las capacitaciones internas de buenas prácticas, seguridad y uso eficiente de recursos.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Escolaridad básica o media completa.",
+    "Experiencia previa en servicios generales, limpieza institucional, asistencia de cocina/catering o soporte operativo.",
+    "Actitud de servicio, puntualidad, orden, iniciativa y buena comunicación."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral por cumplimiento de metas organizacionales, equivalente a aproximadamente 10% del salario base trimestral, si el asistente de catering y servicios generales cumple con los indicadores establecidos, muestra disciplina, actitud positiva y mantiene los estándares de limpieza, orden y apoyo operativo.",
+    "Condiciones del bono: 100% de cumplimiento: 8% del salario base trimestral como bono. 80% – 99% de cumplimiento: bono proporcional. Menos de 79%: no aplica bono."
+   ],
+   "beneficios": [
+    "Bonos por desempeño excepcional en auditorías o inspecciones internas y de catering.",
+    "Días adicionales de descanso por cumplimiento sostenido de objetivos.",
+    "Premios anuales por desempeño destacado (viajes, reconocimientos y bonificaciones).",
+    "Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone.",
+    "Participación en programas de formación, desarrollo personal y actividades de integración."
+   ],
+   "alineacion_cultural": [
+    "Este rol representa los valores más visibles de compromiso, orden, respeto y actitud de servicio dentro de Adzone. A través de su trabajo diario, este colaborador aporta a la comodidad, seguridad y bienestar de todo el equipo, siendo un reflejo del profesionalismo silencioso que sostiene la excelencia operativa.",
+    "Desde la limpieza de espacios hasta la preparación de refrigerios, cada acción es ejecutada con cuidado y responsabilidad, demostrando que el trabajo bien hecho comienza por los detalles. Al apoyar en eventos y servicios internos, actúa con cortesía, alegría y disposición, generando un ambiente donde todos se sienten bien atendidos. Promueve la innovación y eficiencia al proponer mejoras en la organización de materiales o sugerencias para reducir desperdicios. Su participación activa en actividades de cultura, celebraciones y capacitaciones demuestra su integración plena como colaborador de Adzone. Finalmente, su compromiso diario inspira al equipo a cuidar y valorar los recursos de la empresa, alineándose con el enfoque de sostenibilidad y responsabilidad de Adzone como una organización moderna. Gerente De Marketing Y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Encargado de Medios Digitales",
+   "nombre_documento": "Coordinador de Medios",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "Coordinar la planificación, diseño, distribución y monitoreo de los contenidos visuales y audiovisuales de Adzone Digital Marketing, asegurando la coherencia estética, calidad técnica y cumplimiento de tiempos, alineados con los objetivos de marca, cultura y campañas del cliente.",
+   "funciones": [
+    "Supervisar la producción visual de campañas (videos, reels, diseños, artes animados) desde el brief hasta la publicación.",
+    "Organizar cronogramas de producción de piezas gráficas, audiovisuales y animaciones en coordinación con las demás áreas creativas.",
+    "Asignar tareas al equipo de medios según especialidad y carga de trabajo.",
+    "Garantizar la coherencia estética, fidelidad al branding y calidad visual de las entregas.",
+    "Ser enlace entre diseño, audiovisual, cuentas y estrategia para asegurar la correcta interpretación de los lineamientos del cliente.",
+    "Validar entregas antes de su publicación o envío a clientes.",
+    "Realizar control de calidad visual y técnico en piezas gráficas, videos, animaciones o presentaciones.",
+    "Documentar entregas, mantener respaldos organizados y reportar estatus de ejecución a la Dirección Creativa.",
+    "Participar en reuniones de planificación creativa y dar soporte en campañas de alto impacto.",
+    "Evaluar desempeño del equipo de medios en proyectos, proponiendo mejoras continuas.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Profesional en Comunicación Visual, Diseño Gráfico, Producción Audiovisual o áreas afines.",
+    "2 años en coordinación de equipos creativos o producción de contenidos visuales.",
+    "Conocimiento intermedio-avanzado de software de diseño y edición (Adobe Suite, Premiere, etc.).",
+    "Habilidad para liderar cronogramas de múltiples proyectos simultáneos.",
+    "Capacidad crítica y estética para validar piezas visuales.",
+    "Competencias: liderazgo operativo, comunicación efectiva, gestión de prioridades, visión creativa, trabajo en equipo."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral de hasta un 10% del salario base, basado en cumplimiento de metas creativas y organizacionales.",
+    "Acceso a herramientas premium (software, stock, etc.) para optimizar procesos de diseño y medios.",
+    "Reconocimiento adicional si logra coordinación impecable en campañas de alto volumen.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Coordinador de Medios representa la excelencia organizativa del equipo creativo, promueve una cultura de planificación, estética coherente y trabajo en equipo. Su liderazgo con humildad y enfoque en resultados visuales impactantes lo convierte en un puente clave entre creatividad, estrategia y ejecución. Gerente De Marketing Y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Editor de Animación, 3D y VFX",
+   "nombre_documento": "Editor / Animador 3D VFX",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "Diseñar y animar elementos gráficos tridimensionales y efectos visuales (VFX) para videos, activaciones digitales y piezas publicitarias, asegurando un acabado profesional, innovador y alineado con la narrativa y valores visuales de Adzone.",
+   "funciones": [
+    "Modelar, texturizar e iluminar elementos 3D para uso en piezas audiovisuales.",
+    "Crear efectos visuales (partículas, explosiones, entornos virtuales, motion design) en campañas o contenidos institucionales.",
+    "Componer y renderizar escenas que integren gráficos tridimensionales con material real (chroma, tracking, etc.).",
+    "Adaptar animaciones a distintos formatos de publicación: TV, redes, eventos, realidad aumentada.",
+    "Colaborar con editores, diseñadores y programadores para integrar efectos a otras plataformas (web, apps, eventos interactivos).",
+    "Gestionar versiones de archivo y flujos de render en proyectos complejos.",
+    "Probar nuevas herramientas de animación y efectos, proponiendo técnicas que eleven el estándar de calidad visual.",
+    "Participar en brainstormings de concepto visual y storytelling para campañas.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Profesional o técnico en Animación, Diseño Digital, Efectos Visuales o carreras afines.",
+    "2 años de experiencia con software de animación 3D y VFX (Blender, Cinema 4D, After Effects, Unreal Engine).",
+    "Capacidad narrativa visual, comprensión de dinámica de cámara, luz y color.",
+    "Curioso/a, autodidacta y detallista.",
+    "Competencias: pensamiento visual, innovación técnica, proactividad, orden, adaptabilidad y orientación a calidad."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral de hasta un 10% del salario base por desempeño técnico y creativo sobresaliente.",
+    "Reconocimiento económico adicional por piezas que obtengan visibilidad pública, premios o viralización significativa.",
+    "Acceso a cursos, plugins o licencias especializadas para mantener su nivel técnico actualizado.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Animador 3D VFX de Adzone es la encarnación del arte técnico: transforma ideas en escenas memorables. Su innovación constante, apertura al feedback, pasión por la calidad visual y colaboración con otras áreas lo convierten en pieza clave del espíritu creativo de la agencia. Cada render que entrega no es solo animación, es cultura Adzone en movimiento. Gerente De Marketing Y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Diseñador Gráfico Junior",
+   "nombre_documento": "Diseñador Gráfico Junior",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "Apoyar la creación de piezas gráficas digitales e impresas alineadas con los lineamientos de marca y objetivos de comunicación de Adzone y sus clientes, asegurando una ejecución visual coherente, funcional y creativa bajo supervisión directa del gerente de marketing y audiovisuales.",
+   "funciones": [
+    "Diseñar piezas gráficas básicas para redes sociales, presentaciones, piezas internas, papelería y material publicitario según brief aprobado.",
+    "Adaptar artes maestros y plantillas a distintos formatos y plataformas (feed, historias, banners, reels, etc.).",
+    "Preparar archivos para impresión siguiendo requerimientos técnicos (sangrado, resolución, tipografía, etc.).",
+    "Apoyar en la organización del banco de imágenes, íconos, mockups y plantillas del área.",
+    "Participar en sesiones de retroalimentación con el equipo creativo, mostrando apertura para mejorar su trabajo.",
+    "Recibir entrenamiento continuo en tendencias, herramientas y buenas prácticas de diseño visual.",
+    "Cumplir con deadlines establecidos, entregando archivos organizados y editables según estándares del equipo.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Estudiante universitario o técnico en Diseño Gráfico, Comunicación Visual o carreras afines.",
+    "6 meses a 1 año de experiencia en diseño gráfico (prácticas, pasantías o proyectos personales).",
+    "Conocimiento básico en Adobe Illustrator, Photoshop e InDesign (After Effects o Figma es un plus).",
+    "Creativo, detallista y proactivo, con voluntad de aprender y trabajar en equipo.",
+    "Capacidad para adaptarse a correcciones, trabajar bajo presión y con múltiples encargos."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral hasta un 10% del salario base por cumplimiento de metas creativas y operativas.",
+    "Incentivo adicional por evolución acelerada (si asciende a nivel Senior en menos de 12 meses, recibe bono único).",
+    "Acceso a cursos patrocinados y herramientas premium de diseño tras buen desempeño continuo.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Diseñador Junior es parte activa del proceso creativo, aprendiendo del equipo y aportando con humildad y dedicación. Refleja los valores de respeto, al aceptar correcciones con actitud constructiva; honestidad, al reconocer sus límites y buscar apoyo cuando lo necesita; compromiso, al entregar siempre con calidad y cumplir tiempos; e innovación, al proponer ideas frescas y estar abierto a experimentar. Su crecimiento refleja la visión de Adzone de formar talento desde dentro.",
+    "Gerente De Marketing Y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Diseñador Gráfico Senior",
+   "nombre_documento": "Diseñador Gráfico Senior",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "Liderar el desarrollo de conceptos visuales y la ejecución de piezas gráficas de alto impacto para campañas digitales, branding, eventos y materiales corporativos. Garantiza la calidad visual, coherencia de marca y creatividad en cada entrega, guiando a diseñadores junior y colaborando con cuentas, marketing y producción.",
+   "funciones": [
+    "Crear conceptos gráficos originales a partir de briefings y objetivos estratégicos.",
+    "Diseñar campañas completas para marcas: identidad visual, artes para redes, animaciones, impresos y más.",
+    "Supervisar el trabajo de diseñadores junior, asegurando su alineación con los lineamientos de marca y calidad.",
+    "Coordinar con el gerente de marketing el desarrollo de piezas clave para concursos, lanzamientos o campañas especiales.",
+    "Adaptar creatividades a múltiples formatos (digitales e impresos), considerando especificaciones técnicas.",
+    "Participar en brainstormings y proponer ideas visuales innovadoras que fortalezcan el mensaje de marca.",
+    "Apoyar la implementación de sistemas gráficos, plantillas y estándares visuales en el área creativa.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Lic. en Diseño Gráfico, Artes Visuales, Comunicación o afines.",
+    "3 años de experiencia en agencias o proyectos creativos de alto nivel.",
+    "Dominio experto de Adobe Creative Suite (Illustrator, Photoshop, InDesign, After Effects, Corel draw etc.).",
+    "Conocimiento de principios de branding, color, tipografía y composición. (Crear identidad visual de la marca desde cero)",
+    "Capacidad de conceptualización visual, pensamiento estratégico y sentido comercial.",
+    "Buen manejo del tiempo, liderazgo colaborativo y comunicación clara."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral del 10% del salario base si cumple sus KPIs.",
+    "Bono adicional si campañas diseñadas ganan premios o se viralizan.",
+    "Acceso a conferencias de diseño, festivales creativos y software especializado.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "El Diseñador Senior es una figura de inspiración en Adzone. Representa la excelencia visual y también la colaboración: guía al equipo con humildad, comparte conocimiento y es puente entre la idea y la ejecución perfecta. Aporta soluciones innovadoras alineadas a la estrategia de cada cliente, manteniendo siempre la identidad visual y respeto por los procesos. Su liderazgo informal construye una cultura de mejora continua, estética impecable y trabajo con propósito.",
+    "Gerente De Marketing Y Audiovisuales"
+   ]
+  },
+  {
+   "puesto": "Coordinador de Contenido y Podcast",
+   "nombre_documento": "Coordinador de Estudio de Contenido y Podcast",
+   "area_documento": "Gerencia de Marketing y Audiovisuales",
+   "objetivo": "Coordinar la operación del estudio interno de grabación de Adzone, asegurando la producción técnica, logística y de contenido de podcasts, cápsulas, entrevistas, contenidos audiovisuales y transmisiones especiales, garantizando calidad de sonido, imagen, agenda y alineación estratégica.",
+   "funciones": [
+    "Coordinar grabaciones semanales del podcast y otros formatos: establecer agenda, coordinar invitados, preparar el set y revisar guiones o pautas.",
+    "Supervisar aspectos técnicos de grabación: audio, cámaras, luces, micrófonos, software de grabación.",
+    "Apoyar en la edición inicial o supervisar entregables del editor audiovisual (cuando aplica).",
+    "Gestionar la agenda de uso del estudio y velar por el orden, limpieza funcionamiento del mismo.",
+    "Trabajar con el equipo de contenido y marketing para alinear la temática de cada grabación con los objetivos editoriales y comerciales de Adzone.",
+    "Implementar mejoras continuas en el formato y dinámica del estudio (mejoras técnicas, nuevos formatos, recursos interactivos).",
+    "Realizar pruebas técnicas, backups de archivos, etiquetado y almacenamiento ordenado del material grabado.",
+    "Manejo adecuado y eficiente de los recursos, materiales, financieros y tecnológicos asignados. (En caso de descuido o daño en el inventario asignado bajo su custodia se cobrará el 15% del costo del producto al colaborador responsable, esto no aplica cuando el producto de deteriora por vida útil).",
+    "Manejo con debida confidencialidad y seguridad de las informaciones de los clientes y de todo lo relacionado con Adzone Digital Marketing."
+   ],
+   "perfil_ideal": [
+    "Técnico o Lic. en Comunicación Audiovisual, Producción Multimedia.",
+    "Periodismo Digital o afines.",
+    "Experiencia mínima de 1 año en estudios de grabación de contenido o proyectos multimedia.",
+    "Conocimiento técnico en sonido, iluminación, cámaras, software de edición (Premiere, Audition, OBS, etc.).",
+    "Capacidad para coordinar invitados, cumplir con agendas, y seguir protocolos editoriales.",
+    "Creativo, organizado, con atención al detalle y pasión por la producción de contenido."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral del 10% del salario base si cumple con los KPIs establecidos.",
+    "Bono adicional si un contenido producido es nominado o premiado públicamente.",
+    "Acceso a formación continua en producción audiovisual, storytelling y edición avanzada.",
+    "Condiciones del bono: Premios anuales por desempeño destacado en todos los trimestres (viajes, reconocimientos y bonificaciones). Días libres por desempeño destacado trimestral. Oportunidades de desarrollo profesional dentro de la estructura organizacional de Adzone. Participación en programas de formación, desarrollo personal y actividades de integración. 100% de cumplimiento: 10% del salario base trimestral como bono. 80%-99% de cumplimiento: Bono proporcional. Menos de 79% No aplica bono."
+   ],
+   "beneficios": [],
+   "alineacion_cultural": [
+    "Este rol combina técnica y contenido, siendo clave para que Adzone comunique desde adentro hacia afuera. El coordinador actúa como puente entre estrategia, creatividad y producción, garantizando que lo que se dice y cómo se ve y escucha esté a la altura de los valores de la empresa. Demuestra innovación al proponer nuevos formatos, respeto al colaborar con invitados y colegas, honestidad en su trabajo diario, y compromiso al asegurar una producción impecable que representa la esencia de Adzone en cada episodio."
+   ]
+  }
+ ]
+}

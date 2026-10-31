@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from apps.core.models import Departamento
 from django.contrib.auth.models import User # Necesario para PerfilUsuario
@@ -28,6 +30,12 @@ class PuestoDeTrabajo(models.Model):
         null=True,
         verbose_name="Funciones Principales"
     )
+    # Descripción de puesto oficial (documento «Descripción de Puestos – ADZONE»). Una línea por punto.
+    objetivo = models.TextField(blank=True, default='', verbose_name="Objetivo del puesto")
+    perfil_ideal = models.TextField(blank=True, default='', verbose_name="Perfil ideal")
+    compensacion_variable = models.TextField(blank=True, default='', verbose_name="Compensación variable")
+    beneficios = models.TextField(blank=True, default='', verbose_name="Beneficios adicionales")
+    alineacion_cultural = models.TextField(blank=True, default='', verbose_name="Alineación con la cultura")
     fecha_creacion = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Fecha de Creación"
@@ -69,8 +77,24 @@ class PerfilUsuario(models.Model):
     costo_hora = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Costo por hora (RD$)",
         help_text="Solo lo ve Finanzas. Sirve para calcular la rentabilidad de cada proyecto.")
+    salario_mensual = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Salario mensual (RD$)",
+        help_text="Solo lo ven los administradores. Si no hay costo por hora, se calcula: salario ÷ 23.83 días ÷ 8 horas.")
+    nomina = models.CharField(
+        max_length=60, blank=True, default='', verbose_name="Nómina",
+        help_text="En qué nómina cobra (ADZONE, Call Center, Iguala…).")
     fecha_creacion_perfil = models.DateTimeField(auto_now_add=True)
     fecha_modificacion_perfil = models.DateTimeField(auto_now=True)
+
+    DIAS_MES = Decimal('23.83')  # días laborables promedio del mes (Código de Trabajo de RD)
+
+    @classmethod
+    def costo_hora_de_salario(cls, salario, horas_semana=44):
+        """Costo por hora a partir del salario mensual: salario ÷ 23.83 ÷ (horas de la semana ÷ 5.5)."""
+        if not salario:
+            return None
+        horas_dia = Decimal(horas_semana or 44) / Decimal('5.5')
+        return (Decimal(salario) / cls.DIAS_MES / horas_dia).quantize(Decimal('0.01'))
 
     def __str__(self):
         return f"Perfil de {self.user.username}"

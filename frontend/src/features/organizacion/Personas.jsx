@@ -35,9 +35,10 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
   useEffect(() => {
     if (!abierto) return;
     setError("");
-    setF(nuevo ? { first_name: "", last_name: "", username: "", email: "", puesto_trabajo_id: "", rol: "Colaborador", password: generarClave(), is_active: true, accesos: [], horas_semana: 44, costo_hora: "" }
+    setF(nuevo ? { first_name: "", last_name: "", username: "", email: "", puesto_trabajo_id: "", rol: "Colaborador", password: generarClave(), is_active: true, accesos: [], horas_semana: 44, costo_hora: "", salario_mensual: "", nomina: "" }
       : { ...inicial, puesto_trabajo_id: inicial.puesto_id || "", rol: rolPrincipal(inicial.roles), password: "",
-        accesos: ACCESOS.map(([r]) => r).filter((r) => inicial.roles.includes(r)), horas_semana: inicial.horas_semana ?? 44, costo_hora: inicial.costo_hora ?? "" });
+        accesos: ACCESOS.map(([r]) => r).filter((r) => inicial.roles.includes(r)), horas_semana: inicial.horas_semana ?? 44, costo_hora: inicial.costo_hora ?? "",
+        salario_mensual: inicial.salario_mensual ?? "", nomina: inicial.nomina || "" });
   }, [abierto, inicial, nuevo]);
   const cambiar = (c) => (e) => setF({ ...f, [c]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
@@ -52,6 +53,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
         email: (f.email || "").trim().toLowerCase(), puesto_trabajo_id: f.puesto_trabajo_id ? Number(f.puesto_trabajo_id) : null,
         roles_asignados: [f.rol, ...(f.accesos || [])], is_active: !!f.is_active,
         horas_semana: f.horas_semana || 44, costo_hora: f.costo_hora === "" || f.costo_hora == null ? null : f.costo_hora,
+        salario_mensual: f.salario_mensual === "" || f.salario_mensual == null ? null : f.salario_mensual, nomina: (f.nomina || "").trim(),
       };
       if (f.password) datos.password = f.password;
       const u = await guardarUsuario(datos);
@@ -107,10 +109,18 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
           <Campo etiqueta="Horas por semana" ayuda="Su capacidad, para medir la carga.">
             {(id) => <input id={id} type="number" min={1} max={80} step="0.5" className="campo" value={f.horas_semana ?? ""} onChange={cambiar("horas_semana")} />}
           </Campo>
-          <Campo etiqueta="Costo por hora (RD$, opcional)" ayuda="Para la rentabilidad. Solo lo ven Finanzas y la dirección.">
+          <Campo etiqueta="Salario mensual (RD$)" ayuda="Solo lo ve la administración.">
+            {(id) => <input id={id} type="number" min={0} step="any" className="campo" value={f.salario_mensual ?? ""}
+              onChange={(e) => setF({ ...f, salario_mensual: e.target.value, costo_hora: "" })} />}
+          </Campo>
+          <Campo etiqueta="Nómina" ayuda="En qué nómina cobra.">
+            {(id) => <input id={id} className="campo" list="nominas" placeholder="ADZONE, Call Center, Iguala…" value={f.nomina || ""} onChange={cambiar("nomina")} />}
+          </Campo>
+          <Campo etiqueta="Costo por hora (RD$)" ayuda="Para la rentabilidad. Vacío: se calcula del salario (÷ 23.83 días ÷ 8 h).">
             {(id) => <input id={id} type="number" min={0} step="any" className="campo" value={f.costo_hora ?? ""} onChange={cambiar("costo_hora")} />}
           </Campo>
         </div>
+        <datalist id="nominas"><option value="ADZONE" /><option value="Call Center" /><option value="Iguala" /></datalist>
         <Campo etiqueta={nuevo ? "Contraseña inicial" : "Nueva contraseña (opcional)"} ayuda={nuevo ? "Compártela con la persona; luego puede cambiarla en Mi cuenta." : "Déjala vacía para no cambiarla."}>
           {(id) => (
             <div className="flex gap-2">
@@ -176,7 +186,7 @@ export default function Personas() {
         <Panel cuerpo="p-0">
           <div className="overflow-x-auto">
             <table className="tabla">
-              <thead><tr><th>Persona</th><th className="hidden md:table-cell">Puesto</th><th className="hidden md:table-cell">Rol</th><th className="hidden xl:table-cell">Último acceso</th><th className="w-16"><span className="sr-only">Acciones</span></th></tr></thead>
+              <thead><tr><th>Persona</th><th className="hidden md:table-cell">Puesto</th><th className="hidden md:table-cell">Rol</th><th className="hidden text-right lg:table-cell">Salario</th><th className="hidden xl:table-cell">Último acceso</th><th className="w-16"><span className="sr-only">Acciones</span></th></tr></thead>
               <tbody>
                 {filtrada.map((u) => (
                   <tr key={u.id} className={u.is_active ? "" : "opacity-60"}>
@@ -193,6 +203,7 @@ export default function Personas() {
                     </td>
                     <td className="hidden md:table-cell">{u.puesto ? <><p className="text-sm">{u.puesto}</p><p className="text-xs text-gris">{u.departamento}</p></> : <Insignia tono="amarillo">Sin puesto</Insignia>}</td>
                     <td className="hidden md:table-cell"><Insignia tono={u.roles.includes("Administrador") ? "noche" : "neutro"}>{rolPrincipal(u.roles)}</Insignia>{!u.is_active && <Insignia className="ml-1">Desactivada</Insignia>}</td>
+                    <td className="hidden whitespace-nowrap text-right lg:table-cell">{u.salario_mensual != null ? <><span className="num">{Number(u.salario_mensual).toLocaleString("es-DO", { maximumFractionDigits: 0 })}</span>{u.nomina && <span className="block text-xs text-gris">{u.nomina}</span>}</> : <span className="text-sm text-gris">—</span>}</td>
                     <td className="hidden whitespace-nowrap text-sm text-gris xl:table-cell">{u.last_login ? fechaCorta(u.last_login) : "Nunca"}</td>
                     <td className="text-right"><Boton variante="fantasma" tam="sm" icono={Pencil} aria-label={`Editar a ${u.nombre}`} onClick={() => setForm(u)} /></td>
                   </tr>

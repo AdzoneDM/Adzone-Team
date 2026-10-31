@@ -392,5 +392,8 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Cada tramo necesita «desde» y «porcentaje» numéricos.")
             if not (0 <= desde <= 100 and 0 <= porcentaje <= 100):
                 raise serializers.ValidationError("Los valores van de 0 a 100.")
-            limpios.append({'desde': desde, 'porcentaje': porcentaje})
+            limpio = {'desde': desde, 'porcentaje': porcentaje}
+            if tramo.get('proporcional'):
+                limpio['proporcional'] = True
+            limpios.append(limpio)
         return sorted(limpios, key=lambda t: -t['desde'])

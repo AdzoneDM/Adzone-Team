@@ -8,6 +8,15 @@ from .models import PerfilUsuario, PuestoDeTrabajo
 ROLES = ['Administrador', 'Gerente de Departamento', 'Colaborador', 'Finanzas', 'Coordinación', 'Almacén', 'Agente Call Center']
 
 
+PERFIL_EDITABLE = ('puesto_trabajo', 'horas_semana', 'costo_hora', 'salario_mensual', 'nomina')
+
+
+def costo_desde_salario(perfil, datos):
+    """Si cambian el salario y no mandan un costo por hora propio, el costo por hora se calcula del salario."""
+    if 'salario_mensual' in datos and datos.get('costo_hora') in (None, ''):
+        perfil.costo_hora = PerfilUsuario.costo_hora_de_salario(perfil.salario_mensual, perfil.horas_semana)
+
+
 class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
     departamento_nombre = serializers.CharField(source='departamento.nombre', read_only=True)
     supervisor_nombre = serializers.CharField(source='supervisor.nombre', read_only=True, default=None)
@@ -20,7 +29,8 @@ class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
             'id', 'nombre',
             'departamento', 'departamento_nombre',
             'supervisor', 'supervisor_nombre',
-            'funciones_principales', 'personas', 'subordinados',
+            'funciones_principales', 'objetivo', 'perfil_ideal', 'compensacion_variable', 'beneficios',
+            'alineacion_cultural', 'personas', 'subordinados',
             'fecha_creacion', 'fecha_modificacion',
         ]
         extra_kwargs = {
@@ -90,13 +100,16 @@ class UserSerializer(serializers.ModelSerializer):
                                             min_value=1, max_value=80)
     costo_hora = serializers.DecimalField(source='perfil.costo_hora', max_digits=10, decimal_places=2, required=False,
                                           allow_null=True, min_value=0)
+    salario_mensual = serializers.DecimalField(source='perfil.salario_mensual', max_digits=12, decimal_places=2,
+                                               required=False, allow_null=True, min_value=0)
+    nomina = serializers.CharField(source='perfil.nomina', required=False, allow_blank=True, max_length=60)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'nombre', 'is_active', 'last_login',
             'password', 'puesto_trabajo_id', 'perfil', 'puesto', 'puesto_id', 'departamento',
-            'groups', 'roles', 'roles_asignados', 'horas_semana', 'costo_hora',
+            'groups', 'roles', 'roles_asignados', 'horas_semana', 'costo_hora', 'salario_mensual', 'nomina',
         ]
         read_only_fields = ['last_login']
         extra_kwargs = {
@@ -155,9 +168,10 @@ class UserSerializer(serializers.ModelSerializer):
         roles = validated_data.pop('roles_asignados', ['Colaborador'])
         user = User.objects.create_user(**validated_data)
         user.perfil.puesto_trabajo = perfil_data.get('puesto_trabajo')
-        for campo in ('horas_semana', 'costo_hora'):
+        for campo in PERFIL_EDITABLE[1:]:
             if campo in perfil_data:
                 setattr(user.perfil, campo, perfil_data[campo])
+        costo_desde_salario(user.perfil, perfil_data)
         user.perfil.save()
         self._roles(user, roles or ['Colaborador'])
         return user
@@ -169,9 +183,10 @@ class UserSerializer(serializers.ModelSerializer):
         perfil_data = validated_data.pop('perfil', {})
         if perfil_data:
             perfil, _ = PerfilUsuario.objects.get_or_create(user=instance)
-            for campo in ('puesto_trabajo', 'horas_semana', 'costo_hora'):
+            for campo in PERFIL_EDITABLE:
                 if campo in perfil_data:
                     setattr(perfil, campo, perfil_data[campo])
+            costo_desde_salario(perfil, perfil_data)
             perfil.save()
         roles = validated_data.pop('roles_asignados', None)
         instance = super().update(instance, validated_data)

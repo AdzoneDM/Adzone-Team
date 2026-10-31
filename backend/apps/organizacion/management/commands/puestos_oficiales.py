@@ -1,0 +1,100 @@
+"""
+Carga las descripciones de puesto oficiales de ADZONE y sus KPIs con la ponderación del documento
+«Descripción de Puestos – ADZONE».
+
+    python manage.py puestos_oficiales            # muestra lo que haría, sin cambiar nada
+    python manage.py puestos_oficiales --aplicar  # lo hace
+
+Corre antes `organigrama_2026 --aplicar` (crea y nombra los puestos). Es seguro repetirlo.
+
+- Descripción: objetivo, funciones, perfil ideal, compensación variable, beneficios y alineación cultural salen del
+  documento (datos_iniciales/descripciones_puestos_adzone.json) y reemplazan lo que tenga el puesto.
+- KPIs: cada puesto queda con los KPIs del documento (kpis_oficiales.py), con su ponderación, meta y periodicidad.
+  Los KPIs que el puesto tenía y no están en el documento se **desactivan** (no se borran: su historial queda).
+"""
+import json
+from decimal import Decimal
+from pathlib import Path
+
+from django.conf import settings
+from django.core.management.base import BaseCommand
+from django.db import transaction
+
+from apps.kpis.models import KPIAsignado, PlantillaKPI
+from apps.organizacion.kpis_oficiales import COMUNES, KPIS_OFICIALES, PERIODICIDAD, objetivo
+from apps.organizacion.models import PuestoDeTrabajo
+
+ARCHIVO = Path(settings.BASE_DIR) / 'datos_iniciales' / 'descripciones_puestos_adzone.json'
+CAMPOS = {  # campo del puesto ← clave del documento
+    'objetivo': 'objetivo', 'funciones_principales': 'funciones', 'perfil_ideal': 'perfil_ideal',
+    'compensacion_variable': 'compensacion_variable', 'beneficios': 'beneficios', 'alineacion_cultural': 'alineacion_cultural',
+}
+
+
+def texto(valor):
+    return '\n'.join(valor) if isinstance(valor, list) else (valor or '')
+
+
+def descripciones():
+    with open(ARCHIVO, encoding='utf-8') as f:
+        return {d['puesto']: d for d in json.load(f)['puestos']}
+
+
+class Command(BaseCommand):
+    help = 'Carga las descripciones de puesto oficiales de ADZONE y sus KPIs con ponderación.'
+
+    def add_arguments(self, parser):
+        parser.add_argument('--aplicar', action='store_true', help='Hacer los cambios (sin esto solo se muestran).')
+
+    def handle(self, *args, aplicar=False, **opciones):
+        docs = descripciones()
+        puestos = {p.nombre: p for p in PuestoDeTrabajo.objects.all()}
+        faltan = sorted((set(docs) | set(KPIS_OFICIALES)) - set(puestos))
+        with transaction.atomic():
+            for nombre, doc in docs.items():
+                p = puestos.get(nombre)
+                if p is None:
+                    continue
+                cambios = [campo for campo, clave in CAMPOS.items() if (getattr(p, campo) or '') != texto(doc.get(clave))]
+                if cambios:
+                    for campo in cambios:
+                        setattr(p, campo, texto(docs[nombre].get(CAMPOS[campo])))
+                    p.save(update_fields=cambios + ['fecha_modificacion'])
+                    self.stdout.write(f"  ✎ {nombre}: descripción de puesto ({len(cambios)} secciones)")
+
+            for nombre, kpis in KPIS_OFICIALES.items():
+                p = puestos.get(nombre)
+                if p is None:
+                    continue
+                usados = []
+                for kpi, peso, unidad, menor, meta, periodo, detalle in kpis:
+                    unidad, menor, como = (COMUNES[kpi] if unidad is None else (unidad, menor, detalle))
+                    plantilla, creada = PlantillaKPI.objects.get_or_create(
+                        nombre=kpi, defaults={'descripcion': como, 'unidad_medida': unidad, 'menor_es_mejor': menor})
+                    valores = {'ponderacion': Decimal(peso), 'objetivo_meta': objetivo(meta, unidad, menor, detalle),
+                               'periodicidad_objetivo': PERIODICIDAD[periodo], 'es_entrada_manual': True,
+                               'meta_numerica': Decimal(str(meta)), 'activo': True}
+                    asignado = KPIAsignado.objects.filter(puesto_trabajo=p, plantilla_kpi=plantilla).first()
+                    if asignado is None:
+                        KPIAsignado.objects.create(puesto_trabajo=p, plantilla_kpi=plantilla, **valores)
+                    elif any(getattr(asignado, c) != v for c, v in valores.items()):
+                        for c, v in valores.items():
+                            setattr(asignado, c, v)
+                        asignado.save()
+                    usados.append(plantilla.pk)
+                viejos = KPIAsignado.objects.filter(puesto_trabajo=p, activo=True).exclude(plantilla_kpi_id__in=usados)
+                for v in viejos:
+                    self.stdout.write(self.style.WARNING(f"    − se desactiva «{v.plantilla_kpi.nombre}» en {nombre}"))
+                viejos.update(activo=False)
+                self.stdout.write(f"  ★ {nombre}: {len(kpis)} KPIs · {sum(k[1] for k in kpis)} % de ponderación")
+
+            for nombre in faltan:
+                self.stdout.write(self.style.WARNING(f"  No existe el puesto «{nombre}». Corre antes: python manage.py organigrama_2026 --aplicar"))
+            sin_doc = sorted(set(puestos) - set(docs))
+            if sin_doc:
+                self.stdout.write(self.style.NOTICE(f"\nPuestos que no están en el documento (se dejan igual): {', '.join(sin_doc)}"))
+            if not aplicar:
+                transaction.set_rollback(True)
+                self.stdout.write(self.style.NOTICE('\nNo se cambió nada. Repite con --aplicar para hacerlo.'))
+            else:
+                self.stdout.write(self.style.SUCCESS('\nDescripciones de puesto y KPIs oficiales cargados.'))

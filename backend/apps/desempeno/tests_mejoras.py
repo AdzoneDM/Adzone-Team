@@ -260,7 +260,7 @@ class PuntajeTests(Base):
         config.save()
         fila = calcular_ranking(periodo)[0]
         self.assertEqual(fila['puntaje_total'], 90.0)        # 0.8*100 + 0.2*50
-        self.assertEqual(fila['bono_sugerido'], 10)
+        self.assertEqual(fila['bono_sugerido'], 9)           # 80-99: proporcional (10 % × 90 ÷ 100)
         self.assertTrue(fila['elegible'])
         self.assertEqual(t.a_la_primera, True)
 
