@@ -25,9 +25,9 @@ def preparar_puestos():
 
 
 class DatosOficialesTests(TestCase):
-    def test_los_datos_cubren_los_28_puestos_del_documento(self):
+    def test_los_datos_cubren_los_34_puestos_del_documento(self):
         docs = descripciones()
-        self.assertEqual(len(docs), 28)
+        self.assertEqual(len(docs), 34)
         self.assertEqual(set(docs), set(KPIS_OFICIALES))
         for puesto, kpis in KPIS_OFICIALES.items():
             nombres = [k[0] for k in kpis]
@@ -74,11 +74,17 @@ class PuestosOficialesTests(TestCase):
         total = KPIAsignado.objects.count()
         call_command('puestos_oficiales', '--aplicar', stdout=NULO)
         self.assertEqual(KPIAsignado.objects.count(), total)
-        prod = PuestoDeTrabajo.objects.get(nombre='Encargado de Producción Audiovisual')
-        self.assertEqual(prod.supervisor.nombre, 'Gerente de Marketing y Audiovisuales')
-        self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Coordinador de Contenido y Podcast').supervisor, prod)
-        tecnico = PuestoDeTrabajo.objects.get(nombre='Técnico de Servicios Generales')
-        self.assertEqual(tecnico.supervisor.nombre, 'Coordinador de Producción de Eventos y Catering')
+        estudio = PuestoDeTrabajo.objects.get(nombre='Coordinador de Estudio de TV y Contenido')  # antes «Contenido y Podcast»
+        self.assertEqual(estudio.supervisor.nombre, 'Gerente de Marketing y Audiovisuales')
+        self.assertEqual(estudio.departamento.nombre, 'Adzone TV')
+        self.assertFalse(PuestoDeTrabajo.objects.filter(nombre='Coordinador de Contenido y Podcast').exists())
+        master = PuestoDeTrabajo.objects.get(nombre='Control Master')
+        self.assertEqual(master.supervisor, estudio)
+        self.assertEqual(KPIAsignado.objects.filter(puesto_trabajo=master, activo=True).count(), 7)
+        analista = PuestoDeTrabajo.objects.get(nombre='Analista de Calidad y Monitoreo')
+        self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Agente de Call Center Español').supervisor, analista)
+        herrero = KPIAsignado.objects.filter(puesto_trabajo__nombre='Herrero', activo=True)
+        self.assertEqual(sum(k.ponderacion for k in herrero), 100)
         self.assertFalse(PuestoDeTrabajo.objects.filter(nombre__startswith='Encargado(a)').exists())
         compartida = PlantillaKPI.objects.get(nombre='Cumplimiento de políticas y procedimientos')
         self.assertGreater(compartida.asignaciones.count(), 20)  # una sola plantilla para todos los puestos
@@ -124,6 +130,25 @@ class PersonalTests(TestCase):
         self.assertEqual(luis.perfil.costo_hora, Decimal('96.63'))
         self.assertTrue(luis.groups.filter(name='Agente Call Center').exists())
         self.assertTrue(User.objects.get(username='sin.puesto').groups.filter(name='Colaborador').exists())
+
+    def test_quien_sale_se_desactiva_y_no_se_crea(self):
+        User.objects.create_user('ya.estaba', password='Clave-segura-2026')
+        self._cargar([{'usuario': 'ya.estaba', 'nombre': 'Ya', 'activo': False},
+                      {'usuario': 'nunca.estuvo', 'nombre': 'Nunca', 'activo': False}])
+        self.assertFalse(User.objects.get(username='ya.estaba').is_active)
+        self.assertFalse(User.objects.filter(username='nunca.estuvo').exists())
+
+    def test_el_archivo_privado_carga_si_existe(self):
+        from pathlib import Path
+        archivo = Path('datos_privados/personal_adzone_2026.json')
+        if not archivo.exists():
+            self.skipTest('Sin archivo privado del personal')
+        call_command('puestos_oficiales', '--aplicar', stdout=NULO)
+        call_command('cargar_equipo', str(archivo), '--aplicar', stdout=NULO)
+        activos = User.objects.filter(is_active=True)
+        self.assertEqual(activos.count(), 37)
+        self.assertFalse(activos.filter(perfil__puesto_trabajo__isnull=True).exists())  # todos con puesto
+        self.assertEqual(activos.filter(perfil__puesto_trabajo__nombre='Agente de Call Center Español').count(), 14)
 
     def test_sin_aplicar_no_crea_cuentas(self):
         self._cargar([{'usuario': 'x.y', 'nombre': 'X', 'puesto': 'Herrero'}], aplicar=False)

@@ -1,5 +1,5 @@
 """
-Aplica el Organigrama 2026 de ADZONE D. M. (estructural y nominal): crea los puestos que faltan, renombra los que
+Aplica el Organigrama 2026 de ADZONE D. M. (estructural corporativo y nominal, versión del 31/10/2026): crea los puestos que faltan, renombra los que
 cambiaron de nombre (las personas se quedan en su puesto) y deja a cada puesto con su supervisor.
 
     python manage.py organigrama_2026            # muestra lo que haría, sin cambiar nada
@@ -24,13 +24,15 @@ RENOMBRAR = {
     'Gerente Financiero y Administrativo': 'Coordinadora Financiera y Administrativa',
     'Encargado de Impresiones (Especialista en Impresión Digital)': 'Encargado de Impresiones',
     'Encargado de Eventos y Catering': 'Coordinador de Producción de Eventos y Catering',
-    'Coordinador de Estudio de Contenido y Podcast': 'Coordinador de Contenido y Podcast',
+    'Coordinador de Estudio de Contenido y Podcast': 'Coordinador de Estudio de TV y Contenido',
+    'Coordinador de Contenido y Podcast': 'Coordinador de Estudio de TV y Contenido',
     'Editor / Animador 3D VFX': 'Editor de Animación, 3D y VFX',
     'Encargado Ciberseguridad y Desarrollo': 'Encargado de Ciberseguridad y Desarrollo',
     'Encargado en Innovación y Desarrollo': 'Encargado de Innovación y Desarrollo',
     'Coordinador de Medios': 'Encargado de Medios Digitales',
     'Supervisor de Call Center': 'Gerente de Call Center',
     'Agente de Call Center': 'Agente de Call Center Español',
+    'Supervisor de Calidad y Monitoreo': 'Analista de Calidad y Monitoreo',
     'Encargado(a) de Gestión del Talento': 'Encargado de Gestión del Talento',
     'Encargado(a) de Ventas y Cuentas': 'Encargado de Ventas y Cuentas',
 }
@@ -54,7 +56,6 @@ ORGANIGRAMA = [
     ('Gerente de Eventos e Impresiones', 'Impresión', 'CEO / Director General'),
     ('Coordinador de Producción de Eventos y Catering', 'Impresión', 'Gerente de Eventos e Impresiones'),
     ('Asistente de Catering y Servicios Generales', 'Impresión', 'Coordinador de Producción de Eventos y Catering'),
-    ('Técnico de Servicios Generales', 'Impresión', 'Coordinador de Producción de Eventos y Catering'),
     ('Encargado de Impresiones', 'Impresión', 'Gerente de Eventos e Impresiones'),
     ('Operador de Maquinarias', 'Impresión', 'Encargado de Impresiones'),
     ('Técnico de Instalación y Rotulación', 'Impresión', 'Encargado de Impresiones'),
@@ -67,11 +68,11 @@ ORGANIGRAMA = [
     ('Diseñador Gráfico Junior', 'Marketing', 'Encargado de Creatividad'),
     ('Encargado de Medios Digitales', 'Marketing', 'Encargado de Creatividad'),
     ('Community Manager', 'Marketing', 'Encargado de Medios Digitales'),
-    ('Encargado de Producción Audiovisual', 'Audiovisual', 'Gerente de Marketing y Audiovisuales'),
-    ('Coordinador de Contenido y Podcast', 'Adzone TV', 'Encargado de Producción Audiovisual'),
-    ('Especialista en Fotografía y Video', 'Audiovisual', 'Coordinador de Contenido y Podcast'),
-    ('Editor Audiovisual', 'Audiovisual', 'Coordinador de Contenido y Podcast'),
-    ('Editor de Animación, 3D y VFX', 'Audiovisual', 'Coordinador de Contenido y Podcast'),
+    ('Coordinador de Estudio de TV y Contenido', 'Adzone TV', 'Gerente de Marketing y Audiovisuales'),
+    ('Control Master', 'Adzone TV', 'Coordinador de Estudio de TV y Contenido'),
+    ('Especialista en Fotografía y Video', 'Audiovisual', 'Coordinador de Estudio de TV y Contenido'),
+    ('Editor Audiovisual', 'Audiovisual', 'Coordinador de Estudio de TV y Contenido'),
+    ('Editor de Animación, 3D y VFX', 'Audiovisual', 'Coordinador de Estudio de TV y Contenido'),
     # Gerencia de Tecnología y Desarrollo
     ('Gerente de Tecnología y Desarrollo', 'Tecnología', 'CEO / Director General'),
     ('Encargado de Innovación y Desarrollo', 'Tecnología', 'Gerente de Tecnología y Desarrollo'),
@@ -79,9 +80,9 @@ ORGANIGRAMA = [
     ('Soporte Técnico (TI)', 'Tecnología', 'Encargado de Ciberseguridad y Desarrollo'),
     # Gerencia de Call Center
     ('Gerente de Call Center', 'Call Center', 'CEO / Director General'),
-    ('Supervisor de Calidad y Monitoreo', 'Call Center', 'Gerente de Call Center'),
-    ('Agente de Call Center Bilingüe', 'Call Center', 'Supervisor de Calidad y Monitoreo'),
-    ('Agente de Call Center Español', 'Call Center', 'Supervisor de Calidad y Monitoreo'),
+    ('Analista de Calidad y Monitoreo', 'Call Center', 'Gerente de Call Center'),
+    ('Agente de Call Center Bilingüe', 'Call Center', 'Analista de Calidad y Monitoreo'),
+    ('Agente de Call Center Español', 'Call Center', 'Analista de Calidad y Monitoreo'),
 ]
 
 

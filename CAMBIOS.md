@@ -1,5 +1,13 @@
 # Cambios
 
+## 7.1 · 31/10/2026 · DP y organigrama actualizados; listado de personal del 31/10
+
+- **Descripciones de puesto del documento «DP ADZONE DIGITAL MARKETING»** (34 puestos). Puestos nuevos con su descripción y KPIs: **Control Master**, **Herrero**, **Gerente de Call Center**, **Analista de Calidad y Monitoreo** y los **agentes bilingüe y en español**. La **Coordinadora Financiera y Administrativa** trae su descripción y KPIs nuevos (flujo de caja, facturación y cobros, pagos, conciliaciones, presupuesto, cumplimiento fiscal y laboral, caja chica, reportes, controles).
+- **KPIs oficiales:** 246 asignaciones en 34 puestos. Los KPIs propuestos para el Herrero y el call center se reemplazan por los del documento. Solo Presupuestos y Facturación, Legal, Soporte TI y el Consejo siguen con los propuestos (el documento no los trae).
+- **Organigrama 2026 actualizado:** «Coordinador de Contenido y Podcast» pasa a **Coordinador de Estudio de TV y Contenido** (reporta a la Gerencia de Marketing; de él dependen Control Master, fotografía y video, edición y animación). «Supervisor de Calidad y Monitoreo» pasa a **Analista de Calidad y Monitoreo**. Encargado de Producción Audiovisual y Técnico de Servicios Generales salen del organigrama (el puesto queda, con su descripción).
+- **Personal:** el archivo privado sigue el listado del 31/10/2026: 37 personas con su puesto y el salario de las nóminas de octubre. Quien ya no está en el listado se desactiva al cargar (si su cuenta existe) y nunca se crea.
+- `cargar_equipo` acepta `"activo": false` para desactivar sin crear.
+
 ## 7.0 · 31/10/2026 · Personal real, descripciones de puesto y KPIs oficiales
 
 - **Descripciones de puesto completas** (documento «Descripción de Puestos – ADZONE», 28 puestos): además de las funciones, cada puesto trae **objetivo, perfil ideal, compensación variable, beneficios y alineación con la cultura**. Se ven en la página del puesto y se editan en «Editar puesto».

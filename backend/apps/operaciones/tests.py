@@ -785,8 +785,8 @@ class OrganigramaTests(TestCase):
         kpis = KPIAsignado.objects.filter(puesto_trabajo=soporte)
         self.assertEqual(kpis.count(), 4)
         self.assertEqual(sum(k.ponderacion for k in kpis), 100)
-        herrero = KPIAsignado.objects.filter(puesto_trabajo__nombre='Herrero', es_entrada_manual=False)
-        self.assertEqual(herrero.count(), 2)  # automáticos: tareas validadas y rondas
+        # Herrero y call center ya no reciben KPIs propuestos: los oficiales los pone puestos_oficiales.
+        self.assertFalse(KPIAsignado.objects.filter(puesto_trabajo__nombre='Herrero').exists())
         PuestoDeTrabajo.objects.filter(pk=soporte.pk).update(funciones_principales='Escrita a mano')
         call_command('organigrama_2026', '--aplicar', stdout=open(os.devnull, 'w'))  # se puede repetir
         self.assertEqual(PuestoDeTrabajo.objects.get(pk=soporte.pk).funciones_principales, 'Escrita a mano')  # no la pisa

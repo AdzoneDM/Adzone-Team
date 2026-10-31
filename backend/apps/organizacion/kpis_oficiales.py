@@ -48,6 +48,10 @@ COMUNES = {
         PCT, True, "Desvío del costo real contra el presupuesto (eventos, producciones). Menor es mejor."),
     'Retención de clientes': (
         PCT, False, "Clientes o cuentas que renuevan o siguen activos ÷ clientes del período."),
+    'Calidad promedio QA': (
+        PCT, False, "Promedio de la ficha de calidad (QA) de las interacciones evaluadas en el mes."),
+    'Adherencia al horario y puntualidad': (
+        PCT, False, "Tiempo conectado y en horario ÷ tiempo programado; llegadas a tiempo."),
     'Clientes nuevos': (
         PLAN, False, "Cuentas nuevas captadas ÷ meta del trimestre (al día con el plan = 100)."),
 }
@@ -127,14 +131,15 @@ K['Encargado de Ciberseguridad y Desarrollo'] = [
 ]
 
 K['Coordinadora Financiera y Administrativa'] = [
-    ('Cumplimiento del presupuesto operativo', 20, PCT, False, 95, 'M', "95 % a 100 % de cumplimiento del presupuesto operativo (gasto real dentro de lo aprobado)."),
-    ('Ahorro en costos operativos', 10, PCT, False, 5, 'T', "Más de 5 % de ahorro contra el trimestre anterior, sin afectar la calidad."),
-    ('Cumplimiento tributario (DGII)', 10, PCT, False, 100, 'M', "Obligaciones fiscales presentadas a tiempo y sin objeciones: 0 multas o retrasos."),
-    ('Logística interna y servicios generales', 10, PCT, False, 100, 'M', "Oficinas, insumos, tecnología básica y proveedores (internet, limpieza, seguridad) al día."),
-    ('Documentación legal vigente', 10, PCT, False, 100, 'M', "Estatutos, registros, certificaciones, licencias, seguros y permisos sin vencimientos."),
-    ('Contratos y licitaciones correctos', 20, PCT, False, 100, 'M', "Contratos con clientes, proveedores y licitaciones revisados con calidad y protegiendo a Adzone."),
-    ('Cumplimiento de políticas y procedimientos', 10, None, None, 95, 'M', "Adherencia a políticas internas y procesos estandarizados: 95 % a 100 %."),
-    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+    ('Flujo de caja y tesorería', 15, PCT, False, 100, 'M', "Proyección actualizada cada semana; 100 % de pagos críticos alertados y programados antes del vencimiento; 0 sobregiros o penalidades evitables."),
+    ('Facturación y cuentas por cobrar', 15, PCT, False, 98, 'M', "Al menos 98 % de facturas correctas y a tiempo; al menos 95 % de gestiones de cobro dentro del cronograma; cartera vencida en baja."),
+    ('Cuentas por pagar y proveedores', 10, PCT, False, 95, 'M', "100 % de pagos con soporte y autorización; 0 pagos duplicados; al menos 95 % procesados en el plazo acordado."),
+    ('Conciliaciones y cierres', 10, PCT, False, 100, 'M', "100 % de cuentas bancarias conciliadas cada mes y diferencias investigadas; soportes completos al contador antes del cierre."),
+    ('Presupuesto y control de gastos', 10, PCT, False, 100, 'T', "Desviación operativa dentro del rango aprobado o explicada; oportunidades de ahorro identificadas cada trimestre sin afectar la calidad."),
+    ('Cumplimiento fiscal y laboral', 15, PCT, False, 100, 'M', "100 % de obligaciones, informaciones y pagos coordinados antes de la fecha límite; 0 multas, recargos u omisiones."),
+    ('Caja chica, activos y documentación', 10, PCT, False, 100, 'M', "100 % de caja chica conciliada y soportada; inventarios y expedientes críticos completos y localizables; 0 diferencias sin explicar."),
+    ('Reportes y tiempo de respuesta', 5, PCT, False, 100, 'M', "Informes en las fechas acordadas con datos verificables; respuesta o acuse en máximo 24 horas laborables."),
+    ('Controles, mejora y equipo', 10, PCT, False, 100, 'T', "Al menos una mejora de proceso por trimestre; tareas del equipo cumplidas en 95 % o más; 0 hallazgos críticos reincidentes."),
 ]
 K['Encargado de Contabilidad y Tesorería'] = [
     ('Ajustes contables post cierre', 20, CERO, True, 0, 'M', "Contabilidad correcta a la primera: ajustes o correcciones detectados después del cierre."),
@@ -281,15 +286,24 @@ K['Encargado de Producción Audiovisual'] = [
     ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Apoyar a sus compañeros para sacar los trabajos pendientes."),
     ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
 ]
-K['Coordinador de Contenido y Podcast'] = [
-    ('Grabaciones sin fallas técnicas', 20, PCT, False, 95, 'M', "Al menos 95 % de las grabaciones sin fallas técnicas mayores."),
-    ('Entregas a tiempo según cronograma', 15, None, None, 100, 'M', "Episodios y cápsulas entregados según el cronograma."),
-    ('Satisfacción de invitados y equipo', 15, NOTA10, False, 9, 'M', "Experiencia en el estudio evaluada en 9 de 10."),
-    ('Innovación implementada en el trimestre', 15, None, None, 100, 'T', "Al menos una mejora técnica o de formato por trimestre."),
-    ('Ideas de contenido nuevas', 10, 'ideas', False, 2, 'M', "Al menos 2 ideas de contenido nuevas al mes en la planificación editorial."),
-    ('Organización de archivos y protocolos del área', 10, None, None, 100, 'M', "Organización del archivo audiovisual y mantenimiento del estudio."),
+K['Coordinador de Estudio de TV y Contenido'] = [
+    ('Grabaciones según el calendario maestro', 20, PCT, False, 95, 'M', "Al menos 95 % de grabaciones según el calendario maestro, sin cruces ni retrasos atribuibles a la coordinación."),
+    ('Episodios publicados a tiempo', 15, PCT, False, 100, 'M', "Episodios publicados en todas las plataformas en la fecha establecida."),
+    ('Grabaciones sin fallas técnicas', 15, PCT, False, 95, 'M', "Al menos 95 % de las grabaciones sin fallas técnicas mayores."),
+    ('Bitácora y material entregado a posproducción', 10, PCT, False, 100, 'M', "Bitácora completa de cada grabación y material entregado a posproducción organizado y etiquetado."),
+    ('Satisfacción de invitados y productores', 10, NOTA10, False, 9, 'M', "Experiencia en el estudio evaluada en 9 de 10."),
+    ('Presupuesto del estudio', 10, PCT, False, 100, 'M', "Ejecución del presupuesto del estudio dentro de lo asignado."),
+    ('Innovación implementada en el trimestre', 10, None, None, 100, 'T', "Al menos una mejora técnica o de formato por trimestre."),
     ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
-    ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Trabajo en equipo."),
+]
+K['Control Master'] = [
+    ('Transmisiones y grabaciones sin fallas técnicas', 25, PCT, False, 95, 'M', "Al menos 95 % de transmisiones y grabaciones sin fallas técnicas atribuibles al puesto."),
+    ('Programas en horario', 15, PCT, False, 100, 'M', "Programas iniciados y finalizados en el horario establecido."),
+    ('Reclamos por derechos de autor', 15, CERO, True, 0, 'M', "Cero reclamos, bloqueos o sanciones por derechos de autor en las plataformas."),
+    ('Respaldo de grabaciones en 24 h', 15, PCT, False, 100, 'M', "Archivos de grabación respaldados y entregados al productor en máximo 24 horas."),
+    ('Reporte técnico por programa', 10, PCT, False, 100, 'M', "Reporte técnico después de cada programa (fallas y sugerencias de mejora)."),
+    ('Equipo técnico y estudio en orden', 10, PCT, False, 100, 'M', "Organización y mantenimiento del equipo técnico y del estudio."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
 ]
 K['Especialista en Fotografía y Video'] = [
     ('Material aprobado en la primera revisión', 20, PCT, False, 85, 'M', "Más de 85 % de tomas útiles aprobadas a la primera, sin rehacer sesiones."),
@@ -321,6 +335,51 @@ K['Editor de Animación, 3D y VFX'] = [
     ('Retos y campañas creativas', 10, PCT, False, 100, 'M', "Participación en retos o campañas creativas internas y externas."),
     ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y orden documental de archivos."),
     ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Trabajo en equipo y colaboración transversal."),
+]
+
+K['Herrero'] = [
+    ('Fabricación sin retrabajos', 20, PCT, False, 95, 'M', "Trabajos entregados sin correcciones por errores de medida, soldadura o acabado (95 % o más)."),
+    ('Estructuras a tiempo', 20, PCT, False, 95, 'M', "Estructuras fabricadas e instaladas en la fecha acordada (95 % o más)."),
+    ('Reclamos por calidad estructural', 15, CERO, True, 0, 'M', "Estructuras firmes, niveladas y sin fallas ni reclamos durante su uso: 0 reclamos."),
+    ('Incidentes de seguridad', 15, None, None, 0, 'M', "0 accidentes y uso de EPP en el 100 % de los trabajos."),
+    ('Equipo y herramientas en buen estado', 10, PCT, False, 100, 'M', "Herramientas y maquinarias en buen estado, sin pérdidas ni daños por mal uso."),
+    ('Trabajo en equipo (metas del departamento)', 10, None, None, 100, 'M', "Trabajo en equipo y apoyo al montaje con impresiones y eventos."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+]
+
+K['Gerente de Call Center'] = [
+    ('Metas comerciales por campaña', 30, PCT, False, 100, 'M', "Cumplimiento de las metas comerciales de cada campaña."),
+    ('Calidad promedio QA', 15, None, None, 90, 'M', "Calidad promedio QA del call center: más de 90 %."),
+    ('SLA, ASA y abandono', 15, PCT, False, 100, 'M', "Nivel de servicio, tiempo de respuesta y abandono dentro de la meta."),
+    ('Conversión de leads', 20, PCT, False, 80, 'M', "Conversión de leads: 80 % o más de la meta."),
+    ('Productividad por agente', 10, PCT, False, 100, 'M', "Productividad por agente contra la meta de la campaña."),
+    ('Rotación y ausentismo', 5, PCT, False, 100, 'M', "Rotación y ausentismo dentro de la meta."),
+    ('Cumplimiento de políticas y procedimientos', 5, None, None, 100, 'M', "Cumplimiento de políticas y procesos."),
+]
+K['Analista de Calidad y Monitoreo'] = [
+    ('Cobertura de monitoreo', 20, PCT, False, 95, 'M', "Monitoreo conforme al plan: más de 95 %."),
+    ('Calidad promedio QA', 20, None, None, 90, 'M', "Calidad promedio del call center: más de 90 %."),
+    ('Mejora después del coaching', 15, PCT, False, 100, 'M', "Mejora de los agentes evaluados después del coaching."),
+    ('Errores críticos y reclamos', 15, CERO, True, 0, 'M', "Reducción de errores críticos y reclamos."),
+    ('Consistencia de calibración', 10, PCT, False, 100, 'M', "Calibración consistente entre evaluadores (baja variabilidad)."),
+    ('Reportes a tiempo y con calidad', 10, PCT, False, 100, 'M', "Tiempo y calidad en la entrega de reportes."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y confidencialidad."),
+]
+K['Agente de Call Center Bilingüe'] = [
+    ('Calidad promedio QA', 25, None, None, 90, 'M', "Calidad promedio en llamadas evaluadas por QA: más de 90 %."),
+    ('Satisfacción del cliente', 20, None, None, 85, 'M', "Satisfacción del cliente: más de 85 %."),
+    ('Conversión o resolución efectiva', 20, PCT, False, 100, 'M', "Conversión o resolución efectiva según la meta de la campaña."),
+    ('AHT y ACW en rango', 15, PCT, False, 100, 'M', "Tiempo promedio de llamada (AHT) y de trabajo posterior (ACW) dentro de los rangos establecidos."),
+    ('Adherencia al horario y puntualidad', 10, None, None, 100, 'M', "Adherencia al horario y puntualidad."),
+    ('Scripts, políticas y CRM', 10, PCT, False, 100, 'M', "Cumplimiento de scripts, políticas y registro correcto en el CRM."),
+]
+K['Agente de Call Center Español'] = [
+    ('Objetivo de la campaña', 30, PCT, False, 100, 'M', "Cumplimiento del objetivo de la campaña (ventas, citas, atención)."),
+    ('Calidad promedio QA', 25, None, None, 90, 'M', "Calidad promedio QA: más de 90 %."),
+    ('Satisfacción del cliente', 20, None, None, 85, 'M', "Satisfacción del cliente: más de 85 %."),
+    ('Adherencia al horario y puntualidad', 10, None, None, 100, 'M', "Adherencia al horario y puntualidad."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+    ('Uso correcto del CRM', 5, PCT, False, 100, 'M', "Registro completo y correcto de cada contacto en el CRM."),
 ]
 
 KPIS_OFICIALES = K

@@ -40,21 +40,11 @@ PLANTILLAS = {
 }
 
 # Puesto → [(KPI, ponderación %, meta, automático con meta numérica)]
-# (Director Comercial, Ventas y Cuentas y Gestión del Talento ya tienen sus KPIs oficiales en kpis_oficiales.py.)
+# Los demás puestos tienen sus KPIs oficiales en kpis_oficiales.py (DP ADZONE DIGITAL MARKETING).
 KPIS = {
     'Encargado de Presupuestos, Facturación y Cobros': [('Facturas emitidas a tiempo', 35, '≥ 95 %', None), ('Cartera vencida', 35, '≤ 10 %', None),
                                                          ('Cotizaciones entregadas en 24 h', 30, '≥ 90 %', None)],
     'Legal y Contratos': [('Contratos revisados a tiempo', 50, '≥ 95 %', None), ('Documentación legal vigente', 50, '100 %', None)],
-    'Herrero': [('Trabajos de herrería validados', 40, '≥ 8 al mes', 8), ('Rondas de revisión', 30, '1 ronda (a la primera)', 1),
-                ('Incidentes de seguridad', 30, '0', None)],
     'Soporte Técnico (TI)': [('Tickets resueltos en el tiempo acordado', 40, '≥ 90 %', None), ('Tiempo promedio de respuesta', 30, '≤ 2 horas', None),
                              ('Disponibilidad de equipos y servicios', 15, '≥ 98 %', None), ('Mantenimientos preventivos realizados', 15, '100 %', None)],
-    'Gerente de Call Center': [('Metas de campañas cumplidas', 40, '≥ 95 %', None), ('Nivel de servicio', 30, '≥ 80 % en 20 segundos', None),
-                               ('Calidad promedio de monitoreo', 30, '≥ 85 %', None)],
-    'Supervisor de Calidad y Monitoreo': [('Interacciones monitoreadas vs. plan', 40, '100 %', None), ('Calidad promedio de monitoreo', 30, '≥ 85 %', None),
-                                          ('Retroalimentaciones realizadas', 30, '100 %', None)],
-    'Agente de Call Center Bilingüe': [('Contactos efectivos vs. meta', 35, 'Meta de la campaña', None), ('Conversión o resolución', 30, 'Meta de la campaña', None),
-                                       ('Calidad promedio de monitoreo', 25, '≥ 85 %', None), ('Adherencia al horario', 10, '≥ 95 %', None)],
-    'Agente de Call Center Español': [('Contactos efectivos vs. meta', 35, 'Meta de la campaña', None), ('Conversión o resolución', 30, 'Meta de la campaña', None),
-                                      ('Calidad promedio de monitoreo', 25, '≥ 85 %', None), ('Adherencia al horario', 10, '≥ 95 %', None)],
 }

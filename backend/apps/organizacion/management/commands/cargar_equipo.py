@@ -9,6 +9,7 @@ Las cuentas que ya existen conservan su contraseña.
 
 Campos de cada persona: usuario, nombre, apellido, correo, puesto, administrador (sí/no), accesos (lista de roles,
 p. ej. ["Gerente de Departamento", "Finanzas"]), salario_mensual, nomina, horas_semana, activo.
+Con «activo»: false la cuenta se desactiva si existe y no se crea si no existe.
 Si hay salario y no hay costo_hora, el costo por hora se calcula del salario (salario ÷ 23.83 ÷ 8).
 Quien ocupa un puesto «Agente de Call Center…» recibe el acceso «Agente Call Center».
 """
@@ -53,6 +54,13 @@ class Command(BaseCommand):
                     continue
                 user = User.objects.filter(username=usuario).first()
                 nuevo = user is None
+                if p.get('activo') is False:
+                    # Quien ya no está en el equipo: se desactiva su cuenta si existe; nunca se crea.
+                    if user and user.is_active:
+                        user.is_active = False
+                        user.save(update_fields=['is_active'])
+                        self.stdout.write(f"  − desactivada {usuario}")
+                    continue
                 if nuevo:
                     user = User(username=usuario)
                     clave = clave_inicial()

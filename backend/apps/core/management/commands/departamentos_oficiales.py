@@ -37,6 +37,8 @@ POR_PUESTO = {
     'Encargado de Medios Digitales': 'Marketing',
     'Editor de Animación, 3D y VFX': 'Audiovisual',
     'Coordinador de Contenido y Podcast': 'Adzone TV',
+    'Coordinador de Estudio de TV y Contenido': 'Adzone TV',
+    'Control Master': 'Adzone TV',
     'Gerente de Marketing y Audiovisuales': 'Marketing',
     'Encargado de Creatividad': 'Marketing',
     'Community Manager': 'Marketing',
