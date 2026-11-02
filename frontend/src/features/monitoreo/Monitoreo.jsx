@@ -456,7 +456,7 @@ function Proyectos() {
                   <th className="text-right">Tareas validadas</th><th className="text-right">A la primera</th><th className="text-right">Correcciones</th>{d.con_costos && <th className="text-right">Costo</th>}</tr></thead>
                 <tbody>{filas.map((o) => (
                   <tr key={o.id} className="cursor-pointer hover:bg-fondo" onClick={() => setAbierto(o)}>
-                    <td><span className="font-medium">{o.numero}</span> <span className="text-sm">{o.titulo}</span><span className="block text-xs text-gris">{o.cliente} · {o.estado}</span></td>
+                    <td className="min-w-52"><span className="font-medium">{o.numero}</span> <span className="text-sm">{o.titulo}</span><span className="block text-xs text-gris">{o.cliente} · {o.estado}</span></td>
                     <td className="text-right num">{o.horas}</td>
                     <td className={cx("text-right num", o.sobre_estimado && "font-semibold text-rojo")}>{o.horas_estimadas ?? "—"} / {o.horas_reales_total}{o.desvio_horas_pct != null && <span className="block text-xs">{o.desvio_horas_pct > 0 ? "+" : ""}{o.desvio_horas_pct} %</span>}</td>
                     <td className="text-right"><Puntaje valor={o.productividad_pc} />{o.cobertura_pc != null && <span className="block text-xs text-gris">{pct(o.cobertura_pc)} con PC</span>}</td>
