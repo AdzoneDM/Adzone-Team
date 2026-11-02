@@ -9,8 +9,8 @@ class PlantillaKPISerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlantillaKPI
-        fields = ['id', 'nombre', 'descripcion', 'unidad_medida', 'menor_es_mejor', 'fuente', 'puestos_asignados',
-                  'fecha_creacion', 'fecha_modificacion']
+        fields = ['id', 'nombre', 'descripcion', 'unidad_medida', 'menor_es_mejor', 'fuente', 'formula', 'fuente_datos',
+                  'responsable_validacion', 'puestos_asignados', 'fecha_creacion', 'fecha_modificacion']
 
     def get_puestos_asignados(self, obj):
         return obj.asignaciones.count()
@@ -34,7 +34,7 @@ class KPIAsignadoSerializer(serializers.ModelSerializer):
             'puesto_trabajo', 'puesto_trabajo_detalle',
             'plantilla_kpi', 'plantilla_kpi_detalle',
             'ponderacion', 'objetivo_meta', 'periodicidad_objetivo',
-            'es_entrada_manual', 'meta_numerica', 'activo',
+            'es_entrada_manual', 'meta_numerica', 'activo', 'umbral_alerta',
             'fecha_asignacion', 'fecha_modificacion_asignacion',
         ]
         extra_kwargs = {

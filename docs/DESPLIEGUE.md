@@ -70,6 +70,27 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Talento, KPIs con ficha técnica y panel gerencial (versión 9.0)
+
+```bash
+python manage.py migrate
+python manage.py puestos_oficiales --aplicar   # agrega los KPIs de seguimiento (8 a 15 por puesto) y su ficha técnica
+```
+
+La migración cambia las reglas del puntaje que estaban en 48/32/20 por **40 tareas / 35 KPIs / 15 calidad / 10 asistencia**. Si las habían cambiado a mano, quedan igual con calidad en 0; se ajustan en Reglas del puntaje.
+
+Tarea programada nueva en Plesk:
+
+| Cada | Comando | Para qué |
+|---|---|---|
+| Días 1 al 5 de cada mes, 7:00 | `python manage.py revisar_kpis` | Avisa al supervisor de cada KPI del mes anterior por debajo de su umbral (una vez por KPI) |
+
+Puesta en marcha:
+1. **Talento → Ciclos → Abrir ciclo** (por ejemplo «4.º trimestre 2026»): a cada persona le llega su autoevaluación, la de su equipo si supervisa y dos compañeros.
+2. Revisa en **Puestos** el umbral de alerta de los KPIs (70 % por defecto) y la fórmula y responsable en **Plantillas de KPI**.
+3. Pide a cada supervisor que use el **cronómetro** en las tareas vinculadas a una OT: así el monitoreo por proyecto y el costo de la mano de obra salen solos.
+4. Revisa el **Panel gerencial** al cierre de cada mes.
+
 ### Control de horario y monitoreo (versión 8.0)
 
 ```bash

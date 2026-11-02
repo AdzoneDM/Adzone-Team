@@ -68,3 +68,8 @@ class CuatroPartesTests(BaseDesempeno):
         fila = calcular_ranking(PERIODO, hoy=DESPUES_DEL_MES)[0]
         self.assertIsNotNone(fila['puntaje_asistencia'])
         self.assertLess(fila['puntaje_asistencia'], 100)  # faltó los demás días laborables
+
+    def test_sin_tareas_ni_kpis_no_se_evalua_solo_con_la_evaluacion(self):
+        ciclo = CicloEvaluacion.objects.create(nombre='T3', desde=date(2026, 7, 1), hasta=date(2026, 9, 30), cierre=date(2026, 10, 10))
+        Evaluacion.objects.create(ciclo=ciclo, evaluado=self.ana, evaluador=self.admin, tipo='SUPERVISOR', estado='CERRADA', puntajes={'a': 5})
+        self.assertEqual(calcular_ranking(PERIODO, hoy=DESPUES_DEL_MES), [])

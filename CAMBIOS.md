@@ -1,5 +1,46 @@
 # Cambios
 
+## 9.0 · 02/11/2026 · KPIs con ficha técnica, evaluación 360°, monitoreo por OT y panel gerencial
+
+Fases 1 a 4 de la propuesta de evolución de Adzone Team.
+
+### Puntaje del mes: 40 / 35 / 15 / 10
+- **Cumplimiento de tareas 40 %**, **KPIs del puesto 35 %**, **calidad y satisfacción 15 %** y **asistencia y puntualidad 10 %**.
+- **Calidad y satisfacción** es el promedio de las estrellas de las tareas, el % aprobado a la primera y la evaluación del supervisor del ciclo (cuando existe y ya está confirmada). Con calidad aparte, la nota de cada tarea es solo su puntualidad.
+- **Asistencia** es la adherencia al horario (puntualidad, días y horas) y solo cuenta para quien marca su jornada.
+- **La computadora ya no da puntos**: su actividad se muestra en la ficha y genera alertas.
+- Reglas del puntaje con tres controles (tareas, calidad, asistencia); los KPIs se quedan con el resto. Ranking y Excel con columnas de calidad y asistencia.
+
+### Fase 1 · Motor de KPIs
+- Cada plantilla de KPI tiene **fórmula, fuente de datos y responsable de validar**; las 246 oficiales vienen llenas.
+- **KPIs de seguimiento**: cada puesto queda con 8 a 15 KPIs. Los que tienen peso suman al puntaje; los de seguimiento (peso 0) se miden y alertan sin cambiar el puntaje. 497 KPIs activos, 242 de seguimiento.
+- Seis fuentes automáticas nuevas: tareas validadas, % con correcciones, horas por tarea, % dentro de lo estimado, % de la jornada en tareas y horas extra.
+- **Umbral de alerta** por KPI (70 % por defecto). Comando `revisar_kpis`: avisa al supervisor una vez por KPI y mes.
+- **Auditoría de cambios**: quién cambió pesos, metas, umbrales, plantillas, reglas del puntaje, marcajes, horarios, permisos, puestos, salarios y la configuración del monitoreo, con el valor de antes y el de después (Talento → Auditoría). Los cambios de salario dejan además su historial.
+
+### Fase 2 · Monitoreo por proyecto y OT
+- Cada minuto de la computadora se une al **cronómetro** que corría (tarea, OT o proyecto); si las horas se anotan después, se unen al guardarlas.
+- **Monitoreo → Por proyecto y OT**: horas del mes, estimado contra real (horas de las Órdenes de Área o de las tareas), % productivo en la computadora durante el cronómetro, tareas validadas, a la primera, correcciones y solicitudes de cambio, y por persona. Finanzas y la dirección ven el **costo de la mano de obra** (horas × costo por hora) contra el monto de la OT.
+- **Justificaciones**: la persona explica un tramo (YouTube para referencias, WhatsApp con un proveedor) y su supervisor la aprueba: esos minutos pasan a productivos y no se reclasifican.
+- **Desconexiones**: el día de cada persona muestra los tramos de 15+ minutos en jornada sin datos de la computadora.
+- La alerta «marcó pero su computadora no reporta» llega también a **Tecnología**.
+
+### Fase 3 · Ficha integral y talento
+- **Evaluación 360°** por ciclos: autoevaluación, supervisor y dos compañeros del departamento (anónimos), con 8 competencias del 1 al 5, fortalezas y qué mejorar.
+- **Validación humana**: una evaluación del supervisor por debajo de «Cumple» exige explicar qué mejorar y la confirma la dirección (o la devuelve) antes de que la vea la persona.
+- **Planes de mejora** con objetivos, metas, fechas y fecha de revisión; los abre y sigue el supervisor.
+- **Expediente**: reconocimientos, observaciones, amonestaciones, incidencias, capacitaciones (horas) y bonos (monto solo para la administración). Registros internos o visibles, y la persona puede escribir su descargo.
+- **Ficha integral**: puntaje en cuatro partes, KPIs con fórmula y umbral, seguimiento aparte, evaluación 360°, planes, expediente, historial salarial (administración) y tendencia de 6 o 12 meses con el puntaje. Alerta si el puntaje baja tres meses seguidos.
+
+### Fase 4 · Panel gerencial (Dirección)
+- Personal activo, productividad general, OT completadas y a tiempo, tareas validadas y a tiempo, asistencia y calidad promedio.
+- **Indicadores por área** con su tendencia de 6 meses, KPIs, calidad, asistencia, productividad en PC, tareas vencidas y horas.
+- **Alertas gerenciales**: OT abiertas sobre sus horas presupuestadas, mano de obra sobre el 60 % del monto, áreas acumulando trabajo vencido, puntajes bajando tres meses y necesidades de capacitación (competencias flojas y KPIs bajo umbral en el área).
+- Destacados, quién necesita atención y **Excel** del panel.
+
+### Para después (fases 5 a 8 de la propuesta)
+Rentabilidad completa por OT con materiales, alertas inteligentes, plan de capacitación con cursos y certificados, e integraciones (Cashflow, nómina, redes).
+
 ## 8.0 · 01/11/2026 · Control de horario, monitoreo de actividad y KPIs que se miden solos
 
 Lo mejor de Time Doctor, Teramind, BambooHR y la guía de desempeño de Personio, dentro de Adzone Team.

@@ -328,3 +328,32 @@ export const urlCaptura = (id) => `${MO}/capturas/${id}/`;
 
 // Ficha de productividad
 export const fichaProductividad = (params) => api(`${D}/ficha/${q(params)}`);
+
+// Productividad por proyecto y OT, y justificaciones de la computadora
+export const productividadProyectos = (mes) => api(`${MO}/proyectos/${q({ mes })}`);
+export const justificaciones = (params) => api(`${MO}/justificaciones/${q(params)}`);
+export const justificar = (d) => api(`${MO}/justificaciones/`, { method: "POST", body: d });
+export const revisarJustificacion = (id, aprobar, nota) => api(`${MO}/justificaciones/${id}/revisar/`, { method: "POST", body: { aprobar, nota } });
+
+// Panel gerencial
+export const panelGerencial = (mes) => api(`${D}/panel/${q({ mes })}`);
+export const urlExportarPanel = (mes) => `${D}/panel/exportar/${q({ mes })}`;
+
+// Talento: evaluaciones 360°, planes de mejora, expediente y auditoría
+const TA = "/api/talento";
+export const ciclosEvaluacion = () => api(`${TA}/ciclos/`);
+export const crearCiclo = (c) => api(`${TA}/ciclos/`, { method: "POST", body: c });
+export const editarCiclo = (id, c) => api(`${TA}/ciclos/${id}/`, { method: "PATCH", body: c });
+export const misEvaluaciones = () => api(`${TA}/evaluaciones/`);
+export const enviarEvaluacion = (id, d) => api(`${TA}/evaluaciones/${id}/enviar/`, { method: "POST", body: d });
+export const evaluacionesPorRevisar = () => api(`${TA}/evaluaciones/por-revisar/`);
+export const confirmarEvaluacion = (id, d) => api(`${TA}/evaluaciones/${id}/confirmar/`, { method: "POST", body: d });
+export const resultadosEvaluacion = (usuario) => api(`${TA}/resultados/${q({ usuario })}`);
+export const avanceEvaluacion = (ciclo) => api(`${TA}/avance/${q({ ciclo })}`);
+export const planesMejora = (usuario) => api(`${TA}/planes/${q({ usuario })}`);
+export const guardarPlan = (p) => (p.id ? api(`${TA}/planes/${p.id}/`, { method: "PATCH", body: p }) : api(`${TA}/planes/`, { method: "POST", body: p }));
+export const expediente = (usuario) => api(`${TA}/expediente/${q({ usuario })}`);
+export const guardarEvento = (e) => (e.id ? api(`${TA}/expediente/${e.id}/`, { method: "PATCH", body: e }) : api(`${TA}/expediente/`, { method: "POST", body: e }));
+export const borrarEvento = (id) => api(`${TA}/expediente/${id}/`, { method: "DELETE" });
+export const historialSalarios = (usuario) => api(`${TA}/salarios/${q({ usuario })}`);
+export const auditoria = (params) => api(`${TA}/auditoria/${q(params)}`);

@@ -16,7 +16,7 @@ function FormKpi({ abierto, inicial, puestoId, plantillas, asignadas, onCerrar, 
     if (!abierto) return;
     setError("");
     setF(inicial?.id ? { ...inicial, plantilla_kpi: inicial.plantilla_kpi_detalle?.id }
-      : { plantilla_kpi: "", ponderacion: "", es_entrada_manual: false, meta_numerica: "", objetivo_meta: "", periodicidad_objetivo: "MENSUAL", activo: true });
+      : { plantilla_kpi: "", ponderacion: "", es_entrada_manual: false, meta_numerica: "", objetivo_meta: "", periodicidad_objetivo: "MENSUAL", activo: true, umbral_alerta: 70 });
   }, [abierto, inicial]);
   const plantilla = plantillas.find((p) => String(p.id) === String(f.plantilla_kpi));
   const guardar = async (e) => {
@@ -28,7 +28,7 @@ function FormKpi({ abierto, inicial, puestoId, plantillas, asignadas, onCerrar, 
     setGuardando(true);
     try {
       await guardarKpiAsignado({
-        id: f.id, puesto_trabajo: Number(puestoId), plantilla_kpi: Number(f.plantilla_kpi), ponderacion: Number(f.ponderacion),
+        id: f.id, puesto_trabajo: Number(puestoId), plantilla_kpi: Number(f.plantilla_kpi), ponderacion: Number(f.ponderacion), umbral_alerta: Number(f.umbral_alerta ?? 70),
         es_entrada_manual: !!f.es_entrada_manual, meta_numerica: f.meta_numerica === "" ? null : Number(f.meta_numerica),
         objetivo_meta: f.objetivo_meta || "", periodicidad_objetivo: f.periodicidad_objetivo || "MENSUAL", activo: !!f.activo,
       });
@@ -63,13 +63,16 @@ function FormKpi({ abierto, inicial, puestoId, plantillas, asignadas, onCerrar, 
           </div>
         </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Campo etiqueta="Peso en el puesto (%)" ayuda="Los pesos del puesto deberían sumar 100.">
+          <Campo etiqueta="Peso en el puesto (%)" ayuda="Los pesos del puesto deberían sumar 100. Con 0 es de seguimiento: se mide y alerta, pero no suma al puntaje.">
             {(id) => <input id={id} type="number" min={0} max={100} step="any" className="campo" value={f.ponderacion ?? ""} onChange={(e) => setF({ ...f, ponderacion: e.target.value })} />}
           </Campo>
           <Campo etiqueta={f.es_entrada_manual ? "Meta mensual de referencia" : "Meta mensual"} ayuda={f.es_entrada_manual ? "Opcional: se propone al anotar el mes." : "Ej.: 20 publicaciones validadas."}>
             {(id) => <input id={id} type="number" min={0} step="any" className="campo" value={f.meta_numerica ?? ""} onChange={(e) => setF({ ...f, meta_numerica: e.target.value })} />}
           </Campo>
         </div>
+        <Campo etiqueta="Umbral de alerta (% de cumplimiento)" ayuda="Si el mes cierra por debajo, su supervisor recibe un aviso para revisar o abrir un plan de mejora.">
+          {(id) => <input id={id} type="number" min={0} max={100} step="any" className="campo" value={f.umbral_alerta ?? 70} onChange={(e) => setF({ ...f, umbral_alerta: e.target.value })} />}
+        </Campo>
         <Campo etiqueta="Descripción de la meta (opcional)">{(id) => <input id={id} className="campo" value={f.objetivo_meta || ""} onChange={(e) => setF({ ...f, objetivo_meta: e.target.value })} placeholder="Ej.: menos de 3 rondas por proyecto" />}</Campo>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!f.activo} onChange={(e) => setF({ ...f, activo: e.target.checked })} className="accent-azul" />Activo (cuenta para el puntaje)</label>
       </form>
@@ -139,11 +142,13 @@ export default function PuestoDetalle() {
                   <tbody>
                     {[...kpis].sort((a, b) => b.activo - a.activo || Number(b.ponderacion) - Number(a.ponderacion)).map((k) => (
                       <tr key={k.id} className={k.activo ? "" : "opacity-55"}>
-                        <td><p className="font-medium">{k.nombre}</p>{k.objetivo_meta && <p className="text-sm text-gris">{k.objetivo_meta}</p>}{!k.activo && <Insignia>Inactivo</Insignia>}</td>
+                        <td><p className="font-medium">{k.nombre}</p>{k.objetivo_meta && <p className="text-sm text-gris">{k.objetivo_meta}</p>}
+                          {k.plantilla_kpi_detalle?.formula && <p className="text-xs text-gris" title={[k.plantilla_kpi_detalle.fuente_datos && `Fuente: ${k.plantilla_kpi_detalle.fuente_datos}`, k.plantilla_kpi_detalle.responsable_validacion && `Valida: ${k.plantilla_kpi_detalle.responsable_validacion}`].filter(Boolean).join(" · ")}>Fórmula: {k.plantilla_kpi_detalle.formula}</p>}
+                          {!k.activo && <Insignia>Inactivo</Insignia>}</td>
                         <td>{k.es_entrada_manual ? <Insignia>Manual</Insignia> : <Insignia tono="azul">Automático</Insignia>}</td>
                         <td className="whitespace-nowrap text-right"><span className="num">{k.meta_numerica == null ? "—" : `${k.plantilla_kpi_detalle?.menor_es_mejor && Number(k.meta_numerica) > 0 ? "≤ " : ""}${Number(k.meta_numerica).toLocaleString("es-DO")}`}</span>
                           <span className="block text-sm text-gris">{k.plantilla_kpi_detalle?.unidad_medida}{k.periodicidad_objetivo && k.periodicidad_objetivo !== "MENSUAL" ? ` · ${k.periodicidad_objetivo.toLowerCase()}` : ""}</span></td>
-                        <td className="text-right num">{Number(k.ponderacion)}%</td>
+                        <td className="text-right num">{Number(k.ponderacion) ? `${Number(k.ponderacion)}%` : <Insignia>Seguimiento</Insignia>}<span className="block text-xs text-gris">alerta &lt; {Number(k.umbral_alerta ?? 70)}%</span></td>
                         <td className="whitespace-nowrap text-right">
                           <Boton variante="fantasma" tam="sm" icono={Pencil} aria-label={`Editar ${k.nombre}`} onClick={() => setFormKpi(k)} />
                           <Boton variante="fantasma" tam="sm" icono={Trash2} aria-label={`Quitar ${k.nombre}`} className="text-rojo" onClick={async () => {

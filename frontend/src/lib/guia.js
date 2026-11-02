@@ -142,9 +142,19 @@ export const GUIAS_PANTALLA = [
     { objetivo: PESTANAS, titulo: "Tu actividad", texto: "Lo que el agente de tu computadora midió en tu jornada: tiempo activo, productivo y de foco, aplicaciones y sitios. Lo mismo que ve tu supervisor. Nunca registra teclas, contraseñas ni mensajes." },
     { titulo: "Vincular tu computadora", texto: "En «Mis equipos y política» acepta la política y toca «Vincular computadora». Pega el código en el agente de Adzone Team. Solo mide cuando marcaste entrada; en pausa, nada." },
     { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Equipo en vivo", texto: "Quién está activo y en qué aplicación, y cómo va su día. Toca a alguien para ver su línea de tiempo." },
+    { titulo: "Justificar un tramo", texto: "Si usaste YouTube o WhatsApp para trabajar, en «Mi actividad» toca «Justificar un tramo». Si tu supervisor lo aprueba, esos minutos pasan a productivos." },
+    { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Por proyecto y OT", texto: "Horas del cronómetro, minutos de computadora en ese trabajo, tareas a la primera, correcciones y estimado contra real de cada OT. Finanzas ve además el costo de la mano de obra." },
   ] },
   { id: "ficha", ruta: /^\/ficha$/, nombre: "Ficha de productividad", pasos: [
-    { titulo: "Todo en un lugar", texto: "Tu puntaje del mes y sus tres partes (tareas, KPIs y jornada), lo que hay que atender, tus KPIs (los automáticos salen solos), horario, computadora, tareas y tu tendencia de 6 meses." },
+    { titulo: "Todo en un lugar", texto: "Tu puntaje del mes y sus partes (tareas 40 %, KPIs 35 %, calidad 15 %, asistencia 10 %), lo que hay que atender, tus KPIs con su fórmula, horario, computadora (solo informativa), evaluación 360°, planes de mejora, expediente y tu tendencia de 6 o 12 meses." },
+  ] },
+  { id: "talento", ruta: /^\/talento$/, nombre: "Talento", pasos: [
+    { objetivo: PESTANAS, titulo: "Evaluaciones 360°", texto: "En «Evaluar» están las que te tocan: tu autoevaluación, la de tu equipo si supervisas y la de dos compañeros (anónima). Ocho competencias del 1 al 5." },
+    { titulo: "Planes y expediente", texto: "Los planes de mejora tienen objetivos con fecha de revisión. En el expediente quedan reconocimientos, observaciones, capacitaciones y bonos; puedes escribir tu descargo." },
+    { para: (s) => s.esAdmin, titulo: "Para la dirección", texto: "Una evaluación del supervisor por debajo de «Cumple» llega a «Por validar» antes de que la vea la persona. En «Auditoría» queda quién cambió KPIs, pesos, horarios o salarios." },
+  ] },
+  { id: "panel", ruta: /^\/panel$/, nombre: "Panel gerencial", pasos: [
+    { objetivo: TITULO, titulo: "La empresa en una pantalla", texto: "Personal, productividad, OT completadas y a tiempo, indicadores por área con su tendencia, y alertas: OT sobre sus horas o su costo, áreas acumulando trabajo, puntajes bajando y necesidades de capacitación." },
   ] },
   { id: "mi-cuenta", ruta: /^\/mi-cuenta$/, nombre: "Mi cuenta", pasos: [
     { objetivo: TITULO, titulo: "Tu cuenta", texto: "Aquí cambias tu contraseña. Si la olvidas, pídele a Administración que te la restablezca." },

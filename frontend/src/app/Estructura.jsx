@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  CalendarClock, Gauge, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, Gauge, LayoutDashboard, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -23,6 +23,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
     { a: "/asistencia", texto: "Asistencia", icono: CalendarClock },
     { a: "/monitoreo", texto: "Mi actividad", icono: MonitorSmartphone },
     { a: "/ficha", texto: "Mi ficha", icono: Gauge },
+    { a: "/talento", texto: "Evaluaciones", icono: Award },
     { a: "/organigrama", texto: "Organigrama", icono: Network },
   ] }];
   const s = [
@@ -33,6 +34,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
       { a: "/asistencia", texto: "Asistencia", icono: CalendarClock },
       { a: "/monitoreo", texto: puedeValidar || esAdmin ? "Monitoreo" : "Mi actividad", icono: MonitorSmartphone },
       { a: "/ficha", texto: "Mi ficha", icono: Gauge },
+      { a: "/talento", texto: puedeValidar || esAdmin ? "Talento" : "Evaluaciones", icono: Award },
     ] },
     { titulo: "Operación", items: [
       { a: "/ordenes", texto: "Órdenes de trabajo", icono: ClipboardList },
@@ -52,6 +54,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
   if (esFinanzas) s.push({ titulo: "Finanzas", items: [{ a: "/finanzas", texto: "Finanzas", icono: Wallet }] });
   if (esAdmin) {
     s.push({ titulo: "Resultados", items: [
+      { a: "/panel", texto: "Panel gerencial", icono: LayoutDashboard },
       { a: "/desempeno", texto: "Desempeño y ranking", icono: Trophy },
       { a: "/kpis-del-mes", texto: "KPIs del mes", icono: SquarePen },
     ] });

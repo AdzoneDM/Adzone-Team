@@ -38,6 +38,8 @@ const CallCenter = lazy(() => import("@/features/callcenter/CallCenter"));
 const Asistencia = lazy(() => import("@/features/asistencia/Asistencia"));
 const Monitoreo = lazy(() => import("@/features/monitoreo/Monitoreo"));
 const Ficha = lazy(() => import("@/features/desempeno/Ficha"));
+const Talento = lazy(() => import("@/features/talento/Talento"));
+const PanelGerencial = lazy(() => import("@/features/desempeno/PanelGerencial"));
 
 function Protegida({ children, admin, supervisor, finanzas }) {
   const { usuario, esAdmin, puedeValidar, esFinanzas } = useSesion();
@@ -86,6 +88,8 @@ export default function App() {
           <Route path="asistencia" element={<Asistencia />} />
           <Route path="monitoreo" element={<Monitoreo />} />
           <Route path="ficha" element={<Ficha />} />
+          <Route path="talento" element={<Talento />} />
+          <Route path="panel" element={<Protegida admin><PanelGerencial /></Protegida>} />
           <Route path="finanzas" element={<Protegida finanzas><Finanzas /></Protegida>} />
           <Route path="automatizaciones" element={<Protegida admin><Automatizaciones /></Protegida>} />
           <Route path="validar" element={<Protegida supervisor><Validar /></Protegida>} />

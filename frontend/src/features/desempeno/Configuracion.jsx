@@ -20,7 +20,7 @@ export default function Configuracion() {
     setGuardando(true);
     try {
       const r = await guardarConfiguracion({
-        peso_tareas: Number(f.peso_tareas), peso_jornada: pesoJornada, nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
+        peso_tareas: pesoTareas, peso_calidad: pesoCalidad, peso_jornada: pesoJornada, nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
         puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion),
         tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje), ...(t.proporcional ? { proporcional: true } : {}) })),
       });
@@ -31,7 +31,15 @@ export default function Configuracion() {
   };
 
   const pesoTareas = Math.max(0, Math.min(100, Number(f.peso_tareas) || 0));
-  const pesoJornada = Math.max(0, Math.min(100 - pesoTareas, Number(f.peso_jornada) || 0));
+  const pesoCalidad = Math.max(0, Math.min(100 - pesoTareas, Number(f.peso_calidad) || 0));
+  const pesoJornada = Math.max(0, Math.min(100 - pesoTareas - pesoCalidad, Number(f.peso_jornada) || 0));
+  const pesoKpis = 100 - pesoTareas - pesoCalidad - pesoJornada;
+  const mover = (campo, v) => {
+    const n = { ...f, [campo]: Number(v) };
+    const t = Math.min(100, Number(n.peso_tareas) || 0);
+    const c = Math.min(100 - t, Number(n.peso_calidad) || 0);
+    setF({ ...n, peso_tareas: t, peso_calidad: c, peso_jornada: Math.min(100 - t - c, Number(n.peso_jornada) || 0) });
+  };
   return (
     <form onSubmit={guardar} className="max-w-3xl">
       <Cabecera titulo="Reglas del puntaje" descripcion="Cómo se calcula el puntaje mensual de cada persona y el bono sugerido. Los cambios aplican a todos los meses que se consulten.">
@@ -40,13 +48,17 @@ export default function Configuracion() {
       {error && <Alerta className="mb-4">{error}</Alerta>}
       <div className="space-y-6">
         <Panel titulo="Peso de cada parte">
-          <p className="mb-4 rounded-lg bg-fondo px-4 py-3 text-[15px]">Tareas <strong className="num">{pesoTareas} %</strong> · KPIs del puesto <strong className="num">{100 - pesoTareas - pesoJornada} %</strong> · Jornada <strong className="num">{pesoJornada} %</strong></p>
-          <Campo etiqueta={`Tareas validadas: ${pesoTareas} %`} ayuda="Si a alguien le falta alguna parte en el mes, las que tiene se reparten el 100 %.">
-            {(id) => <input id={id} type="range" min={0} max={100} step={1} value={pesoTareas} onChange={(e) => setF({ ...f, peso_tareas: e.target.value, peso_jornada: Math.min(pesoJornada, 100 - Number(e.target.value)) })} className="w-full accent-azul" />}
+          <p className="mb-4 rounded-lg bg-fondo px-4 py-3 text-[15px]">Tareas <strong className="num">{pesoTareas} %</strong> · KPIs del puesto <strong className="num">{pesoKpis} %</strong> · Calidad y satisfacción <strong className="num">{pesoCalidad} %</strong> · Asistencia y puntualidad <strong className="num">{pesoJornada} %</strong></p>
+          <Campo etiqueta={`Cumplimiento de tareas: ${pesoTareas} %`} ayuda="Tareas validadas a tiempo, ponderadas por prioridad. Si a alguien le falta alguna parte en el mes, las que tiene se reparten el 100 %.">
+            {(id) => <input id={id} type="range" min={0} max={100} step={1} value={pesoTareas} onChange={(e) => mover("peso_tareas", e.target.value)} className="w-full accent-azul" />}
           </Campo>
-          <Campo etiqueta={`Jornada: ${pesoJornada} %`} className="mt-4" ayuda="Adherencia al horario (puntualidad, asistencia, horas) y productividad en la computadora contra la meta del monitoreo. Solo cuenta para quien marca su jornada.">
-            {(id) => <input id={id} type="range" min={0} max={100 - pesoTareas} step={1} value={pesoJornada} onChange={(e) => setF({ ...f, peso_jornada: e.target.value })} className="w-full accent-azul" />}
+          <Campo etiqueta={`Calidad y satisfacción: ${pesoCalidad} %`} className="mt-4" ayuda="Estrellas de las tareas, % aprobado a la primera y la evaluación del supervisor del ciclo. En 0, la calidad vuelve a ir dentro de la nota de cada tarea.">
+            {(id) => <input id={id} type="range" min={0} max={100 - pesoTareas} step={1} value={pesoCalidad} onChange={(e) => mover("peso_calidad", e.target.value)} className="w-full accent-azul" />}
           </Campo>
+          <Campo etiqueta={`Asistencia y puntualidad: ${pesoJornada} %`} className="mt-4" ayuda="Adherencia al horario: puntualidad, días asistidos y horas cumplidas. Solo cuenta para quien marca su jornada.">
+            {(id) => <input id={id} type="range" min={0} max={100 - pesoTareas - pesoCalidad} step={1} value={pesoJornada} onChange={(e) => mover("peso_jornada", e.target.value)} className="w-full accent-azul" />}
+          </Campo>
+          <p className="mt-4 text-sm text-gris">Los KPIs del puesto se quedan con el resto ({pesoKpis} %). La actividad de la computadora no da puntos: se muestra en la ficha y genera alertas.</p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Puntualidad de una entrega tarde" ayuda="A tiempo vale 100; sin entregar y vencida, 0.">
               {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.nota_tarde} onChange={(e) => setF({ ...f, nota_tarde: e.target.value })} />}
@@ -95,7 +107,7 @@ export default function Configuracion() {
         <Panel titulo="Cómo se calcula la nota de cada tarea">
           <ul className="list-disc space-y-1.5 pl-5 text-[15px] text-gris">
             <li>Puntualidad: 100 si se entregó a tiempo, {f.nota_tarde} si se entregó tarde, 0 si venció sin entregar.</li>
-            <li>Calidad: las estrellas del supervisor (1 = 0, 3 = 50, 5 = 100). La nota es el promedio de las dos.</li>
+            <li>Con «Calidad y satisfacción» en más de 0, la nota de la tarea es solo la puntualidad y las estrellas (1 = 0, 3 = 50, 5 = 100) van a ese componente. En 0, la nota es el promedio de puntualidad y estrellas.</li>
             <li>Prioridad alta pesa 3, media 2 y baja 1.</li>
             <li>No cuentan todavía las entregas sin validar ni las tareas que no han vencido.</li>
           </ul>

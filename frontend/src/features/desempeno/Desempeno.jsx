@@ -274,7 +274,7 @@ export default function Desempeno() {
                 <table className="tabla">
                   <thead><tr>
                     <th className="w-12">#</th><th>Colaborador</th><th>Tareas validadas</th><th className="text-right">Calidad</th>
-                    <th className="text-right">Tareas</th><th className="text-right">KPIs</th><th className="text-right">Jornada</th><th className="min-w-44">Puntaje</th><th className="text-right">Bono sugerido</th><th className="w-10"><span className="sr-only">Detalle</span></th>
+                    <th className="text-right">Tareas</th><th className="text-right">KPIs</th><th className="text-right">Calidad</th><th className="text-right">Asistencia</th><th className="min-w-44">Puntaje</th><th className="text-right">Bono sugerido</th><th className="w-10"><span className="sr-only">Detalle</span></th>
                   </tr></thead>
                   <tbody>
                     {filas.map((f) => (
@@ -288,7 +288,8 @@ export default function Desempeno() {
                           <td className="text-right num">{f.tareas.calidad_promedio ?? "—"}</td>
                           <td className="text-right"><Puntaje valor={f.puntaje_tareas} /></td>
                           <td className="text-right"><Puntaje valor={f.puntaje_kpis} /></td>
-                          <td className="text-right"><Puntaje valor={f.puntaje_jornada} /></td>
+                          <td className="text-right"><Puntaje valor={f.puntaje_calidad} /></td>
+                          <td className="text-right"><Puntaje valor={f.puntaje_asistencia} /></td>
                           <td><div className="flex items-center gap-3"><Puntaje valor={f.puntaje_total} className="w-12 text-lg" /><Barra valor={f.puntaje_total} /></div>
                             <Insignia tono={EVALUACION[f.evaluacion].tono} className="mt-1">{EVALUACION[f.evaluacion].texto}</Insignia></td>
                           <td className="text-right">{f.bono_sugerido ? <Insignia tono="verde">{f.bono_sugerido}%</Insignia> : <span className="text-gris">—</span>}</td>
@@ -300,7 +301,7 @@ export default function Desempeno() {
                           </td>
                         </tr>
                         {abierta === f.colaborador_id && (
-                          <tr><td colSpan={9} className="p-0">
+                          <tr><td colSpan={10} className="p-0">
                             <DetalleFila f={f} />
                             {grupo === "empleados" && !general && f.elegible && (
                               <div className="flex justify-end gap-2 bg-fondo/70 px-6 pb-5">

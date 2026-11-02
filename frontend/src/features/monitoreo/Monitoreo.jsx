@@ -1,15 +1,16 @@
 // Monitoreo de actividad: en vivo del equipo, el día de cada persona, mis equipos, reglas y configuración.
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Copy, Laptop, MonitorSmartphone, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { Check, Copy, FolderKanban, Laptop, MessageSquareText, MonitorSmartphone, Plus, RefreshCw, ShieldCheck, Trash2, WifiOff, X } from "lucide-react";
 import {
+  justificaciones, justificar, productividadProyectos, revisarJustificacion,
   aceptarPolitica, borrarReglaProductividad as borrarRegla, configMonitoreo, departamentos as cargarDeptos, dispositivos, guardarConfigMonitoreo, guardarReglaProductividad as guardarRegla,
   monitoreoDia, monitoreoEquipo, politicaMonitoreo, quitarDispositivo, reclasificar, reglasProductividad, urlCaptura, usuarios as cargarUsuarios,
   vincularDispositivo,
 } from "@/lib/api";
-import { hace, hoyISO, reloj } from "@/lib/formato";
+import { hace, hoyISO, mesActual, nombreMes, reloj } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
-import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Puntaje, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
+import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Puntaje, SelectorMes, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 
 const CAT = { P: ["Productiva", "verde", "bg-verde"], N: ["Neutral", "neutro", "bg-[#9aa7bd]"], I: ["Improductiva", "rojo", "bg-rojo"] };
 const pct = (v) => (v == null ? "—" : `${Number(v).toLocaleString("es-DO", { maximumFractionDigits: 1 })} %`);
@@ -76,6 +77,7 @@ export function DiaPersona({ usuario }) {
   const [d, setD] = useState(null);
   const [error, setError] = useState("");
   const [foto, setFoto] = useState(null);
+  const [justificando, setJustificando] = useState(false);
   useEffect(() => { setD(null); setError(""); monitoreoDia({ usuario, fecha }).then(setD).catch((e) => setError(e.message)); }, [usuario, fecha]);
   return (
     <div className="space-y-4">
@@ -96,7 +98,16 @@ export function DiaPersona({ usuario }) {
             <Dato titulo="Nivel de actividad" valor={pct(d.intensidad)} detalle="Teclado o ratón por minuto" />
             <Dato titulo="Cambios de ventana" valor={d.cambios_por_hora ?? "—"} detalle="por hora" tono={d.cambios_por_hora > 60 ? "text-[#a86a00]" : ""} />
           </div>
-          <Panel titulo="Línea de tiempo">{d.linea.length ? <Linea bloques={d.linea} /> : <Vacio icono={MonitorSmartphone} titulo="Sin actividad registrada este día">Solo se registra en jornada, con la computadora vinculada.</Vacio>}</Panel>
+          <Panel titulo="Línea de tiempo" accion={!usuario && d.linea.length > 0 && <Boton tam="sm" variante="secundario" icono={MessageSquareText} onClick={() => setJustificando(true)}>Justificar un tramo</Boton>}>
+            {d.linea.length ? <Linea bloques={d.linea} /> : <Vacio icono={MonitorSmartphone} titulo="Sin actividad registrada este día">Solo se registra en jornada, con la computadora vinculada.</Vacio>}
+          </Panel>
+          {d.desconexiones?.length > 0 && (
+            <Panel titulo={`Desconexiones en jornada · ${reloj(d.minutos_desconectado)}`}>
+              <p className="mb-2 text-sm text-gris">Tramos de 15 minutos o más, en jornada, sin datos de la computadora (agente cerrado, equipo apagado o sin internet).</p>
+              <ul className="flex flex-wrap gap-2">{d.desconexiones.map((x) => (
+                <li key={x.desde}><Insignia tono="amarillo"><WifiOff className="size-3" />{hora(x.desde)}–{hora(x.hasta)} · {reloj(x.minutos)}</Insignia></li>))}</ul>
+            </Panel>
+          )}
           <div className="grid gap-4 lg:grid-cols-2">
             <ListaUso titulo="Aplicaciones" filas={d.apps} />
             <ListaUso titulo="Sitios web" filas={d.sitios} />
@@ -113,6 +124,7 @@ export function DiaPersona({ usuario }) {
               </div>
             </Panel>
           )}
+          {justificando && <FormJustificar fecha={fecha} onCerrar={() => setJustificando(false)} />}
           <Modal abierto={!!foto} onCerrar={() => setFoto(null)} titulo={foto ? `Captura de las ${foto.hora}` : ""} ancho="md:max-w-5xl">
             {foto && <img src={urlCaptura(foto.id)} alt="" className="w-full rounded-lg" />}
           </Modal>
@@ -339,6 +351,136 @@ function Configuracion() {
   );
 }
 
+function FormJustificar({ fecha, onCerrar }) {
+  const avisar = useAviso();
+  const [f, setF] = useState({ desde: "09:00", hasta: "10:00", motivo: "" });
+  const [error, setError] = useState("");
+  const enviar = async () => {
+    setError("");
+    try {
+      await justificar({ desde: new Date(`${fecha}T${f.desde}`).toISOString(), hasta: new Date(`${fecha}T${f.hasta}`).toISOString(), motivo: f.motivo });
+      avisar("Enviada a tu supervisor. Si la aprueba, esos minutos cuentan como productivos.");
+      onCerrar();
+    } catch (e) { setError(e.message); }
+  };
+  return (
+    <Modal abierto onCerrar={onCerrar} titulo="Justificar un tramo" descripcion="Por ejemplo: YouTube para buscar referencias de un video del cliente, o WhatsApp Web para coordinar con un proveedor."
+      pie={<><Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton><Boton onClick={enviar} disabled={!f.motivo.trim()}>Enviar</Boton></>}>
+      {error && <Alerta className="mb-3">{error}</Alerta>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo etiqueta="Desde">{(id) => <input id={id} type="time" className="campo" value={f.desde} onChange={(e) => setF({ ...f, desde: e.target.value })} />}</Campo>
+        <Campo etiqueta="Hasta">{(id) => <input id={id} type="time" className="campo" value={f.hasta} onChange={(e) => setF({ ...f, hasta: e.target.value })} />}</Campo>
+        <Campo etiqueta="Qué estabas haciendo" className="sm:col-span-2">{(id) => <textarea id={id} rows={3} maxLength={300} className="campo" value={f.motivo} onChange={(e) => setF({ ...f, motivo: e.target.value })} />}</Campo>
+      </div>
+    </Modal>
+  );
+}
+
+const ESTADO_J = { PENDIENTE: ["Pendiente", "amarillo"], APROBADA: ["Aprobada", "verde"], RECHAZADA: ["Rechazada", "rojo"] };
+function Justificaciones({ gestiona }) {
+  const avisar = useAviso();
+  const [mias, setMias] = useState(null);
+  const [equipo, setEquipo] = useState(null);
+  const [error, setError] = useState("");
+  const [notas, setNotas] = useState({});
+  const cargar = useCallback(() => {
+    justificaciones().then(setMias).catch((e) => setError(e.message));
+    if (gestiona) justificaciones({ ver: "equipo", estado: "PENDIENTE" }).then(setEquipo).catch((e) => setError(e.message));
+  }, [gestiona]);
+  useEffect(() => { cargar(); }, [cargar]);
+  const decidir = async (j, aprobar) => {
+    try { const r = await revisarJustificacion(j.id, aprobar, notas[j.id] || ""); avisar(aprobar ? `${r.minutos} minutos pasaron a productivos.` : "Rechazada."); cargar(); }
+    catch (e) { setError(e.message); }
+  };
+  const tramo = (j) => `${new Date(j.desde).toLocaleDateString("es-DO")} · ${hora(j.desde)}–${hora(j.hasta)}`;
+  return (
+    <div className="space-y-4">
+      {error && <Alerta>{error}</Alerta>}
+      {gestiona && (
+        <Panel titulo={`Por revisar de tu equipo${equipo ? ` (${equipo.length})` : ""}`} cuerpo="p-0">
+          {!equipo ? <Cargando /> : !equipo.length ? <p className="p-5 text-sm text-gris">Nada pendiente.</p> : (
+            <ul className="divide-y divide-linea-suave">{equipo.map((j) => (
+              <li key={j.id} className="px-5 py-3">
+                <p><span className="font-medium">{j.usuario_nombre}</span> <span className="text-sm text-gris">· {tramo(j)}</span></p>
+                <p className="text-[15px]">{j.motivo}</p>
+                <p className="text-xs text-gris">En ese tramo: {reloj(j.resumen.productivos)} productivo, {reloj(j.resumen.neutrales)} neutral, {reloj(j.resumen.improductivos)} improductivo · {j.resumen.apps.join(", ") || "sin datos"}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <input className="campo !h-9 min-w-48 flex-1" placeholder="Nota (opcional)" value={notas[j.id] || ""} onChange={(e) => setNotas({ ...notas, [j.id]: e.target.value })} aria-label="Nota" />
+                  <Boton tam="sm" variante="secundario" icono={X} onClick={() => decidir(j, false)}>Rechazar</Boton>
+                  <Boton tam="sm" icono={Check} onClick={() => decidir(j, true)}>Aprobar</Boton>
+                </div>
+              </li>))}</ul>
+          )}
+        </Panel>
+      )}
+      <Panel titulo="Mis justificaciones" cuerpo="p-0">
+        {!mias ? <Cargando /> : !mias.length ? <p className="p-5 text-sm text-gris">Desde «Mi actividad» puedes justificar un tramo que salió como neutral o improductivo.</p> : (
+          <ul className="divide-y divide-linea-suave">{mias.map((j) => (
+            <li key={j.id} className="flex flex-wrap items-center gap-3 px-5 py-2.5">
+              <span className="min-w-0 flex-1"><span className="text-[15px]">{j.motivo}</span><span className="block text-xs text-gris">{tramo(j)}{j.nota ? ` · ${j.nota}` : ""}</span></span>
+              <Insignia tono={ESTADO_J[j.estado][1]}>{ESTADO_J[j.estado][0]}{j.estado === "APROBADA" ? ` · ${j.minutos} min` : ""}</Insignia>
+            </li>))}</ul>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
+function Proyectos() {
+  const [mes, setMes] = useState(mesActual());
+  const [tipo, setTipo] = useState("ordenes");
+  const [d, setD] = useState(null);
+  const [error, setError] = useState("");
+  const [abierto, setAbierto] = useState(null);
+  useEffect(() => { setD(null); setError(""); productividadProyectos(mes).then(setD).catch((e) => setError(e.message)); }, [mes]);
+  const dinero = (v) => (v == null ? "—" : `RD$ ${Number(v).toLocaleString("es-DO", { maximumFractionDigits: 0 })}`);
+  const filas = d ? d[tipo] : [];
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Pestanas className="!flex" opciones={[{ valor: "ordenes", etiqueta: "Por OT", cuenta: d?.ordenes.length }, { valor: "proyectos", etiqueta: "Por proyecto", cuenta: d?.proyectos.length }]} valor={tipo} onCambio={setTipo} />
+        <SelectorMes valor={mes} onCambio={setMes} />
+      </div>
+      {error ? <Alerta>{error}</Alerta> : !d ? <Cargando /> : (
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Dato titulo="Horas en cronómetro" valor={d.totales.horas} detalle={`${nombreMes(mes)}`} />
+            <Dato titulo="OT con horas" valor={d.totales.ordenes} detalle={`${d.totales.sobre_estimado} sobre lo estimado`} tono={d.totales.sobre_estimado ? "text-rojo" : ""} />
+            <Dato titulo="Productivo en PC" valor={<Puntaje valor={d.totales.productividad_pc} />} detalle="Durante el cronómetro" />
+            {d.con_costos ? <Dato titulo="Costo de mano de obra" valor={dinero(d.totales.costo)} detalle="Horas × costo por hora" /> : <Dato titulo="Proyectos con horas" valor={d.totales.proyectos} />}
+          </div>
+          {!filas.length ? <Vacio icono={FolderKanban} titulo="Sin horas registradas en OT o proyectos este mes">Las horas salen del cronómetro de las tareas; los minutos de la computadora se unen solos al cronómetro que corría.</Vacio> : (
+            <Panel cuerpo="p-0">
+              <div className="overflow-x-auto"><table className="tabla">
+                <thead><tr><th>{tipo === "ordenes" ? "OT" : "Proyecto"}</th><th className="text-right">Horas mes</th><th className="text-right">Estimado / real total</th><th className="text-right">Productivo PC</th>
+                  <th className="text-right">Tareas validadas</th><th className="text-right">A la primera</th><th className="text-right">Correcciones</th>{d.con_costos && <th className="text-right">Costo</th>}</tr></thead>
+                <tbody>{filas.map((o) => (
+                  <tr key={o.id} className="cursor-pointer hover:bg-fondo" onClick={() => setAbierto(o)}>
+                    <td><span className="font-medium">{o.numero}</span> <span className="text-sm">{o.titulo}</span><span className="block text-xs text-gris">{o.cliente} · {o.estado}</span></td>
+                    <td className="text-right num">{o.horas}</td>
+                    <td className={cx("text-right num", o.sobre_estimado && "font-semibold text-rojo")}>{o.horas_estimadas ?? "—"} / {o.horas_reales_total}{o.desvio_horas_pct != null && <span className="block text-xs">{o.desvio_horas_pct > 0 ? "+" : ""}{o.desvio_horas_pct} %</span>}</td>
+                    <td className="text-right"><Puntaje valor={o.productividad_pc} />{o.cobertura_pc != null && <span className="block text-xs text-gris">{pct(o.cobertura_pc)} con PC</span>}</td>
+                    <td className="text-right num">{o.validadas}{o.abiertas ? <span className="block text-xs text-gris">{o.abiertas} abiertas</span> : null}</td>
+                    <td className="text-right num">{o.validadas ? `${Math.round((o.a_la_primera / o.validadas) * 100)} %` : "—"}</td>
+                    <td className="text-right num">{o.correcciones}{o.cambios ? <span className="block text-xs text-gris">{o.cambios} cambio(s)</span> : null}</td>
+                    {d.con_costos && <td className="text-right num">{dinero(o.costo)}{o.monto ? <span className="block text-xs text-gris">de {dinero(o.monto)}</span> : null}</td>}
+                  </tr>))}</tbody>
+              </table></div>
+            </Panel>
+          )}
+          <Modal abierto={!!abierto} onCerrar={() => setAbierto(null)} titulo={abierto ? `${abierto.numero} · ${abierto.titulo}` : ""}>
+            {abierto && (
+              <ul className="divide-y divide-linea-suave">{abierto.personas.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 py-2"><Link to={`/ficha?usuario=${p.id}&mes=${mes}`} className="text-azul hover:underline">{p.nombre}</Link>
+                  <span className="text-sm num">{p.horas} h · <Puntaje valor={p.productividad_pc} /> productivo</span></li>))}</ul>
+            )}
+          </Modal>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Monitoreo() {
   const { esAdmin, puedeValidar } = useSesion();
   const gestiona = esAdmin || puedeValidar;
@@ -348,6 +490,8 @@ export default function Monitoreo() {
   const opciones = [
     gestiona && { valor: "vivo", etiqueta: "Equipo en vivo" },
     { valor: "mia", etiqueta: "Mi actividad" },
+    gestiona && { valor: "proyectos", etiqueta: "Por proyecto y OT" },
+    { valor: "justificaciones", etiqueta: "Justificaciones" },
     { valor: "equipos", etiqueta: "Mis equipos y política" },
     esAdmin && { valor: "reglas", etiqueta: "Reglas" },
     esAdmin && { valor: "config", etiqueta: "Configuración" },
@@ -363,6 +507,8 @@ export default function Monitoreo() {
           <p className="text-sm"><Link to={`/ficha?usuario=${persona}`} className="text-azul hover:underline">Ver su ficha de productividad del mes</Link></p>
         </div>
       ) : ver === "vivo" ? <EnVivo onVer={(id) => setParams({ ver: "persona", persona: id })} />
+        : ver === "proyectos" && gestiona ? <Proyectos />
+        : ver === "justificaciones" ? <Justificaciones gestiona={gestiona} />
         : ver === "equipos" ? <MisEquipos />
           : ver === "reglas" ? <Reglas />
             : ver === "config" ? <Configuracion />

@@ -8,6 +8,9 @@ const FUENTES = [
   ["RONDAS", "Rondas de revisión promedio"], ["CALIDAD", "Calidad promedio de las tareas"], ["PUNTUALIDAD", "Puntualidad (control de horario)"],
   ["ASISTENCIA", "Asistencia (control de horario)"], ["HORAS", "Horas cumplidas (control de horario)"], ["ADHERENCIA", "Adherencia al horario"],
   ["ACTIVIDAD_PC", "Tiempo activo en la computadora"], ["PRODUCTIVIDAD_PC", "Productividad en la computadora"],
+  ["TAREAS_COMPLETADAS", "Tareas (piezas) validadas en el mes"], ["RETRABAJO", "% de tareas con correcciones"],
+  ["HORAS_POR_TAREA", "Horas por tarea validada"], ["DENTRO_ESTIMADO", "% de tareas dentro de lo estimado"],
+  ["UTILIZACION", "% de la jornada en tareas (cronómetro)"], ["HORAS_EXTRA", "Horas extra del mes"],
 ];
 
 export default function PlantillasKpi() {
@@ -30,7 +33,8 @@ export default function PlantillasKpi() {
     if (!form.nombre?.trim()) return setErrorForm("Escribe qué mide el KPI.");
     setGuardando(true);
     try {
-      await guardarPlantilla({ id: form.id, nombre: form.nombre.trim(), descripcion: form.descripcion || "", unidad_medida: form.unidad_medida || "", menor_es_mejor: !!form.menor_es_mejor, fuente: form.fuente || "" });
+      await guardarPlantilla({ id: form.id, nombre: form.nombre.trim(), descripcion: form.descripcion || "", unidad_medida: form.unidad_medida || "", menor_es_mejor: !!form.menor_es_mejor, fuente: form.fuente || "",
+        formula: form.formula || "", fuente_datos: form.fuente_datos || "", responsable_validacion: form.responsable_validacion || "" });
       avisar(form.id ? "Plantilla actualizada." : "Plantilla creada. Ahora asígnala a los puestos que la usan.");
       setForm(null);
       recargar();
@@ -92,6 +96,9 @@ export default function PlantillasKpi() {
                 {FUENTES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
               </select>
             )}</Campo>
+            <Campo etiqueta="Fórmula" ayuda="Cómo se calcula. Ej.: tareas a tiempo ÷ tareas validadas × 100.">{(id) => <input id={id} className="campo" maxLength={255} value={form.formula || ""} onChange={(e) => setForm({ ...form, formula: e.target.value })} />}</Campo>
+            <Campo etiqueta="Fuente de datos" ayuda="Tareas, control de horario, Cashflow, encuestas, redes…">{(id) => <input id={id} className="campo" maxLength={200} value={form.fuente_datos || ""} onChange={(e) => setForm({ ...form, fuente_datos: e.target.value })} />}</Campo>
+            <Campo etiqueta="Responsable de validar" ayuda="Quién revisa que el dato sea correcto.">{(id) => <input id={id} className="campo" maxLength={120} value={form.responsable_validacion || ""} onChange={(e) => setForm({ ...form, responsable_validacion: e.target.value })} />}</Campo>
           </form>
         )}
       </Modal>

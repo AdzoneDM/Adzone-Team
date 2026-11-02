@@ -428,8 +428,9 @@ def calcular_ranking(periodo, hoy=None, config=None, grupo=None, solo=None):
         partes = [(p, w) for p, w in ((puntaje_tareas, config.peso_tareas), (puntaje_kpis, config.peso_kpis),
                                       (puntaje_calidad, config.peso_calidad), (puntaje_jornada, config.peso_jornada))
                   if p is not None and w > 0]
-        if not partes:
-            continue  # Solo tiene tareas aún en plazo: no se evalúa todavía
+        if not partes or (puntaje_tareas is None and puntaje_kpis is None):
+            # Sin tareas que cuenten ni KPIs medidos no se evalúa el mes: la evaluación o la asistencia solas no bastan.
+            continue
         total = sum(p * w for p, w in partes) / sum(w for _, w in partes)
 
         puesto = getattr(getattr(usuario, 'perfil', None), 'puesto_trabajo', None)

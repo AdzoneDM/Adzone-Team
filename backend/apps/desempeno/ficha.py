@@ -102,7 +102,7 @@ def _talento(usuario, visor):
         resumen[tipo] = n
     datos = {
         'evaluacion': talento.resultados(ciclo, usuario) if ciclo else None,
-        'planes': [{'id': p.id, 'motivo': p.motivo, 'estado': p.get_estado_display(), 'revision': p.revision,
+        'planes': [{'id': p.id, 'motivo': p.motivo, 'estado': p.get_estado_display(), 'estado_codigo': p.estado, 'revision': p.revision,
                     'objetivos': p.objetivos, 'cumplidos': sum(1 for o in p.objetivos if o.get('cumplido'))}
                    for p in PlanMejora.objects.filter(colaborador=usuario)[:5]],
         'expediente': [{'id': e.id, 'tipo': e.tipo, 'tipo_nombre': e.get_tipo_display(), 'fecha': e.fecha, 'titulo': e.titulo,
