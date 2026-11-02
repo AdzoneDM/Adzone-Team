@@ -19,6 +19,13 @@ from .models import AsignacionHorario, Ausencia, Feriado, Horario, Marcaje
 
 EXTRA_MINIMO = 15
 DIA_LARGO = 6 * 60
+TURNO_MAXIMO = timedelta(hours=16)  # una jornada abierta más de esto se da por olvidada
+
+
+def rango(desde, hasta=None):
+    """(inicio, fin) con hora local de un día o de un rango de días, para filtrar sin __date (usa el índice)."""
+    hasta = hasta or desde
+    return timezone.make_aware(datetime.combine(desde, time.min)), timezone.make_aware(datetime.combine(hasta + timedelta(days=1), time.min))
 
 
 def horario_de(usuario):
@@ -44,8 +51,8 @@ def _minutos(delta):
 def estado_actual(usuario, ahora=None):
     """FUERA, TRABAJANDO o EN_PAUSA según el último marcaje de hoy."""
     ahora = ahora or timezone.now()
-    hoy = timezone.localtime(ahora).date()
-    ultimo = Marcaje.objects.filter(usuario=usuario, momento__date=hoy, momento__lte=ahora).order_by('-momento').first()
+    # El último marcaje de las últimas 16 h (no «de hoy»): un turno que pasa de medianoche sigue abierto.
+    ultimo = Marcaje.objects.filter(usuario=usuario, momento__gt=ahora - TURNO_MAXIMO, momento__lte=ahora).order_by('-momento').first()
     if ultimo is None or ultimo.tipo == Marcaje.SALIDA:
         return 'FUERA', ultimo
     if ultimo.tipo == Marcaje.PAUSA:
@@ -62,7 +69,8 @@ SIGUIENTES = {'FUERA': [Marcaje.ENTRADA], 'TRABAJANDO': [Marcaje.PAUSA, Marcaje.
 
 def marcar(usuario, tipo, origen='WEB', ip=None, motivo='', nota='', momento=None):
     """Registra un marcaje si tiene sentido según el estado actual. Devuelve (marcaje, error)."""
-    estado, _ = estado_actual(usuario)
+    estado, _ = estado_actual(usuario, momento)
+    motivo, nota = str(motivo or ''), str(nota or '')
     if tipo not in SIGUIENTES[estado]:
         textos = {'FUERA': 'No has marcado entrada hoy.', 'TRABAJANDO': 'Ya marcaste entrada.', 'EN_PAUSA': 'Estás en pausa: marca tu regreso.'}
         return None, textos[estado]
@@ -84,7 +92,7 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
     if horario is None and obligatoria is None:
         horario, obligatoria = horario_de(usuario)
     if marcajes is None:
-        marcajes = list(Marcaje.objects.filter(usuario=usuario, momento__date=dia).order_by('momento'))
+        marcajes = list(Marcaje.objects.filter(usuario=usuario, momento__range=rango(dia)).order_by('momento'))
     if feriados is None:
         feriados = set(Feriado.objects.filter(fecha=dia).values_list('fecha', flat=True))
     if ausencias is None:
@@ -109,8 +117,8 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
     if not marcajes:
         if ausencia:
             fila['estado'] = 'PERMISO'
-        elif laborable and (desde_control is None or dia < desde_control) and dia < hoy:
-            fila['estado'] = 'SIN_CONTROL'
+        elif laborable and (desde_control is None or dia < desde_control):
+            fila['estado'] = 'SIN_CONTROL'  # aún no usa el control de horario: ni tarde ni ausente
         elif laborable and obligatoria:
             fin_turno = _aware(dia, _hora(turno[1]))
             if dia < hoy or (dia == hoy and ahora > fin_turno):
@@ -134,15 +142,24 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
             inicio = None
             if m.tipo == Marcaje.PAUSA:
                 inicio_pausa = m.momento
-    if inicio:  # sigue abierta
-        if dia == hoy:
-            trabajados += _minutos(ahora - inicio)
+    if inicio:  # sigue abierta al terminar el día
+        siguiente = Marcaje.objects.filter(usuario=usuario, momento__gt=inicio, momento__lte=inicio + TURNO_MAXIMO,
+                                           tipo__in=(Marcaje.PAUSA, Marcaje.SALIDA)).order_by('momento').first()
+        if siguiente and siguiente.momento <= ahora:
+            trabajados += _minutos(siguiente.momento - inicio)  # turno que cruza la medianoche
+            inicio = None
+        elif ahora - inicio < TURNO_MAXIMO:
+            trabajados += _minutos(ahora - inicio)  # en curso
         else:
             cierre = _aware(dia, _hora(turno[1])) if turno else inicio
             trabajados += _minutos(max(cierre, inicio) - inicio)
             fila['sin_salida'] = True
-    if inicio_pausa and dia == hoy:
-        pausa += _minutos(ahora - inicio_pausa)
+            inicio = None
+    if inicio_pausa:
+        if ahora - inicio_pausa < TURNO_MAXIMO and not any(m.momento > inicio_pausa for m in marcajes):
+            pausa += _minutos(ahora - inicio_pausa)
+        else:
+            fila['sin_salida'] = True  # se fue a pausa y no volvió a marcar
     almuerzo = horario.almuerzo_minutos if horario else 0
     if trabajados > DIA_LARGO and pausa < almuerzo:
         trabajados -= almuerzo - pausa
@@ -161,9 +178,9 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
             fila['salida_temprana'] = temprano if temprano > tolerancia else 0
     extra = trabajados - programados
     fila['extra'] = extra if extra >= EXTRA_MINIMO else 0
-    if inicio and dia == hoy:
+    if inicio:
         fila['estado'] = 'TRABAJANDO'
-    elif inicio_pausa and dia == hoy:
+    elif inicio_pausa and not fila['sin_salida']:
         fila['estado'] = 'EN_PAUSA'
     else:
         fila['estado'] = 'PRESENTE' if laborable else 'FUERA_DE_HORARIO'
@@ -180,7 +197,7 @@ def dias_entre(desde, hasta):
 def jornadas(usuario, desde, hasta, ahora=None):
     """Lista de jornadas del rango con todo precargado (tres consultas por persona)."""
     horario, obligatoria = horario_de(usuario)
-    todos = list(Marcaje.objects.filter(usuario=usuario, momento__date__range=(desde, hasta)).order_by('momento'))
+    todos = list(Marcaje.objects.filter(usuario=usuario, momento__range=rango(desde, hasta)).order_by('momento'))
     por_dia = {}
     for m in todos:
         por_dia.setdefault(timezone.localtime(m.momento).date(), []).append(m)

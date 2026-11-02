@@ -156,6 +156,7 @@ class Agente:
         self.app_anterior = None
         self.cambios = 0
         self.alto = threading.Event()
+        self.fallos = 0
         self.avisos = queue.Queue()
 
     def _leer_pendientes(self):
@@ -175,10 +176,16 @@ class Agente:
     def refrescar(self):
         try:
             self.estado = self.cliente.estado()
+            self.fallos = 0
         except urllib.error.HTTPError as e:
             self.estado = {**self.estado, 'registrar': False, 'motivo': 'Equipo no vinculado: revisa el código.' if e.code == 401 else f'Error {e.code}'}
         except Exception:
-            self.estado = {**self.estado, 'motivo': 'Sin conexión: se guarda y se envía al volver.'}
+            # Sin conexión: se sigue un par de minutos con lo último que dijo la plataforma (lo medido se guarda y
+            # se envía al volver). Si no se puede confirmar que la persona sigue en jornada, se deja de registrar.
+            self.fallos += 1
+            seguir = self.estado.get('registrar') and self.fallos <= 2
+            self.estado = {**self.estado, 'registrar': seguir,
+                           'motivo': 'Sin conexión: se guarda y se envía al volver.' if seguir else 'Sin conexión: no se registra hasta confirmar la jornada.'}
         return self.estado
 
     def _cerrar_minuto(self):
@@ -204,6 +211,9 @@ class Agente:
             self.cola = self.cola[len(lote):]
             if r.get('estado'):
                 self.estado = r['estado']
+        except urllib.error.HTTPError as e:
+            if 400 <= e.code < 500:
+                self.cola = self.cola[len(lote):]  # la plataforma no lo acepta: no se reintenta para siempre
         except Exception:
             pass
         self._guardar_pendientes()

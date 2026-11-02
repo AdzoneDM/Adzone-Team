@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from unittest import mock
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -14,8 +15,19 @@ from . import servicios
 from .models import Actividad, ConfiguracionMonitoreo, Consentimiento, Dispositivo
 
 
+# Reloj fijo (miércoles 28/10/2026, 3:00 p. m.): los casos no dependen de la hora en que corren las pruebas.
+AHORA = timezone.make_aware(__import__('datetime').datetime(2026, 10, 28, 15, 0))
+
+
+def fijar_reloj(caso):
+    p = mock.patch('django.utils.timezone.now', return_value=AHORA)
+    p.start()
+    caso.addCleanup(p.stop)
+
+
 class Base(TestCase):
     def setUp(self):
+        fijar_reloj(self)
         self.mkt, _ = Departamento.objects.get_or_create(nombre='Marketing')
         self.adm, _ = Departamento.objects.get_or_create(nombre='Administración')
         from apps.monitoreo.models import ReglaProductividad

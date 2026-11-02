@@ -11,15 +11,17 @@ Lo mejor de Time Doctor, Teramind, BambooHR y la guía de desempeño de Personio
 - **Hoy** (supervisores): quién trabaja, en pausa, llegó tarde, no ha marcado o tiene permiso, y qué hace su computadora en este momento.
 - **Equipo en el mes** con adherencia, puntualidad, asistencia, tardanzas, ausencias, horas y extra, y **Excel**.
 - **Correcciones**: el supervisor agrega o borra marcajes con una nota; queda registrado quién lo hizo. Nadie se corrige a sí mismo.
+- **Turnos que pasan de medianoche** (call center nocturno): la jornada sigue abierta hasta 16 h y las horas cuentan para el día en que entró. Un horario configurado no puede cruzar la medianoche todavía (se marca igual; solo no calcula la tardanza contra ese turno).
 - **Permisos y vacaciones**: se piden en la plataforma, los aprueba el supervisor; los días aprobados no cuentan como ausencia. **Feriados**.
 
 ### Monitoreo de actividad (agente de escritorio)
-- **Agente para Windows y Mac** (`agente/`): mide cada minuto la aplicación y la ventana en uso, el sitio si aparece, segundos activos e inactivos, nivel de actividad (teclado/ratón, sin guardar teclas) y cambios de ventana. Solo en jornada; visible en la barra de tareas; sigue funcionando sin internet y reenvía después.
+- **Agente para Windows y Mac** (`agente/`): mide cada minuto la aplicación y la ventana en uso, el sitio si aparece, segundos activos e inactivos, nivel de actividad (teclado/ratón, sin guardar teclas) y cambios de ventana. Solo en jornada; visible en la barra de tareas; si se cae el internet guarda lo medido y lo reenvía (y deja de medir si no puede confirmar que la persona sigue en jornada).
 - **Productivo, neutral o improductivo por departamento** (como los perfiles de Teramind): 164 reglas iniciales; Facebook, Instagram, TikTok y YouTube son trabajo en Marketing, Audiovisual y Adzone TV e improductivos en el resto. Se editan en Monitoreo → Reglas y se pueden volver a aplicar a los últimos 30 días.
 - **Equipo en vivo**: quién está activo y en qué aplicación, tiempo activo, productivo, de foco, nivel de actividad y cambios de ventana por hora.
 - **El día de cada persona**: línea de tiempo en bloques de 10 minutos, aplicaciones y sitios con su tiempo, tiempo de foco (bloques de 25+ minutos productivos) y capturas.
 - **Capturas de pantalla opcionales** (apagadas por defecto), desenfocadas, borradas a los 30 días.
 - **Avisos al supervisor**: llegó tarde, no ha marcado, X minutos inactivo en jornada, marcó pero su computadora no reporta, día con mucho tiempo improductivo. Comando `revisar_jornadas` cada 10 minutos.
+- **Una computadora desvinculada se desactiva**, no se borra: nadie puede borrar su historial. Si una persona usa dos computadoras, cada minuto cuenta una sola vez.
 - **Transparencia y Ley 172-13**: cada persona acepta la política en la plataforma antes de que su computadora registre, ve sus propios datos («Mi actividad») y solo la ven su cadena de supervisión y la administración. Retención 90 días (`limpiar_monitoreo`). Nunca teclas, contraseñas, mensajes, audio ni cámara.
 
 ### KPIs enriquecidos y ficha de productividad

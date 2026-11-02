@@ -72,6 +72,8 @@ def mi_mes_view(request):
     desde, hasta = _rango(request)
     usuario = request.user
     if request.query_params.get('usuario'):
+        if not str(request.query_params['usuario']).isdigit():
+            return Response({'usuario': 'Debe ser un número.'}, status=400)
         usuario = get_object_or_404(User, pk=request.query_params['usuario'])
         _ver_persona(request, usuario)
     res = servicios.resumen(usuario, desde, hasta)
@@ -152,7 +154,7 @@ class MarcajeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Marcaje.objects.filter(usuario__in=equipo_gestionable(self.request.user))
-        if self.request.query_params.get('usuario'):
+        if str(self.request.query_params.get('usuario', '')).isdigit():
             qs = qs.filter(usuario_id=self.request.query_params['usuario'])
         return qs
 
@@ -168,6 +170,9 @@ class MarcajeViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         self._revisar(serializer.instance.usuario)
+        nuevo = serializer.validated_data.get('usuario')
+        if nuevo and nuevo.pk != serializer.instance.usuario_id:
+            raise PermissionDenied("Un marcaje no se pasa a otra persona: bórralo y créalo en la persona correcta.")
         serializer.save(origen='MANUAL', corregido_por=self.request.user)
 
     def perform_destroy(self, instance):

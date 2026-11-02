@@ -24,7 +24,7 @@ def _mes_anterior(periodo, n):
 def ficha(usuario, periodo):
     inicio, fin = rango_del_mes(periodo)
     config = ConfiguracionDesempeno.actual()
-    fila = next((f for f in calcular_ranking(periodo, config=config) if f['colaborador_id'] == usuario.pk), None)
+    fila = next(iter(calcular_ranking(periodo, config=config, solo=usuario.pk)), None)
     med = Mediciones(usuario, inicio, fin)
     a = med.asistencia
     pc = monitoreo.resumen_periodo(usuario, inicio, fin)
@@ -67,7 +67,7 @@ def ficha(usuario, periodo):
                     'puesto': puesto.nombre if puesto else None, 'departamento': puesto.departamento.nombre if puesto else None},
         'mes': f'{periodo:%Y-%m}',
         'puntaje': {k: fila[k] for k in ('puntaje_total', 'puntaje_tareas', 'puntaje_kpis', 'puntaje_jornada', 'evaluacion',
-                                         'motivos', 'bono_sugerido', 'posicion')} if fila else None,
+                                         'motivos', 'bono_sugerido')} if fila else None,
         'pesos': {'tareas': config.peso_tareas, 'kpis': config.peso_kpis, 'jornada': config.peso_jornada},
         'kpis': fila['kpis'] if fila else kpis_del_mes(usuario, inicio, fin, mediciones=med),
         'tareas': tareas,

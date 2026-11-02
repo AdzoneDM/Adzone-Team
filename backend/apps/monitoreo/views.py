@@ -33,6 +33,8 @@ def _quien(request):
     """La persona consultada: uno mismo, o alguien de su equipo si lo gestiona."""
     if not request.query_params.get('usuario'):
         return request.user
+    if not str(request.query_params['usuario']).isdigit():
+        raise exceptions.ValidationError({'usuario': 'Debe ser un número.'})
     u = get_object_or_404(User, pk=request.query_params['usuario'])
     if u.pk != request.user.pk and not puede_gestionar(request.user, u):
         raise exceptions.PermissionDenied("Solo ves la actividad de tu equipo.")
@@ -92,6 +94,8 @@ def agente_actividad_view(request):
 @permission_classes([AllowAny])
 def agente_marcar_view(request):
     d = _dispositivo(request)
+    if request.data.get('tipo') not in ('ENTRADA', 'PAUSA', 'REGRESO', 'SALIDA'):
+        return Response({'detail': 'Marcaje no válido.'}, status=400)
     marcaje, error = asistencia.marcar(d.usuario, request.data.get('tipo'), 'AGENTE', _ip(request), request.data.get('motivo') or '')
     if error:
         return Response({'detail': error}, status=400)
@@ -111,7 +115,11 @@ def agente_captura_view(request):
         return Response({'detail': 'Falta la imagen o pasa de 3 MB.'}, status=400)
     try:
         from PIL import Image, ImageFilter
-        img = Image.open(archivo).convert('RGB')
+        img = Image.open(archivo)
+        if img.width * img.height > 40_000_000:  # pantallas de hasta ~8K; más es sospechoso
+            return Response({'detail': 'Imagen demasiado grande.'}, status=400)
+        img.draft('RGB', (1600, 1600))
+        img = img.convert('RGB')
         img.thumbnail((1600, 1600))
         if estado['desenfocar']:
             img = img.filter(ImageFilter.GaussianBlur(6))
@@ -172,7 +180,12 @@ class DispositivoViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         if not es_administrador(self.request.user):
             raise exceptions.PermissionDenied("Solo la administración edita equipos.")
-        serializer.save()
+        serializer.save(usuario=serializer.instance.usuario)  # un equipo no cambia de dueño
+
+    def perform_destroy(self, instance):
+        """Desvincular = desactivar. La actividad y las capturas ya registradas se conservan (nadie borra su historial)."""
+        instance.activo = False
+        instance.save(update_fields=['activo'])
 
 
 # ------------------------------------------------------------------ Reglas y configuración
@@ -199,9 +212,19 @@ class ReglaViewSet(viewsets.ModelViewSet):
 
 
 class ConfigSerializer(serializers.ModelSerializer):
+    MINIMOS = {'umbral_inactivo_seg': 30, 'capturas_cada_min': 1, 'alerta_inactivo_min': 5, 'alerta_sin_pc_min': 5,
+               'retencion_dias': 7, 'retencion_capturas_dias': 1}
+
     class Meta:
         model = ConfiguracionMonitoreo
         exclude = ['id']
+
+    def validate(self, data):
+        errores = {k: f'Mínimo {m}.' for k, m in self.MINIMOS.items() if k in data and data[k] < m}
+        errores.update({k: 'Máximo 100.' for k in ('alerta_improductivo_pct', 'meta_productividad_pct') if k in data and data[k] > 100})
+        if errores:
+            raise serializers.ValidationError(errores)
+        return data
 
 
 @api_view(['GET', 'PATCH'])
@@ -218,7 +241,11 @@ def configuracion_view(request):
 @api_view(['POST'])
 @permission_classes([EsAdministrador])
 def reclasificar_view(request):
-    desde = timezone.now() - timedelta(days=int(request.data.get('dias') or 30))
+    try:
+        dias = max(1, min(int(request.data.get('dias') or 30), 90))
+    except (TypeError, ValueError):
+        return Response({'detail': 'Días no válidos.'}, status=400)
+    desde = timezone.now() - timedelta(days=dias)
     return Response({'cambiados': servicios.reclasificar(desde)})
 
 
@@ -228,7 +255,7 @@ def dia_view(request):
     u = _quien(request)
     dia = _fecha(request.query_params.get('fecha'))
     r = servicios.resumen_dia(u, dia)
-    capturas = Captura.objects.filter(usuario=u, tomada_en__date=dia).order_by('tomada_en')
+    capturas = Captura.objects.filter(usuario=u, tomada_en__range=asistencia.rango(dia)).order_by('tomada_en')
     r['capturas'] = [{'id': c.id, 'hora': timezone.localtime(c.tomada_en).strftime('%H:%M'), 'app': c.app, 'desenfocada': c.desenfocada}
                      for c in capturas]
     puesto = getattr(getattr(u, 'perfil', None), 'puesto_trabajo', None)
@@ -259,7 +286,7 @@ def equipo_view(request):
     consentidos = set(Consentimiento.objects.filter(usuario_id__in=ids, version=ConfiguracionMonitoreo.actual().version_politica)
                       .values_list('usuario_id', flat=True))
     por_usuario = {}
-    for a in Actividad.objects.filter(usuario_id__in=ids, minuto__date=dia).order_by('minuto'):
+    for a in Actividad.objects.filter(usuario_id__in=ids, minuto__range=asistencia.rango(dia)).order_by('minuto'):
         por_usuario.setdefault(a.usuario_id, []).append(a)
     filas = []
     for u in personas:

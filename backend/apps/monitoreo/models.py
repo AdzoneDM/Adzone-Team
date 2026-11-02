@@ -93,7 +93,7 @@ class Consentimiento(models.Model):
 
 class Actividad(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='actividad_pc')
-    dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, related_name='actividad')
+    dispositivo = models.ForeignKey(Dispositivo, on_delete=models.SET_NULL, null=True, blank=True, related_name='actividad')
     minuto = models.DateTimeField()
     activos = models.PositiveSmallIntegerField(default=0, help_text="Segundos del minuto con actividad.")
     inactivos = models.PositiveSmallIntegerField(default=0)
@@ -105,7 +105,7 @@ class Actividad(models.Model):
     categoria = models.CharField(max_length=1, choices=CATEGORIAS, default=NEUTRAL)
 
     class Meta:
-        unique_together = ('dispositivo', 'minuto')
+        unique_together = ('usuario', 'minuto')  # un minuto por persona aunque tenga dos computadoras
         indexes = [models.Index(fields=['usuario', 'minuto'])]
         ordering = ['minuto']
 
@@ -116,7 +116,7 @@ def _ruta_captura(instancia, nombre):
 
 class Captura(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='capturas')
-    dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, related_name='capturas')
+    dispositivo = models.ForeignKey(Dispositivo, on_delete=models.SET_NULL, null=True, blank=True, related_name='capturas')
     tomada_en = models.DateTimeField()
     archivo = models.FileField(upload_to=_ruta_captura)
     desenfocada = models.BooleanField(default=True)

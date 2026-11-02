@@ -885,6 +885,8 @@ def ficha_view(request):
     from .ficha import ficha
     usuario = request.user
     if request.query_params.get('usuario'):
+        if not str(request.query_params['usuario']).isdigit():
+            return Response({'usuario': 'Debe ser un número.'}, status=400)
         usuario = User.objects.filter(pk=request.query_params['usuario']).first()
         if usuario is None or (usuario.pk != request.user.pk and not puede_gestionar(request.user, usuario)):
             raise PermissionDenied("Solo ves la ficha de tu equipo.")

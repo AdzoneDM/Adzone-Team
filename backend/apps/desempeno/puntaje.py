@@ -328,7 +328,7 @@ def _meta_productividad():
     return ConfiguracionMonitoreo.actual().meta_productividad_pct
 
 
-def calcular_ranking(periodo, hoy=None, config=None, grupo=None):
+def calcular_ranking(periodo, hoy=None, config=None, grupo=None, solo=None):
     """Devuelve la lista de colaboradores evaluados en el mes, ordenada de mayor a menor puntaje."""
     hoy = hoy or timezone.localdate()
     config = config or ConfiguracionDesempeno.actual()
@@ -347,8 +347,14 @@ def calcular_ranking(periodo, hoy=None, config=None, grupo=None):
         resultados_por_usuario.setdefault(resultado.colaborador_id, []).append(resultado)
 
     from apps.asistencia.models import Marcaje
-    con_jornada = set(Marcaje.objects.filter(momento__date__range=(inicio, fin)).values_list('usuario_id', flat=True)) if config.peso_jornada else set()
+    from apps.asistencia.servicios import rango
+    marcas = Marcaje.objects.filter(momento__range=rango(inicio, fin))
+    if solo is not None:
+        marcas = marcas.filter(usuario_id=solo)
+    con_jornada = set(marcas.values_list('usuario_id', flat=True).distinct()) if config.peso_jornada else set()
     ids = set(tareas_por_usuario) | set(resultados_por_usuario) | con_jornada
+    if solo is not None:
+        ids &= {solo}  # una sola persona (ficha): mismo cálculo, sin la posición en el ranking
     usuarios = filtrar_grupo(User.objects.filter(id__in=ids, is_active=True), grupo).select_related('perfil__puesto_trabajo__departamento')
 
     ranking = []
