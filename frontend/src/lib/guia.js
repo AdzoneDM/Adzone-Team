@@ -133,6 +133,19 @@ export const GUIAS_PANTALLA = [
   { id: "ajustes-produccion", ruta: /^\/produccion\/ajustes$/, nombre: "Áreas y tiempos", pasos: [
     { objetivo: TITULO, titulo: "Áreas y tiempos", texto: "Quién recibe cada Orden de Área (G1) y firma la calidad (G3) en cada área, y la tabla de tiempos estándar que usa el formulario de la OT para proponer fechas." },
   ] },
+  { id: "asistencia", ruta: /^\/asistencia$/, nombre: "Asistencia", pasos: [
+    { objetivo: PESTANAS, titulo: "Tu asistencia", texto: "Cada día con su entrada, pausas y salida, tardanza, horas trabajadas y extra. Arriba, tu adherencia al horario: puntualidad, asistencia y horas cumplidas. Cuenta en tu puntaje del mes." },
+    { titulo: "Permisos y vacaciones", texto: "En «Permisos» los pides con fechas y motivo; tu supervisor los aprueba. Los días aprobados no cuentan como ausencia." },
+    { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Para supervisores", texto: "«Hoy» muestra quién llegó, quién está tarde o no ha marcado. Toca a una persona para ver su mes y corregir un marcaje olvidado (con una nota: queda registrado)." },
+  ] },
+  { id: "monitoreo", ruta: /^\/monitoreo$/, nombre: "Monitoreo", pasos: [
+    { objetivo: PESTANAS, titulo: "Tu actividad", texto: "Lo que el agente de tu computadora midió en tu jornada: tiempo activo, productivo y de foco, aplicaciones y sitios. Lo mismo que ve tu supervisor. Nunca registra teclas, contraseñas ni mensajes." },
+    { titulo: "Vincular tu computadora", texto: "En «Mis equipos y política» acepta la política y toca «Vincular computadora». Pega el código en el agente de Adzone Team. Solo mide cuando marcaste entrada; en pausa, nada." },
+    { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Equipo en vivo", texto: "Quién está activo y en qué aplicación, y cómo va su día. Toca a alguien para ver su línea de tiempo." },
+  ] },
+  { id: "ficha", ruta: /^\/ficha$/, nombre: "Ficha de productividad", pasos: [
+    { titulo: "Todo en un lugar", texto: "Tu puntaje del mes y sus tres partes (tareas, KPIs y jornada), lo que hay que atender, tus KPIs (los automáticos salen solos), horario, computadora, tareas y tu tendencia de 6 meses." },
+  ] },
   { id: "mi-cuenta", ruta: /^\/mi-cuenta$/, nombre: "Mi cuenta", pasos: [
     { objetivo: TITULO, titulo: "Tu cuenta", texto: "Aquí cambias tu contraseña. Si la olvidas, pídele a Administración que te la restablezca." },
   ] },
@@ -142,6 +155,9 @@ export const guiaDePantalla = (ruta) => GUIAS_PANTALLA.find((g) => g.ruta.test(r
 
 /** «¿Cómo hago…?»: tareas comunes explicadas paso a paso, cada una lleva a su pantalla. */
 export const RECETAS = [
+  { id: "jornada", titulo: "Marcar mi entrada, pausa y salida", pasos: [
+    { ruta: "/", titulo: "Arriba, junto al buscador", texto: "Toca «Marcar entrada» al llegar. Luego el mismo botón muestra tus horas: tócalo para «Pausa» (almuerzo, diligencia), «Volver» y «Salida». También se puede desde el ícono del agente en la computadora." },
+  ] },
   { id: "entregar", titulo: "Entregar una tarea", pasos: [
     { ruta: "/mis-tareas", objetivo: PESTANAS, titulo: "1. Busca la tarea", texto: "En «Mis tareas → Por hacer» están tus pendientes." },
     { ruta: "/mis-tareas", objetivo: ["[data-guia=tarea]", PESTANAS], titulo: "2. Entrega", texto: "Toca «Entregar», describe lo que hiciste y adjunta la evidencia (foto, archivo o enlace). La tarea pasa a «En revisión» y tu supervisor recibe el aviso." },

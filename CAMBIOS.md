@@ -1,5 +1,35 @@
 # Cambios
 
+## 8.0 · 01/11/2026 · Control de horario, monitoreo de actividad y KPIs que se miden solos
+
+Lo mejor de Time Doctor, Teramind, BambooHR y la guía de desempeño de Personio, dentro de Adzone Team.
+
+### Control de horario (Asistencia)
+- **Marcar jornada** desde cualquier pantalla (arriba, junto al buscador), en PC o celular, o desde el ícono del agente: entrada, pausa (almuerzo, diligencia, reunión fuera), regreso y salida.
+- **Horarios por persona:** días, hora de entrada y salida por día, almuerzo y tolerancia. Arranca con «Oficina (L-V 8-5, sáb 8-12)» = 44 h. Cada persona puede tener su horario y se puede marcar quién no está obligado a marcar (dirección).
+- **Cada día se calcula solo:** llegó a tiempo o tarde (minutos), salida temprana, horas trabajadas, pausa, horas extra (desde 15 min), días sin marcar salida, ausencias. El almuerzo no marcado se descuenta. Los días antes de empezar a usar el control no cuentan como ausencias.
+- **Hoy** (supervisores): quién trabaja, en pausa, llegó tarde, no ha marcado o tiene permiso, y qué hace su computadora en este momento.
+- **Equipo en el mes** con adherencia, puntualidad, asistencia, tardanzas, ausencias, horas y extra, y **Excel**.
+- **Correcciones**: el supervisor agrega o borra marcajes con una nota; queda registrado quién lo hizo. Nadie se corrige a sí mismo.
+- **Permisos y vacaciones**: se piden en la plataforma, los aprueba el supervisor; los días aprobados no cuentan como ausencia. **Feriados**.
+
+### Monitoreo de actividad (agente de escritorio)
+- **Agente para Windows y Mac** (`agente/`): mide cada minuto la aplicación y la ventana en uso, el sitio si aparece, segundos activos e inactivos, nivel de actividad (teclado/ratón, sin guardar teclas) y cambios de ventana. Solo en jornada; visible en la barra de tareas; sigue funcionando sin internet y reenvía después.
+- **Productivo, neutral o improductivo por departamento** (como los perfiles de Teramind): 164 reglas iniciales; Facebook, Instagram, TikTok y YouTube son trabajo en Marketing, Audiovisual y Adzone TV e improductivos en el resto. Se editan en Monitoreo → Reglas y se pueden volver a aplicar a los últimos 30 días.
+- **Equipo en vivo**: quién está activo y en qué aplicación, tiempo activo, productivo, de foco, nivel de actividad y cambios de ventana por hora.
+- **El día de cada persona**: línea de tiempo en bloques de 10 minutos, aplicaciones y sitios con su tiempo, tiempo de foco (bloques de 25+ minutos productivos) y capturas.
+- **Capturas de pantalla opcionales** (apagadas por defecto), desenfocadas, borradas a los 30 días.
+- **Avisos al supervisor**: llegó tarde, no ha marcado, X minutos inactivo en jornada, marcó pero su computadora no reporta, día con mucho tiempo improductivo. Comando `revisar_jornadas` cada 10 minutos.
+- **Transparencia y Ley 172-13**: cada persona acepta la política en la plataforma antes de que su computadora registre, ve sus propios datos («Mi actividad») y solo la ven su cadena de supervisión y la administración. Retención 90 días (`limpiar_monitoreo`). Nunca teclas, contraseñas, mensajes, audio ni cámara.
+
+### KPIs enriquecidos y ficha de productividad
+- **KPIs que se miden solos**: 25 KPIs oficiales pasan a automáticos — adherencia al horario (Asistencia y puntualidad, Adherencia al horario), entregas a tiempo, aprobado a la primera y rondas de revisión salen de las tareas validadas. Las plantillas de KPI tienen «de dónde sale» para crear más (puntualidad, asistencia, horas, actividad o productividad en la computadora, calidad).
+- **Puntaje con tres partes**: tareas 48 % + KPIs 32 % + **jornada 20 %** (adherencia al horario y productividad en la computadora contra la meta de 75 %). Tareas y KPIs siguen 60:40 entre sí; a quien le falta una parte, las demás se reparten el 100 %. La jornada solo cuenta para quien marca. Ajustable en Reglas del puntaje.
+- **Ficha de productividad** (Mi ficha, o desde el ranking): puntaje y sus partes, lo que hay que atender (tardanzas, ausencias, baja actividad, interrupciones, sobrecarga de horas extra), KPIs con su origen, control de horario, computadora, tareas, tiempo registrado vs. jornada, aplicaciones más usadas y tendencia de 6 meses.
+- Ranking con columna **Jornada** y el nombre lleva a la ficha.
+
+Requiere `python manage.py migrate` (apps `asistencia` y `monitoreo`; `kpis 0005`, `desempeno 0011-0012`) y `python manage.py puestos_oficiales --aplicar` para que los KPIs automáticos queden activos.
+
 ## 7.1 · 31/10/2026 · DP y organigrama actualizados; listado de personal del 31/10
 
 - **Descripciones de puesto del documento «DP ADZONE DIGITAL MARKETING»** (34 puestos). Puestos nuevos con su descripción y KPIs: **Control Master**, **Herrero**, **Gerente de Call Center**, **Analista de Calidad y Monitoreo** y los **agentes bilingüe y en español**. La **Coordinadora Financiera y Administrativa** trae su descripción y KPIs nuevos (flujo de caja, facturación y cobros, pagos, conciliaciones, presupuesto, cumplimiento fiscal y laboral, caja chica, reportes, controles).

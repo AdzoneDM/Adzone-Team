@@ -70,6 +70,28 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Control de horario y monitoreo (versión 8.0)
+
+```bash
+python manage.py migrate
+python manage.py reglas_productividad          # reglas de productividad por departamento (si faltan)
+python manage.py puestos_oficiales --aplicar   # deja activos los KPIs automáticos
+```
+
+Tareas programadas en Plesk:
+
+| Cada | Comando | Para qué |
+|---|---|---|
+| 10 minutos, de 7:00 a 20:00 | `python manage.py revisar_jornadas` | Avisos de tardanza, sin marcar, inactividad, PC sin reportar, improductivo |
+| 1 vez al día (madrugada) | `python manage.py limpiar_monitoreo` | Borra actividad de más de 90 días y capturas de más de 30 |
+
+Puesta en marcha recomendada:
+1. **Asistencia → Horarios**: revisa el horario de oficina, crea los del call center y asigna a cada persona. Desmarca «marca obligatoria» a la dirección si no marcará. Carga los feriados del año.
+2. **Comunica la política** (Monitoreo → Mis equipos y política) y que cada persona la acepte. Agrega la cláusula de monitoreo al contrato o reglamento interno.
+3. **Agente**: construye `AdzoneAgente.exe` con `agente/construir_windows.bat` en una PC con Windows, instálalo en cada computadora y vincúlala (Monitoreo → Mis equipos → Vincular computadora). Ver `agente/LEEME.md`.
+4. Ajusta las **reglas de productividad** de cada departamento en las primeras dos semanas y aplícalas a los últimos 30 días.
+5. Las **capturas** están apagadas: actívalas solo si hace falta, en Monitoreo → Configuración.
+
 ### Puestos oficiales y personal (versión 7.0)
 
 Después de `migrate` y del organigrama (sección siguiente):

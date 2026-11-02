@@ -11,7 +11,9 @@ La plataforma de trabajo de ADZONE: **tareas, KPIs y reconocimiento en un solo l
 - **Tiempo y carga:** cronómetro siempre visible, tiempo anotado a mano, capacidad semanal de cada persona con aviso de sobrecarga y reporte de horas.
 - **Finanzas operativas:** cotizaciones, facturas con ITBIS, cobros, gastos con comprobante, cuentas por cobrar por antigüedad, órdenes sin facturar y rentabilidad por proyecto o cliente.
 - **Automatizaciones:** reglas «cuando pase X, haz Y» que avisan, crean tareas o envían datos a **n8n** por webhook firmado.
-- **KPIs y reconocimiento:** puntaje mensual, ranking, bono sugerido, Empleado del Mes y Muro de Honor.
+- **Control de horario:** marcar entrada, pausas y salida desde PC o celular; horarios por persona, tardanzas, ausencias, horas extra, permisos y vacaciones con aprobación, feriados y Excel del mes.
+- **Monitoreo de actividad:** agente de escritorio (Windows/Mac) que mide solo en jornada aplicaciones, sitios, tiempo activo, productivo y de foco; reglas de productividad por departamento, equipo en vivo, capturas opcionales y avisos. Transparente y conforme a la Ley 172-13 (ver `docs/POLITICA_MONITOREO.md`).
+- **KPIs y reconocimiento:** KPIs oficiales por puesto (25 se miden solos), puntaje mensual de tareas + KPIs + jornada, ficha de productividad de cada persona, ranking, bono sugerido, Empleado del Mes y Muro de Honor.
 - **Mi equipo · Ahora:** en qué está cada persona, quién pide más trabajo, «Recordar» con sonido.
 - **Buscador Ctrl+K** y botón **Crear** desde cualquier pantalla.
 
@@ -31,7 +33,9 @@ adzone-team/
 │   │   ├── operaciones/         clientes, proyectos, órdenes de trabajo (formularios.py: el formulario de cada área)
 │   │   ├── tiempo/              cronómetro, registros de tiempo y carga
 │   │   ├── finanzas/            cotizaciones, facturas, pagos, gastos y rentabilidad
-│   │   └── automatizaciones/    reglas y webhooks a n8n
+│   │   ├── automatizaciones/    reglas y webhooks a n8n
+│   │   ├── asistencia/          horarios, marcajes, jornada diaria, permisos y feriados
+│   │   └── monitoreo/           agente: equipos, actividad por minuto, reglas, capturas y avisos
 │   ├── datos_iniciales/         organigrama oficial y ejemplo de equipo (sin datos personales)
 │   └── datos_privados/          datos reales del equipo · NO se sube (ver LEEME.md)
 ├── frontend/                    React 19 + Vite + Tailwind CSS 4 (PWA)
@@ -40,7 +44,8 @@ adzone-team/
 │       ├── components/          piezas comunes (botones, ventanas, marca…)
 │       ├── features/            una carpeta por área: ordenes, proyectos, clientes, tiempo, finanzas, automatizaciones, tareas, equipo…
 │       └── lib/                 API, sesión y formatos
-├── docs/                        guía de operación, despliegue y arquitectura
+├── agente/                      agente de escritorio de Adzone Team (Windows/Mac) y cómo construir el .exe
+├── docs/                        guía de operación, despliegue, arquitectura y política de monitoreo
 └── .github/workflows/ci.yml     revisión automática en cada cambio
 ```
 
