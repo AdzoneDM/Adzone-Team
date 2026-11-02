@@ -325,12 +325,12 @@ def proyectos_view(request):
     from apps.desempeno.puntaje import rango_del_mes
     from apps.operaciones.permisos import es_finanzas
     from .proyectos import productividad
-    admin = es_administrador(request.user)
+    finanzas = es_finanzas(request.user)  # incluye la administración
     equipo = list(equipo_gestionable(request.user).values_list('pk', flat=True))
-    if not admin and not equipo:
-        raise exceptions.PermissionDenied("Esta vista es para supervisores y administración.")
+    if not finanzas and not equipo:
+        raise exceptions.PermissionDenied("Esta vista es para supervisores, Finanzas y administración.")
     desde, hasta = rango_del_mes(periodo_desde_mes(request.query_params.get('mes')))
-    usuarios = None if admin else equipo + [request.user.pk]
+    usuarios = None if finanzas else equipo + [request.user.pk]
     datos = productividad(desde, hasta, usuarios=usuarios, con_costos=es_finanzas(request.user))
     return Response({'desde': desde, 'hasta': hasta, 'con_costos': es_finanzas(request.user), **datos})
 
@@ -362,6 +362,12 @@ class JustificacionSerializer(serializers.ModelSerializer):
         apps = Counter(filas.values_list('app', flat=True)).most_common(3)
         return {'minutos': sum(cats.values()), 'productivos': cats.get('P', 0), 'neutrales': cats.get('N', 0),
                 'improductivos': cats.get('I', 0), 'apps': [a or 'Desconocida' for a, _ in apps]}
+
+    def validate_tarea(self, tarea):
+        u = self.context['request'].user
+        if tarea is not None and u.pk not in tarea.participantes_ids():
+            raise serializers.ValidationError('Elige una tarea tuya.')
+        return tarea
 
     def validate(self, data):
         desde, hasta = data.get('desde'), data.get('hasta')

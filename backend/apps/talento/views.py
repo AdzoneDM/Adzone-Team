@@ -111,7 +111,7 @@ def enviar_evaluacion_view(request, pk):
 @api_view(['GET'])
 @permission_classes([EsAdministrador])
 def por_revisar_view(request):
-    qs = Evaluacion.objects.filter(estado='EN_REVISION').select_related('evaluado__perfil__puesto_trabajo', 'evaluador', 'ciclo')
+    qs = Evaluacion.objects.filter(estado='EN_REVISION').exclude(evaluado=request.user).select_related('evaluado__perfil__puesto_trabajo', 'evaluador', 'ciclo')
     return Response(EvaluacionSerializer(qs, many=True).data)
 
 
@@ -120,6 +120,8 @@ def por_revisar_view(request):
 def confirmar_evaluacion_view(request, pk):
     """La dirección confirma (o devuelve al evaluador) una evaluación baja antes de que la vea la persona."""
     e = get_object_or_404(Evaluacion, pk=pk, estado='EN_REVISION')
+    if e.evaluado_id == request.user.pk:
+        raise exceptions.PermissionDenied("Tu propia evaluación la valida otra persona de la dirección.")
     nota = str(request.data.get('nota') or '')[:255]
     if request.data.get('devolver'):
         e.estado = 'PENDIENTE'
@@ -285,6 +287,9 @@ class ExpedienteViewSet(viewsets.ModelViewSet):
             return
         if not puede_gestionar(self.request.user, e.colaborador):
             raise exceptions.PermissionDenied("No puedes editar este registro.")
+        d = serializer.validated_data
+        if not es_administrador(self.request.user) and (e.tipo == 'BONO' or d.get('tipo') == 'BONO' or 'monto' in d):
+            raise exceptions.PermissionDenied("Los bonos y sus montos los maneja la administración.")
         serializer.save(colaborador=e.colaborador)
 
     def perform_destroy(self, instance):
@@ -313,6 +318,10 @@ def auditoria_view(request):
     if texto:
         qs = qs.filter(Q(accion__icontains=texto) | Q(objeto__icontains=texto) | Q(usuario__first_name__icontains=texto))
     if request.query_params.get('desde'):
-        qs = qs.filter(fecha__gte=request.query_params['desde'])
+        from django.utils.dateparse import parse_date
+        desde = parse_date(request.query_params['desde'])
+        if desde is None:
+            raise exceptions.ValidationError({'desde': 'Formato esperado: AAAA-MM-DD.'})
+        qs = qs.filter(fecha__date__gte=desde)
     return Response([{'id': a.id, 'fecha': a.fecha, 'usuario': _nombre(a.usuario), 'accion': a.accion, 'objeto': a.objeto,
                       'antes': a.antes, 'despues': a.despues} for a in qs[:300]])

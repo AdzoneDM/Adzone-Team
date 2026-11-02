@@ -482,7 +482,7 @@ function Proyectos() {
 }
 
 export default function Monitoreo() {
-  const { esAdmin, puedeValidar } = useSesion();
+  const { esAdmin, puedeValidar, esFinanzas } = useSesion();
   const gestiona = esAdmin || puedeValidar;
   const [params, setParams] = useSearchParams();
   const persona = params.get("persona");
@@ -490,7 +490,7 @@ export default function Monitoreo() {
   const opciones = [
     gestiona && { valor: "vivo", etiqueta: "Equipo en vivo" },
     { valor: "mia", etiqueta: "Mi actividad" },
-    gestiona && { valor: "proyectos", etiqueta: "Por proyecto y OT" },
+    (gestiona || esFinanzas) && { valor: "proyectos", etiqueta: "Por proyecto y OT" },
     { valor: "justificaciones", etiqueta: "Justificaciones" },
     { valor: "equipos", etiqueta: "Mis equipos y política" },
     esAdmin && { valor: "reglas", etiqueta: "Reglas" },
@@ -507,7 +507,7 @@ export default function Monitoreo() {
           <p className="text-sm"><Link to={`/ficha?usuario=${persona}`} className="text-azul hover:underline">Ver su ficha de productividad del mes</Link></p>
         </div>
       ) : ver === "vivo" ? <EnVivo onVer={(id) => setParams({ ver: "persona", persona: id })} />
-        : ver === "proyectos" && gestiona ? <Proyectos />
+        : ver === "proyectos" && (gestiona || esFinanzas) ? <Proyectos />
         : ver === "justificaciones" ? <Justificaciones gestiona={gestiona} />
         : ver === "equipos" ? <MisEquipos />
           : ver === "reglas" ? <Reglas />

@@ -197,6 +197,8 @@ def atribuir_registro(registro):
         return 0
     from apps.tiempo.models import MAX_MINUTOS
     fin = registro.fin or registro.inicio + timedelta(minutes=MAX_MINUTOS)
+    # Si se acortó o movió el cronómetro, suelta los minutos que ya no caen dentro.
+    Actividad.objects.filter(registro=registro).exclude(minuto__gte=registro.inicio, minuto__lt=fin).update(registro=None)
     return Actividad.objects.filter(usuario_id=registro.usuario_id, minuto__gte=registro.inicio, minuto__lt=fin,
                                     registro__isnull=True).update(registro=registro)
 

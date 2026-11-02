@@ -36,9 +36,12 @@ def generar(ciclo, pares_por_persona=2, semilla=None):
         por_depto.setdefault(p.perfil.puesto_trabajo.departamento_id, []).append(p)
     creadas = 0
     for p in personas:
-        filas = [(p, 'AUTO')] + [(s, 'SUPERVISOR') for s in revisores_de(p) if s.pk != p.pk]
+        supervisores = [s for s in revisores_de(p) if s.pk != p.pk]
+        filas = [(p, 'AUTO')] + [(s, 'SUPERVISOR') for s in supervisores]
         if ciclo.con_pares:
-            companeros = [c for c in por_depto.get(p.perfil.puesto_trabajo.departamento_id, []) if c.pk != p.pk]
+            # Un supervisor nunca evalúa como compañero «anónimo»: su evaluación ya va con nombre y con revisión.
+            excluir = {p.pk} | {s.pk for s in supervisores}
+            companeros = [c for c in por_depto.get(p.perfil.puesto_trabajo.departamento_id, []) if c.pk not in excluir]
             filas += [(c, 'PAR') for c in azar.sample(companeros, min(pares_por_persona, len(companeros)))]
         for evaluador, tipo in filas:
             _, nueva = Evaluacion.objects.get_or_create(ciclo=ciclo, evaluado=p, evaluador=evaluador, tipo=tipo)
@@ -78,7 +81,7 @@ def enviar(evaluacion, puntajes, fortalezas='', a_mejorar='', comentario=''):
     evaluacion.estado = 'EN_REVISION' if evaluacion.tipo == 'SUPERVISOR' and promedio < PROMEDIO_REVISION else 'ENVIADA'
     evaluacion.save()
     if evaluacion.estado == 'EN_REVISION':
-        avisar(administradores(), 'TALENTO', f'Evaluación baja de {_nombre(evaluacion.evaluado)} por revisar',
+        avisar([a for a in administradores() if a.pk != evaluacion.evaluado_id], 'TALENTO', f'Evaluación baja de {_nombre(evaluacion.evaluado)} por revisar',
                f'{_nombre(evaluacion.evaluador)} la calificó con {promedio:.1f} de 5. Confírmala antes de que la vea la persona.',
                enlace='/talento?ver=revisar', excepto=evaluacion.evaluador)
     return None

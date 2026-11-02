@@ -142,5 +142,5 @@ def productividad(desde, hasta, usuarios=None, con_costos=False):
                'productividad_pc': _pct(sum(v['n_productivos'] for v in pc.values()), sum(v['n_activos'] for v in pc.values()))}
     if con_costos:
         # Cada cronómetro una sola vez (una OT y su proyecto comparten las mismas horas).
-        totales['costo'] = round(float(sum((costo_hora.get(r.usuario_id) or 0) * r.minutos_hasta_ahora() / 60 for r in regs)), 2)
+        totales['costo'] = round(sum(float(costo_hora.get(r.usuario_id) or 0) * r.minutos_hasta_ahora() / 60 for r in regs), 2)
     return {'ordenes': ordenes, 'proyectos': proyectos, 'totales': totales}

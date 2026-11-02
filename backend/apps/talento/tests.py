@@ -195,3 +195,35 @@ class AlertaKpiTests(Base):
         self.assertEqual(servicios.revisar_kpis(periodo), 1)
         self.assertEqual(servicios.revisar_kpis(periodo), 0)
         self.assertTrue(Notificacion.objects.filter(destinatario=self.jefe, tipo='TALENTO', titulo__contains='Piezas').exists())
+
+
+class RevisionV9Tests(Base):
+    """Casos de la revisión independiente de la v9."""
+
+    def test_el_supervisor_no_sale_como_companero(self):
+        for semilla in range(10):
+            CicloEvaluacion.objects.all().delete()
+            c = CicloEvaluacion.objects.create(nombre=f'C{semilla}', desde=date.today(), hasta=date.today(), cierre=date.today())
+            servicios.generar(c, semilla=semilla)
+            self.assertFalse(Evaluacion.objects.filter(ciclo=c, tipo='PAR', evaluador=self.jefe, evaluado=self.ana).exists())
+
+    def test_el_supervisor_no_toca_bonos_al_editar(self):
+        e = EventoExpediente.objects.create(colaborador=self.ana, tipo='RECONOCIMIENTO', fecha=date.today(), titulo='x')
+        r = self.como(self.jefe).patch(f'/api/talento/expediente/{e.pk}/', {'tipo': 'BONO', 'monto': '99999'}, format='json')
+        self.assertEqual(r.status_code, 403)
+        e.refresh_from_db()
+        self.assertEqual(e.tipo, 'RECONOCIMIENTO')
+
+    def test_nadie_valida_su_propia_evaluacion(self):
+        otro_dir = User.objects.create_user('dir2', password='x', is_staff=True)
+        otro_dir.groups.add(Group.objects.get(name='Administrador'))
+        c = CicloEvaluacion.objects.create(nombre='C', desde=date.today(), hasta=date.today(), cierre=date.today())
+        e = Evaluacion.objects.create(ciclo=c, evaluado=self.dir, evaluador=otro_dir, tipo='SUPERVISOR')
+        servicios.enviar(e, TODO2, a_mejorar='x')
+        self.assertFalse(Notificacion.objects.filter(destinatario=self.dir, titulo__contains='por revisar').exists())
+        self.assertEqual(self.como(self.dir).get('/api/talento/evaluaciones/por-revisar/').json(), [])
+        self.assertEqual(self.como(self.dir).post(f'/api/talento/evaluaciones/{e.pk}/confirmar/', {}, format='json').status_code, 403)
+
+    def test_fecha_invalida_en_auditoria(self):
+        self.assertEqual(self.como(self.dir).get('/api/talento/auditoria/?desde=ayer').status_code, 400)
+        self.assertEqual(self.como(self.dir).get('/api/talento/auditoria/?desde=2026-01-01').status_code, 200)

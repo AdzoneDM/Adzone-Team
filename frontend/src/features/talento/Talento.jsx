@@ -210,7 +210,7 @@ function Avance() {
 function ResultadosDe({ persona, ciclo, onCerrar }) {
   const [d, setD] = useState(null);
   const [error, setError] = useState("");
-  useEffect(() => { resultadosEvaluacion(persona.id).then(setD).catch((e) => setError(e.message)); }, [persona.id]);
+  useEffect(() => { resultadosEvaluacion(persona.id, ciclo).then(setD).catch((e) => setError(e.message)); }, [persona.id, ciclo]);
   const c = d?.ciclos.find((x) => String(x.ciclo.id) === String(ciclo));
   return (
     <Modal abierto onCerrar={onCerrar} ancho="max-w-2xl" titulo={`Resultados de ${persona.nombre}`}>
@@ -288,7 +288,7 @@ function Ciclos() {
           {error && <Alerta className="mb-3">{error}</Alerta>}
           <div className="grid gap-3 sm:grid-cols-2">
             <Campo etiqueta="Nombre" className="sm:col-span-2">{(id) => <input id={id} className="campo" placeholder="4.º trimestre 2026" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />}</Campo>
-            <Campo etiqueta="Tipo">{(id) => <select id={id} className="campo" value={nuevo.tipo} onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })}><option value="TRIMESTRAL">Trimestral</option><option value="SEMESTRAL">Semestral</option><option value="ANUAL">Anual</option></select>}</Campo>
+            <Campo etiqueta="Tipo">{(id) => <select id={id} className="campo" value={nuevo.tipo} onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })}><option value="MENSUAL">Mensual</option><option value="TRIMESTRAL">Trimestral</option><option value="ANUAL">Anual</option></select>}</Campo>
             <Campo etiqueta="Fecha límite">{(id) => <input id={id} type="date" className="campo" value={nuevo.cierre} onChange={(e) => setNuevo({ ...nuevo, cierre: e.target.value })} />}</Campo>
             <Campo etiqueta="Período evaluado desde">{(id) => <input id={id} type="date" className="campo" value={nuevo.desde} onChange={(e) => setNuevo({ ...nuevo, desde: e.target.value })} />}</Campo>
             <Campo etiqueta="Hasta">{(id) => <input id={id} type="date" className="campo" value={nuevo.hasta} onChange={(e) => setNuevo({ ...nuevo, hasta: e.target.value })} />}</Campo>
@@ -446,7 +446,7 @@ function Expediente({ usuarioInicial, supervisa, esAdmin }) {
             <Campo etiqueta="Fecha">{(id) => <input id={id} type="date" className="campo" value={nuevo.fecha} onChange={(e) => setNuevo({ ...nuevo, fecha: e.target.value })} />}</Campo>
             <Campo etiqueta="Título" className="sm:col-span-2">{(id) => <input id={id} className="campo" value={nuevo.titulo} onChange={(e) => setNuevo({ ...nuevo, titulo: e.target.value })} />}</Campo>
             <Campo etiqueta="Detalle" className="sm:col-span-2">{(id) => <textarea id={id} rows={3} className="campo" value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} />}</Campo>
-            {nuevo.tipo === "BONO" && <Campo etiqueta="Monto (RD$)">{(id) => <input id={id} type="number" min={0} className="campo" value={nuevo.monto || ""} onChange={(e) => setNuevo({ ...nuevo, monto: e.target.value })} />}</Campo>}
+            {nuevo.tipo === "BONO" && <Campo etiqueta="Monto (RD$)" ayuda="Escríbelo solo aquí: el título y el detalle los puede ver la persona y su supervisor.">{(id) => <input id={id} type="number" min={0} className="campo" value={nuevo.monto || ""} onChange={(e) => setNuevo({ ...nuevo, monto: e.target.value })} />}</Campo>}
             {nuevo.tipo === "CAPACITACION" && <Campo etiqueta="Horas">{(id) => <input id={id} type="number" min={0} step="0.5" className="campo" value={nuevo.horas || ""} onChange={(e) => setNuevo({ ...nuevo, horas: e.target.value })} />}</Campo>}
             <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="accent-azul" checked={nuevo.visible_al_colaborador} onChange={(e) => setNuevo({ ...nuevo, visible_al_colaborador: e.target.checked })} />La persona lo ve (y puede escribir su descargo)</label>
           </div>

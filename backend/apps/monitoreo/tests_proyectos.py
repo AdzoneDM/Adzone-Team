@@ -138,3 +138,34 @@ class DesconexionYTecnologiaTests(Base):
         servicios.revisar_alertas()
         self.assertTrue(Notificacion.objects.filter(destinatario=self.ti, titulo__contains='no reporta').exists())
         self.assertTrue(Notificacion.objects.filter(destinatario=self.jefe, titulo__contains='no reporta').exists())
+
+
+class RevisionV9Tests(Base):
+    def test_costo_con_personas_sin_costo_por_hora_y_finanzas_sin_equipo(self):
+        luis = self._u('luis', self.p)
+        for u in (self.ana, luis):
+            RegistroTiempo.objects.create(usuario=u, orden=self.ot, inicio=local(2026, 10, 27, 9), fin=local(2026, 10, 27, 10), minutos=60)
+        r = self.como(self.dir).get('/api/monitoreo/proyectos/?mes=2026-10')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['totales']['costo'], 200.0)
+        fin = self._u('contadora', PuestoDeTrabajo.objects.create(nombre='Contadora', departamento=Departamento.objects.create(nombre='Finanzas')))
+        fin.groups.add(Group.objects.get_or_create(name='Finanzas')[0])
+        d = self.como(fin).get('/api/monitoreo/proyectos/?mes=2026-10')
+        self.assertEqual(d.status_code, 200)
+        self.assertEqual(d.json()['totales']['costo'], 200.0)
+
+    def test_acortar_el_cronometro_suelta_minutos(self):
+        Marcaje.objects.create(usuario=self.ana, tipo='ENTRADA', momento=local(2026, 10, 28, 8))
+        servicios.ingestar(self.disp, self.minutos(local(2026, 10, 28, 10), 60))
+        r = RegistroTiempo.objects.create(usuario=self.ana, orden=self.ot, inicio=local(2026, 10, 28, 10), fin=local(2026, 10, 28, 11), minutos=60)
+        self.assertEqual(Actividad.objects.filter(registro=r).count(), 60)
+        r.fin, r.minutos = local(2026, 10, 28, 10, 10), 10
+        r.save()
+        self.assertEqual(Actividad.objects.filter(registro=r).count(), 10)
+
+    def test_no_se_justifica_con_la_tarea_de_otro(self):
+        luis = self._u('luis', self.p)
+        t = Tarea.objects.create(titulo='Secreto', colaborador=luis, fecha_limite=AHORA.date())
+        r = self.como(self.ana).post('/api/monitoreo/justificaciones/', {'desde': local(2026, 10, 28, 10).isoformat(),
+                                     'hasta': local(2026, 10, 28, 10, 30).isoformat(), 'motivo': 'x', 'tarea': t.pk}, format='json')
+        self.assertEqual(r.status_code, 400)

@@ -348,7 +348,7 @@ export const misEvaluaciones = () => api(`${TA}/evaluaciones/`);
 export const enviarEvaluacion = (id, d) => api(`${TA}/evaluaciones/${id}/enviar/`, { method: "POST", body: d });
 export const evaluacionesPorRevisar = () => api(`${TA}/evaluaciones/por-revisar/`);
 export const confirmarEvaluacion = (id, d) => api(`${TA}/evaluaciones/${id}/confirmar/`, { method: "POST", body: d });
-export const resultadosEvaluacion = (usuario) => api(`${TA}/resultados/${q({ usuario })}`);
+export const resultadosEvaluacion = (usuario, ciclo) => api(`${TA}/resultados/${q({ usuario, ciclo })}`);
 export const avanceEvaluacion = (ciclo) => api(`${TA}/avance/${q({ ciclo })}`);
 export const planesMejora = (usuario) => api(`${TA}/planes/${q({ usuario })}`);
 export const guardarPlan = (p) => (p.id ? api(`${TA}/planes/${p.id}/`, { method: "PATCH", body: p }) : api(`${TA}/planes/`, { method: "POST", body: p }));
