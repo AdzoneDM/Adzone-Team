@@ -36,9 +36,18 @@ class PlantillaKPI(models.Model):
         ('ADHERENCIA', 'Adherencia al horario (puntualidad, asistencia y horas)'),
         ('ACTIVIDAD_PC', '% del tiempo en jornada con actividad en la computadora'),
         ('PRODUCTIVIDAD_PC', '% del tiempo activo en apps y sitios productivos'),
+        ('TAREAS_COMPLETADAS', 'Tareas (piezas, trabajos) validadas en el mes'),
+        ('RETRABAJO', '% de tareas con correcciones (devueltas al menos una vez)'),
+        ('HORAS_POR_TAREA', 'Horas registradas por tarea validada'),
+        ('DENTRO_ESTIMADO', '% de tareas dentro de las horas estimadas'),
+        ('UTILIZACION', '% de la jornada registrado en tareas con el cronómetro'),
+        ('HORAS_EXTRA', 'Horas extra del mes'),
     ]
     fuente = models.CharField(max_length=20, choices=FUENTES, blank=True, default='',
                               help_text="Solo para KPIs automáticos: de dónde la plataforma saca el valor.")
+    formula = models.CharField(max_length=255, blank=True, help_text="Fórmula: p. ej. «tareas a tiempo ÷ tareas validadas × 100».")
+    fuente_datos = models.CharField(max_length=200, blank=True, help_text="De dónde sale el dato: tareas, control de horario, Cashflow, encuestas…")
+    responsable_validacion = models.CharField(max_length=120, blank=True, help_text="Quién valida el resultado: supervisor directo, Finanzas, QA…")
 
     fecha_creacion = models.DateTimeField(
         auto_now_add=True,
@@ -114,6 +123,8 @@ class KPIAsignado(models.Model):
     fecha_asignacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion_asignacion = models.DateTimeField(auto_now=True)
     activo = models.BooleanField(default=True, verbose_name="¿Asignación Activa?")
+    umbral_alerta = models.DecimalField(max_digits=5, decimal_places=2, default=70,
+                                        help_text="Si el cumplimiento del mes queda por debajo de este %, se avisa al supervisor.")
 
 
     def __str__(self):

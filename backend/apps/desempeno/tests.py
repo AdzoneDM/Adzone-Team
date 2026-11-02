@@ -37,6 +37,12 @@ class BaseDesempeno(TestCase):
 
 
 class PuntajeTests(BaseDesempeno):
+    """Fórmula clásica (60 tareas con calidad dentro / 40 KPIs). La de cuatro partes se prueba en tests_puntaje."""
+
+    def setUp(self):
+        super().setUp()
+        ConfiguracionDesempeno.objects.all().delete()
+        ConfiguracionDesempeno.objects.create(peso_tareas=60, peso_calidad=0, peso_jornada=0, tramos_bono=ConfiguracionDesempeno.TRAMOS_POR_DEFECTO)
     def test_nota_de_tarea(self):
         a_tiempo_excelente = Tarea(estado='COMPLETADA', fecha_limite=date(2026, 9, 10),
                                    fecha_completada=date(2026, 9, 9), calificacion_calidad=5)

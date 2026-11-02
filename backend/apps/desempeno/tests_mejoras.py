@@ -242,6 +242,10 @@ class FlujoTests(Base):
 
 
 class PuntajeTests(Base):
+    def setUp(self):
+        super().setUp()
+        ConfiguracionDesempeno.objects.all().delete()
+        ConfiguracionDesempeno.objects.create(peso_tareas=60, peso_calidad=0, peso_jornada=0, tramos_bono=ConfiguracionDesempeno.TRAMOS_POR_DEFECTO)
     def test_pesos_y_bono_configurables(self):
         hoy = timezone.localdate()
         periodo = hoy.replace(day=1)
@@ -256,7 +260,6 @@ class PuntajeTests(Base):
         self.assertEqual(fila['bono_sugerido'], 0)           # sin el mínimo, tampoco hay bono
         config = ConfiguracionDesempeno.actual()
         config.peso_tareas = 80
-        config.peso_jornada = 0
         config.minimo_tareas_empleado_mes = 1
         config.save()
         fila = calcular_ranking(periodo)[0]
@@ -311,11 +314,11 @@ class PuntajeTests(Base):
 
     def test_configuracion_solo_admin(self):
         self.como(self.erlin)
-        self.assertEqual(self.c.get('/api/desempeno/configuracion/').data['peso_tareas'], 48)
+        self.assertEqual(self.c.get('/api/desempeno/configuracion/').data['peso_tareas'], 60)
         self.assertEqual(self.c.patch('/api/desempeno/configuracion/', {'peso_tareas': 90}, format='json').status_code, 403)
         self.como(self.osiris)
         r = self.c.patch('/api/desempeno/configuracion/', {'peso_tareas': 70, 'tramos_bono': [{'desde': 80, 'porcentaje': 5}, {'desde': 95, 'porcentaje': 12}]}, format='json')
-        self.assertEqual(r.data['peso_kpis'], 10)  # 100 - 70 tareas - 20 jornada
+        self.assertEqual(r.data['peso_kpis'], 30)  # 100 - 70 tareas (calidad y asistencia en 0)
         self.assertEqual(r.data['tramos_bono'][0]['desde'], 95)
         self.assertEqual(self.c.patch('/api/desempeno/configuracion/', {'peso_tareas': 150}, format='json').status_code, 400)
 

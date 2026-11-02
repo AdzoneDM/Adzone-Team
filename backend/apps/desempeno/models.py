@@ -330,6 +330,7 @@ class Notificacion(models.Model):
         ('AUTOMATIZACION', 'Automatización'),
         ('ASISTENCIA', 'Asistencia'),
         ('MONITOREO', 'Monitoreo'),
+        ('TALENTO', 'Talento y evaluaciones'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
@@ -381,10 +382,13 @@ class TareaRecurrente(models.Model):
 
 class ConfiguracionDesempeno(models.Model):
     """Reglas del puntaje y del bono. Una sola fila; se cambia en Administración → Configuración."""
-    peso_tareas = models.PositiveSmallIntegerField(default=48, help_text="% del puntaje que sale de las tareas.")
+    peso_tareas = models.PositiveSmallIntegerField(default=40, help_text="% del puntaje que sale del cumplimiento de las tareas.")
+    peso_calidad = models.PositiveSmallIntegerField(
+        default=15, help_text="% del puntaje de calidad y satisfacción: estrellas de las tareas, % a la primera y evaluación "
+                              "del supervisor. Con 0, la calidad se promedia dentro de cada tarea.")
     peso_jornada = models.PositiveSmallIntegerField(
-        default=20, help_text="% del puntaje que sale de la jornada: adherencia al horario y productividad en la computadora. "
-                              "Lo que queda (100 − tareas − jornada) es de los KPIs.")
+        default=10, help_text="% del puntaje de asistencia y puntualidad (adherencia al horario). La actividad en la "
+                              "computadora no da puntos. Lo que queda (100 − tareas − calidad − asistencia) es de los KPIs.")
     nota_tarde = models.PositiveSmallIntegerField(default=50, help_text="Puntualidad de una entrega tarde (0-100).")
     minimo_tareas_empleado_mes = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas validadas mínimas en el mes para ser candidato a Empleado del Mes.")
@@ -405,7 +409,7 @@ class ConfiguracionDesempeno(models.Model):
 
     @property
     def peso_kpis(self):
-        return max(0, 100 - self.peso_tareas - self.peso_jornada)
+        return max(0, 100 - self.peso_tareas - self.peso_calidad - self.peso_jornada)
 
     @classmethod
     def actual(cls):

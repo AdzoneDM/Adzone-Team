@@ -103,6 +103,9 @@ class Actividad(models.Model):
     titulo = models.CharField(max_length=255, blank=True)
     dominio = models.CharField(max_length=150, blank=True)
     categoria = models.CharField(max_length=1, choices=CATEGORIAS, default=NEUTRAL)
+    registro = models.ForeignKey('tiempo.RegistroTiempo', on_delete=models.SET_NULL, null=True, blank=True, related_name='actividad',
+                                 help_text="Cronómetro (tarea, OT o proyecto) que corría en ese minuto.")
+    justificada = models.BooleanField(default=False, help_text="Un supervisor aprobó que ese tiempo fue trabajo; no se reclasifica.")
 
     class Meta:
         unique_together = ('usuario', 'minuto')  # un minuto por persona aunque tenga dos computadoras
@@ -150,4 +153,22 @@ class AlertaEnviada(models.Model):
 
     class Meta:
         unique_together = ('usuario', 'clave')
+        ordering = ['-creada']
+
+
+class Justificacion(models.Model):
+    """La persona explica un tramo que el clasificador marcó como neutral o improductivo (ej.: YouTube para una referencia)."""
+    ESTADOS = [('PENDIENTE', 'Pendiente'), ('APROBADA', 'Aprobada'), ('RECHAZADA', 'Rechazada')]
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='justificaciones_pc')
+    desde = models.DateTimeField()
+    hasta = models.DateTimeField()
+    motivo = models.CharField(max_length=300)
+    tarea = models.ForeignKey('desempeno.Tarea', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    estado = models.CharField(max_length=10, choices=ESTADOS, default='PENDIENTE')
+    revisada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    nota = models.CharField(max_length=255, blank=True)
+    minutos = models.PositiveIntegerField(default=0, help_text="Minutos que pasaron a productivos al aprobar.")
+    creada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
         ordering = ['-creada']

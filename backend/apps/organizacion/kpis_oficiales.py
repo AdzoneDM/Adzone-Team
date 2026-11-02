@@ -420,3 +420,83 @@ def plantilla_de(nombre, unidad, menor):
     if unidad is None:
         return COMUNES[nombre]
     return unidad, menor, None
+
+
+# ---------------------------------------------------------------- KPIs de seguimiento (peso 0)
+# Se miden solos con los datos de la plataforma, tienen historial y umbral de alerta, pero no cambian la ponderación
+# oficial del documento. Así cada puesto queda con 8 a 15 indicadores. Las metas son de arranque: se ajustan con los
+# datos de los primeros meses (Puestos → KPI → Editar).
+# (fuente, unidad, menor es mejor, meta o None, fórmula)
+_GEN = {
+    'TAREAS_COMPLETADAS': ('tareas', False, None, 'Tareas validadas en el mes (sin meta fija: referencia para comparar meses).'),
+    'PRIMERA': ('%', False, 80, 'Tareas validadas sin devoluciones ÷ tareas validadas × 100.'),
+    'RETRABAJO': ('%', True, 20, 'Tareas devueltas al menos una vez ÷ tareas validadas × 100. Menor es mejor.'),
+    'HORAS_POR_TAREA': ('horas', True, None, 'Horas del cronómetro ÷ tareas validadas con tiempo registrado.'),
+    'DENTRO_ESTIMADO': ('%', False, 80, 'Tareas con horas reales ≤ estimadas + 10 % ÷ tareas con estimado × 100.'),
+    'UTILIZACION': ('%', False, 60, 'Minutos del cronómetro en tareas ÷ minutos trabajados en la jornada × 100.'),
+    'PUNTUALIDAD': ('%', False, 95, 'Días que llegó a tiempo ÷ días presentes × 100 (control de horario).'),
+    'ASISTENCIA': ('%', False, 100, 'Días presentes ÷ días laborables sin permiso × 100 (control de horario).'),
+    'HORAS_EXTRA': ('horas', True, 10, 'Horas trabajadas por encima de lo programado en el mes. Más de 10 = riesgo de sobrecarga.'),
+}
+_NOMBRES = {  # cómo se llama el conteo de trabajo en cada departamento
+    'Marketing': ('Piezas producidas y validadas', 'Piezas aprobadas sin corrección', 'Tasa de retrabajo creativo', 'Horas por pieza'),
+    'Audiovisual': ('Producciones completadas', 'Producciones aprobadas en primera ronda', 'Retrabajos audiovisuales', 'Horas por producción'),
+    'Adzone TV': ('Producciones completadas', 'Producciones aprobadas en primera ronda', 'Retrabajos audiovisuales', 'Horas por producción'),
+    'Impresión': ('Trabajos completados', 'Trabajos aprobados a la primera', 'Retrabajos de producción', 'Horas por trabajo'),
+    'Tecnología': ('Incidencias y tareas resueltas', 'Resueltas sin reincidencia', 'Reincidencia', 'Horas por incidencia o tarea'),
+}
+_NOMBRE_GENERAL = ('Tareas completadas', 'Tareas aprobadas a la primera', 'Tareas con correcciones', 'Horas por tarea')
+_COMUNES_SEG = {'DENTRO_ESTIMADO': 'Trabajo dentro de las horas estimadas', 'UTILIZACION': 'Jornada registrada en tareas',
+                'PUNTUALIDAD': 'Puntualidad de llegada', 'ASISTENCIA': 'Asistencia a la jornada', 'HORAS_EXTRA': 'Horas extra del mes'}
+
+
+def seguimiento_de(departamento, puesto):
+    """Lista de (nombre, fuente, unidad, menor, meta, fórmula) de seguimiento para un puesto."""
+    if puesto in ('Presidente del Consejo', 'Vicepresidente y Secretario del Consejo'):
+        return []
+    if departamento == 'Call Center':
+        fuentes = ['PUNTUALIDAD', 'ASISTENCIA', 'HORAS_EXTRA']
+    elif puesto == 'CEO / Director General':
+        fuentes = ['PUNTUALIDAD', 'HORAS_EXTRA']
+    else:
+        # en orden de importancia: si el puesto ya tiene muchos KPIs oficiales, se toman los primeros (máximo 15 en total)
+        fuentes = ['TAREAS_COMPLETADAS', 'PRIMERA', 'RETRABAJO', 'DENTRO_ESTIMADO', 'PUNTUALIDAD', 'UTILIZACION', 'HORAS_EXTRA', 'HORAS_POR_TAREA']
+    oficiales = {AUTOMATICOS.get(k[0]) for k in KPIS_OFICIALES.get(puesto, [])}
+    nombres = _NOMBRES.get(departamento, _NOMBRE_GENERAL)
+    por_fuente = {'TAREAS_COMPLETADAS': nombres[0], 'PRIMERA': nombres[1], 'RETRABAJO': nombres[2], 'HORAS_POR_TAREA': nombres[3], **_COMUNES_SEG}
+    lista = []
+    for f in fuentes:
+        if f in oficiales or (f == 'RETRABAJO' and 'PRIMERA' in oficiales) or (f == 'PUNTUALIDAD' and 'ADHERENCIA' in oficiales):
+            continue  # ya lo mide un KPI oficial del puesto
+        unidad, menor, meta, formula = _GEN[f]
+        lista.append((por_fuente[f], f, unidad, menor, meta, formula))
+    return lista[:max(0, MAXIMO_KPIS - len(KPIS_OFICIALES.get(puesto, [])))] if puesto in KPIS_OFICIALES else lista
+
+
+MAXIMO_KPIS = 15
+
+
+# Ficha técnica de cada KPI oficial: fórmula, de dónde sale el dato y quién lo valida.
+RESPONSABLE_POR_DEPTO = {
+    'Administración': 'Coordinadora Financiera y Administrativa', 'Call Center': 'Analista de Calidad y Monitoreo / Gerente de Call Center',
+    'Gerencia': 'Consejo de socios', 'Comercial': 'Director General', 'Gestión del Talento': 'Director General',
+}
+
+
+def ficha_tecnica(nombre, unidad, menor, fuente, departamento):
+    """(fórmula, fuente de datos, responsable de validación) de un KPI oficial."""
+    if fuente:
+        formula = COMO_SE_MIDE.get(fuente, '')
+        datos = 'Control de horario de Adzone Team' if fuente == 'ADHERENCIA' else 'Tareas validadas en Adzone Team'
+    elif unidad == '% del plan':
+        formula, datos = 'Avance logrado del plan del período ÷ plan × 100 (al día = 100).', 'Registro del supervisor en «KPIs del mes»'
+    elif unidad == 'casos':
+        formula, datos = 'Casos ocurridos en el mes. Meta 0: cualquier caso = 0 % de cumplimiento.', 'Bitácora de incidencias del área'
+    elif unidad.startswith('puntos'):
+        formula, datos = 'Promedio de las calificaciones del mes.', 'Encuestas o evaluación del supervisor'
+    elif unidad == '%':
+        formula = ('Valor ÷ base × 100; menor es mejor.' if menor else 'Logrado ÷ total esperado × 100.')
+        datos = 'Registro del supervisor en «KPIs del mes» con su evidencia'
+    else:
+        formula, datos = f'Cantidad de {unidad} en el período.', 'Registro del supervisor en «KPIs del mes»'
+    return formula, datos, RESPONSABLE_POR_DEPTO.get(departamento, 'Supervisor directo')

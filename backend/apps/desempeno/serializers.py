@@ -365,14 +365,15 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ConfiguracionDesempeno
-        fields = ['peso_tareas', 'peso_jornada', 'peso_kpis', 'nota_tarde', 'minimo_tareas_empleado_mes', 'puntaje_minimo',
+        fields = ['peso_tareas', 'peso_calidad', 'peso_jornada', 'peso_kpis', 'nota_tarde', 'minimo_tareas_empleado_mes', 'puntaje_minimo',
                   'minimo_tareas_evaluacion', 'tramos_bono', 'fecha_modificacion']
 
     def validate(self, data):
-        tareas = data.get('peso_tareas', getattr(self.instance, 'peso_tareas', 48))
-        jornada = data.get('peso_jornada', getattr(self.instance, 'peso_jornada', 20))
-        if tareas + jornada > 100:
-            raise serializers.ValidationError({'peso_jornada': 'Tareas + jornada no pueden pasar de 100.'})
+        tareas = data.get('peso_tareas', getattr(self.instance, 'peso_tareas', 40))
+        calidad = data.get('peso_calidad', getattr(self.instance, 'peso_calidad', 15))
+        jornada = data.get('peso_jornada', getattr(self.instance, 'peso_jornada', 10))
+        if tareas + calidad + jornada > 100:
+            raise serializers.ValidationError({'peso_jornada': 'Tareas + calidad + asistencia no pueden pasar de 100.'})
         return data
 
     def validate_peso_tareas(self, value):

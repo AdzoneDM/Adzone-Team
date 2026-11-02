@@ -603,7 +603,7 @@ def ranking_exportar_view(request):
     config = ConfiguracionDesempeno.actual()
     evaluacion = {'CUMPLE': 'Cumple', 'BAJO_MINIMO': f'Bajo el mínimo ({config.puntaje_minimo})', 'POCOS_DATOS': 'Pocos datos'}
     escritor.writerow(['Posición', 'Colaborador', 'Puesto', 'Departamento', 'Puntaje total', 'Evaluación', 'Motivos',
-                       'Puntaje tareas', 'Puntaje KPIs', 'Tareas que cuentan', 'Tareas validadas', 'A tiempo',
+                       'Puntaje tareas', 'Puntaje KPIs', 'Calidad y satisfacción', 'Asistencia', 'Tareas que cuentan', 'Tareas validadas', 'A tiempo',
                        'A la primera', 'Vencidas sin entregar', 'Calidad promedio', 'Bono sugerido (%)'])
     ranking = calcular_ranking(periodo, config=config, grupo=grupo)
     for f in ranking:
@@ -612,13 +612,15 @@ def ranking_exportar_view(request):
                            evaluacion[f['evaluacion']], '; '.join(f['motivos']),
                            '' if f['puntaje_tareas'] is None else f['puntaje_tareas'],
                            '' if f['puntaje_kpis'] is None else f['puntaje_kpis'],
+                           '' if f.get('puntaje_calidad') is None else f['puntaje_calidad'],
+                           '' if f.get('puntaje_asistencia') is None else f['puntaje_asistencia'],
                            t['total'], t['completadas'], t['a_tiempo'], t['a_la_primera'], t['vencidas'],
                            '' if t['calidad_promedio'] is None else t['calidad_promedio'], f['bono_sugerido']])
     for f in sin_evaluar(periodo, ranking, grupo=grupo):
         escritor.writerow(['', f['nombre'], f['puesto'], f['departamento'] or '', '', 'Sin evaluar',
                            f"Sin tareas vencidas ni validadas en el mes ({f['tareas_asignadas']} asignada(s)). "
                            f"Supervisor: {f['supervisor'] or 'sin supervisor'}",
-                           '', '', 0, 0, 0, 0, 0, '', 0])
+                           '', '', '', '', 0, 0, 0, 0, 0, '', 0])
     return respuesta
 
 
@@ -890,4 +892,48 @@ def ficha_view(request):
         usuario = User.objects.filter(pk=request.query_params['usuario']).first()
         if usuario is None or (usuario.pk != request.user.pk and not puede_gestionar(request.user, usuario)):
             raise PermissionDenied("Solo ves la ficha de tu equipo.")
-    return Response(ficha(usuario, periodo_desde_mes(request.query_params.get('mes'))))
+    meses = 12 if request.query_params.get('meses') == '12' else 6
+    return Response(ficha(usuario, periodo_desde_mes(request.query_params.get('mes')), visor=request.user, meses=meses))
+
+
+@api_view(['GET'])
+@permission_classes([EsAdministrador])
+def panel_view(request):
+    """Panel gerencial de la Dirección."""
+    from .panel import panel
+    return Response(panel(periodo_desde_mes(request.query_params.get('mes'))))
+
+
+@api_view(['GET'])
+@permission_classes([EsAdministrador])
+def panel_exportar_view(request):
+    """El panel del mes en CSV (se abre en Excel): indicadores, áreas y alertas."""
+    from .panel import panel
+    d = panel(periodo_desde_mes(request.query_params.get('mes')))
+    r = HttpResponse(content_type='text/csv; charset=utf-8')
+    r['Content-Disposition'] = f'attachment; filename="panel-gerencial-{d["mes"]}.csv"'
+    r.write('﻿')
+    w = csv.writer(r)
+    v = lambda x: '' if x is None else x
+    w.writerow([f'Panel gerencial {d["mes"]}'])
+    for etiqueta, clave in (('Personal activo', 'personal_activo'), ('Evaluados', 'evaluados'), ('Puntaje promedio', 'puntaje_promedio'),
+                            ('Asistencia promedio', 'asistencia_promedio'), ('Calidad promedio', 'calidad_promedio'),
+                            ('OT completadas', 'ot_completadas'), ('OT a tiempo (%)', 'ot_a_tiempo'), ('OT abiertas', 'ot_abiertas'),
+                            ('Tareas validadas', 'tareas_validadas'), ('Tareas a tiempo (%)', 'tareas_a_tiempo'),
+                            ('Planes de mejora abiertos', 'planes_abiertos')):
+        w.writerow([etiqueta, v(d[clave])])
+    w.writerow([])
+    w.writerow(['Departamento', 'Personas', 'Evaluados', 'Puntaje', 'Asistencia', 'Calidad', 'KPIs', 'Productividad PC (%)',
+                'Tareas validadas', 'Tareas vencidas', 'Horas registradas', 'Bajo el mínimo'])
+    for x in d['departamentos']:
+        w.writerow([x['nombre'], x['personas'], x['evaluados'], v(x['puntaje']), v(x['asistencia']), v(x['calidad']), v(x['kpis']),
+                    v(x['productividad_pc']), x['tareas_validadas'], x['tareas_vencidas'], x['horas'], x['bajo_minimo']])
+    w.writerow([])
+    w.writerow(['Alerta', 'Nivel', 'Detalle'])
+    for a in d['alertas']:
+        w.writerow([a['titulo'], a['nivel'], a['detalle']])
+    w.writerow([])
+    w.writerow(['Mes', 'Puntaje', 'OT completadas', 'OT a tiempo (%)', 'Tareas validadas', 'Tareas a tiempo (%)'])
+    for m in d['tendencia']:
+        w.writerow([m['mes'], v(m['puntaje']), m['ot_completadas'], v(m['ot_a_tiempo']), m['tareas_validadas'], v(m['tareas_a_tiempo'])])
+    return r

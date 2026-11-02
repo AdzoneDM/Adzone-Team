@@ -15,7 +15,7 @@ from apps.asistencia import servicios as asistencia
 from apps.desempeno.permisos import EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar
 from apps.desempeno.views import periodo_desde_mes
 from . import servicios
-from .models import Actividad, Captura, ConfiguracionMonitoreo, Consentimiento, Dispositivo, ReglaProductividad
+from .models import Actividad, Captura, ConfiguracionMonitoreo, Consentimiento, Dispositivo, Justificacion, ReglaProductividad
 
 
 def _ip(request):
@@ -317,3 +317,92 @@ def captura_view(request, pk):
     r = FileResponse(f, content_type=mimetypes.guess_type(c.archivo.name)[0] or 'image/jpeg')
     r['Cache-Control'] = 'private, max-age=3600'
     return r
+
+
+# ------------------------------------------------------------------ Productividad por proyecto y OT
+@api_view(['GET'])
+def proyectos_view(request):
+    from apps.desempeno.puntaje import rango_del_mes
+    from apps.operaciones.permisos import es_finanzas
+    from .proyectos import productividad
+    admin = es_administrador(request.user)
+    equipo = list(equipo_gestionable(request.user).values_list('pk', flat=True))
+    if not admin and not equipo:
+        raise exceptions.PermissionDenied("Esta vista es para supervisores y administración.")
+    desde, hasta = rango_del_mes(periodo_desde_mes(request.query_params.get('mes')))
+    usuarios = None if admin else equipo + [request.user.pk]
+    datos = productividad(desde, hasta, usuarios=usuarios, con_costos=es_finanzas(request.user))
+    return Response({'desde': desde, 'hasta': hasta, 'con_costos': es_finanzas(request.user), **datos})
+
+
+# ------------------------------------------------------------------ Justificaciones
+class JustificacionSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.SerializerMethodField()
+    revisada_por_nombre = serializers.SerializerMethodField()
+    tarea_titulo = serializers.CharField(source='tarea.titulo', read_only=True, default=None)
+    resumen = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Justificacion
+        fields = ['id', 'usuario', 'usuario_nombre', 'desde', 'hasta', 'motivo', 'tarea', 'tarea_titulo', 'estado',
+                  'revisada_por_nombre', 'nota', 'minutos', 'creada', 'resumen']
+        read_only_fields = ['usuario', 'estado', 'nota', 'minutos']
+
+    def get_usuario_nombre(self, o):
+        return o.usuario.get_full_name() or o.usuario.username
+
+    def get_revisada_por_nombre(self, o):
+        return (o.revisada_por.get_full_name() or o.revisada_por.username) if o.revisada_por else None
+
+    def get_resumen(self, o):
+        """Qué hay en ese tramo, para que el supervisor decida."""
+        from collections import Counter
+        filas = Actividad.objects.filter(usuario=o.usuario, minuto__gte=o.desde, minuto__lt=o.hasta)
+        cats = Counter(filas.values_list('categoria', flat=True))
+        apps = Counter(filas.values_list('app', flat=True)).most_common(3)
+        return {'minutos': sum(cats.values()), 'productivos': cats.get('P', 0), 'neutrales': cats.get('N', 0),
+                'improductivos': cats.get('I', 0), 'apps': [a or 'Desconocida' for a, _ in apps]}
+
+    def validate(self, data):
+        desde, hasta = data.get('desde'), data.get('hasta')
+        if desde and hasta:
+            if hasta <= desde:
+                raise serializers.ValidationError({'hasta': 'El final es antes del inicio.'})
+            if hasta - desde > timedelta(hours=10):
+                raise serializers.ValidationError({'hasta': 'Justifica tramos de 10 horas como máximo.'})
+            if desde < timezone.now() - timedelta(days=15):
+                raise serializers.ValidationError({'desde': 'Solo se justifican los últimos 15 días.'})
+        return data
+
+
+class JustificacionViewSet(viewsets.ModelViewSet):
+    serializer_class = JustificacionSerializer
+    http_method_names = ['get', 'post']
+
+    def get_queryset(self):
+        u = self.request.user
+        qs = Justificacion.objects.select_related('usuario', 'revisada_por', 'tarea')
+        if self.request.query_params.get('ver') == 'equipo':
+            qs = qs.filter(usuario__in=equipo_gestionable(u)).exclude(usuario=u)
+            estado = self.request.query_params.get('estado')
+            return qs.filter(estado=estado) if estado else qs
+        return qs.filter(usuario=u)
+
+    def perform_create(self, serializer):
+        from apps.desempeno.permisos import revisores_de
+        from apps.desempeno.servicios import avisar
+        j = serializer.save(usuario=self.request.user)
+        nombre = self.request.user.get_full_name() or self.request.user.username
+        avisar(revisores_de(self.request.user), 'MONITOREO', f'{nombre} justificó un tramo de su computadora', j.motivo[:200],
+               enlace='/monitoreo?ver=justificaciones', excepto=self.request.user)
+
+
+@api_view(['POST'])
+def revisar_justificacion_view(request, pk):
+    j = get_object_or_404(Justificacion, pk=pk)
+    if j.usuario_id == request.user.pk or not puede_gestionar(request.user, j.usuario):
+        raise exceptions.PermissionDenied("La revisa su supervisor.")
+    if j.estado != 'PENDIENTE':
+        return Response({'detail': 'Ya se revisó.'}, status=400)
+    servicios.justificar(j, bool(request.data.get('aprobar')), request.user, request.data.get('nota') or '')
+    return Response(JustificacionSerializer(j).data)

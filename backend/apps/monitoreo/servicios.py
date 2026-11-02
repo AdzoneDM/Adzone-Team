@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
+from django.db.models import F, Q
 from django.utils import timezone
 
 from apps.asistencia.models import Marcaje
@@ -52,7 +53,7 @@ def reclasificar(desde=None):
     """Aplica las reglas actuales a la actividad guardada (tras cambiar reglas)."""
     from django.db.models import F
     clasif = Clasificador()
-    qs = Actividad.objects.all()
+    qs = Actividad.objects.filter(justificada=False)
     if desde:
         qs = qs.filter(minuto__gte=desde)
     cambiados = 0
@@ -156,6 +157,7 @@ def ingestar(dispositivo, minutos, ahora=None):
     if not validos:
         return 0, len(minutos)
     tramos = tramos_en_jornada(usuario, min(v[0] for v in validos), max(v[0] for v in validos))
+    registros = registros_entre(usuario, min(v[0] for v in validos), max(v[0] for v in validos), ahora)
     clasif = Clasificador()
     depto = departamento_de(usuario)
     guardados = 0
@@ -169,11 +171,76 @@ def ingestar(dispositivo, minutos, ahora=None):
                     usuario=usuario, dispositivo=dispositivo, minuto=m,
                     activos=_entero(item.get('activos'), 60), inactivos=_entero(item.get('inactivos'), 60),
                     intensidad=_entero(item.get('intensidad'), 100), cambios=_entero(item.get('cambios'), 200),
-                    app=app, titulo=titulo, dominio=dominio.lower(), categoria=clasif.categoria(depto, app, titulo, dominio))
+                    app=app, titulo=titulo, dominio=dominio.lower(), categoria=clasif.categoria(depto, app, titulo, dominio),
+                    registro_id=next((r for a, b, r in registros if a <= m < b), None))
             guardados += 1
         except IntegrityError:
             pass  # ese minuto ya llegó (de este u otro equipo de la misma persona)
     return guardados, len(minutos) - guardados
+
+
+def registros_entre(usuario, desde, hasta, ahora=None):
+    """Cronómetros de la persona que tocan el intervalo: [(inicio, fin, id)]. Uno corriendo llega hasta ahora (12 h como máximo)."""
+    from apps.tiempo.models import MAX_MINUTOS, RegistroTiempo
+    ahora = ahora or timezone.now()
+    salida = []
+    for r in RegistroTiempo.objects.filter(usuario=usuario, inicio__lte=hasta).filter(
+            Q(fin__isnull=True, inicio__gte=desde - timedelta(minutes=MAX_MINUTOS)) | Q(fin__gt=desde)).order_by('inicio'):
+        fin = r.fin or min(ahora + timedelta(minutes=2), r.inicio + timedelta(minutes=MAX_MINUTOS))
+        salida.append((r.inicio, fin, r.pk))
+    return salida
+
+
+def atribuir_registro(registro):
+    """Une al cronómetro los minutos de computadora que cayeron dentro de él (al pararlo o anotarlo a mano)."""
+    if not registro.pk or registro.inicio is None:
+        return 0
+    from apps.tiempo.models import MAX_MINUTOS
+    fin = registro.fin or registro.inicio + timedelta(minutes=MAX_MINUTOS)
+    return Actividad.objects.filter(usuario_id=registro.usuario_id, minuto__gte=registro.inicio, minuto__lt=fin,
+                                    registro__isnull=True).update(registro=registro)
+
+
+def desconexiones(usuario, dia, minimo=15, ahora=None):
+    """Huecos de `minimo` minutos o más en jornada sin datos de la computadora (agente cerrado, equipo apagado o sin red)."""
+    ahora = ahora or timezone.now()
+    inicio, fin = rango(dia)
+    tramos = [(max(a, inicio), min(b, fin, ahora)) for a, b in tramos_en_jornada(usuario, inicio, min(fin, ahora))]
+    minutos = list(Actividad.objects.filter(usuario=usuario, minuto__range=(inicio, fin)).order_by('minuto').values_list('minuto', flat=True))
+    puestos = set(minutos)
+    huecos = []
+    for a, b in tramos:
+        if b <= a:
+            continue
+        dentro = [m for m in minutos if a <= m < b]
+        marcas = [a] + dentro + [b]
+        for x, y in zip(marcas, marcas[1:]):
+            libre = (y - x).total_seconds() / 60 - (1 if x in puestos else 0)
+            if libre >= minimo:
+                huecos.append({'desde': x + (timedelta(minutes=1) if x in puestos else timedelta()), 'hasta': y, 'minutos': int(libre)})
+    return huecos
+
+
+def justificar(justificacion, aprobar, revisor, nota=''):
+    """Aprueba (pasa a productivos los minutos del tramo) o rechaza una justificación."""
+    from apps.desempeno.servicios import avisar
+    justificacion.estado = 'APROBADA' if aprobar else 'RECHAZADA'
+    justificacion.revisada_por, justificacion.nota = revisor, str(nota or '')[:255]
+    if aprobar:
+        justificacion.minutos = Actividad.objects.filter(usuario=justificacion.usuario, minuto__gte=justificacion.desde,
+                                                         minuto__lt=justificacion.hasta).exclude(categoria=PRODUCTIVA).update(
+            categoria=PRODUCTIVA, justificada=True)
+    justificacion.save()
+    avisar([justificacion.usuario], 'MONITOREO', f"Tu justificación fue {'aprobada' if aprobar else 'rechazada'}",
+           (f'{justificacion.minutos} minutos pasaron a productivos. ' if aprobar else '') + justificacion.nota,
+           enlace='/monitoreo?ver=mia', excepto=revisor)
+    return justificacion
+
+
+def tecnologia():
+    """Encargados de Tecnología: reciben también los avisos de computadoras que no reportan."""
+    return list(User.objects.filter(is_active=True, perfil__puesto_trabajo__departamento__nombre__icontains='tecnolog').filter(
+        Q(perfil__puesto_trabajo__supervisor__isnull=True) | ~Q(perfil__puesto_trabajo__supervisor__departamento=F('perfil__puesto_trabajo__departamento'))))
 
 
 # ------------------------------------------------------------------ Resúmenes
@@ -240,6 +307,8 @@ def resumen_dia(usuario, dia):
     r['primera'] = filas[0].minuto if filas else None
     r['ultima'] = filas[-1].minuto if filas else None
     r['jornada'] = {k: j[k] for k in ('estado', 'entrada', 'salida', 'trabajados', 'pausa', 'tardanza', 'llegada', 'turno')}
+    r['desconexiones'] = desconexiones(usuario, dia)
+    r['minutos_desconectado'] = sum(d['minutos'] for d in r['desconexiones'])
     return r
 
 
@@ -307,7 +376,7 @@ def revisar_alertas(ahora=None):
         if (config.activo and consintio(u, config) and desde_marca >= config.alerta_sin_pc_min
                 and not Actividad.objects.filter(usuario=u, minuto__gte=ultimo.momento).exists()):
             if _una_vez(u, f'sinpc-{ultimo.momento:%Y%m%d%H%M}', 'SIN_PC', f'Marcó a las {timezone.localtime(ultimo.momento):%H:%M}'):
-                avisar(revisores_de(u), 'MONITOREO', f'{nombre}: su computadora no reporta',
+                avisar(list(revisores_de(u)) + tecnologia(), 'MONITOREO', f'{nombre}: su computadora no reporta',
                        f'Marcó a las {timezone.localtime(ultimo.momento):%H:%M} y en {config.alerta_sin_pc_min} minutos su computadora no ha enviado actividad.',
                        enlace=f'/monitoreo?persona={u.pk}')
                 enviados += 1

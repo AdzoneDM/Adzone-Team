@@ -21,7 +21,8 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from apps.kpis.models import KPIAsignado, PlantillaKPI
-from apps.organizacion.kpis_oficiales import AUTOMATICOS, COMO_SE_MIDE, COMUNES, KPIS_OFICIALES, PERIODICIDAD, objetivo
+from apps.organizacion.kpis_oficiales import (AUTOMATICOS, COMO_SE_MIDE, COMUNES, KPIS_OFICIALES, PERIODICIDAD, ficha_tecnica, objetivo,
+                                              seguimiento_de)
 from apps.organizacion.models import PuestoDeTrabajo
 
 ARCHIVO = Path(settings.BASE_DIR) / 'datos_iniciales' / 'descripciones_puestos_adzone.json'
@@ -45,6 +46,33 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--aplicar', action='store_true', help='Hacer los cambios (sin esto solo se muestran).')
+
+    def _ficha(self, plantilla, unidad, menor, fuente, departamento):
+        """Llena fórmula, fuente de datos y responsable si la plantilla no los tiene."""
+        if plantilla.formula and plantilla.fuente_datos and plantilla.responsable_validacion:
+            return
+        formula, datos, responsable = ficha_tecnica(plantilla.nombre, unidad, menor, fuente, departamento)
+        plantilla.formula = plantilla.formula or formula[:255]
+        plantilla.fuente_datos = plantilla.fuente_datos or datos[:200]
+        plantilla.responsable_validacion = plantilla.responsable_validacion or responsable[:120]
+        plantilla.save(update_fields=['formula', 'fuente_datos', 'responsable_validacion', 'fecha_modificacion'])
+
+    def _seguimiento(self, puesto):
+        """Asigna los KPIs de seguimiento (peso 0) del departamento. No toca la meta si alguien la ajustó."""
+        ids = []
+        for nombre, fuente, unidad, menor, meta, formula in seguimiento_de(puesto.departamento.nombre, puesto.nombre):
+            plantilla, _ = PlantillaKPI.objects.get_or_create(nombre=nombre, defaults={
+                'descripcion': formula, 'unidad_medida': unidad, 'menor_es_mejor': menor, 'fuente': fuente, 'formula': formula[:255],
+                'fuente_datos': 'Control de horario de Adzone Team' if fuente in ('PUNTUALIDAD', 'ASISTENCIA', 'HORAS_EXTRA') else 'Tareas y cronómetro de Adzone Team',
+                'responsable_validacion': 'Automático (lo revisa el supervisor directo)'})
+            asignado, creado = KPIAsignado.objects.get_or_create(puesto_trabajo=puesto, plantilla_kpi=plantilla, defaults={
+                'ponderacion': Decimal(0), 'objetivo_meta': f'De seguimiento · {formula}'[:255], 'periodicidad_objetivo': 'MENSUAL',
+                'es_entrada_manual': False, 'meta_numerica': Decimal(str(meta)) if meta is not None else None, 'activo': True})
+            if not creado and not asignado.activo and asignado.ponderacion == 0:
+                asignado.activo = True
+                asignado.save(update_fields=['activo'])
+            ids.append(plantilla.pk)
+        return ids
 
     def handle(self, *args, aplicar=False, **opciones):
         docs = descripciones()
@@ -76,6 +104,7 @@ class Command(BaseCommand):
                     if fuente and plantilla.fuente != fuente:
                         plantilla.fuente, plantilla.descripcion = fuente, COMO_SE_MIDE[fuente]
                         plantilla.save(update_fields=['fuente', 'descripcion', 'fecha_modificacion'])
+                    self._ficha(plantilla, unidad, menor, fuente, p.departamento.nombre)
                     valores = {'ponderacion': Decimal(peso), 'objetivo_meta': objetivo(meta, unidad, menor, detalle),
                                'periodicidad_objetivo': PERIODICIDAD[periodo], 'es_entrada_manual': not fuente,
                                'meta_numerica': Decimal(str(meta)), 'activo': True}
@@ -87,6 +116,7 @@ class Command(BaseCommand):
                             setattr(asignado, c, v)
                         asignado.save()
                     usados.append(plantilla.pk)
+                usados += self._seguimiento(p)
                 viejos = KPIAsignado.objects.filter(puesto_trabajo=p, activo=True).exclude(plantilla_kpi_id__in=usados)
                 for v in viejos:
                     self.stdout.write(self.style.WARNING(f"    − se desactiva «{v.plantilla_kpi.nombre}» en {nombre}"))
@@ -94,6 +124,12 @@ class Command(BaseCommand):
                 autos = sum(1 for k in kpis if k[0] in AUTOMATICOS)
                 self.stdout.write(f"  ★ {nombre}: {len(kpis)} KPIs ({autos} automáticos) · {sum(k[1] for k in kpis)} % de ponderación")
 
+            for p in puestos.values():
+                if p.nombre not in KPIS_OFICIALES:
+                    self._seguimiento(p)  # los puestos sin KPIs en el documento también reciben los de seguimiento
+            total = KPIAsignado.objects.filter(activo=True).count()
+            seg = KPIAsignado.objects.filter(activo=True, ponderacion=0).count()
+            self.stdout.write(f"\n  {total} KPIs activos en los puestos; {seg} de seguimiento (peso 0, se miden solos).")
             for nombre in faltan:
                 self.stdout.write(self.style.WARNING(f"  No existe el puesto «{nombre}». Corre antes: python manage.py organigrama_2026 --aplicar"))
             sin_doc = sorted(set(puestos) - set(docs))

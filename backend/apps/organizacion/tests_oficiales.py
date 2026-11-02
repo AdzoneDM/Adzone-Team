@@ -58,8 +58,12 @@ class PuestosOficialesTests(TestCase):
         self.assertIn('atracción, desarrollo, bienestar y retención del talento', puesto.objetivo)
         self.assertIn('Psicología Industrial', puesto.perfil_ideal)
         self.assertIn('10% del salario base', puesto.compensacion_variable)
-        activos = KPIAsignado.objects.filter(puesto_trabajo=puesto, activo=True)
+        activos = KPIAsignado.objects.filter(puesto_trabajo=puesto, activo=True, ponderacion__gt=0)
         self.assertEqual(activos.count(), 8)
+        todos = KPIAsignado.objects.filter(puesto_trabajo=puesto, activo=True)
+        self.assertTrue(8 < todos.count() <= 15)  # más los de seguimiento (peso 0), con ficha técnica
+        seg = todos.filter(ponderacion=0).first()
+        self.assertTrue(seg.plantilla_kpi.formula and seg.plantilla_kpi.responsable_validacion)
         self.assertEqual(sum(k.ponderacion for k in activos), 100)
         self.assertFalse(KPIAsignado.objects.get(plantilla_kpi=viejo).activo)  # desactivado, no borrado
         tiempo = activos.get(plantilla_kpi__nombre='Tiempo de contratación')
@@ -80,7 +84,7 @@ class PuestosOficialesTests(TestCase):
         self.assertFalse(PuestoDeTrabajo.objects.filter(nombre='Coordinador de Contenido y Podcast').exists())
         master = PuestoDeTrabajo.objects.get(nombre='Control Master')
         self.assertEqual(master.supervisor, estudio)
-        self.assertEqual(KPIAsignado.objects.filter(puesto_trabajo=master, activo=True).count(), 7)
+        self.assertEqual(KPIAsignado.objects.filter(puesto_trabajo=master, activo=True, ponderacion__gt=0).count(), 7)
         analista = PuestoDeTrabajo.objects.get(nombre='Analista de Calidad y Monitoreo')
         self.assertEqual(PuestoDeTrabajo.objects.get(nombre='Agente de Call Center Español').supervisor, analista)
         herrero = KPIAsignado.objects.filter(puesto_trabajo__nombre='Herrero', activo=True)

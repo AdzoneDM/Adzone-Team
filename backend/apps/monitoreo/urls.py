@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
+router.register(r'justificaciones', views.JustificacionViewSet, basename='justificacion')
 router.register(r'dispositivos', views.DispositivoViewSet, basename='dispositivo')
 router.register(r'reglas', views.ReglaViewSet, basename='regla')
 
@@ -20,4 +21,6 @@ urlpatterns = [
     path('periodo/', views.periodo_view),
     path('equipo/', views.equipo_view),
     path('capturas/<int:pk>/', views.captura_view),
+    path('proyectos/', views.proyectos_view),
+    path('justificaciones/<int:pk>/revisar/', views.revisar_justificacion_view),
 ]

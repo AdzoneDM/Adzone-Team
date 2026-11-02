@@ -1,11 +1,15 @@
 """
 Cálculo del puntaje mensual de desempeño (0-100) de cada colaborador.
 
-Puntaje total = 48% tareas + 32% KPIs + 20% jornada (pesos configurables en ConfiguracionDesempeno).
-Si a un colaborador le falta alguna de las tres en el mes, las que tiene se reparten el 100 %.
+Puntaje total = 40 % tareas + 35 % KPIs + 15 % calidad y satisfacción + 10 % asistencia (configurables).
+Si a un colaborador le falta alguna parte en el mes, las que tiene se reparten el 100 %.
 
-Jornada (control de horario y monitoreo): promedio de la adherencia al horario (puntualidad, asistencia y
-horas cumplidas) y, si su computadora reporta, la productividad contra la meta (75 % por defecto).
+- Tareas: cumplimiento (a tiempo 100, tarde 50, vencida 0), ponderado por prioridad.
+- Calidad y satisfacción: promedio de la calidad de las tareas (estrellas), el % aprobado a la primera y la
+  evaluación del supervisor del período (si hay).
+- Asistencia: adherencia al horario (puntualidad, asistencia y horas cumplidas). Solo para quien marca.
+- La actividad en la computadora NO da ni quita puntos: informa, alerta y alimenta la ficha y el panel.
+Con peso de calidad 0, la calidad de cada tarea vuelve a promediarse dentro de la nota de tareas (como antes).
 
 Tareas (cuentan las que tienen fecha límite dentro del mes, salvo canceladas):
   - Puntualidad: 100 si se completó a tiempo, 50 si se completó tarde, 0 si no se completó.
@@ -55,11 +59,12 @@ def rango_del_mes(periodo):
     return periodo.replace(day=1), periodo.replace(day=ultimo_dia)
 
 
-def nota_tarea(tarea, nota_tarde=50):
+def nota_tarea(tarea, nota_tarde=50, con_calidad=True):
+    """Nota 0-100 de una tarea. Con `con_calidad=False` solo cuenta el cumplimiento (la calidad va en su propio componente)."""
     if tarea.estado != 'COMPLETADA':
         return 0.0
     puntualidad = 100.0 if tarea.a_tiempo else float(nota_tarde)
-    if tarea.calificacion_calidad is None:
+    if tarea.calificacion_calidad is None or not con_calidad:
         return puntualidad
     calidad = (tarea.calificacion_calidad - 1) / 4 * 100
     return (puntualidad + calidad) / 2
@@ -75,7 +80,7 @@ def cumplimiento(meta, real, menor_es_mejor=False):
     return max(0.0, min(100.0, porcentaje))
 
 
-def _puntaje_tareas(tareas, hoy, nota_tarde=50):
+def _puntaje_tareas(tareas, hoy, nota_tarde=50, con_calidad=True):
     suma, pesos = 0.0, 0
     calidad, calificadas = 0, 0
     resumen = {'total': 0, 'completadas': 0, 'a_tiempo': 0, 'a_la_primera': 0, 'vencidas': 0,
@@ -100,7 +105,7 @@ def _puntaje_tareas(tareas, hoy, nota_tarde=50):
         else:
             resumen['vencidas'] += 1
         peso = PESO_PRIORIDAD.get(tarea.prioridad, 2)
-        suma += nota_tarea(tarea, nota_tarde) * peso
+        suma += nota_tarea(tarea, nota_tarde, con_calidad) * peso
         pesos += peso
     if calificadas:
         resumen['calidad_promedio'] = round(calidad / calificadas, 2)
@@ -111,7 +116,9 @@ def _puntaje_tareas(tareas, hoy, nota_tarde=50):
 def _puntaje_kpis(detalle):
     suma, pesos = 0.0, 0.0
     for kpi in detalle:
-        peso = kpi['ponderacion'] or 1.0
+        peso = kpi['ponderacion']
+        if not peso or kpi.get('cumplimiento') is None:
+            continue  # KPI de seguimiento (peso 0) o sin meta: se muestra pero no pesa
         suma += kpi['cumplimiento'] * peso
         pesos += peso
     return round(suma / pesos, 2) if pesos else None
@@ -145,6 +152,23 @@ class Mediciones:
             self._pc = indicadores_pc([self.usuario.pk], self.inicio, self.fin).get(self.usuario.pk, {})
         return self._pc
 
+    def minutos_por_tarea(self, todas=False):
+        """Minutos del cronómetro por tarea en el mes (`todas`: incluye las que no se validaron)."""
+        clave = '_min_todas' if todas else '_min_tareas'
+        if getattr(self, clave, None) is None:
+            from apps.tiempo.models import RegistroTiempo
+            from apps.asistencia.servicios import rango
+            qs = RegistroTiempo.objects.filter(usuario=self.usuario, tarea__isnull=False)
+            if todas:
+                qs = qs.filter(inicio__range=rango(self.inicio, self.fin))
+            else:
+                qs = qs.filter(tarea_id__in=[x.pk for x in self.tareas])
+            res = {}
+            for r in qs:
+                res[r.tarea_id] = res.get(r.tarea_id, 0) + r.minutos_hasta_ahora()
+            setattr(self, clave, res)
+        return getattr(self, clave)
+
     @property
     def tareas(self):
         if self._tareas is None:
@@ -163,6 +187,28 @@ class Mediciones:
         if fuente == 'CALIDAD':
             notas = [x.calificacion_calidad for x in t if x.calificacion_calidad]
             return round(sum(notas) / len(notas) / 5 * 100, 1) if notas else None
+        if fuente == 'CALIDAD_ESTRELLAS':  # 1 estrella = 0, 5 = 100 (igual que la nota de la tarea)
+            notas = [x.calificacion_calidad for x in t if x.calificacion_calidad]
+            return round(sum((n - 1) / 4 * 100 for n in notas) / len(notas), 1) if notas else None
+        if fuente == 'TAREAS_COMPLETADAS':
+            return float(len(t)) if t else None
+        if fuente == 'RETRABAJO':
+            return round(sum(1 for x in t if x.rondas_revision) / len(t) * 100, 1) if t else None
+        if fuente in ('HORAS_POR_TAREA', 'DENTRO_ESTIMADO'):
+            minutos = self.minutos_por_tarea()
+            con_tiempo = [x for x in t if minutos.get(x.pk)]
+            if fuente == 'HORAS_POR_TAREA':
+                return round(sum(minutos[x.pk] for x in con_tiempo) / len(con_tiempo) / 60, 2) if con_tiempo else None
+            estimadas = [x for x in con_tiempo if x.horas_estimadas]
+            if not estimadas:
+                return None
+            dentro = sum(1 for x in estimadas if minutos[x.pk] / 60 <= float(x.horas_estimadas) * 1.1)
+            return round(dentro / len(estimadas) * 100, 1)
+        if fuente == 'UTILIZACION':
+            trabajados = self.asistencia['minutos_trabajados']
+            return round(min(sum(self.minutos_por_tarea(todas=True).values()) / trabajados, 1) * 100, 1) if trabajados else None
+        if fuente == 'HORAS_EXTRA':
+            return round(self.asistencia['minutos_extra'] / 60, 1) if self.asistencia['dias_laborables'] else None
         a = self.asistencia
         if fuente == 'PUNTUALIDAD':
             return a['puntualidad']
@@ -178,19 +224,26 @@ class Mediciones:
             return self.pc.get('productividad')
         return None
 
-    def jornada(self, meta_productividad=75):
-        """Puntaje de jornada 0-100 y su detalle, o (None, detalle) si no hay datos de horario ni de PC."""
+    def asistencia_puntaje(self):
+        """Adherencia al horario 0-100 y su detalle (con la actividad en PC solo como información)."""
         a = self.asistencia
-        partes = []
-        if a['adherencia'] is not None and a['dias_laborables']:
-            partes.append(a['adherencia'])
-        prod = self.pc.get('productividad')
-        if prod is not None and self.pc.get('minutos_activos', 0) >= 60:
-            partes.append(min(prod / meta_productividad * 100, 100) if meta_productividad else prod)
         detalle = {k: a[k] for k in ('puntualidad', 'asistencia', 'cumplimiento_horas', 'adherencia', 'tardanzas',
                                      'minutos_tarde', 'ausencias', 'minutos_trabajados', 'minutos_extra', 'dias_laborables')}
         detalle.update({k: self.pc.get(k) for k in ('actividad', 'productividad', 'minutos_activos', 'minutos_registrados')})
-        return (round(sum(partes) / len(partes), 2) if partes else None), detalle
+        valor = a['adherencia'] if a['adherencia'] is not None and a['dias_laborables'] else None
+        return valor, detalle
+
+    def calidad(self):
+        """Calidad y satisfacción 0-100: estrellas de las tareas, % a la primera y evaluación del supervisor."""
+        partes = [v for v in (self.medir('CALIDAD_ESTRELLAS'), self.medir('PRIMERA'), self.evaluacion()) if v is not None]
+        return round(sum(partes) / len(partes), 2) if partes else None
+
+    def evaluacion(self):
+        try:
+            from apps.talento.servicios import evaluacion_supervisor_pct
+        except ImportError:
+            return None
+        return evaluacion_supervisor_pct(self.usuario, self.inicio, self.fin)
 
 
 def kpis_del_mes(usuario, inicio, fin, resultados_manuales=(), mediciones=None):
@@ -211,6 +264,11 @@ def kpis_del_mes(usuario, inicio, fin, resultados_manuales=(), mediciones=None):
             'ponderacion': float(kpi.ponderacion),
             'automatico': not kpi.es_entrada_manual,
             'fuente': plantilla.fuente if not kpi.es_entrada_manual else '',
+            'seguimiento': not kpi.ponderacion,
+            'umbral': float(kpi.umbral_alerta),
+            'formula': plantilla.formula, 'fuente_datos': plantilla.fuente_datos,
+            'responsable': plantilla.responsable_validacion, 'periodicidad': kpi.periodicidad_objetivo,
+            'menor_es_mejor': plantilla.menor_es_mejor,
         }
         if kpi.es_entrada_manual:
             resultado = manuales.get(kpi.id)
@@ -220,10 +278,13 @@ def kpis_del_mes(usuario, inicio, fin, resultados_manuales=(), mediciones=None):
                         cumplimiento=resultado.cumplimiento)
         elif plantilla.fuente:
             valor = mediciones.medir(plantilla.fuente)
-            if valor is None or kpi.meta_numerica is None:
+            if valor is None:
                 continue
-            fila.update(meta=float(kpi.meta_numerica), valor=valor,
-                        cumplimiento=cumplimiento(kpi.meta_numerica, valor, plantilla.menor_es_mejor))
+            if kpi.meta_numerica is None:  # de seguimiento sin meta: se muestra el valor, sin cumplimiento
+                fila.update(meta=None, valor=valor, cumplimiento=None)
+            else:
+                fila.update(meta=float(kpi.meta_numerica), valor=valor,
+                            cumplimiento=cumplimiento(kpi.meta_numerica, valor, plantilla.menor_es_mejor))
         else:
             if not kpi.meta_numerica:
                 continue
@@ -241,7 +302,9 @@ def kpis_del_mes(usuario, inicio, fin, resultados_manuales=(), mediciones=None):
                 valor = validadas.count()
             fila.update(meta=float(kpi.meta_numerica), valor=valor,
                         cumplimiento=cumplimiento(kpi.meta_numerica, valor, plantilla.menor_es_mejor))
-        fila['cumplimiento'] = round(fila['cumplimiento'], 2)
+        if fila['cumplimiento'] is not None:
+            fila['cumplimiento'] = round(fila['cumplimiento'], 2)
+        fila['bajo_umbral'] = fila['cumplimiento'] is not None and fila['cumplimiento'] < fila['umbral']
         detalle.append(fila)
     return detalle
 
@@ -265,7 +328,7 @@ def motivos_bajo_puntaje(fila, nota_tarde=50):
     if j.get('productividad') is not None and j['productividad'] < 60:
         motivos.append(f"productividad en computadora de {round(j['productividad'])} %")
     for kpi in fila['kpis']:
-        if kpi['cumplimiento'] < 70:
+        if kpi['ponderacion'] and kpi.get('cumplimiento') is not None and kpi['cumplimiento'] < 70:
             motivos.append(f"KPI «{kpi['nombre']}» al {round(kpi['cumplimiento'])} %")
     return motivos
 
@@ -323,11 +386,6 @@ def sin_evaluar(periodo, ranking, hoy=None, grupo=None):
     return filas
 
 
-def _meta_productividad():
-    from apps.monitoreo.models import ConfiguracionMonitoreo
-    return ConfiguracionMonitoreo.actual().meta_productividad_pct
-
-
 def calcular_ranking(periodo, hoy=None, config=None, grupo=None, solo=None):
     """Devuelve la lista de colaboradores evaluados en el mes, ordenada de mayor a menor puntaje."""
     hoy = hoy or timezone.localdate()
@@ -359,15 +417,17 @@ def calcular_ranking(periodo, hoy=None, config=None, grupo=None, solo=None):
 
     ranking = []
     for usuario in usuarios:
-        puntaje_tareas, resumen_tareas = _puntaje_tareas(tareas_por_usuario.get(usuario.id, []), hoy, config.nota_tarde)
+        con_calidad = not config.peso_calidad
+        puntaje_tareas, resumen_tareas = _puntaje_tareas(tareas_por_usuario.get(usuario.id, []), hoy, config.nota_tarde, con_calidad)
         mediciones = Mediciones(usuario, inicio, fin)
         detalle_kpis = kpis_del_mes(usuario, inicio, fin, resultados_por_usuario.get(usuario.id, []), mediciones)
         puntaje_kpis = _puntaje_kpis(detalle_kpis)
-        puntaje_jornada, detalle_jornada = (mediciones.jornada(_meta_productividad()) if usuario.id in con_jornada
-                                            else (None, {}))
+        puntaje_jornada, detalle_jornada = (mediciones.asistencia_puntaje() if usuario.id in con_jornada else (None, {}))
+        puntaje_calidad = mediciones.calidad() if config.peso_calidad else None
 
         partes = [(p, w) for p, w in ((puntaje_tareas, config.peso_tareas), (puntaje_kpis, config.peso_kpis),
-                                      (puntaje_jornada, config.peso_jornada)) if p is not None and w > 0]
+                                      (puntaje_calidad, config.peso_calidad), (puntaje_jornada, config.peso_jornada))
+                  if p is not None and w > 0]
         if not partes:
             continue  # Solo tiene tareas aún en plazo: no se evalúa todavía
         total = sum(p * w for p, w in partes) / sum(w for _, w in partes)
@@ -383,10 +443,12 @@ def calcular_ranking(periodo, hoy=None, config=None, grupo=None, solo=None):
             'puntaje_tareas': puntaje_tareas,
             'puntaje_kpis': puntaje_kpis,
             'puntaje_jornada': puntaje_jornada,
+            'puntaje_asistencia': puntaje_jornada,
+            'puntaje_calidad': puntaje_calidad,
             'jornada_detalle': detalle_jornada,
             'puntaje_total': round(total, 2),
             'tareas': resumen_tareas,
-            'kpis_registrados': len(detalle_kpis),
+            'kpis_registrados': sum(1 for k in detalle_kpis if k['ponderacion'] and k.get('cumplimiento') is not None),
             'kpis': detalle_kpis,
             # Con pocas tareas validadas el puntaje no es representativo: ni candidato ni bono.
             'elegible': resumen_tareas['completadas'] >= config.minimo_tareas_empleado_mes,
