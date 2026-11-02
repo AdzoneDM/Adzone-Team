@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'apps.asistencia',
     'apps.monitoreo',
     'apps.talento',
+    'apps.activos',
     'corsheaders',
     'rest_framework',
     'django_filters',

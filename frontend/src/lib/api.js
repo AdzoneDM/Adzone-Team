@@ -402,3 +402,13 @@ export const rentabilidadOrden = (id) => api(`/api/finanzas/rentabilidad/ordenes
 export const tasasCambio = () => api("/api/finanzas/tasas/");
 export const guardarTasa = (t) => api("/api/finanzas/tasas/", { method: "POST", body: t });
 export const borrarTasa = (id) => api(`/api/finanzas/tasas/${id}/`, { method: "DELETE" });
+
+// Activos y equipos
+const AC = "/api/activos";
+export const activos = (params) => api(`${AC}/${q(params)}`);
+export const guardarActivo = (a) => (a.id ? api(`${AC}/${a.id}/`, { method: "PATCH", body: a }) : api(`${AC}/`, { method: "POST", body: a }));
+export const borrarActivo = (id) => api(`${AC}/${id}/`, { method: "DELETE" });
+export const historialActivo = (id) => api(`${AC}/${id}/historial/`);
+export const moverActivo = (id, d) => api(`${AC}/${id}/mover/`, { method: "POST", body: d });
+export const reportarActivo = (id, nota) => api(`${AC}/${id}/reportar/`, { method: "POST", body: { nota } });
+export const resumenActivos = () => api(`${AC}/resumen/`);

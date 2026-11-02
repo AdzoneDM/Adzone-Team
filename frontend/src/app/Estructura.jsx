@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  Award, CalendarClock, Gauge, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -16,7 +16,7 @@ import { anunciarNovedades } from "@/lib/novedades";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
 
-function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, misAreas = [] }) {
+function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [] }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
     { a: "/call-center", texto: "Call Center", icono: Headset },
@@ -37,6 +37,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
       { a: "/ficha", texto: "Mi ficha", icono: Gauge },
       { a: "/talento", texto: puedeValidar || esAdmin ? "Talento" : "Evaluaciones", icono: Award },
       { a: "/politicas", texto: "Políticas", icono: ScrollText },
+      ...(gestionaActivos ? [] : [{ a: "/activos", texto: "Equipos asignados", icono: Laptop }]),
     ] },
     { titulo: "Operación", items: [
       { a: "/ordenes", texto: "Órdenes de trabajo", icono: ClipboardList },
@@ -46,6 +47,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
   ];
   if (esAlmacen || esCoordinacion || esFinanzas || misAreas.length) s[1].items.splice(1, 0, { a: "/almacen", texto: "Almacén", icono: Boxes });
   if (gestionaCallCenter) s[1].items.push({ a: "/call-center", texto: "Call Center", icono: Headset });
+  if (gestionaActivos) s[1].items.push({ a: "/activos", texto: "Activos y equipos", icono: Laptop });
   if (esAdmin || esCoordinacion) s[1].items.push({ a: "/produccion/ajustes", texto: "Áreas y tiempos", icono: SlidersHorizontal });
   if (puedeValidar) {
     s.push({ titulo: "Mi equipo", items: [

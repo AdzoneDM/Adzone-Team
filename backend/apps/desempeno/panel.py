@@ -173,6 +173,11 @@ def panel(periodo, hoy=None):
     if riesgos:
         alertas.append({'tipo': 'RIESGO', 'nivel': 'alta', 'titulo': f'{len(riesgos)} persona(s) con riesgo alto en la computadora',
                         'detalle': 'Reglas de comportamiento: apuestas, acceso remoto, descargas, IA no aprobada…', 'enlace': '/monitoreo?ver=resumen'})
+    from apps.activos.servicios import resumen as resumen_activos
+    act = resumen_activos()
+    if act['danados'] or act['mantenimiento_vencido']:
+        alertas.append({'tipo': 'ACTIVOS', 'nivel': 'media', 'titulo': f"Equipos: {act['danados']} dañado(s), {act['mantenimiento_vencido']} con mantenimiento vencido",
+                        'detalle': f"{act['total']} equipos registrados.", 'enlace': '/activos'})
     orden_nivel = {'alta': 0, 'media': 1, 'baja': 2}
     alertas.sort(key=lambda a: orden_nivel[a['nivel']])
 

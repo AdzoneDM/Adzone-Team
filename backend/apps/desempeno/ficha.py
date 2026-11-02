@@ -113,6 +113,8 @@ def _talento(usuario, visor):
                        for e in eventos[:30]],
         'resumen_expediente': resumen,
         'horas_capacitacion': float(sum(e.horas or 0 for e in eventos.filter(tipo='CAPACITACION'))),
+        'equipos': [{'id': a.pk, 'codigo': a.codigo, 'nombre': a.nombre, 'categoria': a.get_categoria_display(), 'serie': a.serie}
+                    for a in usuario.activos.exclude(estado='BAJA')],
     }
     if admin:
         datos['salarios'] = [{'fecha': c.fecha, 'anterior': float(c.anterior) if c.anterior is not None else None,

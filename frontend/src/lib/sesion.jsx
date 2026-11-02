@@ -47,6 +47,7 @@ export function SesionProvider({ children }) {
     esFinanzas: !!usuario?.es_finanzas,
     esTecnologia: !!usuario?.es_tecnologia,
     esRRHH: !!usuario?.es_rrhh,
+    gestionaActivos: !!usuario?.gestiona_activos,
     gestiona: !!usuario?.gestiona,
     esCoordinacion: !!usuario?.es_coordinacion,
     esAlmacen: !!usuario?.es_almacen,

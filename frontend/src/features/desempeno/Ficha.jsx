@@ -226,6 +226,11 @@ function Talento({ t, usuario, esAdmin }) {
           )}
           {t.horas_capacitacion > 0 && <p className="mt-3 text-sm text-gris">{num(t.horas_capacitacion)} h de capacitación registradas.</p>}
         </Panel>
+        {t.equipos?.length > 0 && (
+          <Panel titulo="Equipos asignados">
+            <ul className="space-y-1 text-[15px]">{t.equipos.map((e) => <li key={e.id}><span className="font-medium">{e.codigo}</span> · {e.nombre} <span className="text-xs text-gris">{e.categoria}{e.serie ? ` · ${e.serie}` : ""}</span></li>)}</ul>
+          </Panel>
+        )}
         {esAdmin && t.salarios?.length > 0 && (
           <Panel titulo="Historial salarial">
             <ul className="space-y-1 text-[15px]">{t.salarios.map((c, i) => (

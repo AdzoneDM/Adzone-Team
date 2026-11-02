@@ -67,6 +67,8 @@ VIGILADOS = {
     'monitoreo.ReglaComportamiento': ('Regla de comportamiento', ['nombre', 'patrones', 'minutos_minimos', 'riesgo', 'accion', 'activa']),
     'monitoreo.PerfilMonitoreo': ('Perfil de monitoreo', ['nombre', 'monitorear', 'capturas', 'capturas_cada_min', 'desenfocar_capturas']),
     'monitoreo.Incidencia': ('Incidencia', ['estado']),
+    'activos.Activo': ('Activo', ['nombre', 'estado', 'asignado_a_id', 'costo', 'ubicacion']),
+    'finanzas.TasaCambio': ('Tasa de cambio', ['fecha', 'usd_dop']),
 }
 
 

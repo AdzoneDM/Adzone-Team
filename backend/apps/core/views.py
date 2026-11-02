@@ -34,6 +34,11 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
 
 
 
+def _activos(user):
+    from apps.activos.servicios import gestiona_activos
+    return gestiona_activos(user)
+
+
 def _rrhh(user):
     from apps.talento.politicas import es_rrhh
     return es_rrhh(user)
@@ -68,6 +73,7 @@ def datos_usuario(user):
         'es_finanzas': es_finanzas(user),
         'es_tecnologia': _es_tecnologia(user),
         'es_rrhh': _rrhh(user),
+        'gestiona_activos': _activos(user),
         'politicas_pendientes': _pendientes(user),
         'gestiona': gestiona_algo(user),
         'es_coordinacion': es_coordinacion(user),
