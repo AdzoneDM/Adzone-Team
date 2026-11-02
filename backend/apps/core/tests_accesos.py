@@ -130,8 +130,13 @@ class AdministradorDelSistemaTests(Base):
         self.assertEqual(r.status_code, 201, r.content)
         self.assertTrue(tiene(User.objects.get(pk=self.ana.pk), 'monitoreo.ver'))
         self.assertEqual(c.delete(f"/api/accesos/excepciones/{r.json()['id']}/").status_code, 204)
-        r = c.post('/api/accesos/equipo-extra/', {'jefe': self.jefe.pk, 'colaborador': self.beto.pk, 'motivo': 'Proyecto'}, format='json')
+        datos = {'jefe': self.jefe.pk, 'colaborador': self.beto.pk, 'motivo': 'Proyecto'}
+        self.assertEqual(c.post('/api/accesos/equipo-extra/', datos, format='json').status_code, 403)  # delegaría permisos de equipo que no tiene
+        d = self.como(self.dir)
+        self.assertEqual(d.post('/api/accesos/equipo-extra/', {**datos, 'hasta': '2020-01-01'}, format='json').status_code, 400)
+        r = d.post('/api/accesos/equipo-extra/', datos, format='json')
         self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(d.post('/api/accesos/equipo-extra/', {'jefe': self.jefe.pk, 'colaborador': self.sis.pk}, format='json').status_code, 403)
         personas = {p['id']: p for p in c.get('/api/accesos/personas/').json()}
         self.assertEqual(personas[self.jefe.pk]['equipo_extra'][0]['colaborador'], self.beto.pk)
         self.assertEqual(c.post('/api/accesos/equipo-extra/', {'jefe': self.sis.pk, 'colaborador': self.ana.pk}, format='json').status_code, 403)
@@ -163,3 +168,50 @@ class DireccionTests(Base):
                          'Tecnología', 'Gestión del Talento'} <= nombres)
         self.assertNotIn('personal.salarios', PermisosDePerfil.objects.get(grupo__name='Administrador del sistema').permisos)
         self.assertNotIn('talento.rrhh', PermisosDePerfil.objects.get(grupo__name='Administrador del sistema').permisos)
+
+
+class SeguridadTests(Base):
+    """Casos de la revisión de seguridad de v11."""
+
+    def test_no_se_cambia_su_propio_puesto_para_ganar_equipo(self):
+        c = self.como(self.sis)
+        r = c.patch(f'/api/organizacion/usuarios/{self.sis.pk}/', {'puesto_trabajo_id': self.p_jefe.pk}, format='json')
+        self.assertEqual(r.status_code, 400)
+        self.assertNotIn('Supervisor', User.objects.get(pk=self.sis.pk).groups.values_list('name', flat=True))
+
+    def test_el_organigrama_no_reparte_supervisor_sin_permiso_de_quien_cambia(self):
+        self.jefe.groups.set([Group.objects.get(name='Colaborador')])  # la Dirección lo dejó como colaborador
+        c = self.como(self.sis)
+        self.assertEqual(c.patch(f'/api/organizacion/usuarios/{self.jefe.pk}/', {'horas_semana': 40}, format='json').status_code, 200)
+        self.assertEqual(list(User.objects.get(pk=self.jefe.pk).groups.values_list('name', flat=True)), ['Colaborador'])
+        # crear a alguien en un puesto con gente a cargo tampoco le da Supervisor si quien lo crea no puede darlo
+        p2 = PuestoDeTrabajo.objects.create(nombre='Jefe 2', departamento=self.p_jefe.departamento)
+        self.p_cm.supervisor = p2
+        self.p_cm.save()
+        r = c.post('/api/organizacion/usuarios/', {'first_name': 'Nuevo', 'username': 'nuevo', 'password': 'Clave-muy-segura-2026',
+                                                   'puesto_trabajo_id': p2.pk}, format='json')
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(list(User.objects.get(username='nuevo').groups.values_list('name', flat=True)), ['Colaborador'])
+        # la Dirección sí
+        r = self.como(self.dir).post('/api/organizacion/usuarios/', {'first_name': 'Otro', 'username': 'otro', 'password': 'Clave-muy-segura-2026',
+                                                                     'puesto_trabajo_id': p2.pk}, format='json')
+        self.assertIn('Supervisor', User.objects.get(username='otro').groups.values_list('name', flat=True))
+
+    def test_auditoria_sin_salarios_ni_expedientes_para_el_admin_del_sistema(self):
+        from apps.talento.auditoria import auditar
+        auditar('Cambió perfil de persona', 'Ana', {'salario_mensual': 40000, 'horas_semana': 44}, {'salario_mensual': 55000, 'horas_semana': 40})
+        auditar('Creó documento del expediente', 'Amonestación de Ana', None, {'titulo': 'Amonestación'})
+        filas = self.como(self.sis).get('/api/talento/auditoria/').json()
+        sal = next(f for f in filas if f['accion'] == 'Cambió perfil de persona')
+        self.assertEqual(sal['despues'], {'salario_mensual': 'reservado', 'horas_semana': 40})
+        doc = next(f for f in filas if 'expediente' in f['accion'])
+        self.assertEqual((doc['objeto'], doc['despues']), ('reservado', None))
+        filas = self.como(self.dir).get('/api/talento/auditoria/').json()
+        self.assertEqual(next(f for f in filas if f['accion'] == 'Cambió perfil de persona')['despues']['salario_mensual'], 55000)
+
+    def test_quitar_a_la_ultima_persona_de_direccion(self):
+        self.dir2 = self._u('dir2', None, 'Administrador')
+        r = self.como(self.dir2).post(f'/api/accesos/personas/{self.dir.pk}/perfiles/', {'perfiles': ['Colaborador']}, format='json')
+        self.assertEqual(r.status_code, 200)
+        r = self.como(self.dir).post(f'/api/accesos/personas/{self.dir2.pk}/perfiles/', {'perfiles': ['Colaborador']}, format='json')
+        self.assertEqual(r.status_code, 403)  # ya no es Dirección

@@ -79,6 +79,12 @@ def permisos(user):
     return set(_cache(user))
 
 
+def efectivos(user):
+    """Permisos con lo que implica Dirección (todos los de equipo)."""
+    p = permisos(user)
+    return p | DE_EQUIPO if 'direccion' in p else p
+
+
 def tiene(user, codigo):
     p = _cache(user)
     return codigo in p or (codigo in DE_EQUIPO and 'direccion' in p)
@@ -127,11 +133,11 @@ def revisar_cambio(quien, persona, permisos_en_juego):
         return None
     if persona is not None and persona.pk == quien.pk:
         return "No puedes cambiar tus propios accesos: lo hace otra persona con ese permiso."
-    mios = permisos(quien)
+    mios = efectivos(quien)
     faltan = set(permisos_en_juego) - mios
     if faltan:
         nombres = {p[0]: p[1] for p in PERMISOS}
         return "No puedes dar ni quitar permisos que tú no tienes: " + ', '.join(sorted(nombres.get(c, c) for c in faltan)) + '.'
-    if persona is not None and not permisos(persona) <= mios:
+    if persona is not None and not efectivos(persona) <= mios:
         return "Esta persona tiene permisos que tú no tienes: sus accesos los cambia la Dirección."
     return None

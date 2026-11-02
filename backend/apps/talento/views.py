@@ -114,14 +114,14 @@ def enviar_evaluacion_view(request, pk):
 
 
 @api_view(['GET'])
-@permission_classes([EsAdministrador])
+@permission_classes([TienePermiso.de('talento.rrhh')])
 def por_revisar_view(request):
     qs = Evaluacion.objects.filter(estado='EN_REVISION').exclude(evaluado=request.user).select_related('evaluado__perfil__puesto_trabajo', 'evaluador', 'ciclo')
     return Response(EvaluacionSerializer(qs, many=True).data)
 
 
 @api_view(['POST'])
-@permission_classes([EsAdministrador])
+@permission_classes([TienePermiso.de('talento.rrhh')])
 def confirmar_evaluacion_view(request, pk):
     """La dirección confirma (o devuelve al evaluador) una evaluación baja antes de que la vea la persona."""
     e = get_object_or_404(Evaluacion, pk=pk, estado='EN_REVISION')
@@ -334,8 +334,26 @@ def auditoria_view(request):
         if desde is None:
             raise exceptions.ValidationError({'desde': 'Formato esperado: AAAA-MM-DD.'})
         qs = qs.filter(fecha__date__gte=desde)
-    return Response([{'id': a.id, 'fecha': a.fecha, 'usuario': _nombre(a.usuario), 'accion': a.accion, 'objeto': a.objeto,
-                      'antes': a.antes, 'despues': a.despues} for a in qs[:300]])
+    salarios, rrhh = tiene(request.user, 'personal.salarios'), tiene(request.user, 'talento.rrhh')
+    return Response([_fila_auditoria(a, salarios, rrhh) for a in qs[:300]])
+
+
+SALARIALES = ('salario_mensual', 'costo_hora', 'nomina', 'monto', 'salario_anterior', 'salario_nuevo')
+
+
+def _reservar(valores, salarios):
+    if not isinstance(valores, dict) or salarios:
+        return valores
+    return {k: ('reservado' if k in SALARIALES else v) for k, v in valores.items()}
+
+
+def _fila_auditoria(a, salarios, rrhh):
+    """Quien no maneja salarios no ve montos; quien no es Gestión del Talento no ve el contenido de expedientes ni documentos."""
+    if not rrhh and 'expediente' in a.accion.lower():
+        return {'id': a.id, 'fecha': a.fecha, 'usuario': _nombre(a.usuario), 'accion': a.accion, 'objeto': 'reservado',
+                'antes': None, 'despues': None}
+    return {'id': a.id, 'fecha': a.fecha, 'usuario': _nombre(a.usuario), 'accion': a.accion, 'objeto': a.objeto,
+            'antes': _reservar(a.antes, salarios), 'despues': _reservar(a.despues, salarios)}
 
 
 # ------------------------------------------------------------------ Políticas

@@ -30,6 +30,7 @@ def sembrar(apps, schema_editor):
         nombres = set(u.groups.values_list('name', flat=True))
         if u.is_staff and 'Administrador' not in nombres:
             u.groups.add(grupos['Administrador'])  # antes el staff era administrador: no se le quita acceso sin revisarlo
+            nombres.add('Administrador')
         if 'RRHH' in nombres:
             u.groups.add(grupos['Gestión del Talento'])  # el grupo «RRHH» de v10 pasa al perfil nuevo
         puesto = getattr(getattr(u, 'perfil', None), 'puesto_trabajo', None)

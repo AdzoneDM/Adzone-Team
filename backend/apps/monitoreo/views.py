@@ -282,7 +282,7 @@ def dia_view(request):
     r = servicios.resumen_dia(u, dia)
     capturas = Captura.objects.filter(usuario=u, tomada_en__range=asistencia.rango(dia)).order_by('tomada_en')
     r['capturas'] = [{'id': c.id, 'hora': timezone.localtime(c.tomada_en).strftime('%H:%M'), 'app': c.app, 'desenfocada': c.desenfocada}
-                     for c in capturas]
+                     for c in capturas] if (u.pk == request.user.pk or tiene(request.user, 'monitoreo.capturas')) else []
     puesto = getattr(getattr(u, 'perfil', None), 'puesto_trabajo', None)
     r['persona'] = {'id': u.id, 'nombre': u.get_full_name() or u.username, 'puesto': puesto.nombre if puesto else None}
     r['fecha'] = dia
@@ -370,6 +370,10 @@ def proyectos_view(request):
     desde, hasta = rango_del_mes(periodo_desde_mes(request.query_params.get('mes')))
     usuarios = None
     datos = productividad(desde, hasta, usuarios=usuarios, con_costos=es_finanzas(request.user))
+    if not ve_monitoreo(request.user):  # Finanzas ve horas y costos, no la productividad en la PC de cada persona
+        for fila in datos.get('ordenes', []) + datos.get('proyectos', []):
+            for p in fila.get('personas', []):
+                p.pop('productividad_pc', None)
     return Response({'desde': desde, 'hasta': hasta, 'con_costos': es_finanzas(request.user), **datos})
 
 
@@ -683,6 +687,8 @@ def computadora_view(request, pk):
         raise exceptions.ValidationError({'persona': 'Debe ser un número.'})
     datos = ficha(d, desde, hasta, persona=persona, texto=(request.query_params.get('q') or '').strip()[:60])
     datos['puede_cambiar'] = _es_tecnologia(u)
+    if d.usuario_id != u.pk and not tiene(u, 'monitoreo.capturas'):
+        datos['capturas'] = []
     return Response(datos)
 
 

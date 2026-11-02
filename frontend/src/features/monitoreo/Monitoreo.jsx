@@ -518,7 +518,7 @@ export default function Monitoreo() {
   const opciones = [
     gestiona && { valor: "vivo", etiqueta: "Equipo en vivo" },
     gestiona && { valor: "resumen", etiqueta: "Resumen" },
-    veCapturas && { valor: "pantallas", etiqueta: "Pantallas" },
+    gestiona && veCapturas && { valor: "pantallas", etiqueta: "Pantallas" },
     { valor: "incidencias", etiqueta: "Incidencias" },
     { valor: "mia", etiqueta: "Mi actividad" },
     (gestiona || esFinanzas) && { valor: "proyectos", etiqueta: "Por proyecto y OT" },
@@ -540,7 +540,7 @@ export default function Monitoreo() {
         </div>
       ) : ver === "vivo" && gestiona ? <EnVivo onVer={(id) => setParams({ ver: "persona", persona: id })} />
         : ver === "resumen" && gestiona ? <Resumen />
-        : ver === "pantallas" && veCapturas ? <Pantallas />
+        : ver === "pantallas" && gestiona && veCapturas ? <Pantallas />
         : ver === "incidencias" ? <Incidencias persona={params.get("persona") || ""} gestiona={gestiona} />
         : ver === "computadoras" && gestiona ? <Computadoras />
         : ver === "proyectos" && (gestiona || esFinanzas) ? <Proyectos />

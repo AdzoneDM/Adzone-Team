@@ -151,6 +151,8 @@ class UserSerializer(serializers.ModelSerializer):
         quien = self._quien()
         validos = {p.grupo.name: set(p.permisos or []) for p in PermisosDePerfil.objects.select_related('grupo')}
         roles = list(dict.fromkeys(r for r in roles if r))
+        if not roles:
+            raise serializers.ValidationError("Elige al menos un perfil (Colaborador si solo cumple sus tareas).")
         malos = [r for r in roles if r not in validos]
         if malos:
             raise serializers.ValidationError(f"Perfil desconocido: {', '.join(malos)}.")
@@ -214,8 +216,8 @@ class UserSerializer(serializers.ModelSerializer):
             if campo in perfil_data:
                 setattr(user.perfil, campo, perfil_data[campo])
         costo_desde_salario(user.perfil, perfil_data)
+        self._roles(user, roles or ['Colaborador'])  # antes de guardar el puesto: así el organigrama puede sumar «Supervisor»
         user.perfil.save()
-        self._roles(user, roles or ['Colaborador'])
         return user
 
     def update(self, instance, validated_data):

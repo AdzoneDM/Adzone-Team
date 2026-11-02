@@ -39,11 +39,26 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [TienePermiso.de('personal.usuarios')]
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        # quien hace el cambio, para la auditoría y para que el organigrama no reparta permisos que esa persona no puede dar
+        from apps.talento.auditoria import _usuario
+        if request.user.is_authenticated:
+            self._token_auditoria = _usuario.set(request.user)
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        token = getattr(self, '_token_auditoria', None)
+        if token is not None:
+            from apps.talento.auditoria import _usuario
+            _usuario.reset(token)
+            self._token_auditoria = None
+        return super().finalize_response(request, response, *args, **kwargs)
+
     def _proteger(self, usuario, roles=None, activo=None):
         yo = self.request.user
         admins = administradores()
-        from apps.core.permisos import permisos
-        if usuario.pk != yo.pk and not yo.is_superuser and not permisos(usuario) <= permisos(yo):
+        from apps.core.permisos import efectivos
+        if usuario.pk != yo.pk and not yo.is_superuser and not efectivos(usuario) <= efectivos(yo):
             return "Esta persona tiene permisos que tú no tienes: su cuenta (contraseña, estado y perfiles) la cambia la Dirección."
         if usuario.pk == yo.pk:
             if activo is False:
@@ -58,6 +73,12 @@ class UserViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         usuario = self.get_object()
         motivo = self._proteger(usuario, request.data.get('roles_asignados'), request.data.get('is_active'))
+        puesto_actual = getattr(getattr(usuario, 'perfil', None), 'puesto_trabajo_id', None)
+        if (not motivo and usuario.pk == request.user.pk and 'puesto_trabajo_id' in request.data
+                and str(request.data.get('puesto_trabajo_id') or '') != str(puesto_actual or '')):
+            from apps.core.permisos import tiene
+            if not tiene(request.user, 'direccion'):
+                motivo = 'No puedes cambiar tu propio puesto: el organigrama decide sobre quién tienes permisos. Lo cambia la Dirección.'
         if motivo:
             return Response({"detail": motivo}, status=status.HTTP_400_BAD_REQUEST)
         return super().update(request, *args, **kwargs)

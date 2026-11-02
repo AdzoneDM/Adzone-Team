@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from apps.talento.auditoria import auditar
 from .models import EquipoExtra, ExcepcionPermiso, PermisosDePerfil
-from .permisos import CODIGOS, PERFILES, PERMISOS, permisos, permisos_de_perfiles, revisar_cambio, tiene
+from .permisos import CODIGOS, DE_EQUIPO, PERFILES, PERMISOS, efectivos, permisos, permisos_de_perfiles, revisar_cambio, tiene
 
 BASE = set(PERFILES)  # perfiles que trae la plataforma: se pueden ajustar, no borrar
 
@@ -115,7 +115,7 @@ def _persona(u, jefes):
         'excepciones': [{'id': e.pk, 'permiso': e.permiso, 'conceder': e.conceder, 'motivo': e.motivo} for e in u.excepciones_permiso.all()],
         'equipo_extra': [{'id': x.pk, 'colaborador': x.colaborador_id, 'nombre': _nombre(x.colaborador), 'hasta': x.hasta, 'motivo': x.motivo}
                          for x in u.equipo_extra.all()],
-        'permisos': sorted(permisos(u)),
+        'permisos': sorted(efectivos(u)),
         'superusuario': u.is_superuser,
     }
 
@@ -152,6 +152,10 @@ def persona_perfiles_view(request, pk):
     antes = sorted(g.name for g in persona.groups.all())
     en_juego = permisos_de_perfiles(antes) ^ permisos_de_perfiles(nombres)
     _rechazar(revisar_cambio(request.user, persona, en_juego))
+    if 'Administrador' in antes and not any(g.name == 'Administrador' for g in grupos):
+        from django.contrib.auth.models import User as U
+        if U.objects.filter(is_active=True, groups__name='Administrador').exclude(pk=persona.pk).count() == 0:
+            raise exceptions.ValidationError('Debe quedar al menos una persona en Dirección.')
     with transaction.atomic():
         persona.groups.remove(*persona.groups.filter(permisos_acceso__isnull=False))
         persona.groups.add(*grupos)
@@ -205,6 +209,11 @@ def equipo_extra_crear_view(request):
         raise exceptions.ValidationError('Nadie es parte de su propio equipo.')
     if request.user.pk in (jefe.pk, colaborador.pk) and not request.user.is_superuser:
         raise exceptions.PermissionDenied("No puedes cambiar tu propio equipo ni elegir quién te supervisa.")
+    # Dar equipo es delegar autoridad: quien lo hace debe tener los permisos de equipo del jefe y más que el colaborador,
+    # y nadie queda a cargo de alguien con más permisos que él.
+    _rechazar(revisar_cambio(request.user, jefe, efectivos(jefe) & DE_EQUIPO))
+    if not efectivos(colaborador) <= efectivos(request.user) or not efectivos(colaborador) <= efectivos(jefe):
+        raise exceptions.PermissionDenied("Nadie queda a cargo de alguien con más permisos que él (ni que tú).")
     hasta = request.data.get('hasta') or None
     if hasta:
         from datetime import date
@@ -212,6 +221,9 @@ def equipo_extra_crear_view(request):
             hasta = date.fromisoformat(str(hasta))
         except ValueError:
             raise exceptions.ValidationError({'hasta': 'Fecha no válida (AAAA-MM-DD).'})
+        from django.utils import timezone
+        if hasta < timezone.localdate():
+            raise exceptions.ValidationError({'hasta': 'La fecha de fin ya pasó.'})
     motivo = (request.data.get('motivo') or '').strip()[:200]
     x, _ = EquipoExtra.objects.update_or_create(jefe=jefe, colaborador=colaborador,
                                                 defaults={'motivo': motivo, 'hasta': hasta, 'creado_por': request.user})

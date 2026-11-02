@@ -18,6 +18,7 @@ class ActivosTests(TestCase):
         self.ti = User.objects.create_user('ti', password='x', first_name='Julián')
         self.ti.perfil.puesto_trabajo = PuestoDeTrabajo.objects.create(nombre='Encargado TI', departamento=tec)
         self.ti.perfil.save()
+        self.ti.groups.add(Group.objects.get(name='Tecnología'))
         self.ana = User.objects.create_user('ana', password='x', first_name='Ana')
         self.luis = User.objects.create_user('luis', password='x')
         self.dir = User.objects.create_user('dir', password='x', is_staff=True)

@@ -100,6 +100,8 @@ def _oculta_pc(usuario, visor):
 
 def _sin_monitoreo(datos):
     datos['computadora'] = None
+    if datos.get('puntaje'):
+        datos['puntaje']['motivos'] = [m for m in (datos['puntaje'].get('motivos') or []) if 'computadora' not in str(m).lower()]
     datos['alertas'] = [a for a in datos['alertas'] if a['tipo'] not in PC_ALERTAS]
     for t in datos['tendencia']:
         t['productividad'] = None

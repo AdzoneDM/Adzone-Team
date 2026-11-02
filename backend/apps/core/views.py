@@ -50,9 +50,13 @@ def _pendientes(user):
 
 
 def _permisos(user):
-    from apps.core.permisos import DE_EQUIPO, permisos
-    p = permisos(user)
-    return p | DE_EQUIPO if 'direccion' in p else p
+    from apps.core.permisos import efectivos
+    return efectivos(user)
+
+
+def _equipo_con(user, permiso):
+    from apps.desempeno.permisos import equipo_gestionable
+    return equipo_gestionable(user, permiso).exists()
 
 
 def _puede_asignar(user):
@@ -85,6 +89,7 @@ def datos_usuario(user):
         'permisos': sorted(_permisos(user)),
         've_monitoreo': 'monitoreo.ver' in _permisos(user),
         'puede_asignar': _puede_asignar(user),
+        've_asistencia_equipo': _equipo_con(user, 'asistencia.ver'),
         'es_rrhh': _rrhh(user),
         'gestiona_activos': _activos(user),
         'politicas_pendientes': _pendientes(user),

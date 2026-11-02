@@ -48,7 +48,7 @@ export function SesionProvider({ children }) {
     veSalarios: tiene("personal.salarios"),
     veAuditoria: tiene("auditoria.ver"),
     configuraSistema: tiene("sistema.configurar"),
-    veAsistenciaEquipo: tiene("asistencia.ver"),
+    veAsistenciaEquipo: !!usuario?.ve_asistencia_equipo,
     puedeAsignar: !!usuario?.puede_asignar,
     cargando,
     login,

@@ -256,8 +256,10 @@ def tecnologia():
     gente = list(User.objects.filter(is_active=True, groups__name__in=('Tecnología', 'Administrador del sistema')).distinct())
     if gente:
         return gente
-    return list(User.objects.filter(is_active=True, perfil__puesto_trabajo__departamento__nombre__icontains='tecnolog').filter(
-        Q(perfil__puesto_trabajo__supervisor__isnull=True) | ~Q(perfil__puesto_trabajo__supervisor__departamento=F('perfil__puesto_trabajo__departamento'))))
+    from apps.core.permisos import tiene
+    return [u for u in User.objects.filter(is_active=True, perfil__puesto_trabajo__departamento__nombre__icontains='tecnolog').filter(
+        Q(perfil__puesto_trabajo__supervisor__isnull=True) | ~Q(perfil__puesto_trabajo__supervisor__departamento=F('perfil__puesto_trabajo__departamento')))
+        if tiene(u, 'monitoreo.ver')]
 
 
 def vigilantes():

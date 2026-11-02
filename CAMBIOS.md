@@ -11,6 +11,8 @@
 - **Anti-escalada**: nadie cambia sus propios accesos, nadie da ni quita permisos que no tiene, nadie cambia la contraseña, el estado o los perfiles de alguien con más permisos, y nadie valida su propio trabajo. Todo cambio queda en la auditoría.
 - El menú, las pestañas y los campos se muestran según los permisos (por ejemplo, salarios solo con «Salarios y costo por hora»). Los avisos de OT, almacén, tardanzas y monitoreo van a quien tiene el permiso correspondiente.
 - **Personas** ya no cambia perfiles: crea la cuenta como Colaborador y remite a Accesos y permisos.
+- **Cierres de la revisión de seguridad**: nadie cambia su propio puesto (el organigrama da equipo); el perfil Supervisor por organigrama solo se da al cambiar el puesto y si quien hace el cambio puede darlo; el equipo adicional solo lo asigna quien tiene esos permisos de equipo y nadie queda a cargo de alguien con más permisos; la auditoría oculta salarios a quien no los maneja y el contenido de expedientes a quien no es Gestión del Talento; Finanzas ve horas y costos por OT pero no la productividad en la PC de cada persona; los KPIs y motivos que salen de la PC no llegan a supervisores; debe quedar al menos una persona en Dirección.
+- **Activos y equipos** los gestionan Dirección, Almacén y quien configura el monitoreo (Tecnología, Administrador del sistema). **Por validar** y la confirmación de evaluaciones 360° pasan a Gestión del Talento (y Dirección).
 
 ## 10.2 · 02/11/2026 · Ficha de cada computadora
 

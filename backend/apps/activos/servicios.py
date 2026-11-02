@@ -8,11 +8,11 @@ from .models import Activo, MovimientoActivo
 def gestiona_activos(user):
     """Administración, Tecnología y Almacén registran y asignan equipos."""
     from apps.desempeno.permisos import es_administrador
-    from apps.monitoreo.servicios import tecnologia
     from apps.operaciones.permisos import es_almacen
     if not (user and user.is_authenticated):
         return False
-    return es_administrador(user) or es_almacen(user) or any(u.pk == user.pk for u in tecnologia())
+    from apps.core.permisos import tiene
+    return es_administrador(user) or es_almacen(user) or tiene(user, 'monitoreo.configurar')
 
 
 def responsables():

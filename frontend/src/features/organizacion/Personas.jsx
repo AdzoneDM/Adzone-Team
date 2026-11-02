@@ -17,7 +17,7 @@ function generarClave() {
 }
 
 function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
-  const { veSalarios } = useSesion();
+  const { veSalarios, esAdmin, usuario: yo } = useSesion();
   const [f, setF] = useState({});
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -67,7 +67,8 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
         </div>
         <Campo etiqueta="Puesto" ayuda="Define su departamento, su supervisor y sus KPIs.">
           {(id) => (
-            <select id={id} className="campo" value={f.puesto_trabajo_id || ""} onChange={cambiar("puesto_trabajo_id")}>
+            <select id={id} className="campo" value={f.puesto_trabajo_id || ""} onChange={cambiar("puesto_trabajo_id")}
+              disabled={!nuevo && inicial?.id === yo?.id && !esAdmin} title={!nuevo && inicial?.id === yo?.id && !esAdmin ? "Tu propio puesto lo cambia la Dirección" : undefined}>
               <option value="">Sin puesto</option>
               {puestos.map((p) => <option key={p.id} value={p.id}>{p.nombre} ({p.departamento_nombre})</option>)}
             </select>

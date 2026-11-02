@@ -97,6 +97,12 @@ class AtribucionTests(Base):
         j = self.como(self.ti).get('/api/monitoreo/proyectos/?mes=2026-10').json()
         self.assertNotIn('costo', j['ordenes'][0])
         self.assertEqual(self.como(self.ana).get('/api/monitoreo/proyectos/').status_code, 403)
+        self.assertIn('productividad_pc', d['ordenes'][0]['personas'][0])
+        fin = self._u('fin', self.p)
+        fin.groups.add(Group.objects.get(name='Finanzas'))
+        f = self.como(User.objects.get(pk=fin.pk)).get('/api/monitoreo/proyectos/?mes=2026-10').json()
+        self.assertIn('costo', f['ordenes'][0])
+        self.assertNotIn('productividad_pc', f['ordenes'][0]['personas'][0])  # Finanzas no ve la PC de cada persona
 
 
 class JustificacionTests(Base):

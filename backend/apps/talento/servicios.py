@@ -144,7 +144,11 @@ def revisar_kpis(periodo=None):
             clave = f"kpi-{k['kpi_asignado_id']}-{inicio:%Y%m}"
             _, nueva = AlertaEnviada.objects.get_or_create(usuario=u, clave=clave, defaults={'tipo': 'KPI', 'detalle': k['nombre'][:255]})
             if nueva:
-                avisar(revisores_de(u, 'equipo.ver'), 'TALENTO', f"{_nombre(u)}: «{k['nombre']}» al {round(k['cumplimiento'])} % en {inicio:%m/%Y}",
+                gente = revisores_de(u, 'equipo.ver')
+                if k.get('fuente') in ('ACTIVIDAD_PC', 'PRODUCTIVIDAD_PC'):  # sale del monitoreo: solo Dirección y Tecnología
+                    from apps.core.permisos import tiene
+                    gente = [x for x in gente if tiene(x, 'monitoreo.ver')]
+                avisar(gente, 'TALENTO', f"{_nombre(u)}: «{k['nombre']}» al {round(k['cumplimiento'])} % en {inicio:%m/%Y}",
                        f"Su umbral es {k['umbral']:g} %. Revisa su ficha y, si hace falta, abre un plan de mejora.",
                        enlace=f'/ficha?usuario={u.pk}&mes={inicio:%Y-%m}')
                 enviados += 1
