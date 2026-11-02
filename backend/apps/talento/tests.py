@@ -125,6 +125,10 @@ class PlanYExpedienteTests(Base):
         self.assertEqual(PlanMejora.objects.get().estado, 'CUMPLIDO')
 
     def test_expediente_visibilidad_y_justificacion(self):
+        nota = {'colaborador': self.ana.pk, 'tipo': 'OBSERVACION', 'fecha': str(date.today()), 'titulo': 'x'}
+        self.assertEqual(self.como(self.jefe).post('/api/talento/expediente/', nota, format='json').status_code, 403)  # un supervisor no
+        self.jefe.groups.add(Group.objects.get(name='Gerente de Departamento'))
+        self.jefe = User.objects.get(pk=self.jefe.pk)
         jefe = self.como(self.jefe)
         r = jefe.post('/api/talento/expediente/', {'colaborador': self.ana.pk, 'tipo': 'OBSERVACION', 'fecha': str(date.today()),
                                                    'titulo': 'Llegó tarde a la reunión'}, format='json')

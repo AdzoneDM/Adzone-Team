@@ -35,10 +35,11 @@ class ReglasTests(Base):
         inc.refresh_from_db()
         self.assertEqual(inc.minutos, 12)
         self.assertTrue(inc.avisada)
-        self.assertTrue(Notificacion.objects.filter(destinatario=self.jefe, titulo__contains='Juegos test').exists())
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.dir, titulo__contains='Juegos test').exists())
+        self.assertFalse(Notificacion.objects.filter(destinatario=self.jefe, titulo__contains='Juegos test').exists())
         self.assertTrue(Notificacion.objects.filter(destinatario=self.ti, titulo__contains='Juegos test').exists())  # riesgo alto: Tecnología
         servicios.ingestar(self.disp, self.minutos(local(2026, 10, 28, 12), 6, app='steam.exe'))
-        self.assertEqual(Notificacion.objects.filter(destinatario=self.jefe, titulo__contains='Juegos test').count(), 1)  # una vez por día
+        self.assertEqual(Notificacion.objects.filter(destinatario=self.dir, titulo__contains='Juegos test').count(), 1)  # una vez por día
 
     def test_dominio_y_departamento_excluido(self):
         r = ReglaComportamiento.objects.create(nombre='Remoto test', campo='DOMINIO', patrones='anydesk.com', minutos_minimos=1, accion='REGISTRAR')
@@ -61,7 +62,8 @@ class ResumenTests(Base):
         Marcaje.objects.create(usuario=self.ana, tipo='ENTRADA', momento=local(2026, 10, 28, 8))
         servicios.ingestar(self.disp, self.minutos(local(2026, 10, 28, 9), 40, app='chrome', dominio='chatgpt.com')
                            + self.minutos(local(2026, 10, 28, 10), 20, app='chrome', dominio='bet365.com'))
-        c = self.como(self.jefe)
+        self.assertEqual(self.como(self.jefe).get('/api/monitoreo/resumen/').status_code, 403)
+        c = self.como(self.ti)
         d = c.get('/api/monitoreo/resumen/?desde=2026-10-22&hasta=2026-10-28').json()
         self.assertEqual(d['ia']['herramientas'][0], {'nombre': 'ChatGPT', 'minutos': 40, 'personas': 1})
         self.assertEqual(d['incidencias'][0]['nombre'], 'Apuestas y casinos en línea')
@@ -72,16 +74,17 @@ class ResumenTests(Base):
         self.assertEqual(c.get('/api/monitoreo/resumen/?desde=2026-01-01&hasta=2026-10-28').status_code, 400)
         self.assertEqual(c.get('/api/monitoreo/resumen/?desde=ayer').status_code, 400)
 
-    def test_incidencias_se_revisan_por_el_supervisor_y_la_persona_ve_las_suyas(self):
+    def test_incidencias_las_revisa_tecnologia_y_la_persona_ve_las_suyas(self):
         Marcaje.objects.create(usuario=self.ana, tipo='ENTRADA', momento=local(2026, 10, 28, 8))
         servicios.ingestar(self.disp, self.minutos(local(2026, 10, 28, 9), 5, app='chrome', dominio='bet365.com'))
         mias = self.como(self.ana).get('/api/monitoreo/incidencias/?desde=2026-10-01&hasta=2026-10-31').json()
         self.assertEqual(len(mias), 1)
         pk = mias[0]['id']
         self.assertEqual(self.como(self.ana).patch(f'/api/monitoreo/incidencias/{pk}/', {'estado': 'DESCARTADA'}, format='json').status_code, 403)
-        r = self.como(self.jefe).patch(f'/api/monitoreo/incidencias/{pk}/', {'estado': 'DESCARTADA', 'nota': 'Era una investigación'}, format='json')
+        self.assertEqual(self.como(self.jefe).patch(f'/api/monitoreo/incidencias/{pk}/', {'estado': 'DESCARTADA'}, format='json').status_code, 404)
+        r = self.como(self.ti).patch(f'/api/monitoreo/incidencias/{pk}/', {'estado': 'DESCARTADA', 'nota': 'Era una investigación'}, format='json')
         self.assertEqual(r.json()['estado'], 'DESCARTADA')
-        d = self.como(self.jefe).get('/api/monitoreo/resumen/?desde=2026-10-22&hasta=2026-10-28').json()
+        d = self.como(self.ti).get('/api/monitoreo/resumen/?desde=2026-10-22&hasta=2026-10-28').json()
         self.assertEqual(d['riesgo'], [])  # las descartadas no suman riesgo
         otro = self._u('otro', self.p_ti)
         self.assertEqual(self.como(otro).get('/api/monitoreo/incidencias/?desde=2026-10-01&hasta=2026-10-31').json(), [])
@@ -126,11 +129,12 @@ class PantallasYComputadorasTests(Base):
         self.assertEqual(self.como(self.dir).get('/api/monitoreo/computadoras/').status_code, 200)
 
     def test_pantallas_y_actividad_reciente(self):
-        self.assertEqual(self.como(self.jefe).get('/api/monitoreo/pantallas/').status_code, 200)
+        self.assertEqual(self.como(self.jefe).get('/api/monitoreo/pantallas/').status_code, 403)  # el supervisor no ve pantallas
+        self.assertEqual(self.como(self.ti).get('/api/monitoreo/pantallas/').status_code, 200)
         self.assertEqual(self.como(self.ana).get('/api/monitoreo/pantallas/').status_code, 403)
         Marcaje.objects.create(usuario=self.ana, tipo='ENTRADA', momento=AHORA - timedelta(hours=2))
         servicios.ingestar(self.disp, self.minutos(AHORA - timedelta(minutes=20), 15))
-        fila = next(p for p in self.como(self.jefe).get('/api/monitoreo/equipo/').json()['personas'] if p['id'] == self.ana.pk)
+        fila = next(p for p in self.como(self.ti).get('/api/monitoreo/equipo/').json()['personas'] if p['id'] == self.ana.pk)
         self.assertEqual(sum(fila['reciente']), 15)
 
 

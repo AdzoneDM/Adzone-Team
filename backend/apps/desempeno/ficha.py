@@ -69,7 +69,7 @@ def ficha(usuario, periodo, visor=None, meses=6):
     if len(con_datos) >= 3 and con_datos[-1] < con_datos[-2] < con_datos[-3]:
         alertas.append({'tipo': 'tendencia', 'texto': f"El puntaje baja tres meses seguidos ({con_datos[-3]:g} → {con_datos[-2]:g} → {con_datos[-1]:g})."})
     puesto = getattr(getattr(usuario, 'perfil', None), 'puesto_trabajo', None)
-    return {
+    datos = {
         'persona': {'id': usuario.pk, 'nombre': usuario.get_full_name() or usuario.username,
                     'puesto': puesto.nombre if puesto else None, 'departamento': puesto.departamento.nombre if puesto else None},
         'mes': f'{periodo:%Y-%m}',
@@ -85,17 +85,41 @@ def ficha(usuario, periodo, visor=None, meses=6):
         'tendencia': tendencia,
         'talento': _talento(usuario, visor or usuario),
     }
+    return _sin_monitoreo(datos) if _oculta_pc(usuario, visor) else datos
+
+
+PC_FUENTES = ('ACTIVIDAD_PC', 'PRODUCTIVIDAD_PC')
+PC_ALERTAS = ('actividad', 'improductivo', 'foco')
+
+
+def _oculta_pc(usuario, visor):
+    """La actividad en la computadora de otra persona solo la ven Dirección y Tecnología (permiso «monitoreo.ver»)."""
+    from .permisos import tiene
+    return visor is not None and visor.pk != usuario.pk and not tiene(visor, 'monitoreo.ver')
+
+
+def _sin_monitoreo(datos):
+    datos['computadora'] = None
+    datos['alertas'] = [a for a in datos['alertas'] if a['tipo'] not in PC_ALERTAS]
+    for t in datos['tendencia']:
+        t['productividad'] = None
+    for k in datos['kpis']:
+        if k.get('fuente') in PC_FUENTES:
+            k['valor'] = k['cumplimiento'] = None
+            k['bajo_umbral'] = False
+            k['oculto'] = True
+    return datos
 
 
 def _talento(usuario, visor):
     """Evaluaciones 360°, planes de mejora y expediente, con lo que el visor puede ver."""
     from apps.talento import servicios as talento
     from apps.talento.models import CambioSalarial, CicloEvaluacion, EventoExpediente, PlanMejora
-    from .permisos import es_administrador
-    admin = es_administrador(visor)
+    from .permisos import tiene
+    admin = tiene(visor, 'personal.salarios')  # montos de bonos e historial salarial
     ciclo = CicloEvaluacion.objects.filter(evaluaciones__evaluado=usuario).distinct().first()
     eventos = EventoExpediente.objects.filter(colaborador=usuario).select_related('registrado_por')
-    if visor.pk == usuario.pk and not admin:
+    if visor.pk == usuario.pk:  # en su propia ficha nadie ve lo interno de su expediente
         eventos = eventos.filter(visible_al_colaborador=True)
     resumen = {}
     for tipo, n in eventos.values_list('tipo').annotate(n=Count('id')):

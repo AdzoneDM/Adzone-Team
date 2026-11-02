@@ -35,6 +35,7 @@ class Base(TestCase):
         self.p = PuestoDeTrabajo.objects.create(nombre='Diseñador', departamento=self.mkt, supervisor=self.p_jefe)
         self.p_ti = PuestoDeTrabajo.objects.create(nombre='Encargado TI', departamento=self.tec)
         self.jefe, self.ana, self.ti = self._u('jefe', self.p_jefe), self._u('ana', self.p), self._u('ti', self.p_ti)
+        self.ti.groups.add(Group.objects.get(name='Tecnología'))
         self.ana.perfil.costo_hora = 200
         self.ana.perfil.save()
         self.dir = User.objects.create_user('dir', password='x', is_staff=True)
@@ -92,7 +93,8 @@ class AtribucionTests(Base):
         self.assertTrue(ot['sobre_estimado'])
         self.assertEqual(ot['costo'], 400.0)
         self.assertEqual(d['totales']['costo'], 400.0)  # la OT y su proyecto no suman dos veces
-        j = self.como(self.jefe).get('/api/monitoreo/proyectos/?mes=2026-10').json()
+        self.assertEqual(self.como(self.jefe).get('/api/monitoreo/proyectos/?mes=2026-10').status_code, 403)  # el supervisor no ve monitoreo
+        j = self.como(self.ti).get('/api/monitoreo/proyectos/?mes=2026-10').json()
         self.assertNotIn('costo', j['ordenes'][0])
         self.assertEqual(self.como(self.ana).get('/api/monitoreo/proyectos/').status_code, 403)
 
@@ -106,16 +108,18 @@ class JustificacionTests(Base):
         r = self.como(self.ana).post('/api/monitoreo/justificaciones/', {'desde': local(2026, 10, 28, 10).isoformat(),
                                      'hasta': local(2026, 10, 28, 10, 15).isoformat(), 'motivo': 'Referencias de video para el cliente'}, format='json')
         self.assertEqual(r.status_code, 201, r.content)
-        self.assertTrue(Notificacion.objects.filter(destinatario=self.jefe, tipo='MONITOREO').exists())
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.ti, tipo='MONITOREO').exists())
+        self.assertFalse(Notificacion.objects.filter(destinatario=self.jefe, tipo='MONITOREO').exists())
         pk = r.json()['id']
         self.assertEqual(self.como(self.ana).post(f'/api/monitoreo/justificaciones/{pk}/revisar/', {'aprobar': True}, format='json').status_code, 403)
-        pend = self.como(self.jefe).get('/api/monitoreo/justificaciones/?ver=equipo&estado=PENDIENTE').json()
+        self.assertEqual(self.como(self.jefe).post(f'/api/monitoreo/justificaciones/{pk}/revisar/', {'aprobar': True}, format='json').status_code, 403)
+        pend = self.como(self.ti).get('/api/monitoreo/justificaciones/?ver=equipo&estado=PENDIENTE').json()
         self.assertEqual(pend[0]['resumen']['improductivos'], 15)
-        r = self.como(self.jefe).post(f'/api/monitoreo/justificaciones/{pk}/revisar/', {'aprobar': True}, format='json')
+        r = self.como(self.ti).post(f'/api/monitoreo/justificaciones/{pk}/revisar/', {'aprobar': True}, format='json')
         self.assertEqual(r.json()['minutos'], 15)
         servicios.reclasificar()
         self.assertEqual(Actividad.objects.filter(categoria='P').count(), 15)
-        self.assertEqual(self.como(self.jefe).post(f'/api/monitoreo/justificaciones/{pk}/revisar/', {'aprobar': True}, format='json').status_code, 400)
+        self.assertEqual(self.como(self.ti).post(f'/api/monitoreo/justificaciones/{pk}/revisar/', {'aprobar': True}, format='json').status_code, 400)
 
     def test_tramos_invalidos(self):
         c = self.como(self.ana)
@@ -137,7 +141,8 @@ class DesconexionYTecnologiaTests(Base):
         Marcaje.objects.create(usuario=self.ana, tipo='ENTRADA', momento=AHORA - timedelta(minutes=40))
         servicios.revisar_alertas()
         self.assertTrue(Notificacion.objects.filter(destinatario=self.ti, titulo__contains='no reporta').exists())
-        self.assertTrue(Notificacion.objects.filter(destinatario=self.jefe, titulo__contains='no reporta').exists())
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.dir, titulo__contains='no reporta').exists())
+        self.assertFalse(Notificacion.objects.filter(destinatario=self.jefe, titulo__contains='no reporta').exists())
 
 
 class RevisionV9Tests(Base):

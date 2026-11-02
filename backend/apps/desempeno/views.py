@@ -67,7 +67,7 @@ class TareaViewSet(viewsets.ModelViewSet):
             'kpi_asignado__plantilla_kpi', 'proyecto', 'orden', 'oa',
         ).prefetch_related('evidencias', 'pasos', 'companeros')
         if not es_administrador(user):
-            subs = subordinados(user)
+            subs = equipo_gestionable(user, 'equipo.ver')
             queryset = queryset.filter(Q(colaborador=user) | Q(companeros=user) | Q(colaborador__in=subs)).distinct()
 
         params = self.request.query_params
@@ -77,7 +77,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         elif ambito == 'equipo':
             queryset = queryset.filter(colaborador__in=equipo_gestionable(user)).exclude(colaborador=user)
         elif ambito == 'por_validar':
-            queryset = (queryset.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user))
+            queryset = (queryset.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
                         .exclude(colaborador=user).exclude(companeros=user))
 
         if params.get('mes'):
@@ -101,8 +101,8 @@ class TareaViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def _exigir_gestion(self, colaborador):
-        if not puede_gestionar(self.request.user, colaborador):
-            raise PermissionDenied("Solo el supervisor directo o un administrador puede gestionar esta tarea.")
+        if not puede_gestionar(self.request.user, colaborador, 'tareas.asignar'):
+            raise PermissionDenied("Solo quien tiene permiso para asignar tareas a esta persona puede hacerlo.")
 
     def _exigir_participante(self, tarea, que="trabajar"):
         if self.request.user.pk not in tarea.participantes_ids():
@@ -356,10 +356,10 @@ class TareaRecurrenteViewSet(viewsets.ModelViewSet):
         qs = TareaRecurrente.objects.select_related('colaborador', 'kpi_asignado__plantilla_kpi')
         if es_administrador(user):
             return qs
-        return qs.filter(colaborador__in=subordinados(user))
+        return qs.filter(colaborador__in=equipo_gestionable(user, 'tareas.asignar'))
 
     def _exigir(self, colaborador):
-        if not puede_gestionar(self.request.user, colaborador):
+        if not puede_gestionar(self.request.user, colaborador, 'tareas.asignar'):
             raise PermissionDenied("Solo el supervisor directo o un administrador puede programar tareas para esta persona.")
 
     def perform_create(self, serializer):
@@ -663,7 +663,7 @@ def mi_resumen_view(request):
             for k in KPIAsignado.objects.filter(puesto_trabajo=puesto, activo=True).select_related('plantilla_kpi')
         ] if puesto else [],
         'por_validar': (
-            Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user)).exclude(colaborador=user).exclude(companeros=user).count()
+            Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar')).exclude(colaborador=user).exclude(companeros=user).count()
             if puede_validar(user) else 0
         ),
     })
@@ -740,7 +740,7 @@ def tablero_view(request):
 @api_view(['GET'])
 def equipo_view(request):
     """Colaboradores a los que el usuario puede asignar tareas, con los KPIs que se alimentan de tareas."""
-    equipo = equipo_gestionable(request.user).select_related('perfil__puesto_trabajo__departamento').order_by(
+    equipo = equipo_gestionable(request.user, 'tareas.asignar').select_related('perfil__puesto_trabajo__departamento').order_by(
         'first_name', 'username'
     )
     kpis_por_puesto = {}
@@ -773,7 +773,7 @@ def notificaciones_view(request):
         'no_leidas': qs.filter(leida=False).count(),
         'avisos': NotificacionSerializer(qs[:30], many=True).data,
         # Para el número junto a «Por validar» en el menú (se consulta cada minuto)
-        'por_validar': (Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user))
+        'por_validar': (Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
                         .exclude(colaborador=user).exclude(companeros=user).count() if puede_validar(user) else 0),
     })
 

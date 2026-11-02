@@ -1,24 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { KeyRound, Pencil, Plus, Search, UserRound } from "lucide-react";
 import { guardarUsuario, puestos as cargarPuestos, usuarios as cargarUsuarios } from "@/lib/api";
 import { fechaCorta } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
-import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Vacio, cx, useAviso } from "@/components/ui";
+import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Vacio, useAviso } from "@/components/ui";
 
-const ROLES = [
-  ["Colaborador", "Ve y entrega sus tareas. Si su puesto supervisa a otros, también valida las de ellos."],
-  ["Gerente de Departamento", "Igual que colaborador; se usa para identificar a los gerentes."],
-  ["Administrador", "Ve a toda la empresa, configura la plataforma y declara el Empleado del Mes."],
-];
-
-const ACCESOS = [
-  ["Finanzas", "Acceso a Finanzas", "Cotizaciones, facturas, cobros, gastos y Cashflow. El departamento de Administración ya lo tiene."],
-  ["Coordinación", "Coordinación de Producción", "Recibe las OT en G0, las numera, emite las Órdenes de Área, autoriza vales y recibe los traspasos."],
-  ["Almacén", "Almacén", "Despacha los vales de materiales, registra entradas y ajusta el inventario."],
-  ["Agente Call Center", "Agente de call center", "Entra a su pantalla de Call Center (campañas, metas y KPIs) y se evalúa en el ranking del call center, aparte del resto del equipo."],
-];
-
-const rolPrincipal = (roles) => (roles.includes("Administrador") ? "Administrador" : roles.includes("Gerente de Departamento") ? "Gerente de Departamento" : "Colaborador");
+// Los perfiles de acceso (qué puede hacer cada persona) se manejan en «Accesos y permisos».
+const perfilesDe = (roles = []) => roles.filter((r) => r !== "Colaborador").join(", ") || "Colaborador";
 
 function generarClave() {
   const letras = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -28,6 +17,7 @@ function generarClave() {
 }
 
 function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
+  const { veSalarios } = useSesion();
   const [f, setF] = useState({});
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -35,9 +25,8 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
   useEffect(() => {
     if (!abierto) return;
     setError("");
-    setF(nuevo ? { first_name: "", last_name: "", username: "", email: "", puesto_trabajo_id: "", rol: "Colaborador", password: generarClave(), is_active: true, accesos: [], horas_semana: 44, costo_hora: "", salario_mensual: "", nomina: "" }
-      : { ...inicial, puesto_trabajo_id: inicial.puesto_id || "", rol: rolPrincipal(inicial.roles), password: "",
-        accesos: ACCESOS.map(([r]) => r).filter((r) => inicial.roles.includes(r)), horas_semana: inicial.horas_semana ?? 44, costo_hora: inicial.costo_hora ?? "",
+    setF(nuevo ? { first_name: "", last_name: "", username: "", email: "", puesto_trabajo_id: "", password: generarClave(), is_active: true, horas_semana: 44, costo_hora: "", salario_mensual: "", nomina: "" }
+      : { ...inicial, puesto_trabajo_id: inicial.puesto_id || "", password: "", horas_semana: inicial.horas_semana ?? 44, costo_hora: inicial.costo_hora ?? "",
         salario_mensual: inicial.salario_mensual ?? "", nomina: inicial.nomina || "" });
   }, [abierto, inicial, nuevo]);
   const cambiar = (c) => (e) => setF({ ...f, [c]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
@@ -51,10 +40,13 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
       const datos = {
         id: f.id, first_name: f.first_name.trim(), last_name: (f.last_name || "").trim(), username: f.username.trim().toLowerCase(),
         email: (f.email || "").trim().toLowerCase(), puesto_trabajo_id: f.puesto_trabajo_id ? Number(f.puesto_trabajo_id) : null,
-        roles_asignados: [f.rol, ...(f.accesos || [])], is_active: !!f.is_active,
-        horas_semana: f.horas_semana || 44, costo_hora: f.costo_hora === "" || f.costo_hora == null ? null : f.costo_hora,
-        salario_mensual: f.salario_mensual === "" || f.salario_mensual == null ? null : f.salario_mensual, nomina: (f.nomina || "").trim(),
+        is_active: !!f.is_active, horas_semana: f.horas_semana || 44,
       };
+      if (nuevo) datos.roles_asignados = ["Colaborador"]; // si su puesto supervisa a otros, recibe «Supervisor» solo
+      if (veSalarios) Object.assign(datos, {
+        costo_hora: f.costo_hora === "" || f.costo_hora == null ? null : f.costo_hora,
+        salario_mensual: f.salario_mensual === "" || f.salario_mensual == null ? null : f.salario_mensual, nomina: (f.nomina || "").trim(),
+      });
       if (f.password) datos.password = f.password;
       const u = await guardarUsuario(datos);
       onGuardado(u, f.password);
@@ -81,35 +73,17 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
             </select>
           )}
         </Campo>
-        <fieldset>
-          <legend className="etiqueta">Rol</legend>
-          <div className="space-y-2">
-            {ROLES.map(([rol, texto]) => (
-              <label key={rol} className={cx("flex cursor-pointer gap-3 rounded-lg border p-3", f.rol === rol ? "border-azul bg-azul/5" : "border-linea")}>
-                <input type="radio" name="rol" checked={f.rol === rol} onChange={() => setF({ ...f, rol })} className="mt-1 accent-azul" />
-                <span><span className="block font-medium">{rol}</span><span className="text-sm text-gris">{texto}</span></span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="space-y-2">
-          <legend className="etiqueta">Accesos adicionales</legend>
-          {ACCESOS.map(([rol, titulo, texto]) => {
-            const marcado = (f.accesos || []).includes(rol);
-            return (
-              <label key={rol} className="flex items-start gap-2.5 rounded-lg border border-linea p-3 text-[15px]">
-                <input type="checkbox" checked={marcado} className="mt-1 accent-azul"
-                  onChange={() => setF({ ...f, accesos: marcado ? f.accesos.filter((x) => x !== rol) : [...(f.accesos || []), rol] })} />
-                <span>{titulo}<span className="block text-sm text-gris">{texto}</span></span>
-              </label>
-            );
-          })}
-        </fieldset>
+        <p className="rounded-lg border border-linea bg-niebla/60 p-3 text-sm text-gris">
+          {nuevo ? "Entra como Colaborador (solo ve y entrega lo suyo). Si su puesto supervisa a otros, recibe el perfil Supervisor."
+            : <>Perfiles: <span className="font-medium text-noche">{perfilesDe(inicial?.roles)}</span>.</>}{" "}
+          Los perfiles, las excepciones y el equipo adicional se cambian en <Link to="/accesos" className="font-medium text-azul hover:underline">Accesos y permisos</Link>.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo etiqueta="Horas por semana" ayuda="Su capacidad, para medir la carga.">
             {(id) => <input id={id} type="number" min={1} max={80} step="0.5" className="campo" value={f.horas_semana ?? ""} onChange={cambiar("horas_semana")} />}
           </Campo>
-          <Campo etiqueta="Salario mensual (RD$)" ayuda="Solo lo ve la administración.">
+          {veSalarios && <>
+          <Campo etiqueta="Salario mensual (RD$)" ayuda="Solo lo ven quienes manejan salarios.">
             {(id) => <input id={id} type="number" min={0} step="any" className="campo" value={f.salario_mensual ?? ""}
               onChange={(e) => setF({ ...f, salario_mensual: e.target.value, costo_hora: "" })} />}
           </Campo>
@@ -119,6 +93,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
           <Campo etiqueta="Costo por hora (RD$)" ayuda="Para la rentabilidad. Vacío: se calcula del salario (÷ 23.83 días ÷ 8 h).">
             {(id) => <input id={id} type="number" min={0} step="any" className="campo" value={f.costo_hora ?? ""} onChange={cambiar("costo_hora")} />}
           </Campo>
+          </>}
         </div>
         <datalist id="nominas"><option value="ADZONE" /><option value="Call Center" /><option value="Iguala" /></datalist>
         <Campo etiqueta={nuevo ? "Contraseña inicial" : "Nueva contraseña (opcional)"} ayuda={nuevo ? "Compártela con la persona; luego puede cambiarla en Mi cuenta." : "Déjala vacía para no cambiarla."}>
@@ -136,7 +111,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
 }
 
 export default function Personas() {
-  const { usuario } = useSesion();
+  const { usuario, veSalarios } = useSesion();
   const avisar = useAviso();
   const [lista, setLista] = useState(null);
   const [puestos, setPuestos] = useState([]);
@@ -186,7 +161,7 @@ export default function Personas() {
         <Panel cuerpo="p-0">
           <div className="overflow-x-auto">
             <table className="tabla">
-              <thead><tr><th>Persona</th><th className="hidden md:table-cell">Puesto</th><th className="hidden md:table-cell">Rol</th><th className="hidden text-right lg:table-cell">Salario</th><th className="hidden xl:table-cell">Último acceso</th><th className="w-16"><span className="sr-only">Acciones</span></th></tr></thead>
+              <thead><tr><th>Persona</th><th className="hidden md:table-cell">Puesto</th><th className="hidden md:table-cell">Perfiles</th>{veSalarios && <th className="hidden text-right lg:table-cell">Salario</th>}<th className="hidden xl:table-cell">Último acceso</th><th className="w-16"><span className="sr-only">Acciones</span></th></tr></thead>
               <tbody>
                 {filtrada.map((u) => (
                   <tr key={u.id} className={u.is_active ? "" : "opacity-60"}>
@@ -202,8 +177,8 @@ export default function Personas() {
                       </div>
                     </td>
                     <td className="hidden md:table-cell">{u.puesto ? <><p className="text-sm">{u.puesto}</p><p className="text-xs text-gris">{u.departamento}</p></> : <Insignia tono="amarillo">Sin puesto</Insignia>}</td>
-                    <td className="hidden md:table-cell"><Insignia tono={u.roles.includes("Administrador") ? "noche" : "neutro"}>{rolPrincipal(u.roles)}</Insignia>{!u.is_active && <Insignia className="ml-1">Desactivada</Insignia>}</td>
-                    <td className="hidden whitespace-nowrap text-right lg:table-cell">{u.salario_mensual != null ? <><span className="num">{Number(u.salario_mensual).toLocaleString("es-DO", { maximumFractionDigits: 0 })}</span>{u.nomina && <span className="block text-xs text-gris">{u.nomina}</span>}</> : <span className="text-sm text-gris">—</span>}</td>
+                    <td className="hidden md:table-cell"><Insignia tono={u.roles.includes("Administrador") ? "noche" : "neutro"}>{perfilesDe(u.roles)}</Insignia>{!u.is_active && <Insignia className="ml-1">Desactivada</Insignia>}</td>
+                    {veSalarios && <td className="hidden whitespace-nowrap text-right lg:table-cell">{u.salario_mensual != null ? <><span className="num">{Number(u.salario_mensual).toLocaleString("es-DO", { maximumFractionDigits: 0 })}</span>{u.nomina && <span className="block text-xs text-gris">{u.nomina}</span>}</> : <span className="text-sm text-gris">—</span>}</td>}
                     <td className="hidden whitespace-nowrap text-sm text-gris xl:table-cell">{u.last_login ? fechaCorta(u.last_login) : "Nunca"}</td>
                     <td className="text-right"><Boton variante="fantasma" tam="sm" icono={Pencil} aria-label={`Editar a ${u.nombre}`} onClick={() => setForm(u)} /></td>
                   </tr>

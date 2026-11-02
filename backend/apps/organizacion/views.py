@@ -4,7 +4,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from apps.desempeno.permisos import EsAdministrador, LecturaOAdministrador, administradores
+from apps.desempeno.permisos import EsAdministrador, LecturaOAdministrador, TienePermiso, administradores
 from .models import PerfilUsuario, PuestoDeTrabajo
 from .serializers import PuestoDeTrabajoSerializer, UserSerializer
 
@@ -37,15 +37,18 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.select_related('perfil__puesto_trabajo__departamento').prefetch_related('groups').order_by(
         'first_name', 'last_name', 'username')
     serializer_class = UserSerializer
-    permission_classes = [EsAdministrador]
+    permission_classes = [TienePermiso.de('personal.usuarios')]
 
     def _proteger(self, usuario, roles=None, activo=None):
         yo = self.request.user
         admins = administradores()
+        from apps.core.permisos import permisos
+        if usuario.pk != yo.pk and not yo.is_superuser and not permisos(usuario) <= permisos(yo):
+            return "Esta persona tiene permisos que tú no tienes: su cuenta (contraseña, estado y perfiles) la cambia la Dirección."
         if usuario.pk == yo.pk:
             if activo is False:
                 return "No puedes desactivar tu propia cuenta."
-            if roles is not None and 'Administrador' not in roles:
+            if roles is not None and 'Administrador' not in roles and 'Administrador' in usuario.groups.values_list('name', flat=True):
                 return "No puedes quitarte a ti mismo el rol de Administrador."
         quita_admin = (roles is not None and 'Administrador' not in roles) or activo is False
         if quita_admin and admins.filter(pk=usuario.pk).exists() and admins.count() <= 1:

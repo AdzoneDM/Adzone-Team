@@ -70,6 +70,19 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Accesos y permisos: mínimo privilegio (versión 11.0)
+
+```bash
+python manage.py migrate        # crea los perfiles y asigna uno a cada persona
+```
+
+La migración da a cada persona un perfil inicial: quien era administrador queda como **Administrador (Dirección)**; quien tiene gente a cargo en el organigrama, **Supervisor** (los gerentes conservan **Gerente de Departamento**); el jefe del área de Tecnología, **Tecnología**; el departamento de Gestión del Talento (y el antiguo grupo «RRHH»), **Gestión del Talento**; el resto, **Colaborador**.
+
+Después de actualizar:
+1. **Administración → Accesos y permisos → Personas**: revisa el perfil de cada una (filtra por perfil). Da **Administrador del sistema** a quien configura la plataforma sin ver salarios.
+2. **Perfiles** (solo Dirección): ajusta qué permite cada perfil si hace falta.
+3. Avisa a los supervisores: desde esta versión **ya no ven el monitoreo de su equipo** (lo ven Dirección y Tecnología); siguen viendo tareas, KPIs, asistencia y evaluaciones.
+
 ### Monitoreo avanzado, políticas, rentabilidad y activos (versión 10.0)
 
 ```bash

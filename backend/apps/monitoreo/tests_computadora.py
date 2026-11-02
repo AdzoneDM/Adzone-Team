@@ -19,7 +19,8 @@ class FichaComputadoraTests(Base):
                            + self.minutos(local(2026, 10, 28, 9, 30), 10, app='chrome.exe', dominio='youtube.com', titulo='Música'))
 
     def test_ficha_con_sesiones_mapa_y_tareas(self):
-        d = self.como(self.jefe).get(f'/api/monitoreo/computadoras/{self.disp.pk}/?desde=2026-10-22&hasta=2026-10-28').json()
+        self.assertEqual(self.como(self.jefe).get(f'/api/monitoreo/computadoras/{self.disp.pk}/').status_code, 404)  # el supervisor no
+        d = self.como(self.dir).get(f'/api/monitoreo/computadoras/{self.disp.pk}/?desde=2026-10-22&hasta=2026-10-28').json()
         self.assertEqual(len(d['por_dia']), 7)
         dia = d['por_dia'][-1]
         self.assertEqual((dia['registrados'], dia['activos']), (40, 40))
@@ -28,8 +29,9 @@ class FichaComputadoraTests(Base):
         self.assertEqual(len(d['registro']), 2)                                         # dos sesiones, la más reciente primero
         self.assertEqual((d['registro'][0]['dominio'], d['registro'][0]['minutos']), ('youtube.com', 10))
         self.assertEqual(d['registro'][1]['tarea'], 'Diseño de brochure')
-        self.assertFalse(d['puede_cambiar'])
-        q = self.como(self.jefe).get(f'/api/monitoreo/computadoras/{self.disp.pk}/?desde=2026-10-22&hasta=2026-10-28&q=youtube').json()
+        self.assertTrue(d['puede_cambiar'])
+        self.assertFalse(self.como(self.ana).get(f'/api/monitoreo/computadoras/{self.disp.pk}/').json()['puede_cambiar'])
+        q = self.como(self.dir).get(f'/api/monitoreo/computadoras/{self.disp.pk}/?desde=2026-10-22&hasta=2026-10-28&q=youtube').json()
         self.assertEqual(len(q['registro']), 1)
 
     def test_permisos_y_rango(self):

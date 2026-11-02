@@ -2,7 +2,9 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from apps.desempeno.permisos import EsAdministrador
+from apps.desempeno.permisos import TienePermiso
+
+EsAdministrador = TienePermiso.de('sistema.configurar')  # automatizaciones: configuración del sistema
 from apps.operaciones.formatos import AREAS
 from apps.operaciones.models import OrdenTrabajo
 from .models import ACCIONES, EVENTOS, Ejecucion, Regla

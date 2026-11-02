@@ -110,7 +110,12 @@ export const GUIAS_PANTALLA = [
     { objetivo: TITULO, titulo: "Quién reporta a quién", texto: "Tu supervisor es quien ocupa el puesto del que depende el tuyo: es quien te asigna y valida las tareas." },
   ] },
   { id: "personas", ruta: /^\/personas$/, nombre: "Personas", pasos: [
-    { objetivo: TITULO, titulo: "Cuentas del equipo", texto: "Crea la cuenta de cada persona y asígnale su puesto. En «editar → Accesos adicionales» das los permisos de Coordinación, Almacén o Finanzas." },
+    { objetivo: TITULO, titulo: "Cuentas del equipo", texto: "Crea la cuenta de cada persona y asígnale su puesto. Entra como Colaborador; si su puesto supervisa a otros, recibe el perfil Supervisor solo. Los demás perfiles se dan en «Accesos y permisos»." },
+  ] },
+  { id: "accesos", ruta: /^\/accesos$/, nombre: "Accesos y permisos", pasos: [
+    { objetivo: TITULO, titulo: "Mínimo privilegio", texto: "Cada persona tiene uno o más perfiles: el perfil dice QUÉ puede hacer y el organigrama, SOBRE QUIÉN (su equipo son quienes dependen de su puesto). Un colaborador solo cumple y ve lo suyo." },
+    { objetivo: PESTANAS, titulo: "Personas y perfiles", texto: "En «Personas» tocas a alguien para cambiar sus perfiles, darle o quitarle un permiso puntual (con motivo) o sumarle equipo adicional (un proyecto o una suplencia). En «Perfiles» la Dirección ajusta qué permite cada uno. Todo queda en la auditoría." },
+    { titulo: "Lo que nadie puede", texto: "Nadie cambia sus propios accesos, nadie da permisos que no tiene, nadie toca la cuenta de alguien con más permisos y nadie valida su propio trabajo. La actividad en la computadora de otras personas solo la ven Dirección y Tecnología." },
   ] },
   { id: "puestos", ruta: /^\/puestos/, nombre: "Departamentos y puestos", pasos: [
     { objetivo: TITULO, titulo: "Puestos", texto: "Cada puesto tiene su departamento, a quién reporta, sus funciones y sus KPIs con meta y peso. De aquí sale el organigrama." },

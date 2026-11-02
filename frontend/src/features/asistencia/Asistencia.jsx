@@ -374,8 +374,8 @@ function Horarios() {
 }
 
 export default function Asistencia() {
-  const { esAdmin, puedeValidar } = useSesion();
-  const gestiona = esAdmin || puedeValidar;
+  const { esAdmin, veAsistenciaEquipo } = useSesion();
+  const gestiona = veAsistenciaEquipo;
   const [params, setParams] = useSearchParams();
   const [persona, setPersona] = useState(null);
   const ver = params.get("ver") || (gestiona ? "hoy" : "mia");

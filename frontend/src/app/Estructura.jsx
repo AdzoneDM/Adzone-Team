@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -16,7 +16,8 @@ import { anunciarNovedades } from "@/lib/novedades";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
 
-function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [] }) {
+function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
+  veMonitoreo, gestionaPersonas, configuraSistema, esRRHH }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
     { a: "/call-center", texto: "Call Center", icono: Headset },
@@ -33,9 +34,9 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
       { a: "/mis-tareas", texto: "Mis tareas", icono: ListChecks },
       { a: "/tiempo", texto: "Tiempo", icono: Clock },
       { a: "/asistencia", texto: "Asistencia", icono: CalendarClock },
-      { a: "/monitoreo", texto: puedeValidar || esAdmin ? "Monitoreo" : "Mi actividad", icono: MonitorSmartphone },
+      { a: "/monitoreo", texto: veMonitoreo ? "Monitoreo" : "Mi actividad", icono: MonitorSmartphone },
       { a: "/ficha", texto: "Mi ficha", icono: Gauge },
-      { a: "/talento", texto: puedeValidar || esAdmin ? "Talento" : "Evaluaciones", icono: Award },
+      { a: "/talento", texto: puedeValidar || esAdmin || esRRHH ? "Talento" : "Evaluaciones", icono: Award },
       { a: "/politicas", texto: "Políticas", icono: ScrollText },
       ...(gestionaActivos ? [] : [{ a: "/activos", texto: "Equipos asignados", icono: Laptop }]),
     ] },
@@ -62,17 +63,18 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
       { a: "/desempeno", texto: "Desempeño y ranking", icono: Trophy },
       { a: "/kpis-del-mes", texto: "KPIs del mes", icono: SquarePen },
     ] });
-    s.push({ titulo: "Administración", items: [
-      { a: "/organigrama", texto: "Organigrama", icono: Network },
-      { a: "/puestos", texto: "Departamentos y puestos", icono: Building2 },
-      { a: "/personas", texto: "Personas", icono: Users },
-      { a: "/plantillas-kpi", texto: "Plantillas de KPI", icono: Target },
-      { a: "/configuracion", texto: "Reglas del puntaje", icono: Settings2 },
-      { a: "/automatizaciones", texto: "Automatizaciones", icono: Zap },
-    ] });
-  } else {
-    s[0].items.push({ a: "/organigrama", texto: "Organigrama", icono: Network });
   }
+  // Administración: cada opción aparece solo con su permiso (mínimo privilegio)
+  const admin = [
+    esAdmin && { a: "/puestos", texto: "Departamentos y puestos", icono: Building2 },
+    gestionaPersonas && { a: "/personas", texto: "Personas", icono: Users },
+    gestionaPersonas && { a: "/accesos", texto: "Accesos y permisos", icono: ShieldCheck },
+    esAdmin && { a: "/plantillas-kpi", texto: "Plantillas de KPI", icono: Target },
+    esAdmin && { a: "/configuracion", texto: "Reglas del puntaje", icono: Settings2 },
+    configuraSistema && { a: "/automatizaciones", texto: "Automatizaciones", icono: Zap },
+  ].filter(Boolean);
+  if (admin.length) s.push({ titulo: "Administración", items: [{ a: "/organigrama", texto: "Organigrama", icono: Network }, ...admin] });
+  else s[0].items.push({ a: "/organigrama", texto: "Organigrama", icono: Network });
   return s;
 }
 

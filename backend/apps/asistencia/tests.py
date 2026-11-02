@@ -115,6 +115,11 @@ class ApiTests(Base):
         self.assertEqual(self.c.get('/api/asistencia/hoy/').status_code, 403)
         jefe = APIClient()
         jefe.force_authenticate(self.jefe)
+        self.assertEqual(jefe.get('/api/asistencia/hoy/').status_code, 200)  # el supervisor ve a su equipo
+        r = jefe.post('/api/asistencia/marcajes/', {'usuario': self.ana.pk, 'tipo': 'ENTRADA', 'momento': momento(LUNES, '08:00'), 'nota': 'x'})
+        self.assertEqual(r.status_code, 403)  # pero corregir marcajes es del gerente
+        self.jefe.groups.add(Group.objects.get(name='Gerente de Departamento'))
+        jefe.force_authenticate(User.objects.get(pk=self.jefe.pk))
         r = jefe.post('/api/asistencia/marcajes/', {'usuario': self.ana.pk, 'tipo': 'ENTRADA', 'momento': momento(LUNES, '08:00')})
         self.assertEqual(r.status_code, 400)  # falta la nota
         r = jefe.post('/api/asistencia/marcajes/', {'usuario': self.ana.pk, 'tipo': 'ENTRADA', 'momento': momento(LUNES, '08:00'), 'nota': 'Olvidó marcar'})

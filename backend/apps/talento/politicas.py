@@ -9,24 +9,14 @@ from .models import AceptacionPolitica, DocumentoEmpleado, Politica, VersionPoli
 
 
 def es_rrhh(user):
-    """Gestión del Talento: la administración, el grupo «RRHH» o quien trabaje en ese departamento."""
-    from apps.desempeno.permisos import es_administrador
-    if not (user and user.is_authenticated):
-        return False
-    if es_administrador(user) or user.groups.filter(name='RRHH').exists():
-        return True
-    puesto = getattr(getattr(user, 'perfil', None), 'puesto_trabajo', None)
-    nombre = (puesto.departamento.nombre if puesto and puesto.departamento_id else '').lower()
-    return 'talento' in nombre or 'recursos humanos' in nombre
+    """Gestión del Talento: quien tiene el permiso «talento.rrhh» (perfil Gestión del Talento o Dirección)."""
+    from apps.desempeno.permisos import tiene
+    return bool(user and user.is_authenticated and tiene(user, 'talento.rrhh'))
 
 
 def gente_rrhh():
-    from apps.desempeno.permisos import administradores
-    gente = {u.pk: u for u in administradores()}
-    for u in User.objects.filter(is_active=True).filter(Q(groups__name='RRHH') | Q(perfil__puesto_trabajo__departamento__nombre__icontains='talento')
-                                                        | Q(perfil__puesto_trabajo__departamento__nombre__icontains='recursos humanos')):
-        gente[u.pk] = u
-    return list(gente.values())
+    from apps.core.permisos import con_permiso
+    return list(con_permiso('talento.rrhh'))
 
 
 # ------------------------------------------------------------------ Políticas

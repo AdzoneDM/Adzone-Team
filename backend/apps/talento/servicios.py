@@ -36,7 +36,7 @@ def generar(ciclo, pares_por_persona=2, semilla=None):
         por_depto.setdefault(p.perfil.puesto_trabajo.departamento_id, []).append(p)
     creadas = 0
     for p in personas:
-        supervisores = [s for s in revisores_de(p) if s.pk != p.pk]
+        supervisores = [s for s in revisores_de(p, 'equipo.evaluar') if s.pk != p.pk]
         filas = [(p, 'AUTO')] + [(s, 'SUPERVISOR') for s in supervisores]
         if ciclo.con_pares:
             # Un supervisor nunca evalúa como compañero «anónimo»: su evaluación ya va con nombre y con revisión.
@@ -144,7 +144,7 @@ def revisar_kpis(periodo=None):
             clave = f"kpi-{k['kpi_asignado_id']}-{inicio:%Y%m}"
             _, nueva = AlertaEnviada.objects.get_or_create(usuario=u, clave=clave, defaults={'tipo': 'KPI', 'detalle': k['nombre'][:255]})
             if nueva:
-                avisar(revisores_de(u), 'TALENTO', f"{_nombre(u)}: «{k['nombre']}» al {round(k['cumplimiento'])} % en {inicio:%m/%Y}",
+                avisar(revisores_de(u, 'equipo.ver'), 'TALENTO', f"{_nombre(u)}: «{k['nombre']}» al {round(k['cumplimiento'])} % en {inicio:%m/%Y}",
                        f"Su umbral es {k['umbral']:g} %. Revisa su ficha y, si hace falta, abre un plan de mejora.",
                        enlace=f'/ficha?usuario={u.pk}&mes={inicio:%Y-%m}')
                 enviados += 1

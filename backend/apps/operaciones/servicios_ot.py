@@ -27,6 +27,11 @@ class ErrorFlujo(Exception):
     """Algo que falta para avanzar. El mensaje se muestra tal cual."""
 
 
+
+def _direccion():
+    from apps.core.permisos import con_permiso
+    return con_permiso('direccion').filter(is_active=True)
+
 def disparar(evento, objeto, quien=None):
     from apps.automatizaciones.motor import disparar as d
     d(evento, objeto, quien=quien)
@@ -42,7 +47,7 @@ def enlace(orden, oa=None):
 
 def coordinadores():
     from django.db.models import Q
-    return list(User.objects.filter(is_active=True).filter(Q(groups__name='Coordinación') | Q(is_staff=True)).distinct())
+    return list((User.objects.filter(is_active=True, groups__name='Coordinación') | _direccion()).distinct())
 
 
 def supervisores_de(codigo):
@@ -204,7 +209,7 @@ def revisar_excepciones():
     vencidas = OrdenTrabajo.objects.filter(excepcion_g0_regularizar__lt=timezone.now(), anticipo_confirmado=False).exclude(
         estado__in=['CANCELADA', 'CERRADA'])
     from django.db.models import Q
-    gerencia = list(User.objects.filter(is_active=True).filter(Q(is_staff=True) | Q(is_superuser=True)))
+    gerencia = list(_direccion())
     for orden in vencidas:
         avisar(finanzas() + gerencia, 'FINANZAS', f"Anticipo sin regularizar: {orden.codigo}",
                f"Liberada sin anticipo por excepción ({orden.excepcion_g0_motivo}). Venció el plazo de 24 h.", enlace=enlace(orden))

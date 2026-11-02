@@ -49,10 +49,20 @@ def _pendientes(user):
     return len(pendientes(user))
 
 
+def _permisos(user):
+    from apps.core.permisos import DE_EQUIPO, permisos
+    p = permisos(user)
+    return p | DE_EQUIPO if 'direccion' in p else p
+
+
+def _puede_asignar(user):
+    from apps.desempeno.permisos import equipo_gestionable
+    return equipo_gestionable(user, 'tareas.asignar').exists()
+
+
 def _es_tecnologia(user):
-    from apps.desempeno.permisos import es_administrador
-    from apps.monitoreo.servicios import tecnologia
-    return es_administrador(user) or any(u.pk == user.pk for u in tecnologia())
+    from apps.core.permisos import tiene
+    return tiene(user, 'monitoreo.configurar')
 
 
 def datos_usuario(user):
@@ -72,6 +82,9 @@ def datos_usuario(user):
         'departamento_id': puesto.departamento_id if puesto else None,
         'es_finanzas': es_finanzas(user),
         'es_tecnologia': _es_tecnologia(user),
+        'permisos': sorted(_permisos(user)),
+        've_monitoreo': 'monitoreo.ver' in _permisos(user),
+        'puede_asignar': _puede_asignar(user),
         'es_rrhh': _rrhh(user),
         'gestiona_activos': _activos(user),
         'politicas_pendientes': _pendientes(user),
@@ -169,8 +182,9 @@ def directorio_view(request):
 @permission_classes([IsAuthenticated])
 def clave_equipo_view(request):
     """El administrador define o cambia la clave general del equipo."""
-    if not es_administrador(request.user):
-        return Response({'detail': 'Solo un administrador puede cambiar la clave del equipo.'}, status=status.HTTP_403_FORBIDDEN)
+    from apps.core.permisos import tiene
+    if not tiene(request.user, 'personal.usuarios'):
+        return Response({'detail': 'Solo quien administra personas y accesos puede cambiar la clave del equipo.'}, status=status.HTTP_403_FORBIDDEN)
     nueva = request.data.get('nueva') or ''
     if len(nueva) < 8:
         return Response({'nueva': ['Necesita al menos 8 caracteres.']}, status=status.HTTP_400_BAD_REQUEST)

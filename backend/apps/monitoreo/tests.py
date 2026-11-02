@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from unittest import mock
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -42,6 +42,10 @@ class Base(TestCase):
         self.disp, self.token = Dispositivo.crear(self.cm, 'PC 1')
         self.agente = APIClient()
         self.agente.credentials(HTTP_AUTHORIZATION=f'Dispositivo {self.token}')
+
+    def _tecnologia(self, u):
+        u.groups.add(Group.objects.get(name='Tecnología'))
+        return User.objects.get(pk=u.pk)
 
     def _u(self, nombre, puesto):
         u = User.objects.create_user(nombre, first_name=nombre.title(), password='Clave-segura-2026')
@@ -111,6 +115,8 @@ class AgenteTests(Base):
         self.assertEqual(self.agente.post('/api/monitoreo/agente/captura/', {'archivo': buf}, format='multipart').status_code, 201)
         jefe = APIClient()
         jefe.force_authenticate(self.jefe)
+        self.assertEqual(jefe.get(f'/api/monitoreo/dia/?usuario={self.cm.pk}').status_code, 403)  # el supervisor no ve monitoreo
+        jefe.force_authenticate(self._tecnologia(self.jefe))
         dia = jefe.get(f'/api/monitoreo/dia/?usuario={self.cm.pk}').data
         self.assertEqual(len(dia['capturas']), 1)
         self.assertEqual(jefe.get(f"/api/monitoreo/capturas/{dia['capturas'][0]['id']}/").status_code, 200)
@@ -138,6 +144,8 @@ class ConsultasTests(Base):
         self.assertEqual(r['apps'][0]['nombre'], 'photoshop')
         jefe = APIClient()
         jefe.force_authenticate(self.jefe)
+        self.assertEqual(jefe.get('/api/monitoreo/equipo/').status_code, 403)
+        jefe.force_authenticate(self._tecnologia(self.jefe))
         eq = jefe.get('/api/monitoreo/equipo/').data['personas']
         fila = next(p for p in eq if p['id'] == self.cm.pk)
         self.assertEqual(fila['productividad'], 80.0)
@@ -152,10 +160,12 @@ class ConsultasTests(Base):
         c = ConfiguracionMonitoreo.actual()
         c.alerta_improductivo_pct = 15
         c.save()
+        self._tecnologia(self.jefe)
         servicios.ingestar(self.disp, self.minutos(15, inicio=timezone.now() - timedelta(minutes=100), titulo='Netflix'))
         servicios.revisar_alertas()
         servicios.revisar_alertas()
         self.assertEqual(Notificacion.objects.filter(tipo='MONITOREO', destinatario=self.jefe).count(), 1)
+        self.assertFalse(Notificacion.objects.filter(tipo='MONITOREO', destinatario=self.cont).exists())
 
     def test_kpi_automatico_y_jornada_en_el_puntaje(self):
         from apps.desempeno.puntaje import Mediciones, calcular_ranking
@@ -173,6 +183,11 @@ class ConsultasTests(Base):
         jefe = APIClient()
         jefe.force_authenticate(self.jefe)
         ficha = jefe.get(f'/api/desempeno/ficha/?usuario={self.cm.pk}').data
+        self.assertIsNone(ficha['computadora'])  # el supervisor ve la ficha, pero no la actividad en la PC
+        self.assertTrue(ficha['kpis'][0]['oculto'])
+        yo = APIClient()
+        yo.force_authenticate(self.cm)
+        ficha = yo.get('/api/desempeno/ficha/').data
         self.assertEqual(ficha['computadora']['productividad'], 85.7)
         self.assertEqual(len(ficha['tendencia']), 6)
 

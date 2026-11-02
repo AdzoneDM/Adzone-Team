@@ -21,16 +21,17 @@ const enDias = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return
 const num = (v) => (v == null ? "—" : Number(v).toLocaleString("es-DO", { maximumFractionDigits: 2 }));
 
 export default function Talento() {
-  const { esAdmin, puedeValidar, gestiona } = useSesion();
+  const { esAdmin, puedeValidar, gestiona, esRRHH, veAuditoria, veSalarios } = useSesion();
   const [params, setParams] = useSearchParams();
-  const supervisa = esAdmin || puedeValidar || gestiona;
+  const supervisa = esAdmin || esRRHH || puedeValidar || gestiona;
   const opciones = [
     { valor: "evaluar", etiqueta: "Evaluar" },
     { valor: "resultados", etiqueta: "Mis resultados" },
     { valor: "planes", etiqueta: "Planes de mejora" },
     { valor: "expediente", etiqueta: "Expediente" },
     ...(supervisa ? [{ valor: "avance", etiqueta: "Avance" }] : []),
-    ...(esAdmin ? [{ valor: "revisar", etiqueta: "Por validar" }, { valor: "ciclos", etiqueta: "Ciclos" }, { valor: "auditoria", etiqueta: "Auditoría" }] : []),
+    ...(esAdmin || esRRHH ? [{ valor: "revisar", etiqueta: "Por validar" }, { valor: "ciclos", etiqueta: "Ciclos" }] : []),
+    ...(veAuditoria ? [{ valor: "auditoria", etiqueta: "Auditoría" }] : []),
   ];
   const ver = opciones.some((o) => o.valor === params.get("ver")) ? params.get("ver") : "evaluar";
   const usuario = params.get("usuario") || "";
@@ -41,7 +42,7 @@ export default function Talento() {
       {ver === "evaluar" && <Evaluar />}
       {ver === "resultados" && <Resultados />}
       {ver === "planes" && <Planes usuarioInicial={usuario} supervisa={supervisa} />}
-      {ver === "expediente" && <Expediente usuarioInicial={usuario} supervisa={supervisa} esAdmin={esAdmin} />}
+      {ver === "expediente" && <Expediente usuarioInicial={usuario} supervisa={supervisa} esAdmin={esRRHH} veSalarios={veSalarios} />}
       {ver === "avance" && <Avance />}
       {ver === "revisar" && <Revisar />}
       {ver === "ciclos" && <Ciclos />}
@@ -303,7 +304,8 @@ function Ciclos() {
 
 // ---------------------------------------------------------------- Selección de persona para planes y expediente
 function usePersona(usuarioInicial, supervisa) {
-  const { usuario: yo, esAdmin } = useSesion();
+  const { usuario: yo, esAdmin: dir, esRRHH } = useSesion();
+  const esAdmin = dir || esRRHH;
   const [persona, setPersona] = useState(usuarioInicial || "");
   const [ids, setIds] = useState(null);
   useEffect(() => { if (supervisa && !esAdmin) equipo().then((l) => setIds(new Set((l || []).map((x) => String(x.id))))).catch(() => setIds(new Set())); }, [supervisa, esAdmin]);
@@ -389,7 +391,7 @@ function FormPlan({ plan, onCerrar, onGuardar }) {
 }
 
 // ---------------------------------------------------------------- Expediente
-function Expediente({ usuarioInicial, supervisa, esAdmin }) {
+function Expediente({ usuarioInicial, supervisa, esAdmin, veSalarios }) {
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const { persona, setPersona, filtro, propio } = usePersona(usuarioInicial, supervisa);
@@ -407,7 +409,7 @@ function Expediente({ usuarioInicial, supervisa, esAdmin }) {
     if (!(await confirmar({ titulo: "¿Borrar este registro?", mensaje: e.titulo, boton: "Borrar", peligro: true }))) return;
     await borrarEvento(e.id); cargar();
   };
-  const tipos = TIPOS_EVENTO.filter(([k]) => k !== "BONO" || esAdmin);
+  const tipos = TIPOS_EVENTO.filter(([k]) => k !== "BONO" || veSalarios);
   return (
     <div className="space-y-4">
       {supervisa && (

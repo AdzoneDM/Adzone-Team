@@ -29,6 +29,7 @@ const MiTiempo = lazy(() => import("@/features/tiempo/MiTiempo"));
 const Finanzas = lazy(() => import("@/features/finanzas/Finanzas"));
 const Imprimir = lazy(() => import("@/features/finanzas/Imprimir"));
 const Automatizaciones = lazy(() => import("@/features/automatizaciones/Automatizaciones"));
+const Accesos = lazy(() => import("@/features/organizacion/Accesos"));
 const OrdenArea = lazy(() => import("@/features/ordenes/OrdenArea"));
 const Indicadores = lazy(() => import("@/features/ordenes/Indicadores"));
 const ImprimirFormato = lazy(() => import("@/features/ordenes/ImprimirFormato"));
@@ -45,11 +46,11 @@ const Activos = lazy(() => import("@/features/activos/Activos"));
 const Constancia = lazy(() => import("@/features/talento/Politicas").then((m) => ({ default: m.Constancia })));
 const PanelGerencial = lazy(() => import("@/features/desempeno/PanelGerencial"));
 
-function Protegida({ children, admin, supervisor, finanzas }) {
-  const { usuario, esAdmin, puedeValidar, esFinanzas } = useSesion();
+function Protegida({ children, admin, supervisor, finanzas, permiso }) {
+  const { usuario, esAdmin, puedeValidar, esFinanzas, tiene } = useSesion();
   const location = useLocation();
   if (!usuario) return <Navigate to="/entrar" replace state={{ desde: location.pathname + location.search }} />;
-  if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (finanzas && !esFinanzas)) return <Navigate to="/" replace />;
+  if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (finanzas && !esFinanzas) || (permiso && !tiene(permiso))) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -99,14 +100,15 @@ export default function App() {
           <Route path="politicas/:id/constancia" element={<Constancia />} />
           <Route path="panel" element={<Protegida admin><PanelGerencial /></Protegida>} />
           <Route path="finanzas" element={<Protegida finanzas><Finanzas /></Protegida>} />
-          <Route path="automatizaciones" element={<Protegida admin><Automatizaciones /></Protegida>} />
+          <Route path="automatizaciones" element={<Protegida permiso="sistema.configurar"><Automatizaciones /></Protegida>} />
           <Route path="validar" element={<Protegida supervisor><Validar /></Protegida>} />
           <Route path="equipo" element={<Protegida supervisor><Equipo /></Protegida>} />
           <Route path="desempeno" element={<Protegida admin><Desempeno /></Protegida>} />
           <Route path="kpis-del-mes" element={<Protegida admin><KpisDelMes /></Protegida>} />
           <Route path="puestos" element={<Protegida admin><Puestos /></Protegida>} />
           <Route path="puestos/:id" element={<Protegida admin><PuestoDetalle /></Protegida>} />
-          <Route path="personas" element={<Protegida admin><Personas /></Protegida>} />
+          <Route path="personas" element={<Protegida permiso="personal.usuarios"><Personas /></Protegida>} />
+          <Route path="accesos" element={<Protegida permiso="personal.usuarios"><Accesos /></Protegida>} />
           <Route path="plantillas-kpi" element={<Protegida admin><PlantillasKpi /></Protegida>} />
           <Route path="configuracion" element={<Protegida admin><Configuracion /></Protegida>} />
           {/* Direcciones de la versión anterior */}

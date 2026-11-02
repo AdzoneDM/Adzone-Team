@@ -5,7 +5,9 @@ from rest_framework import serializers
 
 from .models import PerfilUsuario, PuestoDeTrabajo
 
-ROLES = ['Administrador', 'Gerente de Departamento', 'Colaborador', 'Finanzas', 'Coordinación', 'Almacén', 'Agente Call Center']
+from apps.core.permisos import PERFILES  # noqa: E402
+
+ROLES = list(PERFILES)  # perfiles de acceso (ver apps/core/permisos.py)
 
 
 PERFIL_EDITABLE = ('puesto_trabajo', 'horas_semana', 'costo_hora', 'salario_mensual', 'nomina')
@@ -88,9 +90,7 @@ class UserSerializer(serializers.ModelSerializer):
     )
     perfil = PerfilUsuarioSerializer(read_only=True)
     groups = GroupSerializer(many=True, read_only=True)
-    roles_asignados = serializers.ListField(
-        child=serializers.ChoiceField(choices=ROLES), write_only=True, required=False
-    )
+    roles_asignados = serializers.ListField(child=serializers.CharField(max_length=80), write_only=True, required=False)
     nombre = serializers.SerializerMethodField()
     puesto = serializers.CharField(source='perfil.puesto_trabajo.nombre', read_only=True, default=None)
     puesto_id = serializers.IntegerField(source='perfil.puesto_trabajo_id', read_only=True, default=None)
@@ -140,7 +140,49 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Ya hay un usuario con ese correo.")
         return value
 
+    def _quien(self):
+        r = self.context.get('request')
+        return r.user if r else None
+
+    def validate_roles_asignados(self, roles):
+        """Mínimo privilegio al dar perfiles: nadie cambia los suyos ni da (o quita) permisos que no tiene."""
+        from apps.core.models import PermisosDePerfil
+        from apps.core.permisos import permisos
+        quien = self._quien()
+        validos = {p.grupo.name: set(p.permisos or []) for p in PermisosDePerfil.objects.select_related('grupo')}
+        roles = list(dict.fromkeys(r for r in roles if r))
+        malos = [r for r in roles if r not in validos]
+        if malos:
+            raise serializers.ValidationError(f"Perfil desconocido: {', '.join(malos)}.")
+        if quien is None or quien.is_superuser:
+            return roles
+        mios = permisos(quien)
+        if self.instance is not None and self.instance.pk == quien.pk:
+            raise serializers.ValidationError("No puedes cambiar tus propios perfiles de acceso.")
+        nuevos = set().union(*(validos[r] for r in roles)) if roles else set()
+        if not nuevos <= mios:
+            raise serializers.ValidationError("No puedes dar permisos que tú no tienes: " + ', '.join(sorted(nuevos - mios)) + '.')
+        if self.instance is not None and not permisos(self.instance) <= mios:
+            raise serializers.ValidationError("Esta persona tiene permisos que tú no tienes: sus perfiles los cambia la Dirección.")
+        return roles
+
+    def _ve_salarios(self):
+        from apps.core.permisos import tiene
+        quien = self._quien()
+        return quien is None or tiene(quien, 'personal.salarios')
+
+    def to_representation(self, obj):
+        d = super().to_representation(obj)
+        if not self._ve_salarios():
+            for k in ('costo_hora', 'salario_mensual', 'nomina'):
+                d[k] = None
+        return d
+
     def validate(self, data):
+        if not self._ve_salarios():
+            perfil = data.get('perfil') or {}
+            for k in ('costo_hora', 'salario_mensual', 'nomina'):
+                perfil.pop(k, None)  # quien no maneja salarios no los cambia
         password = data.get('password')
         if self.instance is None and not password:
             raise serializers.ValidationError({"password": "Ponle una contraseña inicial."})

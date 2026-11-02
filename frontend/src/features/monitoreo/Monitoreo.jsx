@@ -213,7 +213,7 @@ function EnVivo({ onVer }) {
 function MisEquipos() {
   const avisar = useAviso();
   const confirmar = useConfirmar();
-  const { esAdmin } = useSesion();
+  const { configuraMonitoreo: esAdmin } = useSesion();
   const [politica, setPolitica] = useState(null);
   const [lista, setLista] = useState(null);
   const [personas, setPersonas] = useState([]);
@@ -509,23 +509,24 @@ function TodasLasReglas() {
 }
 
 export default function Monitoreo() {
-  const { esAdmin, puedeValidar, esFinanzas, esTecnologia } = useSesion();
-  const gestiona = esAdmin || puedeValidar;
+  // Ver la actividad de otras personas es solo de Dirección y Tecnología (permiso «monitoreo.ver»)
+  const { esFinanzas, veMonitoreo, veCapturas, configuraMonitoreo } = useSesion();
+  const gestiona = veMonitoreo;
   const [params, setParams] = useSearchParams();
   const persona = params.get("persona");
   const ver = params.get("ver") || (persona ? "persona" : gestiona ? "vivo" : "mia");
   const opciones = [
     gestiona && { valor: "vivo", etiqueta: "Equipo en vivo" },
     gestiona && { valor: "resumen", etiqueta: "Resumen" },
-    gestiona && { valor: "pantallas", etiqueta: "Pantallas" },
+    veCapturas && { valor: "pantallas", etiqueta: "Pantallas" },
     { valor: "incidencias", etiqueta: "Incidencias" },
     { valor: "mia", etiqueta: "Mi actividad" },
     (gestiona || esFinanzas) && { valor: "proyectos", etiqueta: "Por proyecto y OT" },
     { valor: "justificaciones", etiqueta: "Justificaciones" },
     { valor: "equipos", etiqueta: "Mis equipos y política" },
-    esTecnologia && { valor: "computadoras", etiqueta: "Computadoras" },
-    esAdmin && { valor: "reglas", etiqueta: "Reglas" },
-    esAdmin && { valor: "config", etiqueta: "Configuración" },
+    gestiona && { valor: "computadoras", etiqueta: "Computadoras" },
+    configuraMonitoreo && { valor: "reglas", etiqueta: "Reglas" },
+    configuraMonitoreo && { valor: "config", etiqueta: "Configuración" },
   ].filter(Boolean);
   return (
     <div className="space-y-5">
@@ -537,16 +538,16 @@ export default function Monitoreo() {
           <DiaPersona usuario={persona} />
           <p className="text-sm"><Link to={`/ficha?usuario=${persona}`} className="text-azul hover:underline">Ver su ficha de productividad del mes</Link></p>
         </div>
-      ) : ver === "vivo" ? <EnVivo onVer={(id) => setParams({ ver: "persona", persona: id })} />
+      ) : ver === "vivo" && gestiona ? <EnVivo onVer={(id) => setParams({ ver: "persona", persona: id })} />
         : ver === "resumen" && gestiona ? <Resumen />
-        : ver === "pantallas" && gestiona ? <Pantallas />
+        : ver === "pantallas" && veCapturas ? <Pantallas />
         : ver === "incidencias" ? <Incidencias persona={params.get("persona") || ""} gestiona={gestiona} />
-        : ver === "computadoras" && esTecnologia ? <Computadoras />
+        : ver === "computadoras" && gestiona ? <Computadoras />
         : ver === "proyectos" && (gestiona || esFinanzas) ? <Proyectos />
         : ver === "justificaciones" ? <Justificaciones gestiona={gestiona} />
         : ver === "equipos" ? <MisEquipos />
-          : ver === "reglas" ? <TodasLasReglas />
-            : ver === "config" ? <Configuracion />
+          : ver === "reglas" && configuraMonitoreo ? <TodasLasReglas />
+            : ver === "config" && configuraMonitoreo ? <Configuracion />
               : <DiaPersona />}
     </div>
   );

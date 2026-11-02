@@ -132,7 +132,7 @@ class TareaSerializer(serializers.ModelSerializer):
 
     def get_puedo_gestionar(self, obj):
         user = self._usuario()
-        return bool(user and puede_gestionar(user, obj.colaborador))
+        return bool(user and puede_gestionar(user, obj.colaborador, 'tareas.asignar'))
 
     def get_puedo_revisar(self, obj):
         user = self._usuario()

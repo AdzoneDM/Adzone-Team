@@ -36,8 +36,20 @@ export function SesionProvider({ children }) {
     try { await salir(); } finally { setUsuario(null); }
   };
 
+  const lista = new Set(usuario?.permisos || []);
+  const tiene = (codigo) => lista.has(codigo);
   const valor = {
     usuario,
+    tiene,
+    veMonitoreo: tiene("monitoreo.ver"),
+    veCapturas: tiene("monitoreo.capturas"),
+    configuraMonitoreo: tiene("monitoreo.configurar"),
+    gestionaPersonas: tiene("personal.usuarios"),
+    veSalarios: tiene("personal.salarios"),
+    veAuditoria: tiene("auditoria.ver"),
+    configuraSistema: tiene("sistema.configurar"),
+    veAsistenciaEquipo: tiene("asistencia.ver"),
+    puedeAsignar: !!usuario?.puede_asignar,
     cargando,
     login,
     logout,

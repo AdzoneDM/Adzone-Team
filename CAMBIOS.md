@@ -1,5 +1,17 @@
 # Cambios
 
+## 11.0 · 02/11/2026 · Accesos y permisos: mínimo privilegio
+
+- **Perfil + organigrama**: cada persona tiene uno o más perfiles que dicen **qué** puede hacer; el organigrama dice **sobre quién** (quienes dependen de su puesto), más su **equipo adicional**. Un colaborador solo cumple y ve lo suyo; un supervisor asigna, valida y evalúa solo a su equipo.
+- **Perfiles iniciales**: Colaborador, Supervisor (automático con gente a cargo), Gerente de Departamento, Administrador (Dirección), Administrador del sistema, Tecnología, Gestión del Talento, Finanzas, Coordinación, Almacén y Agente Call Center. La Dirección ajusta qué permite cada uno y puede crear perfiles nuevos.
+- **16 permisos concretos**: asignar tareas, validar, ver al equipo, evaluar, expediente y planes de mejora, asistencia del equipo, corregir marcajes, Dirección, ver el monitoreo, ver capturas, configurar el monitoreo, personas y accesos, salarios, Gestión del Talento, configuración del sistema y auditoría.
+- **Dirección y Administrador del sistema separados**: la Dirección ve y decide todo el negocio; el Administrador del sistema configura personas, accesos, monitoreo e integraciones **sin ver salarios, expedientes ni documentos**.
+- **Monitoreo solo para Dirección y Tecnología**: la actividad en la computadora, las capturas, las pantallas en vivo, las incidencias, las justificaciones y las alertas de otras personas ya no llegan a supervisores ni gerentes. Cada persona sigue viendo lo suyo. En la ficha de alguien de su equipo, el supervisor no ve su computadora y los KPIs que salen de la PC aparecen como «Reservado».
+- **Nueva pantalla Administración → Accesos y permisos**: personas con sus perfiles y lo que pueden hacer hoy; **excepciones** (dar o quitar un permiso puntual, con motivo) y **equipo adicional** (con fecha de fin opcional); perfiles con su lista de permisos.
+- **Anti-escalada**: nadie cambia sus propios accesos, nadie da ni quita permisos que no tiene, nadie cambia la contraseña, el estado o los perfiles de alguien con más permisos, y nadie valida su propio trabajo. Todo cambio queda en la auditoría.
+- El menú, las pestañas y los campos se muestran según los permisos (por ejemplo, salarios solo con «Salarios y costo por hora»). Los avisos de OT, almacén, tardanzas y monitoreo van a quien tiene el permiso correspondiente.
+- **Personas** ya no cambia perfiles: crea la cuenta como Colaborador y remite a Accesos y permisos.
+
 ## 10.2 · 02/11/2026 · Ficha de cada computadora
 
 - **Monitoreo → Computadoras → una computadora** (o desde el día de una persona: «ver cómo usa su tiempo»): cómo se usó el tiempo en ese equipo en 7, 14, 30 días o fechas a medida, como el «Computer Details» de Teramind.

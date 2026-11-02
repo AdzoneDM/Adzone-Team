@@ -33,3 +33,46 @@ class AccesoEquipo(models.Model):
     class Meta:
         verbose_name = "Clave general del equipo"
         verbose_name_plural = "Clave general del equipo"
+
+
+class PermisosDePerfil(models.Model):
+    """Qué permite cada perfil de acceso (un grupo de Django). El catálogo de permisos está en apps/core/acceso.py."""
+    grupo = models.OneToOneField('auth.Group', on_delete=models.CASCADE, related_name='permisos_acceso')
+    descripcion = models.CharField(max_length=255, blank=True)
+    permisos = models.JSONField(default=list, blank=True)
+    orden = models.PositiveSmallIntegerField(default=50)
+
+    class Meta:
+        ordering = ['orden', 'grupo__name']
+        verbose_name = 'Permisos de un perfil'
+
+    def __str__(self):
+        return self.grupo.name
+
+
+class ExcepcionPermiso(models.Model):
+    """Un permiso que se da o se quita a una persona, por encima de lo que dicen sus perfiles."""
+    usuario = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='excepciones_permiso')
+    permiso = models.CharField(max_length=40)
+    conceder = models.BooleanField(default=True, help_text="Sí = se le da; No = se le quita aunque su perfil lo tenga.")
+    motivo = models.CharField(max_length=200, blank=True)
+    creado_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='+')
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('usuario', 'permiso')
+        verbose_name = 'Excepción de permiso'
+
+
+class EquipoExtra(models.Model):
+    """Personas que alguien gestiona aunque no dependan de su puesto (p. ej. un coordinador de proyecto)."""
+    jefe = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='equipo_extra')
+    colaborador = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='jefes_extra')
+    motivo = models.CharField(max_length=200, blank=True)
+    hasta = models.DateField(null=True, blank=True, help_text="Vacío = sin fecha de fin.")
+    creado_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='+')
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('jefe', 'colaborador')
+        verbose_name = 'Equipo adicional'

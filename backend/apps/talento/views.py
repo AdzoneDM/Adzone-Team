@@ -6,7 +6,12 @@ from rest_framework import exceptions, serializers, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from apps.desempeno.permisos import EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar
+from apps.desempeno.permisos import EsAdministrador, TienePermiso, equipo_gestionable, es_administrador, puede_gestionar, tiene
+
+
+def _rrhh(user):
+    from .politicas import es_rrhh
+    return es_rrhh(user)
 from apps.desempeno.servicios import avisar
 from . import servicios
 from .models import COMPETENCIAS, ESCALA, AuditoriaCambio, CambioSalarial, CicloEvaluacion, EventoExpediente, Evaluacion, PlanMejora
@@ -26,7 +31,7 @@ def _persona_param(request, campo='usuario'):
 
 
 def _puede_ver(request, persona):
-    if persona.pk != request.user.pk and not puede_gestionar(request.user, persona):
+    if persona.pk != request.user.pk and not (_rrhh(request.user) or puede_gestionar(request.user, persona, 'equipo.ver')):
         raise exceptions.PermissionDenied("Solo ves la información de tu equipo.")
 
 
@@ -56,7 +61,7 @@ class CicloViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch']
 
     def get_permissions(self):
-        return [EsAdministrador()] if self.request.method not in ('GET', 'HEAD', 'OPTIONS') else super().get_permissions()
+        return [TienePermiso.de('talento.rrhh')()] if self.request.method not in ('GET', 'HEAD', 'OPTIONS') else super().get_permissions()
 
     def perform_create(self, serializer):
         ciclo = serializer.save(creado_por=self.request.user)
@@ -153,7 +158,8 @@ def avance_view(request):
     ciclo = get_object_or_404(CicloEvaluacion, pk=request.query_params.get('ciclo') or 0) if str(request.query_params.get('ciclo', '')).isdigit() else CicloEvaluacion.objects.first()
     if ciclo is None:
         return Response({'ciclo': None, 'personas': []})
-    equipo = equipo_gestionable(request.user)
+    from django.contrib.auth.models import User as _U
+    equipo = _U.objects.filter(is_active=True) if _rrhh(request.user) else equipo_gestionable(request.user, 'equipo.evaluar')
     filas = []
     for u in equipo.filter(perfil__puesto_trabajo__isnull=False).order_by('first_name'):
         evs = list(Evaluacion.objects.filter(ciclo=ciclo, evaluado=u))
@@ -212,10 +218,12 @@ class PlanViewSet(viewsets.ModelViewSet):
         if persona:
             _puede_ver(self.request, persona)
             return qs.filter(colaborador=persona)
-        return qs.filter(Q(colaborador=u) | Q(colaborador__in=equipo_gestionable(u)))
+        if _rrhh(u):
+            return qs
+        return qs.filter(Q(colaborador=u) | Q(colaborador__in=equipo_gestionable(u, 'equipo.ver')))
 
     def _gestiona(self, colaborador):
-        if colaborador.pk == self.request.user.pk or not puede_gestionar(self.request.user, colaborador):
+        if colaborador.pk == self.request.user.pk or not (_rrhh(self.request.user) or puede_gestionar(self.request.user, colaborador, 'equipo.evaluar')):
             raise exceptions.PermissionDenied("Los planes de mejora los abre y sigue el supervisor o la dirección.")
 
     def perform_create(self, serializer):
@@ -244,8 +252,8 @@ class EventoSerializer(serializers.ModelSerializer):
 
     def to_representation(self, obj):
         d = super().to_representation(obj)
-        if not es_administrador(self.context['request'].user):
-            d['monto'] = None  # los montos de bonos solo los ve la administración
+        if not tiene(self.context['request'].user, 'personal.salarios'):
+            d['monto'] = None  # los montos de bonos solo los ve quien maneja salarios
         return d
 
 
@@ -258,20 +266,23 @@ class ExpedienteViewSet(viewsets.ModelViewSet):
         if self.action != 'list':
             # Detalle, edición y borrado: lo propio visible y lo del equipo que gestiono.
             base = EventoExpediente.objects.select_related('registrado_por')
-            if es_administrador(u):
+            if _rrhh(u):
                 return base
-            return base.filter(Q(colaborador=u, visible_al_colaborador=True) | Q(colaborador__in=equipo_gestionable(u)))
+            return base.filter(Q(colaborador=u, visible_al_colaborador=True) | Q(colaborador__in=equipo_gestionable(u, 'equipo.ver')))
         persona = _persona_param(self.request) or u
         _puede_ver(self.request, persona)
         qs = EventoExpediente.objects.filter(colaborador=persona).select_related('registrado_por')
         return qs.filter(visible_al_colaborador=True) if persona.pk == u.pk and not es_administrador(u) else qs
 
+    def _registra(self, colaborador):
+        return _rrhh(self.request.user) or puede_gestionar(self.request.user, colaborador, 'equipo.expediente')
+
     def perform_create(self, serializer):
         c = serializer.validated_data['colaborador']
-        if c.pk == self.request.user.pk or not puede_gestionar(self.request.user, c):
-            raise exceptions.PermissionDenied("Lo registra el supervisor o la administración.")
-        if serializer.validated_data.get('tipo') == 'BONO' and not es_administrador(self.request.user):
-            raise exceptions.PermissionDenied("Los bonos los registra la administración.")
+        if c.pk == self.request.user.pk or not self._registra(c):
+            raise exceptions.PermissionDenied("Lo registra quien tiene ese permiso sobre la persona o Gestión del Talento.")
+        if serializer.validated_data.get('tipo') == 'BONO' and not tiene(self.request.user, 'personal.salarios'):
+            raise exceptions.PermissionDenied("Los bonos los registra quien maneja salarios.")
         e = serializer.save(registrado_por=self.request.user)
         if e.visible_al_colaborador:
             avisar([c], 'TALENTO', f'{e.get_tipo_display()}: {e.titulo}', e.descripcion[:300], enlace='/ficha', excepto=self.request.user)
@@ -285,22 +296,22 @@ class ExpedienteViewSet(viewsets.ModelViewSet):
                 raise exceptions.PermissionDenied("Solo puedes agregar tu justificación.")
             serializer.save()
             return
-        if not puede_gestionar(self.request.user, e.colaborador):
+        if not self._registra(e.colaborador):
             raise exceptions.PermissionDenied("No puedes editar este registro.")
         d = serializer.validated_data
-        if not es_administrador(self.request.user) and (e.tipo == 'BONO' or d.get('tipo') == 'BONO' or 'monto' in d):
-            raise exceptions.PermissionDenied("Los bonos y sus montos los maneja la administración.")
+        if not tiene(self.request.user, 'personal.salarios') and (e.tipo == 'BONO' or d.get('tipo') == 'BONO' or 'monto' in d):
+            raise exceptions.PermissionDenied("Los bonos y sus montos los maneja quien maneja salarios.")
         serializer.save(colaborador=e.colaborador)
 
     def perform_destroy(self, instance):
-        if not es_administrador(self.request.user):
-            raise exceptions.PermissionDenied("Solo la administración borra registros del expediente.")
+        if not _rrhh(self.request.user) or instance.colaborador_id == self.request.user.pk:
+            raise exceptions.PermissionDenied("Solo Gestión del Talento borra registros del expediente (nunca del suyo).")
         instance.delete()
 
 
 # ------------------------------------------------------------------ Salario y auditoría (administración)
 @api_view(['GET'])
-@permission_classes([EsAdministrador])
+@permission_classes([TienePermiso.de('personal.salarios')])
 def salarios_view(request):
     persona = _persona_param(request)
     qs = CambioSalarial.objects.select_related('usuario', 'registrado_por')
@@ -311,7 +322,7 @@ def salarios_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([EsAdministrador])
+@permission_classes([TienePermiso.de('auditoria.ver')])
 def auditoria_view(request):
     qs = AuditoriaCambio.objects.select_related('usuario')
     texto = request.query_params.get('q', '').strip()

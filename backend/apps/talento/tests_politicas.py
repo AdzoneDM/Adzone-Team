@@ -1,7 +1,7 @@
 """v10: políticas con aceptación por versión, cumplimiento, documentos del expediente."""
 from datetime import date, timedelta
 
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.desempeno.models import Notificacion
@@ -103,7 +103,9 @@ class DocumentosTests(Base):
         f = SimpleUploadedFile('x.exe', b'MZ', content_type='application/octet-stream')
         r = self.como(self.dir).post('/api/talento/documentos/', {'colaborador': self.ana.pk, 'tipo': 'OTRO', 'titulo': 'x', 'archivo': f}, format='multipart')
         self.assertEqual(r.status_code, 400)
-        self.luis.groups.add(Group.objects.get_or_create(name='RRHH')[0])
+        self.assertFalse(pol.es_rrhh(self.luis))  # estar en el departamento no basta: hace falta el perfil
+        self.luis.groups.add(Group.objects.get(name='Gestión del Talento'))
+        self.luis = User.objects.get(pk=self.luis.pk)
         self.assertTrue(pol.es_rrhh(self.luis))
         self.assertEqual(self._subir(self.como(self.luis)).status_code, 201)
         doc = DocumentoEmpleado.objects.first()
@@ -131,7 +133,7 @@ class RevisionV10Tests(PoliticasTests.__bases__[0]):
         self.assertEqual(self.como(self.ana).post(f'/api/talento/politicas/{p.pk}/aceptar/', {'version': 2}, format='json').status_code, 200)
 
     def test_rrhh_no_maneja_su_propio_expediente(self):
-        self.luis.groups.add(Group.objects.get_or_create(name='RRHH')[0])
+        self.luis.groups.add(Group.objects.get(name='Gestión del Talento'))
         oculto = DocumentoEmpleado.objects.create(colaborador=self.luis, tipo='ACTA', titulo='Amonestación', archivo='x.pdf', visible_al_colaborador=False)
         c = self.como(self.luis)
         self.assertEqual(c.get(f'/api/talento/documentos/?usuario={self.luis.pk}').json(), [])

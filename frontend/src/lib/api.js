@@ -412,3 +412,15 @@ export const historialActivo = (id) => api(`${AC}/${id}/historial/`);
 export const moverActivo = (id, d) => api(`${AC}/${id}/mover/`, { method: "POST", body: d });
 export const reportarActivo = (id, nota) => api(`${AC}/${id}/reportar/`, { method: "POST", body: { nota } });
 export const resumenActivos = () => api(`${AC}/resumen/`);
+
+// Accesos y permisos (mínimo privilegio)
+export const accesos = () => api("/api/accesos/");
+export const accesosPersonas = () => api("/api/accesos/personas/");
+export const crearPerfilAcceso = (p) => api("/api/accesos/perfiles/", { method: "POST", body: p });
+export const guardarPerfilAcceso = (id, p) => api(`/api/accesos/perfiles/${id}/`, { method: "PATCH", body: p });
+export const borrarPerfilAcceso = (id) => api(`/api/accesos/perfiles/${id}/`, { method: "DELETE" });
+export const perfilesDePersona = (id, perfiles) => api(`/api/accesos/personas/${id}/perfiles/`, { method: "POST", body: { perfiles } });
+export const crearExcepcion = (e) => api("/api/accesos/excepciones/", { method: "POST", body: e });
+export const borrarExcepcion = (id) => api(`/api/accesos/excepciones/${id}/`, { method: "DELETE" });
+export const crearEquipoExtra = (x) => api("/api/accesos/equipo-extra/", { method: "POST", body: x });
+export const borrarEquipoExtra = (id) => api(`/api/accesos/equipo-extra/${id}/`, { method: "DELETE" });

@@ -251,9 +251,19 @@ def justificar(justificacion, aprobar, revisor, nota=''):
 
 
 def tecnologia():
-    """Encargados de Tecnología: reciben también los avisos de computadoras que no reportan."""
+    """Tecnología: quienes tienen el perfil «Tecnología» o «Administrador del sistema» (reciben los avisos técnicos).
+    Si nadie lo tiene todavía, los encargados del departamento de Tecnología."""
+    gente = list(User.objects.filter(is_active=True, groups__name__in=('Tecnología', 'Administrador del sistema')).distinct())
+    if gente:
+        return gente
     return list(User.objects.filter(is_active=True, perfil__puesto_trabajo__departamento__nombre__icontains='tecnolog').filter(
         Q(perfil__puesto_trabajo__supervisor__isnull=True) | ~Q(perfil__puesto_trabajo__supervisor__departamento=F('perfil__puesto_trabajo__departamento'))))
+
+
+def vigilantes():
+    """Quienes reciben los avisos del monitoreo (permiso «monitoreo.ver»): Dirección y Tecnología."""
+    from apps.core.permisos import con_permiso
+    return list(con_permiso('monitoreo.ver'))
 
 
 # ------------------------------------------------------------------ Resúmenes
@@ -389,20 +399,20 @@ def revisar_alertas(ahora=None):
         if (config.activo and consintio(u, config) and desde_marca >= config.alerta_sin_pc_min
                 and not Actividad.objects.filter(usuario=u, minuto__gte=ultimo.momento).exists()):
             if _una_vez(u, f'sinpc-{ultimo.momento:%Y%m%d%H%M}', 'SIN_PC', f'Marcó a las {timezone.localtime(ultimo.momento):%H:%M}'):
-                avisar(list(revisores_de(u)) + tecnologia(), 'MONITOREO', f'{nombre}: su computadora no reporta',
+                avisar(vigilantes() + tecnologia(), 'MONITOREO', f'{nombre}: su computadora no reporta',
                        f'Marcó a las {timezone.localtime(ultimo.momento):%H:%M} y en {config.alerta_sin_pc_min} minutos su computadora no ha enviado actividad.',
                        enlace=f'/monitoreo?persona={u.pk}')
                 enviados += 1
         if (desde_marca >= config.alerta_inactivo_min and len(recientes) >= config.alerta_inactivo_min - 2
                 and all(a.activos < 30 for a in recientes)):
             if _una_vez(u, f'inactivo-{recientes[0].minuto:%Y%m%d%H}', 'INACTIVO', f'{config.alerta_inactivo_min} min'):
-                avisar(revisores_de(u), 'MONITOREO', f'{nombre} lleva {config.alerta_inactivo_min} minutos inactivo',
+                avisar(vigilantes(), 'MONITOREO', f'{nombre} lleva {config.alerta_inactivo_min} minutos inactivo',
                        'En jornada, sin teclado ni ratón en su computadora.', enlace=f'/monitoreo?persona={u.pk}')
                 enviados += 1
         dia = _resumir(list(Actividad.objects.filter(usuario=u, minuto__range=rango(hoy)).order_by('minuto')))
         if (dia['minutos_activos'] >= 60 and dia['improductividad'] is not None and dia['improductividad'] >= config.alerta_improductivo_pct):
             if _una_vez(u, f'improductivo-{hoy:%Y%m%d}', 'IMPRODUCTIVO', f"{dia['improductividad']} %"):
-                avisar(revisores_de(u), 'MONITOREO', f"{nombre}: {dia['improductividad']} % de su tiempo hoy es improductivo",
+                avisar(vigilantes(), 'MONITOREO', f"{nombre}: {dia['improductividad']} % de su tiempo hoy es improductivo",
                        'Revisa sus aplicaciones y sitios del día.', enlace=f'/monitoreo?persona={u.pk}')
                 enviados += 1
     # Tardanzas y entradas sin marcar: solo a quien ya usa el control de horario o tiene horario asignado
@@ -413,11 +423,11 @@ def revisar_alertas(ahora=None):
         j = jornada(u, hoy, ahora)
         nombre = u.get_full_name() or u.username
         if j['llegada'] == 'TARDE' and j['tardanza'] >= 15 and _una_vez(u, f'tarde-{hoy:%Y%m%d}', 'TARDE', f"{j['tardanza']} min"):
-            avisar(revisores_de(u), 'ASISTENCIA', f"{nombre} llegó {j['tardanza']} minutos tarde", enlace='/asistencia')
+            avisar(revisores_de(u, 'asistencia.ver'), 'ASISTENCIA', f"{nombre} llegó {j['tardanza']} minutos tarde", enlace='/asistencia')
             enviados += 1
         if j['estado'] == 'TARDE_SIN_MARCAR' and _una_vez(u, f'sinmarcar-{hoy:%Y%m%d}', 'SIN_MARCAR', ''):
             avisar([u], 'ASISTENCIA', 'No has marcado tu entrada', 'Márcala en Adzone Team en cuanto llegues.', enlace='/')
-            avisar(revisores_de(u), 'ASISTENCIA', f'{nombre} no ha marcado entrada', f"Entraba a las {j['turno'][0]}.", enlace='/asistencia')
+            avisar(revisores_de(u, 'asistencia.ver'), 'ASISTENCIA', f'{nombre} no ha marcado entrada', f"Entraba a las {j['turno'][0]}.", enlace='/asistencia')
             enviados += 1
     return enviados
 

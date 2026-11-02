@@ -39,7 +39,28 @@ Cada Orden de Área muestra las **herramientas recomendadas** para esa área (Cl
 | Administración / Finanzas | Confirma anticipos, libera la salida (G5), factura en Cashflow, cobra, cierra la OT (G6) |
 | Gerencia General (administradores) | Excepción sin anticipo, salida con saldo, cambios sin costo; asigna supervisores de área |
 
-Los accesos «Coordinación», «Almacén» y «Finanzas» se dan en **Personas → editar → Accesos adicionales**.
+Los perfiles de acceso («Coordinación», «Almacén», «Finanzas», «Supervisor», «Tecnología»…) se dan en **Administración → Accesos y permisos** (ver «Accesos y permisos: mínimo privilegio» más abajo).
+
+## Accesos y permisos: mínimo privilegio
+
+Cada persona tiene uno o más **perfiles**. El perfil dice **qué** puede hacer; el **organigrama** dice **sobre quién**: «su equipo» son quienes dependen de su puesto (directa o indirectamente), más su **equipo adicional** si se le asignó.
+
+| Perfil | Puede |
+| --- | --- |
+| Colaborador | Cumplir sus tareas y ver solo lo suyo: tareas, tiempo, asistencia, su actividad en la PC, su ficha y sus evaluaciones |
+| Supervisor (automático si su puesto tiene gente a cargo) | Asignar, validar y evaluar a su equipo; ver su asistencia y aprobar sus permisos. **No** ve el monitoreo del equipo |
+| Gerente de Departamento | Lo del supervisor, más expediente y planes de mejora y corregir marcajes de su equipo |
+| Administrador (Dirección) | Todo el negocio: todas las personas, panel, ranking, bonos, puestos, KPIs, salarios, monitoreo y accesos |
+| Administrador del sistema | Personas y accesos, monitoreo, integraciones y auditoría. **No** ve salarios, expedientes ni documentos |
+| Tecnología | Monitoreo de todas las personas, capturas, computadoras y reglas |
+| Gestión del Talento | Políticas, documentos, ciclos de evaluación, expedientes, personas y salarios |
+| Finanzas · Coordinación · Almacén · Agente Call Center | Sus pantallas de siempre |
+
+- **Excepciones**: a una persona se le puede dar o quitar un permiso puntual sin cambiar su perfil, siempre con motivo.
+- **Equipo adicional**: alguien puede gestionar a personas de otra rama (un proyecto, una suplencia), con fecha de fin opcional.
+- **Reglas que nadie se salta**: nadie cambia sus propios accesos, nadie da permisos que no tiene, nadie toca la cuenta (contraseña, estado, perfiles) de alguien con más permisos, y nadie valida su propio trabajo.
+- **Monitoreo**: la actividad en la computadora, las capturas, las incidencias y las justificaciones de otras personas solo las ven Dirección y Tecnología. En la ficha de alguien de su equipo, el supervisor ve tareas, KPIs, asistencia y evaluaciones, pero no su computadora (los KPIs que salen de la PC aparecen como «Reservado»).
+- Todo cambio de perfiles, permisos, excepciones y equipo adicional queda en **Talento → Auditoría**.
 
 Cada colaborador ve las OT que pasan por las áreas de su departamento, las que pidió o vendió y en las que trabaja. Los montos solo los ven Administración, Coordinación, la dirección y quien vendió.
 

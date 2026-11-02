@@ -38,7 +38,7 @@ def _rango(request):
 
 
 def _ver_persona(request, usuario):
-    if usuario.pk != request.user.pk and not puede_gestionar(request.user, usuario):
+    if usuario.pk != request.user.pk and not puede_gestionar(request.user, usuario, 'asistencia.ver'):
         raise PermissionDenied("Solo ves la asistencia de tu equipo.")
 
 
@@ -83,9 +83,9 @@ def mi_mes_view(request):
 
 # ------------------------------------------------------------------ Equipo
 def _equipo(request):
-    qs = equipo_gestionable(request.user).select_related('perfil__puesto_trabajo__departamento').order_by('first_name', 'last_name')
+    qs = equipo_gestionable(request.user, 'asistencia.ver').select_related('perfil__puesto_trabajo__departamento').order_by('first_name', 'last_name')
     if not es_administrador(request.user) and not qs.exists():
-        raise PermissionDenied("Esta vista es para supervisores y administración.")
+        raise PermissionDenied("Esta vista es para quien ve la asistencia de su equipo.")
     return qs
 
 
@@ -95,7 +95,9 @@ def hoy_view(request):
     from apps.monitoreo.servicios import ultimo_contacto_por_usuario
     hoy = timezone.localdate()
     personas = list(_equipo(request))
-    contactos = ultimo_contacto_por_usuario([p.pk for p in personas])
+    from apps.desempeno.permisos import tiene
+    # lo que hace la computadora en este momento es monitoreo: solo Dirección y Tecnología
+    contactos = ultimo_contacto_por_usuario([p.pk for p in personas]) if tiene(request.user, 'monitoreo.ver') else {}
     filas = []
     for u in personas:
         j = servicios.jornada(u, hoy)
@@ -153,14 +155,14 @@ class MarcajeViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_queryset(self):
-        qs = Marcaje.objects.filter(usuario__in=equipo_gestionable(self.request.user))
+        qs = Marcaje.objects.filter(usuario__in=equipo_gestionable(self.request.user, 'asistencia.ver'))
         if str(self.request.query_params.get('usuario', '')).isdigit():
             qs = qs.filter(usuario_id=self.request.query_params['usuario'])
         return qs
 
     def _revisar(self, usuario):
-        if usuario.pk == self.request.user.pk or not puede_gestionar(self.request.user, usuario):
-            raise PermissionDenied("Las correcciones las hace el supervisor o la administración, nunca uno mismo.")
+        if usuario.pk == self.request.user.pk or not puede_gestionar(self.request.user, usuario, 'asistencia.corregir'):
+            raise PermissionDenied("Corrige marcajes quien tiene ese permiso sobre la persona, nunca uno mismo.")
 
     def perform_create(self, serializer):
         self._revisar(serializer.validated_data['usuario'])
@@ -283,7 +285,7 @@ class AusenciaSerializer(serializers.ModelSerializer):
 
     def get_puede_revisar(self, obj):
         u = self.context['request'].user
-        return obj.estado == 'PENDIENTE' and obj.usuario_id != u.pk and puede_gestionar(u, obj.usuario)
+        return obj.estado == 'PENDIENTE' and obj.usuario_id != u.pk and puede_gestionar(u, obj.usuario, 'asistencia.ver')
 
     def validate(self, data):
         if data.get('hasta') and data.get('desde') and data['hasta'] < data['desde']:
@@ -300,12 +302,12 @@ class AusenciaViewSet(viewsets.ModelViewSet):
         from django.db.models import Q
         qs = Ausencia.objects.select_related('usuario', 'revisada_por')
         if self.request.query_params.get('ver') == 'equipo':
-            return qs.filter(usuario__in=equipo_gestionable(u)).exclude(usuario=u)
+            return qs.filter(usuario__in=equipo_gestionable(u, 'asistencia.ver')).exclude(usuario=u)
         return qs.filter(Q(usuario=u))
 
     def perform_create(self, serializer):
         a = serializer.save(usuario=self.request.user)
-        avisar(revisores_de(self.request.user), 'ASISTENCIA', f'{_nombre(self.request.user)} pide {a.get_tipo_display().lower()}',
+        avisar(revisores_de(self.request.user, 'asistencia.ver'), 'ASISTENCIA', f'{_nombre(self.request.user)} pide {a.get_tipo_display().lower()}',
                f'Del {a.desde:%d/%m} al {a.hasta:%d/%m}. {a.motivo}'.strip(), enlace='/asistencia?ver=permisos', excepto=self.request.user)
 
     def perform_destroy(self, instance):
@@ -317,7 +319,7 @@ class AusenciaViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 def revisar_ausencia_view(request, pk):
     a = get_object_or_404(Ausencia, pk=pk)
-    if a.usuario_id == request.user.pk or not puede_gestionar(request.user, a.usuario):
+    if a.usuario_id == request.user.pk or not puede_gestionar(request.user, a.usuario, 'asistencia.ver'):
         raise PermissionDenied("La aprueba su supervisor o la administración.")
     if a.estado != 'PENDIENTE':
         return Response({'detail': 'Esa solicitud ya fue revisada.'}, status=400)

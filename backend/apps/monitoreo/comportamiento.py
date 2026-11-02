@@ -145,7 +145,8 @@ def _avisar(inc):
     from apps.desempeno.permisos import administradores, revisores_de
     from apps.desempeno.servicios import avisar
     from .servicios import tecnologia
-    destinatarios = list(revisores_de(inc.usuario))
+    from .servicios import vigilantes
+    destinatarios = vigilantes()
     if inc.regla.categoria == 'SEGURIDAD' or inc.regla.riesgo in ('ALTO', 'CRITICO'):
         destinatarios += tecnologia()
     if inc.regla.riesgo == 'CRITICO':

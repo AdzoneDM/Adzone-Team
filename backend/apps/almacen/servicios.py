@@ -12,8 +12,11 @@ from apps.operaciones.servicios_ot import ErrorFlujo, coordinadores, registrar
 from .models import LineaVale, Material, MovimientoInventario, ValeMaterial
 
 
+from apps.core.permisos import con_permiso  # noqa: E402
+
+
 def almacenistas():
-    return list(User.objects.filter(is_active=True).filter(Q(groups__name='Almacén') | Q(is_staff=True)).distinct())
+    return list((User.objects.filter(is_active=True, groups__name='Almacén') | con_permiso('direccion').filter(is_active=True)).distinct())
 
 
 def enlace(vale):

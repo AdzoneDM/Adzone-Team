@@ -12,7 +12,19 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.asistencia import servicios as asistencia
-from apps.desempeno.permisos import EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar
+from apps.desempeno.permisos import EsAdministrador, TienePermiso, equipo_gestionable, es_administrador, puede_gestionar, tiene
+
+
+def ve_monitoreo(user):
+    """Monitoreo de otras personas: solo Dirección y Tecnología (permiso «monitoreo.ver»)."""
+    return tiene(user, 'monitoreo.ver')
+
+
+def gente_monitoreable():
+    return User.objects.filter(is_active=True)
+
+
+ConfiguraMonitoreo = TienePermiso.de('monitoreo.configurar')
 from apps.desempeno.views import periodo_desde_mes
 from . import servicios
 from .models import Actividad, Captura, ConfiguracionMonitoreo, Consentimiento, Dispositivo, Justificacion, ReglaProductividad
@@ -36,8 +48,8 @@ def _quien(request):
     if not str(request.query_params['usuario']).isdigit():
         raise exceptions.ValidationError({'usuario': 'Debe ser un número.'})
     u = get_object_or_404(User, pk=request.query_params['usuario'])
-    if u.pk != request.user.pk and not puede_gestionar(request.user, u):
-        raise exceptions.PermissionDenied("Solo ves la actividad de tu equipo.")
+    if u.pk != request.user.pk and not ve_monitoreo(request.user):
+        raise exceptions.PermissionDenied("El monitoreo de otras personas lo ven Dirección y Tecnología.")
     return u
 
 
@@ -178,21 +190,21 @@ class DispositivoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Dispositivo.objects.select_related('usuario')
-        return qs if es_administrador(self.request.user) else qs.filter(usuario=self.request.user)
+        return qs if tiene(self.request.user, 'monitoreo.configurar') else qs.filter(usuario=self.request.user)
 
     def create(self, request, *args, **kwargs):
         usuario = request.user
         if request.data.get('usuario') and str(request.data['usuario']) != str(request.user.pk):
-            if not es_administrador(request.user):
-                raise exceptions.PermissionDenied("Solo la administración vincula equipos de otras personas.")
+            if not tiene(request.user, 'monitoreo.configurar'):
+                raise exceptions.PermissionDenied("Solo Tecnología vincula equipos de otras personas.")
             usuario = get_object_or_404(User, pk=request.data['usuario'], is_active=True)
         nombre = (request.data.get('nombre') or '').strip() or 'Computadora'
         d, token = Dispositivo.crear(usuario, nombre)
         return Response({**DispositivoSerializer(d).data, 'token': token}, status=201)
 
     def perform_update(self, serializer):
-        if not es_administrador(self.request.user):
-            raise exceptions.PermissionDenied("Solo la administración edita equipos.")
+        if not tiene(self.request.user, 'monitoreo.configurar'):
+            raise exceptions.PermissionDenied("Solo Tecnología edita equipos.")
         serializer.save(usuario=serializer.instance.usuario)  # un equipo no cambia de dueño
 
     def perform_destroy(self, instance):
@@ -221,7 +233,7 @@ class ReglaViewSet(viewsets.ModelViewSet):
     serializer_class = ReglaSerializer
 
     def get_permissions(self):
-        return [EsAdministrador()] if self.request.method not in ('GET', 'HEAD', 'OPTIONS') else super().get_permissions()
+        return [ConfiguraMonitoreo()] if self.request.method not in ('GET', 'HEAD', 'OPTIONS') else super().get_permissions()
 
 
 class ConfigSerializer(serializers.ModelSerializer):
@@ -241,7 +253,7 @@ class ConfigSerializer(serializers.ModelSerializer):
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes([EsAdministrador])
+@permission_classes([ConfiguraMonitoreo])
 def configuracion_view(request):
     config = ConfiguracionMonitoreo.actual()
     if request.method == 'PATCH':
@@ -252,7 +264,7 @@ def configuracion_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([EsAdministrador])
+@permission_classes([ConfiguraMonitoreo])
 def reclasificar_view(request):
     try:
         dias = max(1, min(int(request.data.get('dias') or 30), 90))
@@ -302,9 +314,9 @@ def _reciente(filas, dia):
 @api_view(['GET'])
 def equipo_view(request):
     """En vivo: quién está trabajando, con qué app, y cómo va su día."""
-    personas = equipo_gestionable(request.user).select_related('perfil__puesto_trabajo__departamento').order_by('first_name')
-    if not es_administrador(request.user) and not personas.exists():
-        raise exceptions.PermissionDenied("Esta vista es para supervisores y administración.")
+    if not ve_monitoreo(request.user):
+        raise exceptions.PermissionDenied("El monitoreo del equipo lo ven Dirección y Tecnología.")
+    personas = gente_monitoreable().filter(perfil__puesto_trabajo__isnull=False).select_related('perfil__puesto_trabajo__departamento').order_by('first_name')
     dia = _fecha(request.query_params.get('fecha'))
     ids = [p.pk for p in personas]
     contacto = servicios.ultimo_contacto_por_usuario(ids) if dia == timezone.localdate() else {}
@@ -335,7 +347,7 @@ def equipo_view(request):
 @api_view(['GET'])
 def captura_view(request, pk):
     c = get_object_or_404(Captura.objects.select_related('usuario'), pk=pk)
-    if c.usuario_id != request.user.pk and not puede_gestionar(request.user, c.usuario):
+    if c.usuario_id != request.user.pk and not tiene(request.user, 'monitoreo.capturas'):
         raise Http404
     try:
         f = c.archivo.open('rb')
@@ -352,12 +364,11 @@ def proyectos_view(request):
     from apps.desempeno.puntaje import rango_del_mes
     from apps.operaciones.permisos import es_finanzas
     from .proyectos import productividad
-    finanzas = es_finanzas(request.user)  # incluye la administración
-    equipo = list(equipo_gestionable(request.user).values_list('pk', flat=True))
-    if not finanzas and not equipo:
-        raise exceptions.PermissionDenied("Esta vista es para supervisores, Finanzas y administración.")
+    finanzas = es_finanzas(request.user)  # incluye la Dirección
+    if not finanzas and not ve_monitoreo(request.user):
+        raise exceptions.PermissionDenied("Esta vista es para Dirección, Finanzas y Tecnología.")
     desde, hasta = rango_del_mes(periodo_desde_mes(request.query_params.get('mes')))
-    usuarios = None if finanzas else equipo + [request.user.pk]
+    usuarios = None
     datos = productividad(desde, hasta, usuarios=usuarios, con_costos=es_finanzas(request.user))
     return Response({'desde': desde, 'hasta': hasta, 'con_costos': es_finanzas(request.user), **datos})
 
@@ -416,7 +427,9 @@ class JustificacionViewSet(viewsets.ModelViewSet):
         u = self.request.user
         qs = Justificacion.objects.select_related('usuario', 'revisada_por', 'tarea')
         if self.request.query_params.get('ver') == 'equipo':
-            qs = qs.filter(usuario__in=equipo_gestionable(u)).exclude(usuario=u)
+            if not ve_monitoreo(u):
+                return qs.none()
+            qs = qs.exclude(usuario=u)
             estado = self.request.query_params.get('estado')
             return qs.filter(estado=estado) if estado else qs
         return qs.filter(usuario=u)
@@ -426,15 +439,16 @@ class JustificacionViewSet(viewsets.ModelViewSet):
         from apps.desempeno.servicios import avisar
         j = serializer.save(usuario=self.request.user)
         nombre = self.request.user.get_full_name() or self.request.user.username
-        avisar(revisores_de(self.request.user), 'MONITOREO', f'{nombre} justificó un tramo de su computadora', j.motivo[:200],
+        from apps.core.permisos import con_permiso
+        avisar(list(con_permiso('monitoreo.ver').exclude(pk=self.request.user.pk)), 'MONITOREO', f'{nombre} justificó un tramo de su computadora', j.motivo[:200],
                enlace='/monitoreo?ver=justificaciones', excepto=self.request.user)
 
 
 @api_view(['POST'])
 def revisar_justificacion_view(request, pk):
     j = get_object_or_404(Justificacion, pk=pk)
-    if j.usuario_id == request.user.pk or not puede_gestionar(request.user, j.usuario):
-        raise exceptions.PermissionDenied("La revisa su supervisor.")
+    if j.usuario_id == request.user.pk or not ve_monitoreo(request.user):
+        raise exceptions.PermissionDenied("La revisan Dirección o Tecnología.")
     if j.estado != 'PENDIENTE':
         return Response({'detail': 'Ya se revisó.'}, status=400)
     servicios.justificar(j, bool(request.data.get('aprobar')), request.user, request.data.get('nota') or '')
@@ -461,9 +475,9 @@ def _rango_param(request, dias_defecto=7):
 
 def _equipo_ids(request):
     """Personas que el usuario puede ver en los reportes del equipo (403 si no gestiona a nadie)."""
-    qs = equipo_gestionable(request.user)
-    if not es_administrador(request.user) and not qs.exists():
-        raise exceptions.PermissionDenied("Esta vista es para supervisores y administración.")
+    if not ve_monitoreo(request.user):
+        raise exceptions.PermissionDenied("El monitoreo lo ven Dirección y Tecnología.")
+    qs = gente_monitoreable()
     dep = request.query_params.get('departamento')
     if dep:
         if not str(dep).isdigit():
@@ -480,7 +494,7 @@ def resumen_view(request):
 
 
 def _es_tecnologia(user):
-    return es_administrador(user) or any(u.pk == user.pk for u in servicios.tecnologia())
+    return tiene(user, 'monitoreo.configurar')
 
 
 class IncidenciaSerializer(serializers.ModelSerializer):
@@ -513,7 +527,8 @@ class IncidenciaViewSet(viewsets.ModelViewSet):
         from django.db.models import F, Q
         u = self.request.user
         qs = Incidencia.objects.select_related('regla', 'usuario', 'revisada_por').filter(minutos__gte=F('regla__minutos_minimos'))
-        qs = qs.filter(Q(usuario=u) | Q(usuario__in=equipo_gestionable(u)))
+        if not ve_monitoreo(u):
+            qs = qs.filter(usuario=u)
         p = self.request.query_params
         if p.get('persona'):
             if not str(p['persona']).isdigit():
@@ -528,8 +543,8 @@ class IncidenciaViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         inc = serializer.instance
-        if inc.usuario_id == self.request.user.pk or not puede_gestionar(self.request.user, inc.usuario):
-            raise exceptions.PermissionDenied("La revisa su supervisor.")
+        if inc.usuario_id == self.request.user.pk or not ve_monitoreo(self.request.user):
+            raise exceptions.PermissionDenied("La revisan Dirección o Tecnología.")
         serializer.save(revisada_por=self.request.user)
 
 
@@ -557,7 +572,7 @@ class ReglaComportamientoSerializer(serializers.ModelSerializer):
 class ReglaComportamientoViewSet(viewsets.ModelViewSet):
     queryset = ReglaComportamiento.objects.prefetch_related('departamentos', 'excluir_departamentos')
     serializer_class = ReglaComportamientoSerializer
-    permission_classes = [EsAdministrador]
+    permission_classes = [ConfiguraMonitoreo]
 
     @action(detail=False, methods=['post'])
     def reaplicar(self, request):
@@ -595,12 +610,14 @@ class PerfilMonitoreoSerializer(serializers.ModelSerializer):
 class PerfilMonitoreoViewSet(viewsets.ModelViewSet):
     queryset = PerfilMonitoreo.objects.prefetch_related('departamentos', 'personas')
     serializer_class = PerfilMonitoreoSerializer
-    permission_classes = [EsAdministrador]
+    permission_classes = [ConfiguraMonitoreo]
 
 
 @api_view(['GET'])
 def pantallas_view(request):
-    """Pantallas en vivo: la última captura de hoy de cada persona del equipo (si su perfil toma capturas)."""
+    """Pantallas en vivo: la última captura de hoy de cada persona (si su perfil toma capturas)."""
+    if not tiene(request.user, 'monitoreo.capturas'):
+        raise exceptions.PermissionDenied("Las capturas las ven Dirección y Tecnología.")
     ids = _equipo_ids(request)
     hoy = timezone.localdate()
     ultimas = {}
@@ -618,8 +635,8 @@ def pantallas_view(request):
 @api_view(['GET'])
 def computadoras_view(request):
     """Personas y computadoras con su estado de monitoreo (como «Employees» y «Computers» de Teramind)."""
-    if not _es_tecnologia(request.user):
-        raise exceptions.PermissionDenied("Esta vista es para Tecnología y administración.")
+    if not ve_monitoreo(request.user):
+        raise exceptions.PermissionDenied("Esta vista es para Tecnología y Dirección.")
     from .comportamiento import parametros
     config = ConfiguracionMonitoreo.actual()
     ahora = timezone.now()
@@ -656,7 +673,7 @@ def computadora_view(request, pk):
     from .computadora import ficha
     d = get_object_or_404(Dispositivo.objects.select_related('usuario'), pk=pk)
     u = request.user
-    if not (d.usuario_id == u.pk or _es_tecnologia(u) or puede_gestionar(u, d.usuario)):
+    if not (d.usuario_id == u.pk or ve_monitoreo(u)):
         raise Http404
     desde, hasta = _rango_param(request, 7)
     if (hasta - desde).days > 31:
