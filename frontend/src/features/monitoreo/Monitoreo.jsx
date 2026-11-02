@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import { hace, hoyISO, mesActual, nombreMes, reloj } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
+import { Computadoras, Incidencias, Pantallas, Perfiles, ReglasComportamiento, Resumen } from "./Analitica";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Puntaje, SelectorMes, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 
 const CAT = { P: ["Productiva", "verde", "bg-verde"], N: ["Neutral", "neutro", "bg-[#9aa7bd]"], I: ["Improductiva", "rojo", "bg-rojo"] };
@@ -68,6 +69,16 @@ function ListaUso({ titulo, filas }) {
         </ul>
       )}
     </Panel>
+  );
+}
+
+/** Mini gráfica de la última hora: 12 bloques de 5 minutos con los minutos activos de cada uno. */
+function Chispa({ valores }) {
+  if (!valores?.length || !valores.some(Boolean)) return <span className="text-xs text-gris">—</span>;
+  return (
+    <span className="inline-flex h-6 items-end gap-px" title="Minutos activos cada 5 minutos, última hora" aria-label={`Última hora: ${valores.join(", ")} minutos activos por bloque`}>
+      {valores.map((v, i) => <span key={i} className={cx("w-1.5 rounded-sm", v >= 4 ? "bg-azul" : v ? "bg-[#9aa7bd]" : "bg-linea-suave")} style={{ height: `${Math.max(12, (v / 5) * 100)}%` }} />)}
+    </span>
   );
 }
 
@@ -166,7 +177,7 @@ function EnVivo({ onVer }) {
           <Panel cuerpo="p-0">
             <div className="overflow-x-auto">
               <table className="tabla">
-                <thead><tr><th>Persona</th><th>Ahora</th><th className="text-right">Jornada</th><th className="text-right">Activo</th><th className="text-right">Productivo</th><th className="text-right">Foco</th><th className="text-right">Nivel</th><th className="text-right">Cambios/h</th></tr></thead>
+                <thead><tr><th>Persona</th><th>Ahora</th><th className="text-right">Jornada</th><th className="text-right">Activo</th><th className="text-right">Productivo</th><th className="text-right">Foco</th><th className="text-right">Nivel</th><th className="text-right">Cambios/h</th><th>Última hora</th></tr></thead>
                 <tbody>
                   {personas.map((p) => (
                     <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
@@ -181,6 +192,7 @@ function EnVivo({ onVer }) {
                       <td className="text-right num">{p.minutos_foco ? reloj(p.minutos_foco) : "—"}</td>
                       <td className="text-right num">{pct(p.intensidad)}</td>
                       <td className="text-right num">{p.cambios_por_hora ?? "—"}</td>
+                      <td><Chispa valores={p.reciente} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -481,18 +493,32 @@ function Proyectos() {
   );
 }
 
+function TodasLasReglas() {
+  const [sub, setSub] = useState("comportamiento");
+  return (
+    <div className="space-y-4">
+      <Pestanas className="!flex" opciones={[{ valor: "comportamiento", etiqueta: "Comportamiento" }, { valor: "productividad", etiqueta: "Productividad" }, { valor: "perfiles", etiqueta: "Perfiles" }]} valor={sub} onCambio={setSub} />
+      {sub === "comportamiento" ? <ReglasComportamiento /> : sub === "perfiles" ? <Perfiles /> : <Reglas />}
+    </div>
+  );
+}
+
 export default function Monitoreo() {
-  const { esAdmin, puedeValidar, esFinanzas } = useSesion();
+  const { esAdmin, puedeValidar, esFinanzas, esTecnologia } = useSesion();
   const gestiona = esAdmin || puedeValidar;
   const [params, setParams] = useSearchParams();
   const persona = params.get("persona");
   const ver = params.get("ver") || (persona ? "persona" : gestiona ? "vivo" : "mia");
   const opciones = [
     gestiona && { valor: "vivo", etiqueta: "Equipo en vivo" },
+    gestiona && { valor: "resumen", etiqueta: "Resumen" },
+    gestiona && { valor: "pantallas", etiqueta: "Pantallas" },
+    { valor: "incidencias", etiqueta: "Incidencias" },
     { valor: "mia", etiqueta: "Mi actividad" },
     (gestiona || esFinanzas) && { valor: "proyectos", etiqueta: "Por proyecto y OT" },
     { valor: "justificaciones", etiqueta: "Justificaciones" },
     { valor: "equipos", etiqueta: "Mis equipos y política" },
+    esTecnologia && { valor: "computadoras", etiqueta: "Computadoras" },
     esAdmin && { valor: "reglas", etiqueta: "Reglas" },
     esAdmin && { valor: "config", etiqueta: "Configuración" },
   ].filter(Boolean);
@@ -507,10 +533,14 @@ export default function Monitoreo() {
           <p className="text-sm"><Link to={`/ficha?usuario=${persona}`} className="text-azul hover:underline">Ver su ficha de productividad del mes</Link></p>
         </div>
       ) : ver === "vivo" ? <EnVivo onVer={(id) => setParams({ ver: "persona", persona: id })} />
+        : ver === "resumen" && gestiona ? <Resumen />
+        : ver === "pantallas" && gestiona ? <Pantallas />
+        : ver === "incidencias" ? <Incidencias persona={params.get("persona") || ""} gestiona={gestiona} />
+        : ver === "computadoras" && esTecnologia ? <Computadoras />
         : ver === "proyectos" && (gestiona || esFinanzas) ? <Proyectos />
         : ver === "justificaciones" ? <Justificaciones gestiona={gestiona} />
         : ver === "equipos" ? <MisEquipos />
-          : ver === "reglas" ? <Reglas />
+          : ver === "reglas" ? <TodasLasReglas />
             : ver === "config" ? <Configuracion />
               : <DiaPersona />}
     </div>

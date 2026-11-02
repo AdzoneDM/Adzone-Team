@@ -34,6 +34,12 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
 
 
 
+def _es_tecnologia(user):
+    from apps.desempeno.permisos import es_administrador
+    from apps.monitoreo.servicios import tecnologia
+    return es_administrador(user) or any(u.pk == user.pk for u in tecnologia())
+
+
 def datos_usuario(user):
     puesto = puesto_de(user)
     return {
@@ -50,6 +56,7 @@ def datos_usuario(user):
         'departamento': puesto.departamento.nombre if puesto else None,
         'departamento_id': puesto.departamento_id if puesto else None,
         'es_finanzas': es_finanzas(user),
+        'es_tecnologia': _es_tecnologia(user),
         'gestiona': gestiona_algo(user),
         'es_coordinacion': es_coordinacion(user),
         'es_almacen': es_almacen(user),

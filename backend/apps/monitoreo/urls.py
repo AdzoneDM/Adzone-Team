@@ -5,6 +5,9 @@ from . import views
 
 router = DefaultRouter()
 router.register(r'justificaciones', views.JustificacionViewSet, basename='justificacion')
+router.register(r'incidencias', views.IncidenciaViewSet, basename='incidencia')
+router.register(r'reglas-comportamiento', views.ReglaComportamientoViewSet, basename='regla-comportamiento')
+router.register(r'perfiles', views.PerfilMonitoreoViewSet, basename='perfil-monitoreo')
 router.register(r'dispositivos', views.DispositivoViewSet, basename='dispositivo')
 router.register(r'reglas', views.ReglaViewSet, basename='regla')
 
@@ -22,5 +25,8 @@ urlpatterns = [
     path('equipo/', views.equipo_view),
     path('capturas/<int:pk>/', views.captura_view),
     path('proyectos/', views.proyectos_view),
+    path('resumen/', views.resumen_view),
+    path('pantallas/', views.pantallas_view),
+    path('computadoras/', views.computadoras_view),
     path('justificaciones/<int:pk>/revisar/', views.revisar_justificacion_view),
 ]

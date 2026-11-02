@@ -45,6 +45,7 @@ export function SesionProvider({ children }) {
     esAdmin: !!usuario?.es_administrador,
     puedeValidar: !!usuario?.puede_validar,
     esFinanzas: !!usuario?.es_finanzas,
+    esTecnologia: !!usuario?.es_tecnologia,
     gestiona: !!usuario?.gestiona,
     esCoordinacion: !!usuario?.es_coordinacion,
     esAlmacen: !!usuario?.es_almacen,

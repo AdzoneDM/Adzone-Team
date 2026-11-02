@@ -172,3 +172,83 @@ class Justificacion(models.Model):
 
     class Meta:
         ordering = ['-creada']
+
+
+class PerfilMonitoreo(models.Model):
+    """Como los perfiles de Teramind: qué se mide y cómo, por departamento o por persona."""
+    nombre = models.CharField(max_length=80, unique=True)
+    descripcion = models.CharField(max_length=200, blank=True)
+    monitorear = models.BooleanField(default=True, help_text="Apagado: el agente de estas personas no registra (p. ej., dirección).")
+    capturas = models.BooleanField(default=False)
+    capturas_cada_min = models.PositiveSmallIntegerField(default=10)
+    desenfocar_capturas = models.BooleanField(default=True)
+    umbral_inactivo_seg = models.PositiveSmallIntegerField(default=180)
+    departamentos = models.ManyToManyField('core.Departamento', blank=True, related_name='perfiles_monitoreo',
+                                           help_text="Se aplica a todo el departamento, salvo a quien tenga un perfil propio.")
+    personas = models.ManyToManyField(User, blank=True, related_name='perfiles_monitoreo',
+                                      help_text="Asignación individual: gana sobre la del departamento.")
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Perfil de monitoreo'
+
+    def __str__(self):
+        return self.nombre
+
+
+class ReglaComportamiento(models.Model):
+    """Reglas de comportamiento (como las de Teramind): si la persona usa X durante N minutos en el día, se registra o se avisa."""
+    CAMPOS = [('APP', 'Aplicación'), ('DOMINIO', 'Sitio web'), ('TITULO', 'Texto en el título de la ventana')]
+    RIESGOS = [('BAJO', 'Bajo'), ('MEDIO', 'Medio'), ('ALTO', 'Alto'), ('CRITICO', 'Crítico')]
+    PESO = {'BAJO': 1, 'MEDIO': 3, 'ALTO': 6, 'CRITICO': 10}
+    ACCIONES = [('REGISTRAR', 'Solo registrar'), ('ALERTAR', 'Registrar y avisar')]
+    CATEGORIAS = [('PRODUCTIVIDAD', 'Productividad'), ('SEGURIDAD', 'Seguridad'), ('IA', 'Uso de IA'), ('CUMPLIMIENTO', 'Cumplimiento')]
+    nombre = models.CharField(max_length=100)
+    descripcion = models.CharField(max_length=255, blank=True)
+    categoria = models.CharField(max_length=14, choices=CATEGORIAS, default='PRODUCTIVIDAD')
+    campo = models.CharField(max_length=8, choices=CAMPOS, default='DOMINIO')
+    patrones = models.TextField(help_text="Uno por línea, sin distinguir mayúsculas. Sitios: el dominio y sus subdominios.")
+    minutos_minimos = models.PositiveSmallIntegerField(default=1, help_text="Minutos en el día para que cuente como incidencia.")
+    riesgo = models.CharField(max_length=8, choices=RIESGOS, default='MEDIO')
+    accion = models.CharField(max_length=10, choices=ACCIONES, default='REGISTRAR')
+    departamentos = models.ManyToManyField('core.Departamento', blank=True, related_name='+', help_text="Vacío = toda la empresa.")
+    excluir_departamentos = models.ManyToManyField('core.Departamento', blank=True, related_name='+',
+                                                   help_text="Departamentos donde es parte del trabajo (p. ej., AnyDesk en Tecnología).")
+    activa = models.BooleanField(default=True)
+    creada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['categoria', 'nombre']
+        verbose_name = 'Regla de comportamiento'
+
+    def __str__(self):
+        return self.nombre
+
+    def lista_patrones(self):
+        return [p.strip().lower() for p in self.patrones.splitlines() if p.strip()]
+
+
+class Incidencia(models.Model):
+    """Una regla que se activó para una persona en un día (los minutos se acumulan en el mismo registro)."""
+    ESTADOS = [('NUEVA', 'Nueva'), ('REVISADA', 'Revisada'), ('DESCARTADA', 'Descartada')]
+    regla = models.ForeignKey(ReglaComportamiento, on_delete=models.CASCADE, related_name='incidencias')
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='incidencias_pc')
+    dia = models.DateField()
+    minutos = models.PositiveIntegerField(default=0)
+    primera = models.DateTimeField()
+    ultima = models.DateTimeField()
+    ejemplo = models.CharField(max_length=255, blank=True, help_text="Aplicación o sitio y ventana que la activó.")
+    avisada = models.BooleanField(default=False)
+    estado = models.CharField(max_length=10, choices=ESTADOS, default='NUEVA')
+    revisada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    nota = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ('regla', 'usuario', 'dia')
+        ordering = ['-dia', '-ultima']
+        indexes = [models.Index(fields=['usuario', 'dia'])]
+
+    @property
+    def cuenta(self):
+        return self.minutos >= self.regla.minutos_minimos

@@ -357,3 +357,17 @@ export const guardarEvento = (e) => (e.id ? api(`${TA}/expediente/${e.id}/`, { m
 export const borrarEvento = (id) => api(`${TA}/expediente/${id}/`, { method: "DELETE" });
 export const historialSalarios = (usuario) => api(`${TA}/salarios/${q({ usuario })}`);
 export const auditoria = (params) => api(`${TA}/auditoria/${q(params)}`);
+
+// Monitoreo v10: resumen, incidencias, reglas de comportamiento, perfiles, pantallas y computadoras
+export const resumenMonitoreo = (params) => api(`${MO}/resumen/${q(params)}`);
+export const incidencias = (params) => api(`${MO}/incidencias/${q(params)}`);
+export const revisarIncidencia = (id, d) => api(`${MO}/incidencias/${id}/`, { method: "PATCH", body: d });
+export const reglasComportamiento = () => api(`${MO}/reglas-comportamiento/`);
+export const guardarReglaComportamiento = (r) => (r.id ? api(`${MO}/reglas-comportamiento/${r.id}/`, { method: "PATCH", body: r }) : api(`${MO}/reglas-comportamiento/`, { method: "POST", body: r }));
+export const borrarReglaComportamiento = (id) => api(`${MO}/reglas-comportamiento/${id}/`, { method: "DELETE" });
+export const perfilesMonitoreo = () => api(`${MO}/perfiles/`);
+export const guardarPerfilMonitoreo = (p) => (p.id ? api(`${MO}/perfiles/${p.id}/`, { method: "PATCH", body: p }) : api(`${MO}/perfiles/`, { method: "POST", body: p }));
+export const borrarPerfilMonitoreo = (id) => api(`${MO}/perfiles/${id}/`, { method: "DELETE" });
+export const pantallasEnVivo = () => api(`${MO}/pantallas/`);
+export const computadoras = () => api(`${MO}/computadoras/`);
+export const reaplicarReglas = () => api(`${MO}/reglas-comportamiento/reaplicar/`, { method: "POST" });

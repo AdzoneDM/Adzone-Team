@@ -7,7 +7,7 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import authentication, exceptions, serializers, viewsets
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -273,6 +273,19 @@ def periodo_view(request):
     return Response(servicios.resumen_periodo(u, desde, hasta))
 
 
+def _reciente(filas, dia):
+    """Última hora en 12 bloques de 5 minutos: minutos activos de cada bloque (la gráfica pequeña de «En vivo»)."""
+    if dia != timezone.localdate():
+        return []
+    fin = timezone.now()
+    bloques = [0] * 12
+    for f in filas:
+        atras = int((fin - f.minuto).total_seconds() // 300)
+        if 0 <= atras < 12 and f.activos >= 30:
+            bloques[11 - atras] += 1
+    return bloques
+
+
 @api_view(['GET'])
 def equipo_view(request):
     """En vivo: quién está trabajando, con qué app, y cómo va su día."""
@@ -301,6 +314,7 @@ def equipo_view(request):
             **{k: r[k] for k in ('minutos_registrados', 'minutos_activos', 'actividad', 'productividad', 'improductividad',
                                  'intensidad', 'minutos_foco', 'cambios_por_hora', 'cobertura')},
             'app_principal': r['apps'][0]['nombre'] if r['apps'] else None,
+            'reciente': _reciente(por_usuario.get(u.pk, []), dia),
         })
     return Response({'fecha': dia, 'personas': filas})
 
@@ -412,3 +426,211 @@ def revisar_justificacion_view(request, pk):
         return Response({'detail': 'Ya se revisó.'}, status=400)
     servicios.justificar(j, bool(request.data.get('aprobar')), request.user, request.data.get('nota') or '')
     return Response(JustificacionSerializer(j).data)
+
+
+# ------------------------------------------------------------------ v10: resumen, incidencias, reglas, perfiles, pantallas, computadoras
+from .models import Incidencia, PerfilMonitoreo, ReglaComportamiento  # noqa: E402
+
+
+def _rango_param(request, dias_defecto=7):
+    hoy = timezone.localdate()
+    try:
+        hasta = date.fromisoformat(request.query_params['hasta']) if request.query_params.get('hasta') else hoy
+        desde = date.fromisoformat(request.query_params['desde']) if request.query_params.get('desde') else hasta - timedelta(days=dias_defecto - 1)
+    except ValueError:
+        raise exceptions.ValidationError({'desde': 'Formato esperado: AAAA-MM-DD.'})
+    if desde > hasta:
+        raise exceptions.ValidationError({'desde': 'El inicio es después del final.'})
+    if (hasta - desde).days > 92:
+        raise exceptions.ValidationError({'desde': 'Consulta hasta 3 meses a la vez.'})
+    return desde, hasta
+
+
+def _equipo_ids(request):
+    """Personas que el usuario puede ver en los reportes del equipo (403 si no gestiona a nadie)."""
+    qs = equipo_gestionable(request.user)
+    if not es_administrador(request.user) and not qs.exists():
+        raise exceptions.PermissionDenied("Esta vista es para supervisores y administración.")
+    dep = request.query_params.get('departamento')
+    if dep:
+        if not str(dep).isdigit():
+            raise exceptions.ValidationError({'departamento': 'Debe ser un número.'})
+        qs = qs.filter(perfil__puesto_trabajo__departamento_id=dep)
+    return list(qs.values_list('pk', flat=True))
+
+
+@api_view(['GET'])
+def resumen_view(request):
+    from .analitica import resumen
+    desde, hasta = _rango_param(request)
+    return Response(resumen(_equipo_ids(request), desde, hasta))
+
+
+def _es_tecnologia(user):
+    return es_administrador(user) or any(u.pk == user.pk for u in servicios.tecnologia())
+
+
+class IncidenciaSerializer(serializers.ModelSerializer):
+    regla_nombre = serializers.CharField(source='regla.nombre', read_only=True)
+    riesgo = serializers.CharField(source='regla.riesgo', read_only=True)
+    categoria = serializers.CharField(source='regla.categoria', read_only=True)
+    minutos_minimos = serializers.IntegerField(source='regla.minutos_minimos', read_only=True)
+    persona = serializers.SerializerMethodField()
+    revisada_por_nombre = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Incidencia
+        fields = ['id', 'regla', 'regla_nombre', 'riesgo', 'categoria', 'minutos_minimos', 'usuario', 'persona', 'dia', 'minutos',
+                  'primera', 'ultima', 'ejemplo', 'avisada', 'estado', 'revisada_por_nombre', 'nota']
+        read_only_fields = ['regla', 'usuario', 'dia', 'minutos', 'primera', 'ultima', 'ejemplo', 'avisada']
+
+    def get_persona(self, o):
+        return o.usuario.get_full_name() or o.usuario.username
+
+    def get_revisada_por_nombre(self, o):
+        return (o.revisada_por.get_full_name() or o.revisada_por.username) if o.revisada_por else None
+
+
+class IncidenciaViewSet(viewsets.ModelViewSet):
+    """Cada persona ve las suyas; supervisores las de su equipo y las marcan como revisadas o descartadas."""
+    serializer_class = IncidenciaSerializer
+    http_method_names = ['get', 'patch']
+
+    def get_queryset(self):
+        from django.db.models import F, Q
+        u = self.request.user
+        qs = Incidencia.objects.select_related('regla', 'usuario', 'revisada_por').filter(minutos__gte=F('regla__minutos_minimos'))
+        qs = qs.filter(Q(usuario=u) | Q(usuario__in=equipo_gestionable(u)))
+        p = self.request.query_params
+        if p.get('persona'):
+            if not str(p['persona']).isdigit():
+                raise exceptions.ValidationError({'persona': 'Debe ser un número.'})
+            qs = qs.filter(usuario_id=p['persona'])
+        if p.get('estado') in ('NUEVA', 'REVISADA', 'DESCARTADA'):
+            qs = qs.filter(estado=p['estado'])
+        if self.action == 'list':
+            desde, hasta = _rango_param(self.request, 30)
+            qs = qs.filter(dia__range=(desde, hasta))
+        return qs[:500] if self.action == 'list' else qs
+
+    def perform_update(self, serializer):
+        inc = serializer.instance
+        if inc.usuario_id == self.request.user.pk or not puede_gestionar(self.request.user, inc.usuario):
+            raise exceptions.PermissionDenied("La revisa su supervisor.")
+        serializer.save(revisada_por=self.request.user)
+
+
+class ReglaComportamientoSerializer(serializers.ModelSerializer):
+    incidencias_30d = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReglaComportamiento
+        fields = ['id', 'nombre', 'descripcion', 'categoria', 'campo', 'patrones', 'minutos_minimos', 'riesgo', 'accion',
+                  'departamentos', 'excluir_departamentos', 'activa', 'incidencias_30d']
+
+    def get_incidencias_30d(self, o):
+        from django.db.models import F
+        return o.incidencias.filter(dia__gte=timezone.localdate() - timedelta(days=29), minutos__gte=F('regla__minutos_minimos')).count()
+
+    def validate_patrones(self, v):
+        limpios = [p.strip().lower() for p in str(v).splitlines() if p.strip()]
+        if not limpios:
+            raise serializers.ValidationError('Escribe al menos un sitio, aplicación o texto.')
+        if any(len(p) < 3 for p in limpios):
+            raise serializers.ValidationError('Cada patrón necesita al menos 3 letras (si no, coincide con casi todo).')
+        return '\n'.join(limpios[:100])
+
+
+class ReglaComportamientoViewSet(viewsets.ModelViewSet):
+    queryset = ReglaComportamiento.objects.prefetch_related('departamentos', 'excluir_departamentos')
+    serializer_class = ReglaComportamientoSerializer
+    permission_classes = [EsAdministrador]
+
+    @action(detail=False, methods=['post'])
+    def reaplicar(self, request):
+        from .comportamiento import reaplicar
+        n, borradas = reaplicar(30)
+        return Response({'incidencias': n, 'borradas': borradas})
+
+
+class PerfilMonitoreoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PerfilMonitoreo
+        fields = ['id', 'nombre', 'descripcion', 'monitorear', 'capturas', 'capturas_cada_min', 'desenfocar_capturas',
+                  'umbral_inactivo_seg', 'departamentos', 'personas']
+
+    def validate_capturas_cada_min(self, v):
+        if v < 1:
+            raise serializers.ValidationError('Mínimo 1 minuto.')
+        return v
+
+    def validate_umbral_inactivo_seg(self, v):
+        if v < 30:
+            raise serializers.ValidationError('Mínimo 30 segundos.')
+        return v
+
+    def validate(self, data):
+        # Una persona o un departamento solo puede estar en un perfil.
+        for campo, etiqueta in (('personas', 'persona'), ('departamentos', 'departamento')):
+            for obj in data.get(campo, []):
+                otro = PerfilMonitoreo.objects.filter(**{campo: obj}).exclude(pk=getattr(self.instance, 'pk', None)).first()
+                if otro:
+                    raise serializers.ValidationError({campo: f'{obj} ya está en el perfil «{otro.nombre}».'})
+        return data
+
+
+class PerfilMonitoreoViewSet(viewsets.ModelViewSet):
+    queryset = PerfilMonitoreo.objects.prefetch_related('departamentos', 'personas')
+    serializer_class = PerfilMonitoreoSerializer
+    permission_classes = [EsAdministrador]
+
+
+@api_view(['GET'])
+def pantallas_view(request):
+    """Pantallas en vivo: la última captura de hoy de cada persona del equipo (si su perfil toma capturas)."""
+    ids = _equipo_ids(request)
+    hoy = timezone.localdate()
+    ultimas = {}
+    for c in Captura.objects.filter(usuario_id__in=ids, tomada_en__range=asistencia.rango(hoy)).select_related('usuario').order_by('-tomada_en'):
+        ultimas.setdefault(c.usuario_id, c)
+    contacto = servicios.ultimo_contacto_por_usuario(ids)
+    filas = [{'id': c.usuario_id, 'nombre': c.usuario.get_full_name() or c.usuario.username, 'captura': c.pk,
+              'hora': timezone.localtime(c.tomada_en).strftime('%H:%M'), 'app': c.app, 'ahora': contacto.get(c.usuario_id)}
+             for c in ultimas.values()]
+    filas.sort(key=lambda x: x['nombre'])
+    return Response({'personas': filas, 'capturas_activas': PerfilMonitoreo.objects.filter(capturas=True).exists()
+                     or ConfiguracionMonitoreo.actual().capturas})
+
+
+@api_view(['GET'])
+def computadoras_view(request):
+    """Personas y computadoras con su estado de monitoreo (como «Employees» y «Computers» de Teramind)."""
+    if not _es_tecnologia(request.user):
+        raise exceptions.PermissionDenied("Esta vista es para Tecnología y administración.")
+    from .comportamiento import parametros
+    config = ConfiguracionMonitoreo.actual()
+    ahora = timezone.now()
+    consentidos = set(Consentimiento.objects.filter(version=config.version_politica).values_list('usuario_id', flat=True))
+    equipos = list(Dispositivo.objects.select_related('usuario'))
+    por_persona = {}
+    for d in equipos:
+        por_persona.setdefault(d.usuario_id, []).append(d)
+    personas = []
+    for u in User.objects.filter(is_active=True, perfil__puesto_trabajo__isnull=False).select_related('perfil__puesto_trabajo__departamento').order_by('first_name'):
+        mios = [d for d in por_persona.get(u.pk, []) if d.activo]
+        contacto = max((d.ultimo_contacto for d in mios if d.ultimo_contacto), default=None)
+        p = parametros(u, config)
+        estado = ('SIN_POLITICA' if u.pk not in consentidos else 'SIN_EQUIPO' if not mios else 'NO_MONITOREADO' if not p['monitorear']
+                  else 'EN_LINEA' if contacto and ahora - contacto < timedelta(minutes=5) else 'DESCONECTADO')
+        puesto = u.perfil.puesto_trabajo
+        personas.append({'id': u.pk, 'nombre': u.get_full_name() or u.username, 'departamento': puesto.departamento.nombre if puesto.departamento_id else None,
+                         'puesto': puesto.nombre, 'perfil': p['perfil'], 'capturas': p['capturas'], 'equipos': len(mios),
+                         'ultimo_contacto': contacto, 'estado': estado})
+    return Response({
+        'personas': personas,
+        'computadoras': [{'id': d.id, 'nombre': d.nombre, 'persona': d.usuario.get_full_name() or d.usuario.username,
+                          'usuario': d.usuario_id, 'sistema': d.sistema, 'version_agente': d.version_agente, 'activo': d.activo,
+                          'creado': d.creado, 'ultimo_contacto': d.ultimo_contacto, 'prefijo': d.prefijo,
+                          'en_linea': bool(d.activo and d.ultimo_contacto and ahora - d.ultimo_contacto < timedelta(minutes=5))}
+                         for d in sorted(equipos, key=lambda x: (not x.activo, x.usuario.first_name))],
+    })

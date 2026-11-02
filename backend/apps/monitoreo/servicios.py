@@ -97,7 +97,9 @@ def estado_agente(dispositivo):
     from apps.asistencia.servicios import estado_actual
     config = ConfiguracionMonitoreo.actual()
     usuario = dispositivo.usuario
+    from .comportamiento import parametros
     jornada, _ = estado_actual(usuario)
+    param = parametros(usuario, config)
     registrar, motivo = True, 'Midiendo tu jornada.'
     if not config.activo:
         registrar, motivo = False, 'El monitoreo está apagado.'
@@ -105,6 +107,8 @@ def estado_agente(dispositivo):
         registrar, motivo = False, 'Este equipo fue desvinculado.'
     elif not consintio(usuario, config):
         registrar, motivo = False, 'Falta aceptar la política de monitoreo en Adzone Team.'
+    elif not param['monitorear']:
+        registrar, motivo = False, 'Tu perfil de monitoreo no registra actividad.'
     elif jornada == 'FUERA':
         registrar, motivo = False, 'No has marcado entrada: no se registra nada.'
     elif jornada == 'EN_PAUSA':
@@ -112,9 +116,9 @@ def estado_agente(dispositivo):
     return {
         'registrar': registrar, 'motivo': motivo, 'jornada': jornada,
         'usuario': usuario.get_full_name() or usuario.username, 'equipo': dispositivo.nombre,
-        'umbral_inactivo_seg': config.umbral_inactivo_seg,
-        'capturas': registrar and config.capturas, 'capturas_cada_min': config.capturas_cada_min,
-        'desenfocar': config.desenfocar_capturas, 'consentimiento': consintio(usuario, config),
+        'umbral_inactivo_seg': param['umbral_inactivo_seg'], 'perfil': param['perfil'],
+        'capturas': registrar and param['capturas'], 'capturas_cada_min': param['capturas_cada_min'],
+        'desenfocar': param['desenfocar'], 'consentimiento': consintio(usuario, config),
         'version_politica': config.version_politica, 'intervalo_envio_seg': 60,
     }
 
@@ -144,7 +148,8 @@ def ingestar(dispositivo, minutos, ahora=None):
     ahora = ahora or timezone.now()
     config = ConfiguracionMonitoreo.actual()
     usuario = dispositivo.usuario
-    if not config.activo or not consintio(usuario, config):
+    from .comportamiento import parametros, registrar_incidencias
+    if not config.activo or not consintio(usuario, config) or not parametros(usuario, config)['monitorear']:
         return 0, len(minutos)
     validos = []
     for item in minutos[:720]:
@@ -161,6 +166,7 @@ def ingestar(dispositivo, minutos, ahora=None):
     clasif = Clasificador()
     depto = departamento_de(usuario)
     guardados = 0
+    nuevas = []
     for m, item in validos:
         if not any(a <= m < b for a, b in tramos):
             continue
@@ -174,8 +180,10 @@ def ingestar(dispositivo, minutos, ahora=None):
                     app=app, titulo=titulo, dominio=dominio.lower(), categoria=clasif.categoria(depto, app, titulo, dominio),
                     registro_id=next((r for a, b, r in registros if a <= m < b), None))
             guardados += 1
+            nuevas.append((m, app, dominio.lower(), titulo))
         except IntegrityError:
             pass  # ese minuto ya llegó (de este u otro equipo de la misma persona)
+    registrar_incidencias(usuario, depto, nuevas)
     return guardados, len(minutos) - guardados
 
 
