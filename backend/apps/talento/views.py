@@ -325,3 +325,224 @@ def auditoria_view(request):
         qs = qs.filter(fecha__date__gte=desde)
     return Response([{'id': a.id, 'fecha': a.fecha, 'usuario': _nombre(a.usuario), 'accion': a.accion, 'objeto': a.objeto,
                       'antes': a.antes, 'despues': a.despues} for a in qs[:300]])
+
+
+# ------------------------------------------------------------------ Políticas
+import csv  # noqa: E402
+
+from django.http import FileResponse, Http404, HttpResponse  # noqa: E402
+from rest_framework.decorators import action  # noqa: E402
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser  # noqa: E402
+
+from . import politicas as pol  # noqa: E402
+from .models import AceptacionPolitica, DocumentoEmpleado, Politica, VersionPolitica  # noqa: E402
+
+
+class EsRRHH(EsAdministrador):
+    def has_permission(self, request, view):
+        return pol.es_rrhh(request.user)
+
+
+def _ip(request):
+    return (request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')) or None
+
+
+class PoliticaSerializer(serializers.ModelSerializer):
+    categoria_nombre = serializers.CharField(source='get_categoria_display', read_only=True)
+    aceptada = serializers.SerializerMethodField()
+    aceptada_en = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Politica
+        fields = ['id', 'clave', 'titulo', 'categoria', 'categoria_nombre', 'resumen', 'contenido', 'version', 'vigente_desde',
+                  'para_todos', 'departamentos', 'puestos', 'requiere_aceptacion', 'activa', 'borrador', 'actualizada',
+                  'aceptada', 'aceptada_en']
+        read_only_fields = ['version', 'vigente_desde', 'actualizada']
+        extra_kwargs = {'clave': {'required': False}}
+
+    def _aceptacion(self, o):
+        u = self.context['request'].user
+        cache = self.context.setdefault('_acept', {})
+        if u.pk not in cache:
+            cache[u.pk] = {(a.politica_id, a.version): a.fecha for a in AceptacionPolitica.objects.filter(usuario=u)}
+        return cache[u.pk].get((o.pk, o.version))
+
+    def get_aceptada(self, o):
+        return self._aceptacion(o) is not None
+
+    def get_aceptada_en(self, o):
+        return self._aceptacion(o)
+
+    def validate(self, data):
+        if self.instance and not self.instance.borrador and 'contenido' in data and data['contenido'] != self.instance.contenido:
+            raise serializers.ValidationError({'contenido': 'Una política publicada se cambia con «Nueva versión», para que todos la acepten de nuevo.'})
+        return data
+
+
+class PoliticaViewSet(viewsets.ModelViewSet):
+    serializer_class = PoliticaSerializer
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve', 'aceptar', 'constancia'):
+            return super().get_permissions()
+        return [EsRRHH()]
+
+    def get_queryset(self):
+        u = self.request.user
+        qs = Politica.objects.prefetch_related('puestos', 'departamentos')
+        if pol.es_rrhh(u):
+            return qs
+        visibles = [p.pk for p, _ in pol.de_usuario(u)]
+        return qs.filter(pk__in=visibles)
+
+    def perform_create(self, serializer):
+        from django.utils.text import slugify
+        base = (serializer.validated_data.get('clave') or slugify(serializer.validated_data['titulo']) or 'politica')[:36]
+        clave, n = base, 2
+        while Politica.objects.filter(clave=clave).exists():
+            clave, n = f'{base}-{n}', n + 1
+        p = serializer.save(creada_por=self.request.user, clave=clave)
+        VersionPolitica.objects.create(politica=p, version=1, titulo=p.titulo, contenido=p.contenido, cambio='Versión inicial', por=self.request.user)
+        if not p.borrador and p.activa:
+            pol.avisar_publicacion(p, self.request.user)
+
+    def perform_update(self, serializer):
+        antes = serializer.instance.borrador
+        p = serializer.save()
+        if p.borrador:  # mientras es borrador, el texto de la versión 1 sigue al de la política
+            VersionPolitica.objects.filter(politica=p, version=p.version).update(titulo=p.titulo, contenido=p.contenido)
+        elif antes and p.activa:
+            p.vigente_desde = timezone.localdate()
+            p.save(update_fields=['vigente_desde'])
+            pol.avisar_publicacion(p, self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def aceptar(self, request, pk=None):
+        p = self.get_object()
+        if p.borrador or not p.activa:
+            return Response({'detail': 'Esta política no está publicada.'}, status=400)
+        a = pol.aceptar(p, request.user, _ip(request), request.META.get('HTTP_USER_AGENT', ''))
+        return Response({'aceptada': True, 'version': a.version, 'fecha': a.fecha})
+
+    @action(detail=True, methods=['post'], url_path='nueva-version')
+    def nueva_version(self, request, pk=None):
+        p = self.get_object()
+        contenido = str(request.data.get('contenido') or '').strip()
+        if not contenido:
+            return Response({'contenido': 'Escribe el texto de la nueva versión.'}, status=400)
+        pol.nueva_version(p, str(request.data.get('titulo') or '').strip()[:150], contenido, request.data.get('cambio'), request.user)
+        return Response(self.get_serializer(p).data)
+
+    @action(detail=True, methods=['get'])
+    def versiones(self, request, pk=None):
+        p = self.get_object()
+        return Response([{'version': v.version, 'titulo': v.titulo, 'cambio': v.cambio, 'fecha': v.fecha, 'contenido': v.contenido,
+                          'por': _nombre(v.por), 'aceptaron': p.aceptaciones.filter(version=v.version).count()} for v in p.versiones.all()])
+
+    @action(detail=True, methods=['get'])
+    def constancia(self, request, pk=None):
+        """El texto exacto que aceptó una persona, con fecha, IP y versión (para imprimir o guardar en PDF)."""
+        p = get_object_or_404(Politica, pk=pk)
+        persona = _persona_param(request) or request.user
+        if persona.pk != request.user.pk and not pol.es_rrhh(request.user):
+            raise exceptions.PermissionDenied("Solo Gestión del Talento ve las constancias de otras personas.")
+        a = AceptacionPolitica.objects.filter(politica=p, usuario=persona).order_by('-version').first()
+        if a is None:
+            raise Http404
+        v = VersionPolitica.objects.filter(politica=p, version=a.version).first()
+        return Response({'politica': p.titulo, 'version': a.version, 'contenido': v.contenido if v else p.contenido, 'persona': _nombre(persona),
+                         'fecha': a.fecha, 'ip': a.ip, 'navegador': a.navegador})
+
+
+@api_view(['GET'])
+def politicas_pendientes_view(request):
+    return Response([{'id': p.pk, 'titulo': p.titulo, 'version': p.version} for p in pol.pendientes(request.user)])
+
+
+@api_view(['GET'])
+@permission_classes([EsRRHH])
+def cumplimiento_view(request):
+    filas = pol.cumplimiento()
+    if request.query_params.get('formato') == 'csv':
+        r = HttpResponse(content_type='text/csv; charset=utf-8')
+        r['Content-Disposition'] = 'attachment; filename="cumplimiento-politicas.csv"'
+        r.write('﻿')
+        w = csv.writer(r)
+        w.writerow(['Política', 'Versión', 'Personas', 'Aceptaron', '%', 'Pendientes'])
+        for f in filas:
+            w.writerow([f['titulo'], f['version'], f['personas'], f['aceptaron'], f['porcentaje'] if f['porcentaje'] is not None else '',
+                        '; '.join(x['nombre'] for x in f['faltan'])])
+        return r
+    return Response(filas)
+
+
+# ------------------------------------------------------------------ Documentos del expediente
+class DocumentoSerializer(serializers.ModelSerializer):
+    tipo_nombre = serializers.CharField(source='get_tipo_display', read_only=True)
+    subido_por_nombre = serializers.SerializerMethodField()
+    vencido = serializers.SerializerMethodField()
+    visible_al_colaborador = serializers.BooleanField(default=True)  # en un formulario, la casilla ausente no es «no»
+
+    class Meta:
+        model = DocumentoEmpleado
+        fields = ['id', 'colaborador', 'tipo', 'tipo_nombre', 'titulo', 'archivo', 'emitido', 'vence', 'vencido', 'visible_al_colaborador',
+                  'notas', 'subido_por_nombre', 'creado']
+        extra_kwargs = {'archivo': {'write_only': True}}
+
+    def get_subido_por_nombre(self, o):
+        return _nombre(o.subido_por)
+
+    def get_vencido(self, o):
+        return bool(o.vence and o.vence < timezone.localdate())
+
+    def validate_archivo(self, f):
+        import os
+        if f.size > 15 * 1024 * 1024:
+            raise serializers.ValidationError('Máximo 15 MB.')
+        if os.path.splitext(f.name)[1].lower() not in ('.pdf', '.jpg', '.jpeg', '.png', '.webp', '.docx', '.doc'):
+            raise serializers.ValidationError('Sube un PDF, una imagen o un documento de Word.')
+        return f
+
+
+class DocumentoViewSet(viewsets.ModelViewSet):
+    """Gestión del Talento sube y maneja los documentos; cada persona ve y descarga los suyos visibles. Los supervisores no."""
+    serializer_class = DocumentoSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+    def get_permissions(self):
+        return super().get_permissions() if self.action in ('list', 'retrieve', 'archivo') else [EsRRHH()]
+
+    def get_queryset(self):
+        u = self.request.user
+        qs = DocumentoEmpleado.objects.select_related('colaborador', 'subido_por')
+        if pol.es_rrhh(u):
+            persona = _persona_param(self.request)
+            return qs.filter(colaborador=persona) if persona else qs
+        return qs.filter(colaborador=u, visible_al_colaborador=True)
+
+    def perform_create(self, serializer):
+        serializer.save(subido_por=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(colaborador=serializer.instance.colaborador)
+
+    @action(detail=True, methods=['get'])
+    def archivo(self, request, pk=None):
+        import mimetypes
+        d = self.get_object()
+        try:
+            f = d.archivo.open('rb')
+        except (FileNotFoundError, ValueError):
+            raise Http404
+        tipo = mimetypes.guess_type(d.archivo.name)[0] or 'application/octet-stream'
+        r = FileResponse(f, content_type=tipo, as_attachment=not (tipo.startswith('image/') or tipo == 'application/pdf'),
+                         filename=f'{d.titulo}{__import__("os").path.splitext(d.archivo.name)[1]}')
+        r['Cache-Control'] = 'private, no-store'
+        return r
+
+
+@api_view(['GET'])
+@permission_classes([EsRRHH])
+def estado_documentos_view(request):
+    return Response(pol.estado_documentos())

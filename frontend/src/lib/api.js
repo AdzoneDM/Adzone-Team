@@ -371,3 +371,26 @@ export const borrarPerfilMonitoreo = (id) => api(`${MO}/perfiles/${id}/`, { meth
 export const pantallasEnVivo = () => api(`${MO}/pantallas/`);
 export const computadoras = () => api(`${MO}/computadoras/`);
 export const reaplicarReglas = () => api(`${MO}/reglas-comportamiento/reaplicar/`, { method: "POST" });
+
+// Políticas y documentos del expediente
+export const politicas = () => api(`${TA}/politicas/`);
+export const politica = (id) => api(`${TA}/politicas/${id}/`);
+export const guardarPolitica = (p) => (p.id ? api(`${TA}/politicas/${p.id}/`, { method: "PATCH", body: p }) : api(`${TA}/politicas/`, { method: "POST", body: p }));
+export const borrarPolitica = (id) => api(`${TA}/politicas/${id}/`, { method: "DELETE" });
+export const aceptarPoliticaEmpresa = (id) => api(`${TA}/politicas/${id}/aceptar/`, { method: "POST" });
+export const nuevaVersionPolitica = (id, d) => api(`${TA}/politicas/${id}/nueva-version/`, { method: "POST", body: d });
+export const versionesPolitica = (id) => api(`${TA}/politicas/${id}/versiones/`);
+export const constanciaPolitica = (id, usuario) => api(`${TA}/politicas/${id}/constancia/${q({ usuario })}`);
+export const cumplimientoPoliticas = () => api(`${TA}/politicas/cumplimiento/`);
+export const urlCumplimientoCsv = () => `${TA}/politicas/cumplimiento/?formato=csv`;
+export const documentosEmpleado = (usuario) => api(`${TA}/documentos/${q({ usuario })}`);
+export const estadoDocumentos = () => api(`${TA}/documentos/estado/`);
+export const editarDocumento = (id, d) => api(`${TA}/documentos/${id}/`, { method: "PATCH", body: d });
+export const borrarDocumento = (id) => api(`${TA}/documentos/${id}/`, { method: "DELETE" });
+export const urlDocumento = (id) => `${TA}/documentos/${id}/archivo/`;
+export const subirDocumento = (d, archivo) => {
+  const fd = new FormData();
+  Object.entries(d).forEach(([k, v]) => { if (v !== "" && v != null) fd.append(k, typeof v === "boolean" ? (v ? "true" : "false") : v); });
+  fd.append("archivo", archivo);
+  return api(`${TA}/documentos/`, { method: "POST", body: fd });
+};

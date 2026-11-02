@@ -46,6 +46,7 @@ export function SesionProvider({ children }) {
     puedeValidar: !!usuario?.puede_validar,
     esFinanzas: !!usuario?.es_finanzas,
     esTecnologia: !!usuario?.es_tecnologia,
+    esRRHH: !!usuario?.es_rrhh,
     gestiona: !!usuario?.gestiona,
     esCoordinacion: !!usuario?.es_coordinacion,
     esAlmacen: !!usuario?.es_almacen,

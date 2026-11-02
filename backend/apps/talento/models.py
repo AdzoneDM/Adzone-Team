@@ -5,6 +5,7 @@ bonos, y la auditoría de los cambios administrativos de toda la plataforma.
 """
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 COMPETENCIAS = [
     ('calidad', 'Calidad del trabajo'),
@@ -127,3 +128,91 @@ class AuditoriaCambio(models.Model):
 
     class Meta:
         ordering = ['-fecha']
+
+
+# ------------------------------------------------------------------ Políticas y cumplimiento
+class Politica(models.Model):
+    CATEGORIAS = [('REGLAMENTO', 'Reglamento interno'), ('ASISTENCIA', 'Asistencia y puntualidad'), ('PERMISOS', 'Permisos y vacaciones'),
+                  ('TECNOLOGIA', 'Uso de computadoras e internet'), ('MONITOREO', 'Monitoreo y privacidad'), ('DATOS', 'Protección de datos'),
+                  ('SEGURIDAD', 'Seguridad informática'), ('EQUIPOS', 'Equipos de la empresa'), ('REMOTO', 'Trabajo remoto'),
+                  ('IA', 'Inteligencia artificial'), ('REDES', 'Redes sociales'), ('VEHICULOS', 'Vehículos y herramientas'),
+                  ('CALIDAD', 'Calidad y entregas'), ('DISCIPLINA', 'Disciplina'), ('OTRA', 'Otra')]
+    clave = models.SlugField(max_length=40, unique=True)
+    titulo = models.CharField(max_length=150)
+    categoria = models.CharField(max_length=12, choices=CATEGORIAS, default='OTRA')
+    resumen = models.CharField(max_length=300, blank=True, help_text="Lo esencial en una o dos líneas.")
+    contenido = models.TextField(help_text="Texto completo. Admite párrafos y listas con guiones.")
+    version = models.PositiveIntegerField(default=1)
+    vigente_desde = models.DateField(default=timezone.localdate)
+    para_todos = models.BooleanField(default=True, help_text="Toda la empresa. Si no, solo los departamentos y puestos elegidos.")
+    departamentos = models.ManyToManyField('core.Departamento', blank=True, related_name='politicas')
+    puestos = models.ManyToManyField('organizacion.PuestoDeTrabajo', blank=True, related_name='politicas')
+    requiere_aceptacion = models.BooleanField(default=True)
+    activa = models.BooleanField(default=True)
+    borrador = models.BooleanField(default=False, help_text="Borrador: solo la administración la ve.")
+    actualizada = models.DateTimeField(auto_now=True)
+    creada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+
+    class Meta:
+        ordering = ['categoria', 'titulo']
+        verbose_name = 'Política'
+
+    def __str__(self):
+        return f'{self.titulo} (v{self.version})'
+
+
+class VersionPolitica(models.Model):
+    """Historial: el texto exacto de cada versión, para saber qué aceptó cada quien."""
+    politica = models.ForeignKey(Politica, on_delete=models.CASCADE, related_name='versiones')
+    version = models.PositiveIntegerField()
+    titulo = models.CharField(max_length=150)
+    contenido = models.TextField()
+    cambio = models.CharField(max_length=255, blank=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+    por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+
+    class Meta:
+        unique_together = ('politica', 'version')
+        ordering = ['-version']
+
+
+class AceptacionPolitica(models.Model):
+    politica = models.ForeignKey(Politica, on_delete=models.CASCADE, related_name='aceptaciones')
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='politicas_aceptadas')
+    version = models.PositiveIntegerField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    navegador = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        unique_together = ('politica', 'usuario', 'version')
+        ordering = ['-fecha']
+
+
+# ------------------------------------------------------------------ Documentos del expediente
+def _ruta_documento(instancia, nombre):
+    import os
+    import uuid
+    return f'expedientes/{instancia.colaborador_id}/{uuid.uuid4().hex}{os.path.splitext(nombre)[1].lower()[:10]}'
+
+
+class DocumentoEmpleado(models.Model):
+    TIPOS = [('CONTRATO', 'Contrato de trabajo'), ('IDENTIFICACION', 'Copia de identificación'),
+             ('CONFIDENCIALIDAD', 'Acuerdo de confidencialidad'), ('TITULO', 'Título académico'),
+             ('CERTIFICACION', 'Certificación o curso'), ('CARTA', 'Carta o constancia'), ('ACTA', 'Acta firmada'),
+             ('POLIZA', 'Póliza o seguro'), ('OTRO', 'Otro')]
+    REQUERIDOS = ['CONTRATO', 'IDENTIFICACION', 'CONFIDENCIALIDAD']
+    colaborador = models.ForeignKey(User, on_delete=models.CASCADE, related_name='documentos_laborales')
+    tipo = models.CharField(max_length=16, choices=TIPOS)
+    titulo = models.CharField(max_length=150)
+    archivo = models.FileField(upload_to=_ruta_documento)
+    emitido = models.DateField(null=True, blank=True)
+    vence = models.DateField(null=True, blank=True, help_text="Contratos por tiempo definido, pólizas, licencias…")
+    visible_al_colaborador = models.BooleanField(default=True)
+    notas = models.CharField(max_length=255, blank=True)
+    subido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['colaborador__first_name', 'tipo', '-creado']
+        verbose_name = 'Documento del empleado'

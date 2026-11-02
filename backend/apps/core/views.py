@@ -34,6 +34,16 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
 
 
 
+def _rrhh(user):
+    from apps.talento.politicas import es_rrhh
+    return es_rrhh(user)
+
+
+def _pendientes(user):
+    from apps.talento.politicas import pendientes
+    return len(pendientes(user))
+
+
 def _es_tecnologia(user):
     from apps.desempeno.permisos import es_administrador
     from apps.monitoreo.servicios import tecnologia
@@ -57,6 +67,8 @@ def datos_usuario(user):
         'departamento_id': puesto.departamento_id if puesto else None,
         'es_finanzas': es_finanzas(user),
         'es_tecnologia': _es_tecnologia(user),
+        'es_rrhh': _rrhh(user),
+        'politicas_pendientes': _pendientes(user),
         'gestiona': gestiona_algo(user),
         'es_coordinacion': es_coordinacion(user),
         'es_almacen': es_almacen(user),

@@ -156,6 +156,25 @@ def panel(periodo, hoy=None):
     if capacitacion:
         alertas.append({'tipo': 'CAPACITACION', 'nivel': 'baja', 'titulo': f'{len(capacitacion)} necesidad(es) de capacitación detectadas',
                         'detalle': '; '.join(f"{c['departamento']}: {c['tema']}" for c in capacitacion[:4]), 'enlace': '/panel#capacitacion'})
+    # 5) Cumplimiento: políticas sin aceptar, documentos por vencer e incidencias de alto riesgo
+    from apps.talento import politicas as pol
+    cumpl = pol.cumplimiento()
+    sin_aceptar = sum(len(c['faltan']) for c in cumpl)
+    if sin_aceptar:
+        alertas.append({'tipo': 'POLITICAS', 'nivel': 'media' if sin_aceptar > 10 else 'baja',
+                        'titulo': f'{sin_aceptar} aceptación(es) de políticas pendientes',
+                        'detalle': '; '.join(f"{c['titulo']}: {len(c['faltan'])}" for c in cumpl if c['faltan'])[:300], 'enlace': '/politicas?ver=cumplimiento'})
+    docs = pol.estado_documentos(hoy)
+    if docs['vencen']:
+        vencidos = sum(1 for d in docs['vencen'] if d['vencido'])
+        alertas.append({'tipo': 'DOCUMENTOS', 'nivel': 'alta' if vencidos else 'media',
+                        'titulo': f"{len(docs['vencen'])} documento(s) por vencer" + (f' ({vencidos} vencido(s))' if vencidos else ''),
+                        'detalle': '; '.join(f"{d['persona']}: {d['titulo']} ({d['vence']:%d/%m})" for d in docs['vencen'][:4]), 'enlace': '/politicas?ver=documentos'})
+    from apps.monitoreo.comportamiento import riesgo as riesgo_pc
+    riesgos = [v for v in riesgo_pc(list(personal.values_list('pk', flat=True)), inicio, fin).values() if v['nivel'] in ('ALTO', 'CRITICO')]
+    if riesgos:
+        alertas.append({'tipo': 'RIESGO', 'nivel': 'alta', 'titulo': f'{len(riesgos)} persona(s) con riesgo alto en la computadora',
+                        'detalle': 'Reglas de comportamiento: apuestas, acceso remoto, descargas, IA no aprobada…', 'enlace': '/monitoreo?ver=resumen'})
     orden_nivel = {'alta': 0, 'media': 1, 'baja': 2}
     alertas.sort(key=lambda a: orden_nivel[a['nivel']])
 
@@ -181,6 +200,7 @@ def panel(periodo, hoy=None):
         'tareas_validadas': actual['tareas_validadas'], 'tareas_a_tiempo': actual['tareas_a_tiempo'],
         'planes_abiertos': PlanMejora.objects.filter(estado='ABIERTO').count(),
         'evaluaciones_por_revisar': Evaluacion.objects.filter(estado='EN_REVISION').count(),
+        'politicas_pendientes': sin_aceptar, 'expedientes_incompletos': len(docs['faltantes']),
         'tendencia': [{k: m[k] for k in ('mes', 'puntaje', 'ot_completadas', 'ot_a_tiempo', 'tareas_validadas', 'tareas_a_tiempo')} for m in meses],
         'departamentos': departamentos, 'alertas': alertas, 'capacitacion': capacitacion,
         'destacados': destacados, 'atencion': atencion,

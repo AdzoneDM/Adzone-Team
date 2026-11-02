@@ -1,7 +1,7 @@
 // Panel gerencial de la Dirección: la empresa del mes en una pantalla, por área, con alertas para decidir.
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Download, GraduationCap, TrendingDown } from "lucide-react";
+import { AlertTriangle, Download, GraduationCap, ScrollText, TrendingDown } from "lucide-react";
 import { panelGerencial, urlExportarPanel } from "@/lib/api";
 import { mesActual, nombreMes } from "@/lib/formato";
 import { Alerta, Barra, Cabecera, Cargando, Insignia, Panel, Puntaje, SelectorMes, cx } from "@/components/ui";
@@ -59,7 +59,7 @@ export default function PanelGerencial() {
             {!d.alertas.length ? <p className="p-5 text-sm text-gris">Sin alertas este mes.</p> : (
               <ul className="divide-y divide-linea-suave">{d.alertas.map((a, i) => (
                 <li key={i} className="flex items-start gap-3 px-5 py-3">
-                  {a.tipo === "TENDENCIA" ? <TrendingDown className="mt-0.5 size-4 shrink-0 text-[#a86a00]" /> : a.tipo === "CAPACITACION" ? <GraduationCap className="mt-0.5 size-4 shrink-0 text-azul" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-rojo" />}
+                  {a.tipo === "POLITICAS" || a.tipo === "DOCUMENTOS" ? <ScrollText className="mt-0.5 size-4 shrink-0 text-[#a86a00]" /> : a.tipo === "TENDENCIA" ? <TrendingDown className="mt-0.5 size-4 shrink-0 text-[#a86a00]" /> : a.tipo === "CAPACITACION" ? <GraduationCap className="mt-0.5 size-4 shrink-0 text-azul" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-rojo" />}
                   <span className="min-w-0 flex-1"><Link to={a.enlace} className="font-medium hover:text-azul">{a.titulo}</Link><span className="block text-sm text-gris">{a.detalle}</span></span>
                   <Insignia tono={NIVEL[a.nivel][1]}>{NIVEL[a.nivel][0]}</Insignia>
                 </li>))}</ul>

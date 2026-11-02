@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  Award, CalendarClock, Gauge, LayoutDashboard, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, Gauge, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -24,6 +24,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
     { a: "/monitoreo", texto: "Mi actividad", icono: MonitorSmartphone },
     { a: "/ficha", texto: "Mi ficha", icono: Gauge },
     { a: "/talento", texto: "Evaluaciones", icono: Award },
+    { a: "/politicas", texto: "Políticas", icono: ScrollText },
     { a: "/organigrama", texto: "Organigrama", icono: Network },
   ] }];
   const s = [
@@ -35,6 +36,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
       { a: "/monitoreo", texto: puedeValidar || esAdmin ? "Monitoreo" : "Mi actividad", icono: MonitorSmartphone },
       { a: "/ficha", texto: "Mi ficha", icono: Gauge },
       { a: "/talento", texto: puedeValidar || esAdmin ? "Talento" : "Evaluaciones", icono: Award },
+      { a: "/politicas", texto: "Políticas", icono: ScrollText },
     ] },
     { titulo: "Operación", items: [
       { a: "/ordenes", texto: "Órdenes de trabajo", icono: ClipboardList },
@@ -394,6 +396,12 @@ function EstructuraInterna() {
       <Buscador abierto={buscando} onCerrar={() => setBuscando(false)} />
 
       <Recordatorio datos={datos} refrescar={refrescar} />
+
+      {usuario?.politicas_pendientes > 0 && !location.pathname.startsWith("/politicas") && (
+        <div className="border-b border-amarillo-600/30 bg-amarillo-50 px-4 py-2 text-center text-sm text-[#7a5000]">
+          Tienes {usuario.politicas_pendientes} política(s) por leer y aceptar. <Link to="/politicas" className="font-semibold underline">Revisar ahora</Link>
+        </div>
+      )}
 
       <main className="mx-auto w-full max-w-[1320px] px-4 pb-28 pt-5 md:px-6 lg:px-8 lg:pb-12 lg:pt-7">
         <Outlet context={{ refrescarAvisos: refrescar }} />

@@ -62,6 +62,11 @@ VIGILADOS = {
     'organizacion.PuestoDeTrabajo': ('Puesto', ['nombre', 'departamento_id', 'supervisor_id']),
     'talento.Evaluacion': ('Evaluación', ['estado']),
     'talento.EventoExpediente': ('Expediente', ['tipo', 'titulo', 'visible_al_colaborador']),
+    'talento.Politica': ('Política', ['titulo', 'version', 'borrador', 'activa', 'para_todos', 'requiere_aceptacion']),
+    'talento.DocumentoEmpleado': ('Documento del expediente', ['tipo', 'titulo', 'vence', 'visible_al_colaborador']),
+    'monitoreo.ReglaComportamiento': ('Regla de comportamiento', ['nombre', 'patrones', 'minutos_minimos', 'riesgo', 'accion', 'activa']),
+    'monitoreo.PerfilMonitoreo': ('Perfil de monitoreo', ['nombre', 'monitorear', 'capturas', 'capturas_cada_min', 'desenfocar_capturas']),
+    'monitoreo.Incidencia': ('Incidencia', ['estado']),
 }
 
 

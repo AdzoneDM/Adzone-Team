@@ -7,8 +7,13 @@ router = DefaultRouter()
 router.register(r'ciclos', views.CicloViewSet, basename='ciclo')
 router.register(r'planes', views.PlanViewSet, basename='plan')
 router.register(r'expediente', views.ExpedienteViewSet, basename='expediente')
+router.register(r'politicas', views.PoliticaViewSet, basename='politica')
+router.register(r'documentos', views.DocumentoViewSet, basename='documento')
 
 urlpatterns = [
+    path('politicas/pendientes/', views.politicas_pendientes_view),
+    path('politicas/cumplimiento/', views.cumplimiento_view),
+    path('documentos/estado/', views.estado_documentos_view),
     path('', include(router.urls)),
     path('evaluaciones/', views.mis_evaluaciones_view),
     path('evaluaciones/<int:pk>/enviar/', views.enviar_evaluacion_view),

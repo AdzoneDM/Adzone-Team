@@ -39,6 +39,8 @@ const Asistencia = lazy(() => import("@/features/asistencia/Asistencia"));
 const Monitoreo = lazy(() => import("@/features/monitoreo/Monitoreo"));
 const Ficha = lazy(() => import("@/features/desempeno/Ficha"));
 const Talento = lazy(() => import("@/features/talento/Talento"));
+const Politicas = lazy(() => import("@/features/talento/Politicas"));
+const Constancia = lazy(() => import("@/features/talento/Politicas").then((m) => ({ default: m.Constancia })));
 const PanelGerencial = lazy(() => import("@/features/desempeno/PanelGerencial"));
 
 function Protegida({ children, admin, supervisor, finanzas }) {
@@ -89,6 +91,8 @@ export default function App() {
           <Route path="monitoreo" element={<Monitoreo />} />
           <Route path="ficha" element={<Ficha />} />
           <Route path="talento" element={<Talento />} />
+          <Route path="politicas" element={<Politicas />} />
+          <Route path="politicas/:id/constancia" element={<Constancia />} />
           <Route path="panel" element={<Protegida admin><PanelGerencial /></Protegida>} />
           <Route path="finanzas" element={<Protegida finanzas><Finanzas /></Protegida>} />
           <Route path="automatizaciones" element={<Protegida admin><Automatizaciones /></Protegida>} />
