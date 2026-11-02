@@ -53,7 +53,7 @@ VIGILADOS = {
     'desempeno.ResultadoKPI': ('Resultado de KPI', ['valor_meta', 'valor_real']),
     'monitoreo.ConfiguracionMonitoreo': ('Configuración del monitoreo', ['activo', 'capturas', 'capturas_cada_min', 'desenfocar_capturas', 'umbral_inactivo_seg', 'retencion_dias', 'retencion_capturas_dias', 'version_politica', 'meta_productividad_pct']),
     'monitoreo.ReglaProductividad': ('Regla de productividad', ['tipo', 'patron', 'categoria', 'departamento_id']),
-    'monitoreo.Dispositivo': ('Computadora', ['nombre', 'activo', 'usuario_id']),
+    'monitoreo.Dispositivo': ('Computadora', ['nombre', 'activo', 'usuario_id', 'monitorear']),
     'asistencia.Marcaje': ('Marcaje', ['tipo', 'momento', 'usuario_id']),
     'asistencia.Horario': ('Horario', ['nombre', 'dias', 'almuerzo_minutos', 'tolerancia_minutos', 'por_defecto']),
     'asistencia.AsignacionHorario': ('Horario de una persona', ['horario_id', 'marca_obligatoria']),

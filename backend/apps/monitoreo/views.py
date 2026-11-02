@@ -65,8 +65,21 @@ def _dispositivo(request):
     d = request.auth
     d.ultimo_contacto = timezone.now()
     d.version_agente = (request.data.get('version') if request.method == 'POST' else request.query_params.get('version')) or d.version_agente
-    d.sistema = (request.data.get('sistema') if request.method == 'POST' else request.query_params.get('sistema')) or d.sistema
-    d.save(update_fields=['ultimo_contacto', 'version_agente', 'sistema'])
+    d.sistema = ((request.data.get('sistema') if request.method == 'POST' else request.query_params.get('sistema')) or d.sistema)[:60]
+    d.nombre_equipo = (str((request.data.get('equipo') if request.method == 'POST' else request.query_params.get('equipo')) or d.nombre_equipo))[:100]
+    ip = _ip(request)
+    try:
+        from ipaddress import ip_address
+        ip = str(ip_address(ip)) if ip else None
+    except ValueError:
+        ip = None
+    d.ip = ip or d.ip
+    d.save(update_fields=['ultimo_contacto', 'version_agente', 'sistema', 'nombre_equipo', 'ip'])
+    if ip:
+        from django.db.models import F
+        from .models import IPDispositivo
+        if not IPDispositivo.objects.filter(dispositivo=d, ip=ip).update(ultima=d.ultimo_contacto, veces=F('veces') + 1):
+            IPDispositivo.objects.get_or_create(dispositivo=d, ip=ip, defaults={'primera': d.ultimo_contacto, 'ultima': d.ultimo_contacto})
     return d
 
 
@@ -261,7 +274,7 @@ def dia_view(request):
     puesto = getattr(getattr(u, 'perfil', None), 'puesto_trabajo', None)
     r['persona'] = {'id': u.id, 'nombre': u.get_full_name() or u.username, 'puesto': puesto.nombre if puesto else None}
     r['fecha'] = dia
-    r['equipos'] = [{'nombre': d.nombre, 'ultimo_contacto': d.ultimo_contacto} for d in u.dispositivos.filter(activo=True)]
+    r['equipos'] = [{'id': d.pk, 'nombre': d.nombre, 'ultimo_contacto': d.ultimo_contacto} for d in u.dispositivos.filter(activo=True)]
     r['consentimiento'] = servicios.consintio(u)
     return Response(r)
 
@@ -630,7 +643,41 @@ def computadoras_view(request):
         'personas': personas,
         'computadoras': [{'id': d.id, 'nombre': d.nombre, 'persona': d.usuario.get_full_name() or d.usuario.username,
                           'usuario': d.usuario_id, 'sistema': d.sistema, 'version_agente': d.version_agente, 'activo': d.activo,
+                          'nombre_equipo': d.nombre_equipo, 'ip': d.ip, 'monitorear': d.monitorear,
                           'creado': d.creado, 'ultimo_contacto': d.ultimo_contacto, 'prefijo': d.prefijo,
                           'en_linea': bool(d.activo and d.ultimo_contacto and ahora - d.ultimo_contacto < timedelta(minutes=5))}
                          for d in sorted(equipos, key=lambda x: (not x.activo, x.usuario.first_name))],
     })
+
+
+# ------------------------------------------------------------------ Ficha de una computadora
+@api_view(['GET'])
+def computadora_view(request, pk):
+    from .computadora import ficha
+    d = get_object_or_404(Dispositivo.objects.select_related('usuario'), pk=pk)
+    u = request.user
+    if not (d.usuario_id == u.pk or _es_tecnologia(u) or puede_gestionar(u, d.usuario)):
+        raise Http404
+    desde, hasta = _rango_param(request, 7)
+    if (hasta - desde).days > 31:
+        raise exceptions.ValidationError({'desde': 'En la ficha de una computadora, hasta 31 días a la vez.'})
+    persona = request.query_params.get('persona') or None
+    if persona and not str(persona).isdigit():
+        raise exceptions.ValidationError({'persona': 'Debe ser un número.'})
+    datos = ficha(d, desde, hasta, persona=persona, texto=(request.query_params.get('q') or '').strip()[:60])
+    datos['puede_cambiar'] = _es_tecnologia(u)
+    return Response(datos)
+
+
+@api_view(['POST'])
+def computadora_monitorear_view(request, pk):
+    """Encender o apagar el monitoreo de un equipo (Tecnología y administración). Queda en la auditoría."""
+    if not _es_tecnologia(request.user):
+        raise exceptions.PermissionDenied("Lo cambia Tecnología o la administración.")
+    d = get_object_or_404(Dispositivo, pk=pk)
+    valor = request.data.get('monitorear')
+    if not isinstance(valor, bool):
+        raise exceptions.ValidationError({'monitorear': 'Debe ser verdadero o falso.'})
+    d.monitorear = valor
+    d.save(update_fields=['monitorear'])
+    return Response({'monitorear': d.monitorear})

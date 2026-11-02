@@ -38,6 +38,7 @@ const CallCenter = lazy(() => import("@/features/callcenter/CallCenter"));
 const Asistencia = lazy(() => import("@/features/asistencia/Asistencia"));
 const Monitoreo = lazy(() => import("@/features/monitoreo/Monitoreo"));
 const Ficha = lazy(() => import("@/features/desempeno/Ficha"));
+const Computadora = lazy(() => import("@/features/monitoreo/Computadora"));
 const Talento = lazy(() => import("@/features/talento/Talento"));
 const Politicas = lazy(() => import("@/features/talento/Politicas"));
 const Activos = lazy(() => import("@/features/activos/Activos"));
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="tiempo" element={<MiTiempo />} />
           <Route path="asistencia" element={<Asistencia />} />
           <Route path="monitoreo" element={<Monitoreo />} />
+          <Route path="monitoreo/computadoras/:id" element={<Computadora />} />
           <Route path="ficha" element={<Ficha />} />
           <Route path="talento" element={<Talento />} />
           <Route path="politicas" element={<Politicas />} />

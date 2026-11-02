@@ -109,6 +109,8 @@ def estado_agente(dispositivo):
         registrar, motivo = False, 'Falta aceptar la política de monitoreo en Adzone Team.'
     elif not param['monitorear']:
         registrar, motivo = False, 'Tu perfil de monitoreo no registra actividad.'
+    elif not dispositivo.monitorear:
+        registrar, motivo = False, 'Tecnología apagó el monitoreo de este equipo.'
     elif jornada == 'FUERA':
         registrar, motivo = False, 'No has marcado entrada: no se registra nada.'
     elif jornada == 'EN_PAUSA':
@@ -149,7 +151,8 @@ def ingestar(dispositivo, minutos, ahora=None):
     config = ConfiguracionMonitoreo.actual()
     usuario = dispositivo.usuario
     from .comportamiento import parametros, registrar_incidencias
-    if not config.activo or not consintio(usuario, config) or not parametros(usuario, config)['monitorear']:
+    if (not config.activo or not dispositivo.monitorear or not consintio(usuario, config)
+            or not parametros(usuario, config)['monitorear']):
         return 0, len(minutos)
     validos = []
     for item in minutos[:720]:

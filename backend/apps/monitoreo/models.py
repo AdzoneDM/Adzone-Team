@@ -64,6 +64,9 @@ class Dispositivo(models.Model):
     token_hash = models.CharField(max_length=64, unique=True)
     prefijo = models.CharField(max_length=8)
     activo = models.BooleanField(default=True)
+    monitorear = models.BooleanField(default=True, help_text="Apagado, este equipo no registra actividad (como el «Monitor ON/OFF»).")
+    nombre_equipo = models.CharField(max_length=100, blank=True, help_text="Nombre de la computadora en Windows o Mac (lo envía el agente).")
+    ip = models.GenericIPAddressField(null=True, blank=True)
     creado = models.DateTimeField(auto_now_add=True)
     ultimo_contacto = models.DateTimeField(null=True, blank=True)
 
@@ -252,3 +255,16 @@ class Incidencia(models.Model):
     @property
     def cuenta(self):
         return self.minutos >= self.regla.minutos_minimos
+
+
+class IPDispositivo(models.Model):
+    """Desde qué dirección se conectó cada computadora (una fila por IP, con la primera y la última vez)."""
+    dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, related_name='ips')
+    ip = models.GenericIPAddressField()
+    primera = models.DateTimeField()
+    ultima = models.DateTimeField()
+    veces = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = ('dispositivo', 'ip')
+        ordering = ['-ultima']

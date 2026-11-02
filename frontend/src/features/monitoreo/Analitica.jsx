@@ -228,6 +228,8 @@ export function Computadoras() {
   const [d, setD] = useState(null);
   const [error, setError] = useState("");
   const [filtro, setFiltro] = useState("");
+  const [buscar, setBuscar] = useState("");
+  const [estadoPc, setEstadoPc] = useState("");
   useEffect(() => { computadoras().then(setD).catch((e) => setError(e.message)); }, []);
   const personas = useMemo(() => (d?.personas || []).filter((p) => !filtro || p.estado === filtro), [d, filtro]);
   if (error) return <Alerta>{error}</Alerta>;
@@ -251,14 +253,26 @@ export function Computadoras() {
               <td><Insignia tono={ESTADO_PC[p.estado][1]}>{ESTADO_PC[p.estado][0]}</Insignia></td></tr>))}</tbody>
         </table></div>
       </Panel>
-      <Panel titulo={`Computadoras (${d.computadoras.length})`} cuerpo="p-0">
+      <Panel titulo={`Computadoras (${d.computadoras.length})`} cuerpo="p-0" accion={
+        <div className="flex flex-wrap gap-2">
+          <input className="campo !h-9 w-48" placeholder="Nombre, equipo, persona o IP" aria-label="Buscar computadora" value={buscar} onChange={(e) => setBuscar(e.target.value)} />
+          <select className="campo !h-9 !w-auto" aria-label="Estado de la computadora" value={estadoPc} onChange={(e) => setEstadoPc(e.target.value)}>
+            <option value="">Todas</option><option value="linea">En línea</option><option value="desconectada">Desconectadas</option><option value="sin">No monitoreadas</option><option value="baja">Desvinculadas</option></select>
+        </div>}>
         {!d.computadoras.length ? <p className="p-5 text-sm text-gris">Sin computadoras vinculadas.</p> : (
           <div className="overflow-x-auto"><table className="tabla">
-            <thead><tr><th>Computadora</th><th>Persona</th><th>Sistema</th><th>Agente</th><th>Último contacto</th><th>Estado</th></tr></thead>
-            <tbody>{d.computadoras.map((c) => (
-              <tr key={c.id} className={c.activo ? "" : "opacity-55"}><td className="font-medium">{c.nombre}<span className="block text-xs text-gris">adz_{c.prefijo}…</span></td><td className="text-sm">{c.persona}</td>
-                <td className="text-sm">{c.sistema || "—"}</td><td className="text-sm num">{c.version_agente || "—"}</td><td className="whitespace-nowrap text-sm">{c.ultimo_contacto ? hace(c.ultimo_contacto) : "Nunca"}</td>
-                <td>{!c.activo ? <Insignia>Desvinculada</Insignia> : c.en_linea ? <Insignia tono="verde">En línea</Insignia> : <Insignia>Desconectada</Insignia>}</td></tr>))}</tbody>
+            <thead><tr><th>Computadora</th><th>Persona</th><th>Sistema</th><th>IP</th><th>Agente</th><th>Último contacto</th><th>Estado</th></tr></thead>
+            <tbody>{d.computadoras.filter((c) => {
+              const t = buscar.toLowerCase();
+              const okTexto = !t || [c.nombre, c.nombre_equipo, c.persona, c.ip].some((x) => (x || "").toLowerCase().includes(t));
+              const okEstado = !estadoPc || (estadoPc === "linea" ? c.activo && c.en_linea : estadoPc === "desconectada" ? c.activo && !c.en_linea : estadoPc === "sin" ? c.activo && !c.monitorear : !c.activo);
+              return okTexto && okEstado;
+            }).map((c) => (
+              <tr key={c.id} className={c.activo ? "" : "opacity-55"}>
+                <td className="min-w-44"><Link to={`/monitoreo/computadoras/${c.id}`} className="font-medium text-azul hover:underline">{c.nombre}</Link><span className="block text-xs text-gris">{c.nombre_equipo || `adz_${c.prefijo}…`}</span></td>
+                <td className="text-sm">{c.persona}</td>
+                <td className="text-sm">{c.sistema || "—"}</td><td className="font-mono text-xs">{c.ip || "—"}</td><td className="text-sm num">{c.version_agente || "—"}</td><td className="whitespace-nowrap text-sm">{c.ultimo_contacto ? hace(c.ultimo_contacto) : "Nunca"}</td>
+                <td className="whitespace-nowrap">{!c.activo ? <Insignia>Desvinculada</Insignia> : c.en_linea ? <Insignia tono="verde">En línea</Insignia> : <Insignia>Desconectada</Insignia>}{c.activo && !c.monitorear && <Insignia tono="amarillo" className="ml-1">No monitoreada</Insignia>}</td></tr>))}</tbody>
           </table></div>
         )}
       </Panel>

@@ -25,6 +25,7 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 import webbrowser
@@ -120,7 +121,7 @@ class Cliente:
     def _pedir(self, metodo, ruta, datos=None, cuerpo=None, tipo='application/json'):
         url = f'{self.servidor}/api/monitoreo/{ruta}'
         if metodo == 'GET':
-            url += f'?version={VERSION}&sistema={platform.system()}+{platform.release()}'
+            url += f'?version={VERSION}&sistema={platform.system()}+{platform.release()}&equipo={urllib.parse.quote(platform.node())}'
         req = urllib.request.Request(url, method=metodo, data=cuerpo if cuerpo is not None else (json.dumps(datos).encode() if datos is not None else None))
         req.add_header('Authorization', f'Dispositivo {self.token}')
         req.add_header('Content-Type', tipo)
@@ -131,7 +132,7 @@ class Cliente:
         return self._pedir('GET', 'agente/estado/')
 
     def enviar(self, minutos):
-        return self._pedir('POST', 'agente/actividad/', {'minutos': minutos, 'version': VERSION})
+        return self._pedir('POST', 'agente/actividad/', {'minutos': minutos, 'version': VERSION, 'equipo': platform.node()})
 
     def marcar(self, tipo):
         return self._pedir('POST', 'agente/marcar/', {'tipo': tipo})

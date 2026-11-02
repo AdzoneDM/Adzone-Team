@@ -1,5 +1,16 @@
 # Cambios
 
+## 10.2 · 02/11/2026 · Ficha de cada computadora
+
+- **Monitoreo → Computadoras → una computadora** (o desde el día de una persona: «ver cómo usa su tiempo»): cómo se usó el tiempo en ese equipo en 7, 14, 30 días o fechas a medida, como el «Computer Details» de Teramind.
+  - Encabezado: nombre, nombre del equipo en Windows o Mac, sistema, IP, versión del agente, en línea o última vez visto, persona y su activo del inventario.
+  - **Actividad por día** (productivo, neutral, improductivo e inactivo), **mapa de teclado y ratón por día y hora**, tareas principales (del cronómetro), aplicaciones y sitios.
+  - **Registro de actividad**: los minutos seguidos en la misma ventana se agrupan en una fila con inicio, persona, aplicación o sitio, tiempo (y cuánto activo), título de la ventana y tarea; con buscador.
+  - **Alertas** (reglas de comportamiento, inactividad, computadora sin reportar), **capturas**, **pantalla en vivo** e **historial de IP**.
+- **Encender o apagar el monitoreo de un equipo** (Tecnología y administración), con auditoría.
+- La lista de computadoras se busca por nombre, equipo, persona o IP y se filtra por en línea, desconectadas, no monitoreadas o desvinculadas.
+- El agente envía el nombre del equipo; cada conexión guarda su IP.
+
 ## 10.1 · 02/11/2026 · Descripción oficial de Soporte Técnico (TI)
 
 - **Soporte Técnico (TI)** carga la descripción oficial «Soporte de Tecnología (TI)» (DP-TI de Gestión del Talento): objetivo, funciones por bloque (soporte a clientes y personal, soporte interno, incidentes y mantenimiento, documentación y control, cumplimiento y cultura), perfil ideal, compensación variable, beneficios y alineación cultural.

@@ -28,5 +28,7 @@ urlpatterns = [
     path('resumen/', views.resumen_view),
     path('pantallas/', views.pantallas_view),
     path('computadoras/', views.computadoras_view),
+    path('computadoras/<int:pk>/', views.computadora_view),
+    path('computadoras/<int:pk>/monitorear/', views.computadora_monitorear_view),
     path('justificaciones/<int:pk>/revisar/', views.revisar_justificacion_view),
 ]

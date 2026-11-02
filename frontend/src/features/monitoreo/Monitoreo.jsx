@@ -100,6 +100,11 @@ export function DiaPersona({ usuario }) {
         <>
           {!d.consentimiento && <Alerta tono="amarillo">{usuario ? "Esta persona" : "Tú"} todavía no {usuario ? "ha aceptado" : "has aceptado"} la política de monitoreo: su computadora no envía actividad.</Alerta>}
           {d.consentimiento && !d.equipos.length && <Alerta tono="azul">No hay computadora vinculada. Se vincula en «Mis equipos».</Alerta>}
+          {d.equipos.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 text-sm"><span className="text-gris">Computadora:</span>
+              {d.equipos.map((x) => <Link key={x.id} to={`/monitoreo/computadoras/${x.id}`} className="inline-flex items-center gap-1.5 rounded-full border border-linea bg-white px-3 py-1 font-medium text-azul hover:border-azul"><Laptop className="size-3.5" />{x.nombre} · ver cómo usa su tiempo</Link>)}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
             <Dato titulo="En jornada" valor={reloj(d.jornada.trabajados)} detalle={`Entró ${hora(d.jornada.entrada)}${d.jornada.llegada === "TARDE" ? ` · ${d.jornada.tardanza} min tarde` : ""}`} />
             <Dato titulo="Registrado en PC" valor={reloj(d.minutos_registrados)} detalle={d.cobertura != null ? `${pct(d.cobertura)} de la jornada` : "—"} />
