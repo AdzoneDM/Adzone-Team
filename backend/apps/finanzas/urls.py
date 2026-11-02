@@ -7,10 +7,13 @@ router = DefaultRouter()
 router.register(r'cotizaciones', views.CotizacionViewSet, basename='cotizacion')
 router.register(r'facturas', views.FacturaViewSet, basename='factura')
 router.register(r'gastos', views.GastoViewSet, basename='gasto')
+router.register(r'tasas', views.TasaViewSet, basename='tasa')
 
 urlpatterns = [
     path('', include(router.urls)),
     path('pagos/<int:pk>/', views.borrar_pago_view, name='borrar_pago'),
     path('resumen/', views.resumen_view, name='finanzas_resumen'),
     path('rentabilidad/', views.rentabilidad_view, name='finanzas_rentabilidad'),
+    path('rentabilidad/ordenes/', views.rentabilidad_ordenes_view),
+    path('rentabilidad/ordenes/<int:pk>/', views.rentabilidad_orden_view),
 ]

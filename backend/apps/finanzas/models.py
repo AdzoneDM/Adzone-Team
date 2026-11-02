@@ -170,3 +170,15 @@ class Gasto(models.Model):
 
     class Meta:
         ordering = ['-fecha', '-id']
+
+
+class TasaCambio(models.Model):
+    """US$ → RD$ por fecha. Cada monto en dólares se convierte con la última tasa del día o anterior."""
+    fecha = models.DateField(unique=True)
+    usd_dop = models.DecimalField("RD$ por US$ 1", max_digits=8, decimal_places=4)
+    fuente = models.CharField(max_length=60, blank=True, help_text="Banco Central, banco, Cashflow…")
+    registrada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Tasa de cambio'

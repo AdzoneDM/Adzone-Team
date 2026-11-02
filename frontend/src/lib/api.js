@@ -394,3 +394,11 @@ export const subirDocumento = (d, archivo) => {
   fd.append("archivo", archivo);
   return api(`${TA}/documentos/`, { method: "POST", body: fd });
 };
+
+// Rentabilidad por OT, cliente y departamento; tasas de cambio
+export const rentabilidadOrdenes = (params) => api(`/api/finanzas/rentabilidad/ordenes/${q(params)}`);
+export const urlRentabilidadCsv = (params) => `/api/finanzas/rentabilidad/ordenes/${q({ ...params, formato: "csv" })}`;
+export const rentabilidadOrden = (id) => api(`/api/finanzas/rentabilidad/ordenes/${id}/`);
+export const tasasCambio = () => api("/api/finanzas/tasas/");
+export const guardarTasa = (t) => api("/api/finanzas/tasas/", { method: "POST", body: t });
+export const borrarTasa = (id) => api(`/api/finanzas/tasas/${id}/`, { method: "DELETE" });

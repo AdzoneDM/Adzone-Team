@@ -1,12 +1,13 @@
 """Finanzas operativas. Todo aquí es solo para Finanzas (departamento de Administración) y administradores."""
+import csv
 import os
 from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Q
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -409,3 +410,66 @@ def rentabilidad_view(request):
         filas.append({'id': g['id'], 'nombre': g['nombre'], **servicios.rentabilidad(g['f'], g['g'], g['t'])})
     filas.sort(key=lambda x: -x['facturado'])
     return Response({'desde': desde, 'hasta': hasta, 'por': por, 'filas': filas})
+
+
+# ------------------------------------------------------------------ v10: rentabilidad por OT, cliente y departamento; tasas de cambio
+from .models import TasaCambio  # noqa: E402
+
+
+@api_view(['GET'])
+@permission_classes([EsFinanzas])
+def rentabilidad_ordenes_view(request):
+    from .rentabilidad import MARGEN_MINIMO, rentabilidad_ordenes
+    hoy = timezone.localdate()
+    desde = _fecha(request.query_params.get('desde'), hoy.replace(day=1))
+    hasta = _fecha(request.query_params.get('hasta'), hoy)
+    try:
+        minimo = float(request.query_params.get('margen_minimo') or MARGEN_MINIMO)
+    except ValueError:
+        return Response({'margen_minimo': 'Debe ser un número.'}, status=400)
+    datos = rentabilidad_ordenes(desde, hasta, minimo)
+    if request.query_params.get('formato') == 'csv':
+        r = HttpResponse(content_type='text/csv; charset=utf-8')
+        r['Content-Disposition'] = f'attachment; filename="rentabilidad-ot-{desde}-a-{hasta}.csv"'
+        r.write('﻿')
+        w = csv.writer(r)
+        w.writerow(['OT', 'Trabajo', 'Cliente', 'Departamento', 'Estado', 'Vendido', 'Facturado', 'Ingreso usado', 'Mano de obra', 'Materiales',
+                    'Equipos', 'Freelance y pauta', 'Transporte', 'Otros', 'Costo total', 'Utilidad', 'Margen %', 'Horas', 'Retrabajo'])
+        for f in datos['ordenes']:
+            w.writerow([f['numero'], f['titulo'], f['cliente'], f['departamento'], f['estado'], f['vendido'], f['facturado'], f['ingreso'],
+                        f['mano_obra'], f['materiales'], f['equipos'], f['externos'], f['transporte'], f['otros'], f['costo'], f['utilidad'],
+                        '' if f['margen'] is None else f['margen'], f['horas'], f['retrabajo']])
+        return r
+    return Response(datos)
+
+
+@api_view(['GET'])
+@permission_classes([EsFinanzas])
+def rentabilidad_orden_view(request, pk):
+    from apps.operaciones.models import OrdenTrabajo
+    from .rentabilidad import detalle_orden
+    ot = OrdenTrabajo.objects.select_related('cliente', 'cotizacion').filter(pk=pk).first()
+    if ot is None:
+        return Response({'detail': 'No existe.'}, status=404)
+    return Response(detalle_orden(ot))
+
+
+class TasaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TasaCambio
+        fields = ['id', 'fecha', 'usd_dop', 'fuente']
+
+    def validate_usd_dop(self, v):
+        if v <= 0 or v > 1000:
+            raise serializers.ValidationError('Revisa la tasa: RD$ por cada US$ 1.')
+        return v
+
+
+class TasaViewSet(viewsets.ModelViewSet):
+    queryset = TasaCambio.objects.all()
+    serializer_class = TasaSerializer
+    permission_classes = [EsFinanzas]
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+    def perform_create(self, serializer):
+        serializer.save(registrada_por=self.request.user)

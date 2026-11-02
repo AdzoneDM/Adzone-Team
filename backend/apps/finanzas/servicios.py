@@ -26,10 +26,12 @@ def costo_horas(registros):
 
 
 def rentabilidad(facturas, gastos, registros):
+    from .rentabilidad import Conversor
+    conv = Conversor()  # todo en RD$: lo que está en dólares se convierte con la tasa de su fecha
     facturas = [f for f in facturas if f.estado in ('EMITIDA', 'PAGADA')]
-    facturado = sum((f.subtotal for f in facturas), CERO)  # sin ITBIS: el impuesto no es ingreso
-    cobrado = sum((f.pagado for f in facturas), CERO)
-    gasto = sum((g.monto for g in gastos), CERO)
+    facturado = sum((conv.a_dop(f.subtotal, f.moneda, f.fecha) for f in facturas), CERO)  # sin ITBIS: el impuesto no es ingreso
+    cobrado = sum((conv.a_dop(f.pagado, f.moneda, f.fecha) for f in facturas), CERO)
+    gasto = sum((conv.a_dop(g.monto, g.moneda, g.fecha) for g in gastos), CERO)
     registros = list(registros)
     horas = sum(r.minutos for r in registros) / 60
     costo = costo_horas(registros)

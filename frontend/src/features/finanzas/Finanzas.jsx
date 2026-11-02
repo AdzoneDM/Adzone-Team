@@ -7,6 +7,7 @@ import { dinero, fechaCorta, hoyISO, horas, mesActual } from "@/lib/formato";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, Panel, Pestanas, SelectorMes, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 import { DetalleDocumento, EditorDocumento, EstadoDoc } from "./documentos";
 import Cashflow from "./Cashflow";
+import RentabilidadOT from "./RentabilidadOT";
 
 function Tarjeta({ etiqueta, valor, nota, tono }) {
   return (
@@ -238,6 +239,16 @@ function Gastos() {
 }
 
 function Rentabilidad() {
+  const [modo, setModo] = useState("ot");
+  return (
+    <div className="space-y-4">
+      <Pestanas className="!flex max-w-md" opciones={[{ valor: "ot", etiqueta: "OT, clientes y áreas" }, { valor: "proyecto", etiqueta: "Por proyecto" }]} valor={modo} onCambio={setModo} />
+      {modo === "ot" ? <RentabilidadOT /> : <RentabilidadProyecto />}
+    </div>
+  );
+}
+
+function RentabilidadProyecto() {
   const [por, setPor] = useState("proyecto");
   const [desde, setDesde] = useState(`${hoyISO().slice(0, 4)}-01-01`);
   const [hasta, setHasta] = useState(hoyISO());

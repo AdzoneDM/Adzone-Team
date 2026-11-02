@@ -10,7 +10,6 @@ from .puntaje import calcular_ranking, rango_del_mes
 
 ACUMULACION_POR_PERSONA = 2   # tareas vencidas sin entregar por persona a partir de las cuales el área está acumulando
 MESES_BAJANDO = 3             # meses seguidos bajando para alertar
-COSTO_SOBRE_MONTO = 0.6       # la mano de obra no debería pasar del 60 % del monto vendido de la OT
 
 
 def _mes_anterior(periodo, n=1):
@@ -101,21 +100,20 @@ def panel(periodo, hoy=None):
     abiertas = OrdenTrabajo.objects.filter(estado__in=OrdenTrabajo.ABIERTAS).select_related('cliente')
     estimadas = dict(OrdenArea.objects.filter(orden__in=abiertas).values_list('orden_id').annotate(h=Sum('horas_estimadas')))
     reales = dict(RegistroTiempo.objects.filter(orden__in=abiertas).values_list('orden_id').annotate(m=Sum('minutos')))
-    costos = defaultdict(float)
-    for r in RegistroTiempo.objects.filter(orden__in=abiertas).select_related('usuario__perfil').only('orden_id', 'minutos', 'usuario__perfil__costo_hora'):
-        ch = getattr(getattr(r.usuario, 'perfil', None), 'costo_hora', None)
-        if ch:
-            costos[r.orden_id] += float(ch) * r.minutos / 60
+    from apps.finanzas.rentabilidad import MARGEN_MINIMO, costo_total_ordenes
+    rent = costo_total_ordenes(abiertas)
     for ot in abiertas:
         est, real = estimadas.get(ot.pk), (reales.get(ot.pk) or 0) / 60
         if est and real > float(est):
             alertas.append({'tipo': 'HORAS', 'nivel': 'alta' if real > float(est) * 1.25 else 'media',
                             'titulo': f'{ot.numero or ot.solicitud} pasó sus horas presupuestadas',
                             'detalle': f'{real:.1f} h trabajadas de {float(est):.1f} h estimadas ({ot.titulo}).', 'enlace': f'/ordenes/{ot.pk}'})
-        if ot.monto and costos.get(ot.pk, 0) > float(ot.monto) * COSTO_SOBRE_MONTO:
-            alertas.append({'tipo': 'COSTO', 'nivel': 'alta' if costos[ot.pk] > float(ot.monto) else 'media',
-                            'titulo': f'{ot.numero or ot.solicitud}: la mano de obra va en {costos[ot.pk] / float(ot.monto) * 100:.0f} % del monto',
-                            'detalle': f'RD$ {costos[ot.pk]:,.0f} en horas para una OT de RD$ {float(ot.monto):,.0f}.', 'enlace': f'/ordenes/{ot.pk}'})
+        r = rent.get(ot.pk)
+        if r and r['ingreso'] and r['costo'] > r['ingreso'] * (1 - MARGEN_MINIMO / 100):
+            alertas.append({'tipo': 'COSTO', 'nivel': 'alta' if r['costo'] > r['ingreso'] else 'media',
+                            'titulo': f"{ot.numero or ot.solicitud}: el costo va en {r['costo'] / r['ingreso'] * 100:.0f} % de lo {'facturado' if r['base'] == 'FACTURADO' else 'vendido'}",
+                            'detalle': f"RD$ {r['costo']:,.0f} (mano de obra {r['mano_obra']:,.0f}, materiales {r['materiales']:,.0f}) para RD$ {r['ingreso']:,.0f}. Margen mínimo: {MARGEN_MINIMO} %.",
+                            'enlace': '/finanzas?ver=rentabilidad'})
     # 2) Áreas acumulando trabajo vencido
     for nombre, d in por_depto.items():
         if d['personas'] and d['vencidas'] >= max(3, d['personas'] * ACUMULACION_POR_PERSONA):
