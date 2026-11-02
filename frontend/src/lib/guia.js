@@ -142,6 +142,7 @@ export const GUIAS_PANTALLA = [
     { objetivo: PESTANAS, titulo: "Tu actividad", texto: "Lo que el agente de tu computadora midió en tu jornada: tiempo activo, productivo y de foco, aplicaciones y sitios. Lo mismo que ve tu supervisor. Nunca registra teclas, contraseñas ni mensajes." },
     { titulo: "Vincular tu computadora", texto: "En «Mis equipos y política» acepta la política y toca «Vincular computadora». Pega el código en el agente de Adzone Team. Solo mide cuando marcaste entrada; en pausa, nada." },
     { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Equipo en vivo", texto: "Quién está activo y en qué aplicación, y cómo va su día. Toca a alguien para ver su línea de tiempo." },
+    { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Resumen e incidencias", texto: "El resumen muestra el período con lo que hay que mirar, sitios y apps, uso de IA y riesgo. Las incidencias salen de las reglas de comportamiento: revísalas o descártalas." },
     { titulo: "Justificar un tramo", texto: "Si usaste YouTube o WhatsApp para trabajar, en «Mi actividad» toca «Justificar un tramo». Si tu supervisor lo aprueba, esos minutos pasan a productivos." },
     { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Por proyecto y OT", texto: "Horas del cronómetro, minutos de computadora en ese trabajo, tareas a la primera, correcciones y estimado contra real de cada OT. Finanzas ve además el costo de la mano de obra." },
   ] },
@@ -152,6 +153,14 @@ export const GUIAS_PANTALLA = [
     { objetivo: PESTANAS, titulo: "Evaluaciones 360°", texto: "En «Evaluar» están las que te tocan: tu autoevaluación, la de tu equipo si supervisas y la de dos compañeros (anónima). Ocho competencias del 1 al 5." },
     { titulo: "Planes y expediente", texto: "Los planes de mejora tienen objetivos con fecha de revisión. En el expediente quedan reconocimientos, observaciones, capacitaciones y bonos; puedes escribir tu descargo." },
     { para: (s) => s.esAdmin, titulo: "Para la dirección", texto: "Una evaluación del supervisor por debajo de «Cumple» llega a «Por validar» antes de que la vea la persona. En «Auditoría» queda quién cambió KPIs, pesos, horarios o salarios." },
+  ] },
+  { id: "politicas", ruta: /^\/politicas$/, nombre: "Políticas y documentos", pasos: [
+    { objetivo: PESTANAS, titulo: "Tus políticas", texto: "El reglamento y las políticas que te aplican. Léelas y toca «Leí y acepto»: queda tu constancia con la fecha y la versión. Si una cambia, te llega un aviso para aceptar la nueva." },
+    { titulo: "Tus documentos", texto: "Tu contrato y documentos laborales, para verlos y descargarlos cuando quieras." },
+    { para: (s) => s.esRRHH, titulo: "Para Gestión del Talento", texto: "En «Administrar» revisas los borradores y los publicas; en «Cumplimiento» ves quién falta; en «Documentos» subes contratos y ves qué vence." },
+  ] },
+  { id: "activos", ruta: /^\/activos$/, nombre: "Activos y equipos", pasos: [
+    { objetivo: TITULO, titulo: "Equipos de la empresa", texto: "Cada equipo con su código, a quién está asignado, dónde está, su mantenimiento y su valor actual. Toca uno para asignarlo, recibirlo, registrar un mantenimiento o darlo de baja." },
   ] },
   { id: "panel", ruta: /^\/panel$/, nombre: "Panel gerencial", pasos: [
     { objetivo: TITULO, titulo: "La empresa en una pantalla", texto: "Personal, productividad, OT completadas y a tiempo, indicadores por área con su tendencia, y alertas: OT sobre sus horas o su costo, áreas acumulando trabajo, puntajes bajando y necesidades de capacitación." },

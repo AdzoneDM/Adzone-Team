@@ -70,6 +70,27 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Monitoreo avanzado, políticas, rentabilidad y activos (versión 10.0)
+
+```bash
+python manage.py migrate        # crea las 11 reglas de comportamiento y las 14 políticas en borrador
+```
+
+Tareas programadas nuevas en Plesk:
+
+| Cada | Comando | Para qué |
+|---|---|---|
+| 1 vez al día, 7:30 | `python manage.py revisar_talento` | Documentos por vencer y recordatorio semanal de políticas pendientes |
+| 1 vez al día, 7:35 | `python manage.py revisar_activos` | Mantenimientos de equipos vencidos o en los próximos 7 días |
+
+Puesta en marcha:
+1. **Políticas → Administrar**: revisa los 14 borradores (con su asesor legal), ajústalos y publícalos. Al publicar llega el aviso a cada persona.
+2. **Políticas → Documentos**: sube contrato, copia de identificación y acuerdo de confidencialidad de cada persona.
+3. **Monitoreo → Reglas → Comportamiento**: revisa las 11 reglas iniciales (sitios, minutos, riesgo, departamentos donde no aplican) y toca «Aplicar a 30 días».
+4. **Monitoreo → Reglas → Perfiles**: crea los perfiles (p. ej. Dirección sin monitoreo, Call Center con capturas cada 10 minutos).
+5. **Finanzas → Rentabilidad**: carga la tasa de cambio del Banco Central y registra los gastos de cada OT.
+6. **Activos y equipos**: registra las computadoras, cámaras, luces, herramientas y vehículos y asígnalos.
+
 ### Talento, KPIs con ficha técnica y panel gerencial (versión 9.0)
 
 ```bash

@@ -14,6 +14,9 @@ La plataforma de trabajo de ADZONE: **tareas, KPIs y reconocimiento en un solo l
 - **Control de horario:** marcar entrada, pausas y salida desde PC o celular; horarios por persona, tardanzas, ausencias, horas extra, permisos y vacaciones con aprobación, feriados y Excel del mes.
 - **Monitoreo de actividad:** agente de escritorio (Windows/Mac) que mide solo en jornada aplicaciones, sitios, tiempo activo, productivo y de foco; reglas de productividad por departamento, equipo en vivo, capturas opcionales y avisos. Transparente y conforme a la Ley 172-13 (ver `docs/POLITICA_MONITOREO.md`). Minutos unidos al cronómetro de cada OT o proyecto, justificaciones y desconexiones.
 - **Talento:** evaluación 360° por ciclos con validación de la dirección para las evaluaciones bajas, planes de mejora, expediente (reconocimientos, observaciones, capacitaciones, bonos) y auditoría de cambios.
+- **Monitoreo avanzado:** resumen con insights, reglas de comportamiento e incidencias, riesgo interno, uso de IA, perfiles de monitoreo, pantallas en vivo y estado de cada computadora.
+- **Políticas y documentos:** políticas versionadas con aceptación digital y constancia, cumplimiento y documentos del expediente con vencimientos.
+- **Rentabilidad y activos:** rentabilidad real por OT, cliente y departamento (mano de obra, materiales, gastos, US$→RD$) e inventario de equipos con asignación, mantenimiento y depreciación.
 - **Panel gerencial:** la empresa del mes por área, con alertas de OT sobre horas o costo, áreas acumulando trabajo, puntajes bajando y necesidades de capacitación.
 - **KPIs y reconocimiento:** KPIs oficiales por puesto (25 se miden solos), puntaje mensual de tareas + KPIs + jornada, ficha de productividad de cada persona, ranking, bono sugerido, Empleado del Mes y Muro de Honor.
 - **Mi equipo · Ahora:** en qué está cada persona, quién pide más trabajo, «Recordar» con sonido.
@@ -38,7 +41,8 @@ adzone-team/
 │   │   ├── automatizaciones/    reglas y webhooks a n8n
 │   │   ├── asistencia/          horarios, marcajes, jornada diaria, permisos y feriados
 │   │   ├── monitoreo/           agente: equipos, actividad por minuto, reglas, capturas, avisos y productividad por OT
-│   │   └── talento/             evaluación 360°, planes de mejora, expediente y auditoría
+│   │   ├── talento/             evaluación 360°, planes de mejora, expediente, políticas, documentos y auditoría
+│   │   └── activos/             inventario de equipos, asignación, mantenimiento y depreciación
 │   ├── datos_iniciales/         organigrama oficial y ejemplo de equipo (sin datos personales)
 │   └── datos_privados/          datos reales del equipo · NO se sube (ver LEEME.md)
 ├── frontend/                    React 19 + Vite + Tailwind CSS 4 (PWA)

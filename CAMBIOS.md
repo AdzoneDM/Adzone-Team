@@ -1,5 +1,41 @@
 # Cambios
 
+## 10.0 · 02/11/2026 · Monitoreo al nivel de Teramind, políticas, rentabilidad real y activos
+
+### Monitoreo al nivel de Teramind (con nuestro propio agente)
+- **Resumen** con rango de fechas (7, 30, 90 días o a medida) y por departamento: tiempo activo y productivo frente al período anterior, actividad por persona, sitios y aplicaciones con su tiempo, reglas que se activaron, uso de IA y riesgo interno, más **«lo que hay que mirar»**: frases automáticas con lo importante (productividad que sube o baja, quién pasó horas en un sitio improductivo, personas con poca actividad, crecimiento del uso de IA).
+- **Reglas de comportamiento** (como las Behavior Rules): si alguien usa un sitio, una aplicación o una ventana con cierto texto durante N minutos en el día, queda una **incidencia** con su riesgo (bajo, medio, alto o crítico) y, si la regla lo pide, se avisa al supervisor (y a Tecnología en seguridad o riesgo alto; a la dirección en crítico). Once reglas iniciales: contenido para adultos, apuestas, descargas P2P, acceso remoto (no aplica a Tecnología), VPN, envío de archivos a servicios externos, IA no aprobada, juegos, series, compras y redes sociales fuera de su función. Se pueden aplicar a los últimos 30 días.
+- **Incidencias**: cada persona ve las suyas; el supervisor las marca como revisadas o las descarta (las descartadas no suman riesgo).
+- **Riesgo interno** por persona: puntos según el riesgo de cada incidencia, con nivel y las reglas que más se activaron.
+- **Uso de IA** (como AI Usage Control): tiempo por herramienta (ChatGPT, Claude, Gemini, Copilot, Perplexity, DeepSeek, Midjourney, ElevenLabs y más) y por persona.
+- **Perfiles de monitoreo**: por departamento o por persona: registrar o no, capturas sí o no, cada cuánto, desenfoque y umbral de inactividad. La dirección puede quedar sin monitoreo.
+- **Pantallas en vivo** (Live Montage): la última captura de cada persona, actualizada cada minuto (solo con perfiles que toman capturas).
+- **Computadoras** (Tecnología y administración): cada persona con su estado de monitoreo (en línea, desconectado, sin computadora, sin aceptar la política, no monitoreado) y cada computadora con su sistema, versión del agente y último contacto.
+- **Equipo en vivo** con la gráfica de la última hora por persona.
+- Sigue sin registrarse contenido, teclas, archivos, mensajes, audio ni cámara.
+
+### Políticas y documentos
+- **14 políticas iniciales en borrador** (reglamento, asistencia, permisos, uso de computadoras, monitoreo, protección de datos, seguridad, equipos, trabajo remoto, IA, redes, vehículos, calidad y disciplina) para revisar con su asesor legal y publicar.
+- Cada política aplica a toda la empresa o a departamentos y puestos; al publicarla llega un aviso; cada persona la lee y la **acepta** (queda fecha, hora, versión, IP y navegador) y tiene su **constancia imprimible**.
+- **Versiones**: una política publicada no se edita en silencio; la nueva versión se publica y todos la aceptan de nuevo. El historial guarda el texto exacto de cada versión.
+- **Cumplimiento**: quién falta por aceptar cada política, con Excel. Aviso fijo arriba a quien tiene políticas pendientes y recordatorio semanal.
+- Aceptar la política de monitoreo cuenta también como el consentimiento que pide el agente.
+- **Documentos del expediente**: contrato, copia de identificación, acuerdo de confidencialidad, títulos, certificaciones, cartas, actas y pólizas, con vencimiento. Solo los ven Gestión del Talento y la persona (los supervisores no). Expedientes incompletos y documentos por vencer, con aviso.
+
+### Rentabilidad real
+- **Por OT, por cliente y por departamento**: ingreso (lo facturado sin ITBIS o, si aún no se factura, lo vendido) menos mano de obra (horas × costo por hora), materiales despachados por almacén y gastos de la OT (equipos, freelance y pauta, transporte y otros). Utilidad, margen y alerta bajo el margen mínimo (30 %). Desglose de cada OT y Excel.
+- **Tasa de cambio**: los montos en dólares se convierten con la tasa de su fecha; sin tasa no se inventa un valor y se avisa. La rentabilidad por proyecto también convierte dólares.
+- El panel gerencial usa el costo completo de cada OT.
+
+### Activos y equipos
+- Inventario con código ACT-0001, categoría, marca, modelo, serie, ubicación, costo, garantía, vida útil y **valor actual** (depreciación en línea recta).
+- **Asignar, recibir devolución, trasladar, mantenimiento, reparación, daño y baja**, con historial. Quien tiene un equipo lo ve en «Equipos asignados» y puede reportar un daño; le llega a Tecnología.
+- Mantenimientos programados con aviso. Una computadora del inventario se vincula con la del monitoreo.
+- Los equipos asignados salen en la ficha de cada persona.
+
+### Panel gerencial
+- Alertas nuevas: políticas sin aceptar, documentos por vencer, personas con riesgo alto en la computadora y equipos dañados o con mantenimiento vencido.
+
 ## 9.0 · 02/11/2026 · KPIs con ficha técnica, evaluación 360°, monitoreo por OT y panel gerencial
 
 Fases 1 a 4 de la propuesta de evolución de Adzone Team.
