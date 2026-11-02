@@ -77,7 +77,7 @@ ORGANIGRAMA = [
     ('Gerente de Tecnología y Desarrollo', 'Tecnología', 'CEO / Director General'),
     ('Encargado de Innovación y Desarrollo', 'Tecnología', 'Gerente de Tecnología y Desarrollo'),
     ('Encargado de Ciberseguridad y Desarrollo', 'Tecnología', 'Encargado de Innovación y Desarrollo'),
-    ('Soporte Técnico (TI)', 'Tecnología', 'Encargado de Ciberseguridad y Desarrollo'),
+    ('Soporte Técnico (TI)', 'Tecnología', 'Gerente de Tecnología y Desarrollo'),  # DP-TI 02/11/2026: reporta al Gerente
     # Gerencia de Call Center
     ('Gerente de Call Center', 'Call Center', 'CEO / Director General'),
     ('Analista de Calidad y Monitoreo', 'Call Center', 'Gerente de Call Center'),

@@ -23,6 +23,9 @@ COMUNES = {
     'Trabajo en equipo (metas del departamento)': (
         PCT, False, "Vela porque su departamento cumpla las metas asignadas y apoya a sus compañeros con los trabajos pendientes. "
                     "El supervisor evalúa de 0 a 100."),
+    'Trabajo en equipo y colaboración interdepartamental': (
+        PCT, False, "Colabora con el equipo de tecnología y con las demás áreas, atiende sus solicitudes y comparte lo aprendido. "
+                    "El supervisor evalúa de 0 a 100."),
     'Organización de archivos y protocolos del área': (
         PCT, False, "Archivos nombrados, versionados y guardados según los protocolos de diseño y audiovisuales. "
                     "El supervisor evalúa de 0 a 100."),
@@ -128,6 +131,15 @@ K['Encargado de Ciberseguridad y Desarrollo'] = [
     ('Capacitación del trimestre', 5, None, None, 100, 'T', "Al menos una formación o certificación trimestral en tecnología, desarrollo o ciberseguridad."),
     ('Cumplimiento de políticas y procedimientos', 5, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
     ('Trabajo en equipo (metas del departamento)', 5, None, None, 100, 'M', "Velar porque su departamento cumpla con las metas asignadas."),
+]
+
+K['Soporte Técnico (TI)'] = [  # DP «Soporte de Tecnología (TI)», 02/11/2026. Metas de SLA y FCR propuestas: el documento no las fija.
+    ('Incidencias resueltas dentro del SLA', 25, PCT, False, 90, 'M', "Tiempo promedio de resolución de incidencias dentro del SLA establecido (meta propuesta: 90 % de las incidencias)."),
+    ('Satisfacción de usuarios internos y clientes', 20, PCT, False, 90, 'M', "Más de 90 % de satisfacción de usuarios internos y clientes."),
+    ('Incidencias resueltas en primer contacto (FCR)', 20, PCT, False, 70, 'M', "Incidencias resueltas en el primer contacto, sin escalar ni reabrir (meta propuesta: 70 %)."),
+    ('Registros y documentación técnica al día', 15, PCT, False, 100, 'M', "Cumplimiento de registros y documentación técnica: cada incidencia con su solución registrada."),
+    ('Cumplimiento de políticas y procedimientos', 10, None, None, 100, 'M', "Cumplimiento de políticas y procedimientos."),
+    ('Trabajo en equipo y colaboración interdepartamental', 10, None, None, 100, 'M', "Trabajo en equipo y colaboración con las demás áreas."),
 ]
 
 K['Coordinadora Financiera y Administrativa'] = [

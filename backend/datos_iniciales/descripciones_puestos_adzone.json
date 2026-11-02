@@ -1,5 +1,5 @@
 {
- "_fuente": "DP ADZONE DIGITAL MARKETING (PDF oficial del 31/10/2026, 131 páginas). Generado para puestos_oficiales.",
+ "_fuente": "DP ADZONE DIGITAL MARKETING (PDF oficial del 31/10/2026, 131 páginas). Generado para puestos_oficiales. Soporte de Tecnología (TI): DP-TI del 02/11/2026.",
  "puestos": [
   {
    "puesto": "Editor Audiovisual",
@@ -1360,6 +1360,67 @@
    "alineacion_cultural": [
     "El Gerente de Call Center es la voz estratégica de Adzone ante el cliente. Cada llamada representa la marca. Respeto: Lidera con firmeza, pero con trato humano y digno hacia su equipo. Honestidad: Promueve ventas éticas y comunicación transparente con clientes. Innovación: Optimiza procesos, scripts y tecnología para mejorar resultados. Compromiso: Asume la responsabilidad total de los resultados del Call Center. Construye una cultura donde la disciplina convive con la motivación, donde se celebran los logros, se corrigen errores con coaching y se entiende que el éxito comercial es fruto del trabajo en equipo."
    ]
+  },
+  {
+   "puesto": "Soporte Técnico (TI)",
+   "nombre_documento": "Soporte de Tecnología (TI)",
+   "area_documento": "Gerencia de Tecnología y Desarrollo",
+   "objetivo": "Brindar soporte técnico oportuno, eficiente y profesional a los clientes y al personal de Adzone Digital Marketing, asegurando el correcto funcionamiento de aplicaciones, software, hardware, plataformas digitales y herramientas tecnológicas, garantizando continuidad operativa, seguridad de la información y una experiencia tecnológica confiable y de calidad. Este puesto es clave para la estabilidad de la operación diaria, la satisfacción de clientes y la productividad interna de la empresa. Seguridad de la Infraestructura: monitorea redes y sistemas en busca de actividades sospechosas o intentos de intrusión; administra firewalls, antivirus y otras defensas para prevenir ataques.",
+   "funciones": [
+    "Soporte Técnico a Clientes y personal de Adzone:",
+    "Brindar soporte de primer y segundo nivel a clientes y personal en el uso de aplicaciones, plataformas, software y soluciones tecnológicas desarrolladas o administradas por Adzone.",
+    "Atender incidencias técnicas vía teléfono, correo, chat o tickets, garantizando tiempos de respuesta adecuados.",
+    "Diagnosticar, resolver o escalar problemas técnicos de forma ordenada y documentada.",
+    "Acompañar a clientes y personal en procesos de configuración, uso y buenas prácticas tecnológicas.",
+    "Soporte Técnico Interno:",
+    "Brindar asistencia técnica a colaboradores en equipos, software, aplicaciones internas y herramientas digitales.",
+    "Configurar, instalar y mantener equipos de cómputo, impresoras, redes básicas y aplicaciones corporativas.",
+    "Apoyar la correcta operación de herramientas como CRM, plataformas de gestión, correo corporativo y sistemas internos.",
+    "Registrar incidencias y soluciones para asegurar trazabilidad y mejora continua.",
+    "Gestión de Incidentes y Mantenimiento:",
+    "Monitorear el estado de sistemas y reportar fallas recurrentes o riesgos operativos.",
+    "Ejecutar mantenimiento preventivo básico de equipos y sistemas.",
+    "Escalar incidencias críticas al Gerente de Tecnología o áreas especializadas cuando corresponda.",
+    "Apoyar planes de continuidad operativa y respaldo de información.",
+    "Documentación y Control:",
+    "Registrar todas las incidencias, soluciones y seguimientos en los sistemas de soporte o bitácoras asignadas.",
+    "Mantener actualizada la documentación básica de procedimientos, configuraciones y soluciones frecuentes.",
+    "Cumplir protocolos de seguridad, confidencialidad y protección de datos.",
+    "Cumplimiento y Cultura:",
+    "Cumplir políticas tecnológicas, de seguridad de la información y normativas internas.",
+    "Manejar con absoluta confidencialidad la información de clientes y de la empresa.",
+    "Colaborar activamente con el equipo de tecnología y otras áreas."
+   ],
+   "perfil_ideal": [
+    "Formación Académica: Técnico o estudiante universitario en Sistemas, Informática, Tecnología, Redes o áreas afines.",
+    "Experiencia: Mínimo 1 año en soporte técnico, mesa de ayuda, TI o roles similares.",
+    "Conocimientos Técnicos: Sistemas operativos Windows y/o MacOS.",
+    "Soporte a software y aplicaciones empresariales.",
+    "Manejo básico de redes, hardware y periféricos.",
+    "Conocimientos de CRM y herramientas digitales (deseable).",
+    "Buen manejo de documentación y tickets.",
+    "Competencias Clave: Orientación al servicio.",
+    "Resolución de problemas.",
+    "Comunicación clara y paciente.",
+    "Organización y disciplina operativa.",
+    "Capacidad de trabajo bajo presión.",
+    "Ética y confidencialidad."
+   ],
+   "compensacion_variable": [
+    "Bono trimestral de hasta un 10% del salario base, sujeto al cumplimiento ponderado de KPIs.",
+    "Bonos especiales por soporte destacado en proyectos críticos, lanzamientos o clientes estratégicos.",
+    "Condiciones del Bono Variable:",
+    "100% cumplimiento: bono completo.",
+    "80% – 99% cumplimiento: bono proporcional.",
+    "Menos de 79%: no aplica bono."
+   ],
+   "beneficios": [
+    "Acceso a capacitaciones técnicas y certificaciones básicas.",
+    "Reconocimientos internos por desempeño destacado.",
+    "Oportunidades de crecimiento dentro del área de Tecnología.",
+    "Participación en programas de desarrollo y cultura organizacional."
+   ],
+   "alineacion_cultural": "El Soporte de Tecnología representa el compromiso de Adzone con la confiabilidad, el servicio y la excelencia operativa. Su rol garantiza que la creatividad, el negocio y los servicios al cliente funcionen sin interrupciones. Actúa con respeto y paciencia frente a usuarios y clientes, comunica con honestidad las soluciones y limitaciones técnicas, y demuestra compromiso al resolver problemas con actitud de servicio. Aunque muchas veces su labor ocurre “tras bambalinas”, su impacto es directo en la reputación, eficiencia y sostenibilidad de la empresa."
   }
  ]
 }

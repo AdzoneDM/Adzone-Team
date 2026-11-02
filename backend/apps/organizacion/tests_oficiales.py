@@ -27,7 +27,7 @@ def preparar_puestos():
 class DatosOficialesTests(TestCase):
     def test_los_datos_cubren_los_34_puestos_del_documento(self):
         docs = descripciones()
-        self.assertEqual(len(docs), 34)
+        self.assertEqual(len(docs), 35)
         self.assertEqual(set(docs), set(KPIS_OFICIALES))
         for puesto, kpis in KPIS_OFICIALES.items():
             nombres = [k[0] for k in kpis]

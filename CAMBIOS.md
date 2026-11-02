@@ -1,5 +1,11 @@
 # Cambios
 
+## 10.1 · 02/11/2026 · Descripción oficial de Soporte Técnico (TI)
+
+- **Soporte Técnico (TI)** carga la descripción oficial «Soporte de Tecnología (TI)» (DP-TI de Gestión del Talento): objetivo, funciones por bloque (soporte a clientes y personal, soporte interno, incidentes y mantenimiento, documentación y control, cumplimiento y cultura), perfil ideal, compensación variable, beneficios y alineación cultural.
+- **Reporta al Gerente de Tecnología y Desarrollo**, como dice el documento (antes al Encargado de Ciberseguridad y Desarrollo).
+- **KPIs oficiales (100 %)**: incidencias resueltas dentro del SLA 25 %, satisfacción de usuarios internos y clientes 20 % (meta 90 %), resueltas en primer contacto (FCR) 20 %, registros y documentación técnica 15 %, cumplimiento de políticas 10 % y trabajo en equipo interdepartamental 10 %. Las metas de SLA (90 %) y FCR (70 %) son propuestas: el documento no las fija y se ajustan en el puesto. Los 4 KPIs provisionales se desactivan (su historial queda); los de seguimiento siguen.
+
 ## 10.0 · 02/11/2026 · Monitoreo al nivel de Teramind, políticas, rentabilidad real y activos
 
 ### Monitoreo al nivel de Teramind (con nuestro propio agente)
