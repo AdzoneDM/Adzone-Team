@@ -383,6 +383,30 @@ K['Agente de Call Center Español'] = [
 ]
 
 KPIS_OFICIALES = K
+
+# KPIs que la plataforma mide sola (no se anotan a mano): nombre → fuente (ver PlantillaKPI.FUENTES).
+AUTOMATICOS = {
+    'Asistencia y puntualidad': 'ADHERENCIA',
+    'Adherencia al horario y puntualidad': 'ADHERENCIA',
+    'Entregas a tiempo según cronograma': 'ENTREGAS_A_TIEMPO',
+    'Tareas asignadas en tiempo y forma': 'ENTREGAS_A_TIEMPO',
+    'Trabajos entregados en plazo': 'ENTREGAS_A_TIEMPO',
+    'Impresiones a tiempo': 'ENTREGAS_A_TIEMPO',
+    'Estructuras a tiempo': 'ENTREGAS_A_TIEMPO',
+    'Entrega del material preliminar a tiempo': 'ENTREGAS_A_TIEMPO',
+    'Rondas de revisión por trabajo': 'RONDAS',
+    'Propuestas aprobadas en primera ronda': 'PRIMERA',
+    'Material aprobado en la primera revisión': 'PRIMERA',
+    'Impresiones a la primera': 'PRIMERA',
+    'Fabricación sin retrabajos': 'PRIMERA',
+    'Instalaciones sin retrabajo': 'PRIMERA',
+}
+COMO_SE_MIDE = {
+    'ADHERENCIA': 'Automático: promedio de puntualidad, asistencia y horas cumplidas del control de horario.',
+    'ENTREGAS_A_TIEMPO': 'Automático: tareas validadas en el mes que se entregaron a tiempo ÷ tareas validadas.',
+    'RONDAS': 'Automático: rondas promedio de entrega de las tareas validadas (1 = aprobada a la primera).',
+    'PRIMERA': 'Automático: tareas validadas sin devoluciones ÷ tareas validadas.',
+}
 PERIODICIDAD = {'M': 'MENSUAL', 'T': 'TRIMESTRAL', 'A': 'ANUAL'}
 
 

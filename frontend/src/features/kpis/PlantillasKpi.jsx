@@ -3,6 +3,13 @@ import { Pencil, Plus, Search, Target, Trash2 } from "lucide-react";
 import { eliminarPlantilla, guardarPlantilla, plantillas as cargar } from "@/lib/api";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Vacio, useAviso, useConfirmar } from "@/components/ui";
 
+const FUENTES = [
+  ["", "Tareas validadas vinculadas al KPI"], ["ENTREGAS_A_TIEMPO", "% de tareas entregadas a tiempo"], ["PRIMERA", "% de tareas aprobadas a la primera"],
+  ["RONDAS", "Rondas de revisión promedio"], ["CALIDAD", "Calidad promedio de las tareas"], ["PUNTUALIDAD", "Puntualidad (control de horario)"],
+  ["ASISTENCIA", "Asistencia (control de horario)"], ["HORAS", "Horas cumplidas (control de horario)"], ["ADHERENCIA", "Adherencia al horario"],
+  ["ACTIVIDAD_PC", "Tiempo activo en la computadora"], ["PRODUCTIVIDAD_PC", "Productividad en la computadora"],
+];
+
 export default function PlantillasKpi() {
   const avisar = useAviso();
   const confirmar = useConfirmar();
@@ -23,7 +30,7 @@ export default function PlantillasKpi() {
     if (!form.nombre?.trim()) return setErrorForm("Escribe qué mide el KPI.");
     setGuardando(true);
     try {
-      await guardarPlantilla({ id: form.id, nombre: form.nombre.trim(), descripcion: form.descripcion || "", unidad_medida: form.unidad_medida || "", menor_es_mejor: !!form.menor_es_mejor });
+      await guardarPlantilla({ id: form.id, nombre: form.nombre.trim(), descripcion: form.descripcion || "", unidad_medida: form.unidad_medida || "", menor_es_mejor: !!form.menor_es_mejor, fuente: form.fuente || "" });
       avisar(form.id ? "Plantilla actualizada." : "Plantilla creada. Ahora asígnala a los puestos que la usan.");
       setForm(null);
       recargar();
@@ -52,7 +59,7 @@ export default function PlantillasKpi() {
                   <tr key={p.id}>
                     <td className="max-w-xl"><p className="font-medium">{p.nombre}</p>{p.descripcion && <p className="text-sm text-gris">{p.descripcion}</p>}</td>
                     <td className="text-sm">{p.unidad_medida || "—"}</td>
-                    <td>{p.menor_es_mejor ? <Insignia tono="azul">Más bajo es mejor</Insignia> : <Insignia>Más alto es mejor</Insignia>}</td>
+                    <td>{p.menor_es_mejor ? <Insignia tono="azul">Más bajo es mejor</Insignia> : <Insignia>Más alto es mejor</Insignia>}{p.fuente && <Insignia tono="verde" className="ml-1">Automático</Insignia>}</td>
                     <td className="text-right num">{p.puestos_asignados}</td>
                     <td className="whitespace-nowrap text-right">
                       <Boton variante="fantasma" tam="sm" icono={Pencil} aria-label={`Editar ${p.nombre}`} onClick={() => { setForm(p); setErrorForm(""); }} />
@@ -80,6 +87,11 @@ export default function PlantillasKpi() {
               <input type="checkbox" checked={!!form.menor_es_mejor} onChange={(e) => setForm({ ...form, menor_es_mejor: e.target.checked })} className="mt-1 accent-azul" />
               <span>Más bajo es mejor<span className="block text-sm text-gris">Para rondas de revisión, errores, quejas o tiempos de respuesta.</span></span>
             </label>
+            <Campo etiqueta="Si es automático, de dónde sale" ayuda="Se usa cuando en el puesto el KPI está como «Automático». La plataforma calcula el valor del mes.">{(id) => (
+              <select id={id} className="campo" value={form.fuente || ""} onChange={(e) => setForm({ ...form, fuente: e.target.value })}>
+                {FUENTES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+              </select>
+            )}</Campo>
           </form>
         )}
       </Modal>

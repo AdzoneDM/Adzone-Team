@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     'apps.almacen',
     'apps.integraciones',
     'apps.callcenter',
+    'apps.asistencia',
+    'apps.monitoreo',
     'corsheaders',
     'rest_framework',
     'django_filters',

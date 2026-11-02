@@ -274,20 +274,21 @@ export default function Desempeno() {
                 <table className="tabla">
                   <thead><tr>
                     <th className="w-12">#</th><th>Colaborador</th><th>Tareas validadas</th><th className="text-right">Calidad</th>
-                    <th className="text-right">Tareas</th><th className="text-right">KPIs</th><th className="min-w-44">Puntaje</th><th className="text-right">Bono sugerido</th><th className="w-10"><span className="sr-only">Detalle</span></th>
+                    <th className="text-right">Tareas</th><th className="text-right">KPIs</th><th className="text-right">Jornada</th><th className="min-w-44">Puntaje</th><th className="text-right">Bono sugerido</th><th className="w-10"><span className="sr-only">Detalle</span></th>
                   </tr></thead>
                   <tbody>
                     {filas.map((f) => (
                       <Fragment key={f.colaborador_id}>
                         <tr className={cx(abierta === f.colaborador_id && "bg-fondo/70")}>
                           <td><span className={cx("flex size-7 items-center justify-center rounded-full text-sm font-semibold num", f.posicion === 1 ? "bg-amarillo text-tinta" : "bg-linea-suave text-gris")}>{f.posicion}</span></td>
-                          <td><p className="font-medium">{f.nombre}</p><p className="text-sm text-gris">{f.puesto || "Sin puesto"}{f.departamento ? ` · ${f.departamento}` : ""}</p>
+                          <td><Link to={`/ficha?usuario=${f.colaborador_id}&mes=${mes}`} className="font-medium hover:text-azul hover:underline">{f.nombre}</Link><p className="text-sm text-gris">{f.puesto || "Sin puesto"}{f.departamento ? ` · ${f.departamento}` : ""}</p>
                             {!f.elegible && <p className="text-xs text-gris">Menos de {datos.minimo_tareas} validadas: no es candidato</p>}</td>
                           <td className="whitespace-nowrap text-sm"><span className="font-medium num">{f.tareas.completadas}/{f.tareas.total}</span>
                             <span className="text-gris"> · {f.tareas.a_tiempo} a tiempo</span>{f.tareas.vencidas > 0 && <span className="text-rojo"> · {plural(f.tareas.vencidas, "vencida", "vencidas")}</span>}</td>
                           <td className="text-right num">{f.tareas.calidad_promedio ?? "—"}</td>
                           <td className="text-right"><Puntaje valor={f.puntaje_tareas} /></td>
                           <td className="text-right"><Puntaje valor={f.puntaje_kpis} /></td>
+                          <td className="text-right"><Puntaje valor={f.puntaje_jornada} /></td>
                           <td><div className="flex items-center gap-3"><Puntaje valor={f.puntaje_total} className="w-12 text-lg" /><Barra valor={f.puntaje_total} /></div>
                             <Insignia tono={EVALUACION[f.evaluacion].tono} className="mt-1">{EVALUACION[f.evaluacion].texto}</Insignia></td>
                           <td className="text-right">{f.bono_sugerido ? <Insignia tono="verde">{f.bono_sugerido}%</Insignia> : <span className="text-gris">—</span>}</td>

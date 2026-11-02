@@ -15,6 +15,7 @@ urlpatterns = [
     path('ranking/', views.ranking_view, name='ranking_desempeno'),
     path('ranking/exportar/', views.ranking_exportar_view, name='ranking_exportar'),
     path('mi-resumen/', views.mi_resumen_view, name='mi_resumen_desempeno'),
+    path('ficha/', views.ficha_view, name='ficha_productividad'),
     path('tablero/', views.tablero_view, name='tablero'),
     path('equipo/', views.equipo_view, name='equipo_desempeno'),
     path('notificaciones/', views.notificaciones_view, name='notificaciones'),

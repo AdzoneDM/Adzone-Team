@@ -23,9 +23,22 @@ class PlantillaKPI(models.Model):
         verbose_name="¿Menor es mejor?",
         help_text="Marcar si un valor más bajo indica mejor desempeño (ej: rondas de revisión, errores)."
     )
-    # Podríamos añadir un campo 'tipo_dato_valor' si los valores de los KPIs
-    # pueden ser de diferentes tipos (número, texto, booleano) y necesitamos validarlo.
-    # tipo_dato_valor = models.CharField(max_length=20, choices=[('numero', 'Número'), ('texto', 'Texto')], default='numero')
+    # De dónde sale el valor cuando el KPI no es de entrada manual. Vacío = tareas validadas vinculadas al KPI.
+    FUENTES = [
+        ('', 'Tareas validadas vinculadas al KPI'),
+        ('ENTREGAS_A_TIEMPO', '% de tareas del mes validadas a tiempo'),
+        ('PRIMERA', '% de tareas aprobadas a la primera'),
+        ('RONDAS', 'Rondas de revisión promedio de las tareas'),
+        ('CALIDAD', 'Calidad promedio de las tareas (estrellas → %)'),
+        ('PUNTUALIDAD', '% de días que llegó a tiempo'),
+        ('ASISTENCIA', '% de días laborables presentes'),
+        ('HORAS', '% de horas trabajadas contra las programadas'),
+        ('ADHERENCIA', 'Adherencia al horario (puntualidad, asistencia y horas)'),
+        ('ACTIVIDAD_PC', '% del tiempo en jornada con actividad en la computadora'),
+        ('PRODUCTIVIDAD_PC', '% del tiempo activo en apps y sitios productivos'),
+    ]
+    fuente = models.CharField(max_length=20, choices=FUENTES, blank=True, default='',
+                              help_text="Solo para KPIs automáticos: de dónde la plataforma saca el valor.")
 
     fecha_creacion = models.DateTimeField(
         auto_now_add=True,

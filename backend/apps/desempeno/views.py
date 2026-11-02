@@ -877,3 +877,15 @@ def carga_equipo_view(request):
     for p in personas:
         conteo[p['estado']] = conteo.get(p['estado'], 0) + 1
     return Response({'fecha': hoy, 'conteo': conteo, 'personas': personas})
+
+
+@api_view(['GET'])
+def ficha_view(request):
+    """Ficha de productividad del mes: uno mismo, o alguien de su equipo."""
+    from .ficha import ficha
+    usuario = request.user
+    if request.query_params.get('usuario'):
+        usuario = User.objects.filter(pk=request.query_params['usuario']).first()
+        if usuario is None or (usuario.pk != request.user.pk and not puede_gestionar(request.user, usuario)):
+            raise PermissionDenied("Solo ves la ficha de tu equipo.")
+    return Response(ficha(usuario, periodo_desde_mes(request.query_params.get('mes'))))

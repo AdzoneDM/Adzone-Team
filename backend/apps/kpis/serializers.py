@@ -9,7 +9,7 @@ class PlantillaKPISerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlantillaKPI
-        fields = ['id', 'nombre', 'descripcion', 'unidad_medida', 'menor_es_mejor', 'puestos_asignados',
+        fields = ['id', 'nombre', 'descripcion', 'unidad_medida', 'menor_es_mejor', 'fuente', 'puestos_asignados',
                   'fecha_creacion', 'fecha_modificacion']
 
     def get_puestos_asignados(self, obj):

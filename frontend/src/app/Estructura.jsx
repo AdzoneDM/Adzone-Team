@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  ListChecks, LogOut, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  CalendarClock, Gauge, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -14,11 +14,15 @@ import Buscador from "@/app/Buscador";
 import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/tiempo/cronometro";
 import { anunciarNovedades } from "@/lib/novedades";
 import { GuiaProvider, useGuia } from "@/app/Guia";
+import BotonJornada from "@/features/asistencia/BotonJornada";
 
 function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, misAreas = [] }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
     { a: "/call-center", texto: "Call Center", icono: Headset },
+    { a: "/asistencia", texto: "Asistencia", icono: CalendarClock },
+    { a: "/monitoreo", texto: "Mi actividad", icono: MonitorSmartphone },
+    { a: "/ficha", texto: "Mi ficha", icono: Gauge },
     { a: "/organigrama", texto: "Organigrama", icono: Network },
   ] }];
   const s = [
@@ -26,6 +30,9 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
       { a: "/", texto: "Inicio", icono: House, fin: true },
       { a: "/mis-tareas", texto: "Mis tareas", icono: ListChecks },
       { a: "/tiempo", texto: "Tiempo", icono: Clock },
+      { a: "/asistencia", texto: "Asistencia", icono: CalendarClock },
+      { a: "/monitoreo", texto: puedeValidar || esAdmin ? "Monitoreo" : "Mi actividad", icono: MonitorSmartphone },
+      { a: "/ficha", texto: "Mi ficha", icono: Gauge },
     ] },
     { titulo: "Operación", items: [
       { a: "/ordenes", texto: "Órdenes de trabajo", icono: ClipboardList },
@@ -369,6 +376,7 @@ function EstructuraInterna() {
           <Search className="size-4" /> <span className="truncate">Buscar órdenes, clientes, tareas…</span><kbd className="ml-auto hidden shrink-0 whitespace-nowrap rounded border border-linea px-1.5 text-xs xl:inline">Ctrl K</kbd>
         </button>
         <div className="flex items-center gap-1.5 lg:gap-2">
+          <BotonJornada />
           <CronometroBarra />
           <button type="button" onClick={() => setBuscando(true)} data-guia="buscar-movil" className="flex size-10 items-center justify-center rounded-lg text-gris hover:bg-white lg:hidden" aria-label="Buscar"><Search className="size-5" /></button>
           {/* El botón «Crear» es para quien dirige o gestiona; el empleado solo trabaja lo que le asignan */}

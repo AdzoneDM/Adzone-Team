@@ -21,7 +21,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from apps.kpis.models import KPIAsignado, PlantillaKPI
-from apps.organizacion.kpis_oficiales import COMUNES, KPIS_OFICIALES, PERIODICIDAD, objetivo
+from apps.organizacion.kpis_oficiales import AUTOMATICOS, COMO_SE_MIDE, COMUNES, KPIS_OFICIALES, PERIODICIDAD, objetivo
 from apps.organizacion.models import PuestoDeTrabajo
 
 ARCHIVO = Path(settings.BASE_DIR) / 'datos_iniciales' / 'descripciones_puestos_adzone.json'
@@ -69,10 +69,15 @@ class Command(BaseCommand):
                 usados = []
                 for kpi, peso, unidad, menor, meta, periodo, detalle in kpis:
                     unidad, menor, como = (COMUNES[kpi] if unidad is None else (unidad, menor, detalle))
+                    fuente = AUTOMATICOS.get(kpi, '')
                     plantilla, creada = PlantillaKPI.objects.get_or_create(
-                        nombre=kpi, defaults={'descripcion': como, 'unidad_medida': unidad, 'menor_es_mejor': menor})
+                        nombre=kpi, defaults={'descripcion': COMO_SE_MIDE.get(fuente) or como, 'unidad_medida': unidad,
+                                              'menor_es_mejor': menor, 'fuente': fuente})
+                    if fuente and plantilla.fuente != fuente:
+                        plantilla.fuente, plantilla.descripcion = fuente, COMO_SE_MIDE[fuente]
+                        plantilla.save(update_fields=['fuente', 'descripcion', 'fecha_modificacion'])
                     valores = {'ponderacion': Decimal(peso), 'objetivo_meta': objetivo(meta, unidad, menor, detalle),
-                               'periodicidad_objetivo': PERIODICIDAD[periodo], 'es_entrada_manual': True,
+                               'periodicidad_objetivo': PERIODICIDAD[periodo], 'es_entrada_manual': not fuente,
                                'meta_numerica': Decimal(str(meta)), 'activo': True}
                     asignado = KPIAsignado.objects.filter(puesto_trabajo=p, plantilla_kpi=plantilla).first()
                     if asignado is None:
@@ -86,7 +91,8 @@ class Command(BaseCommand):
                 for v in viejos:
                     self.stdout.write(self.style.WARNING(f"    − se desactiva «{v.plantilla_kpi.nombre}» en {nombre}"))
                 viejos.update(activo=False)
-                self.stdout.write(f"  ★ {nombre}: {len(kpis)} KPIs · {sum(k[1] for k in kpis)} % de ponderación")
+                autos = sum(1 for k in kpis if k[0] in AUTOMATICOS)
+                self.stdout.write(f"  ★ {nombre}: {len(kpis)} KPIs ({autos} automáticos) · {sum(k[1] for k in kpis)} % de ponderación")
 
             for nombre in faltan:
                 self.stdout.write(self.style.WARNING(f"  No existe el puesto «{nombre}». Corre antes: python manage.py organigrama_2026 --aplicar"))

@@ -20,7 +20,7 @@ export default function Configuracion() {
     setGuardando(true);
     try {
       const r = await guardarConfiguracion({
-        peso_tareas: Number(f.peso_tareas), nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
+        peso_tareas: Number(f.peso_tareas), peso_jornada: pesoJornada, nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
         puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion),
         tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje), ...(t.proporcional ? { proporcional: true } : {}) })),
       });
@@ -31,6 +31,7 @@ export default function Configuracion() {
   };
 
   const pesoTareas = Math.max(0, Math.min(100, Number(f.peso_tareas) || 0));
+  const pesoJornada = Math.max(0, Math.min(100 - pesoTareas, Number(f.peso_jornada) || 0));
   return (
     <form onSubmit={guardar} className="max-w-3xl">
       <Cabecera titulo="Reglas del puntaje" descripcion="Cómo se calcula el puntaje mensual de cada persona y el bono sugerido. Los cambios aplican a todos los meses que se consulten.">
@@ -39,8 +40,12 @@ export default function Configuracion() {
       {error && <Alerta className="mb-4">{error}</Alerta>}
       <div className="space-y-6">
         <Panel titulo="Peso de cada parte">
-          <Campo etiqueta={`Tareas validadas ${pesoTareas}% · KPIs del puesto ${100 - pesoTareas}%`} ayuda="Si alguien solo tiene una de las dos partes en el mes, esa vale el 100%.">
-            {(id) => <input id={id} type="range" min={0} max={100} step={5} value={pesoTareas} onChange={(e) => setF({ ...f, peso_tareas: e.target.value })} className="w-full accent-azul" />}
+          <p className="mb-4 rounded-lg bg-fondo px-4 py-3 text-[15px]">Tareas <strong className="num">{pesoTareas} %</strong> · KPIs del puesto <strong className="num">{100 - pesoTareas - pesoJornada} %</strong> · Jornada <strong className="num">{pesoJornada} %</strong></p>
+          <Campo etiqueta={`Tareas validadas: ${pesoTareas} %`} ayuda="Si a alguien le falta alguna parte en el mes, las que tiene se reparten el 100 %.">
+            {(id) => <input id={id} type="range" min={0} max={100} step={1} value={pesoTareas} onChange={(e) => setF({ ...f, peso_tareas: e.target.value, peso_jornada: Math.min(pesoJornada, 100 - Number(e.target.value)) })} className="w-full accent-azul" />}
+          </Campo>
+          <Campo etiqueta={`Jornada: ${pesoJornada} %`} className="mt-4" ayuda="Adherencia al horario (puntualidad, asistencia, horas) y productividad en la computadora contra la meta del monitoreo. Solo cuenta para quien marca su jornada.">
+            {(id) => <input id={id} type="range" min={0} max={100 - pesoTareas} step={1} value={pesoJornada} onChange={(e) => setF({ ...f, peso_jornada: e.target.value })} className="w-full accent-azul" />}
           </Campo>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Puntualidad de una entrega tarde" ayuda="A tiempo vale 100; sin entregar y vencida, 0.">

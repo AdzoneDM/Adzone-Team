@@ -328,6 +328,8 @@ class Notificacion(models.Model):
         ('MENCION', 'Te mencionaron'),
         ('FINANZAS', 'Finanzas'),
         ('AUTOMATIZACION', 'Automatización'),
+        ('ASISTENCIA', 'Asistencia'),
+        ('MONITOREO', 'Monitoreo'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
@@ -379,7 +381,10 @@ class TareaRecurrente(models.Model):
 
 class ConfiguracionDesempeno(models.Model):
     """Reglas del puntaje y del bono. Una sola fila; se cambia en Administración → Configuración."""
-    peso_tareas = models.PositiveSmallIntegerField(default=60, help_text="% del puntaje que sale de las tareas.")
+    peso_tareas = models.PositiveSmallIntegerField(default=48, help_text="% del puntaje que sale de las tareas.")
+    peso_jornada = models.PositiveSmallIntegerField(
+        default=20, help_text="% del puntaje que sale de la jornada: adherencia al horario y productividad en la computadora. "
+                              "Lo que queda (100 − tareas − jornada) es de los KPIs.")
     nota_tarde = models.PositiveSmallIntegerField(default=50, help_text="Puntualidad de una entrega tarde (0-100).")
     minimo_tareas_empleado_mes = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas validadas mínimas en el mes para ser candidato a Empleado del Mes.")
@@ -400,7 +405,7 @@ class ConfiguracionDesempeno(models.Model):
 
     @property
     def peso_kpis(self):
-        return 100 - self.peso_tareas
+        return max(0, 100 - self.peso_tareas - self.peso_jornada)
 
     @classmethod
     def actual(cls):

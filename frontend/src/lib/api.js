@@ -283,3 +283,48 @@ export const resumenCallCenter = () => api(`${CC}/resumen/`);
 export const listarCampanas = (params) => api(`${CC}/campanas/${q(params)}`);
 export const guardarCampana = (c) => (c.id ? api(`${CC}/campanas/${c.id}/`, { method: "PATCH", body: c }) : api(`${CC}/campanas/`, { method: "POST", body: c }));
 export const eliminarCampana = (id) => api(`${CC}/campanas/${id}/`, { method: "DELETE" });
+
+// Control de horario
+const AS = "/api/asistencia";
+export const estadoJornada = () => api(`${AS}/estado/`);
+export const marcarJornada = (tipo, extra = {}) => api(`${AS}/marcar/`, { method: "POST", body: { tipo, ...extra } });
+export const asistenciaMes = (params) => api(`${AS}/mes/${q(params)}`);
+export const asistenciaHoy = () => api(`${AS}/hoy/`);
+export const asistenciaReporte = (mes) => api(`${AS}/reporte/${q({ mes })}`);
+export const urlAsistenciaCsv = (mes) => `${AS}/reporte/${q({ mes, formato: "csv" })}`;
+export const corregirMarcaje = (m) => api(`${AS}/marcajes/`, { method: "POST", body: m });
+export const borrarMarcaje = (id) => api(`${AS}/marcajes/${id}/`, { method: "DELETE" });
+export const horarios = () => api(`${AS}/horarios/`);
+export const guardarHorario = (h) => (h.id ? api(`${AS}/horarios/${h.id}/`, { method: "PATCH", body: h }) : api(`${AS}/horarios/`, { method: "POST", body: h }));
+export const borrarHorario = (id) => api(`${AS}/horarios/${id}/`, { method: "DELETE" });
+export const asignacionesHorario = () => api(`${AS}/asignaciones/`);
+export const asignarHorario = (datos) => api(`${AS}/asignaciones/`, { method: "POST", body: datos });
+export const feriados = () => api(`${AS}/feriados/`);
+export const guardarFeriado = (f) => api(`${AS}/feriados/`, { method: "POST", body: f });
+export const borrarFeriado = (id) => api(`${AS}/feriados/${id}/`, { method: "DELETE" });
+export const ausencias = (ver) => api(`${AS}/ausencias/${q({ ver })}`);
+export const pedirAusencia = (a) => api(`${AS}/ausencias/`, { method: "POST", body: a });
+export const retirarAusencia = (id) => api(`${AS}/ausencias/${id}/`, { method: "DELETE" });
+export const revisarAusencia = (id, aprobar, comentario) => api(`${AS}/ausencias/${id}/revisar/`, { method: "POST", body: { aprobar, comentario } });
+
+// Monitoreo de actividad
+const MO = "/api/monitoreo";
+export const monitoreoDia = (params) => api(`${MO}/dia/${q(params)}`);
+export const monitoreoPeriodo = (params) => api(`${MO}/periodo/${q(params)}`);
+export const monitoreoEquipo = (fecha) => api(`${MO}/equipo/${q({ fecha })}`);
+export const politicaMonitoreo = () => api(`${MO}/politica/`);
+export const aceptarPolitica = () => api(`${MO}/politica/`, { method: "POST" });
+export const dispositivos = () => api(`${MO}/dispositivos/`);
+export const vincularDispositivo = (datos) => api(`${MO}/dispositivos/`, { method: "POST", body: datos });
+export const editarDispositivo = (id, datos) => api(`${MO}/dispositivos/${id}/`, { method: "PATCH", body: datos });
+export const quitarDispositivo = (id) => api(`${MO}/dispositivos/${id}/`, { method: "DELETE" });
+export const reglasProductividad = () => api(`${MO}/reglas/`);
+export const guardarReglaProductividad = (r) => (r.id ? api(`${MO}/reglas/${r.id}/`, { method: "PATCH", body: r }) : api(`${MO}/reglas/`, { method: "POST", body: r }));
+export const borrarReglaProductividad = (id) => api(`${MO}/reglas/${id}/`, { method: "DELETE" });
+export const configMonitoreo = () => api(`${MO}/configuracion/`);
+export const guardarConfigMonitoreo = (d) => api(`${MO}/configuracion/`, { method: "PATCH", body: d });
+export const reclasificar = () => api(`${MO}/reclasificar/`, { method: "POST", body: { dias: 30 } });
+export const urlCaptura = (id) => `${MO}/capturas/${id}/`;
+
+// Ficha de productividad
+export const fichaProductividad = (params) => api(`${D}/ficha/${q(params)}`);
