@@ -149,3 +149,12 @@ class ReaplicarTests(Base):
         reaplicar(30)  # repetir no duplica minutos
         inc.refresh_from_db()
         self.assertEqual(inc.minutos, 8)
+
+
+class RiesgoCriticoTests(Base):
+    def test_una_incidencia_critica_es_riesgo_alto(self):
+        from .comportamiento import riesgo
+        Marcaje.objects.create(usuario=self.ana, tipo='ENTRADA', momento=local(2026, 10, 28, 8))
+        servicios.ingestar(self.disp, self.minutos(local(2026, 10, 28, 9), 1, app='chrome', dominio='xvideos.com'))
+        r = riesgo([self.ana.pk], local(2026, 10, 28, 0).date(), local(2026, 10, 28, 0).date())
+        self.assertEqual(r[self.ana.pk]['nivel'], 'ALTO')

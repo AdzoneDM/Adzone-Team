@@ -377,7 +377,7 @@ export const politicas = () => api(`${TA}/politicas/`);
 export const politica = (id) => api(`${TA}/politicas/${id}/`);
 export const guardarPolitica = (p) => (p.id ? api(`${TA}/politicas/${p.id}/`, { method: "PATCH", body: p }) : api(`${TA}/politicas/`, { method: "POST", body: p }));
 export const borrarPolitica = (id) => api(`${TA}/politicas/${id}/`, { method: "DELETE" });
-export const aceptarPoliticaEmpresa = (id) => api(`${TA}/politicas/${id}/aceptar/`, { method: "POST" });
+export const aceptarPoliticaEmpresa = (id, version) => api(`${TA}/politicas/${id}/aceptar/`, { method: "POST", body: { version } });
 export const nuevaVersionPolitica = (id, d) => api(`${TA}/politicas/${id}/nueva-version/`, { method: "POST", body: d });
 export const versionesPolitica = (id) => api(`${TA}/politicas/${id}/versiones/`);
 export const constanciaPolitica = (id, usuario) => api(`${TA}/politicas/${id}/constancia/${q({ usuario })}`);

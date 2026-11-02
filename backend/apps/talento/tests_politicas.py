@@ -110,3 +110,33 @@ class DocumentosTests(Base):
         doc.visible_al_colaborador = False
         doc.save()
         self.assertEqual(self.como(self.ana).get('/api/talento/documentos/').json(), [])
+
+
+class RevisionV10Tests(PoliticasTests.__bases__[0]):
+    def test_publicada_no_vuelve_a_borrador_ni_se_borra_ni_cambia_titulo(self):
+        rrhh = self.como(self.dir)
+        p = Politica.objects.get(clave='asistencia')
+        rrhh.patch(f'/api/talento/politicas/{p.pk}/', {'borrador': False}, format='json')
+        self.como(self.ana).post(f'/api/talento/politicas/{p.pk}/aceptar/', {'version': 1}, format='json')
+        self.assertEqual(rrhh.patch(f'/api/talento/politicas/{p.pk}/', {'borrador': True}, format='json').status_code, 400)
+        self.assertEqual(rrhh.patch(f'/api/talento/politicas/{p.pk}/', {'titulo': 'Otro'}, format='json').status_code, 400)
+        self.assertEqual(rrhh.delete(f'/api/talento/politicas/{p.pk}/').status_code, 400)
+        self.assertEqual(rrhh.patch(f'/api/talento/politicas/{p.pk}/', {'activa': False}, format='json').status_code, 200)
+
+    def test_aceptar_una_version_vieja_da_409(self):
+        p = Politica.objects.get(clave='asistencia')
+        self.como(self.dir).patch(f'/api/talento/politicas/{p.pk}/', {'borrador': False}, format='json')
+        self.como(self.dir).post(f'/api/talento/politicas/{p.pk}/nueva-version/', {'contenido': 'v2'}, format='json')
+        self.assertEqual(self.como(self.ana).post(f'/api/talento/politicas/{p.pk}/aceptar/', {'version': 1}, format='json').status_code, 409)
+        self.assertEqual(self.como(self.ana).post(f'/api/talento/politicas/{p.pk}/aceptar/', {'version': 2}, format='json').status_code, 200)
+
+    def test_rrhh_no_maneja_su_propio_expediente(self):
+        self.luis.groups.add(Group.objects.get_or_create(name='RRHH')[0])
+        oculto = DocumentoEmpleado.objects.create(colaborador=self.luis, tipo='ACTA', titulo='Amonestación', archivo='x.pdf', visible_al_colaborador=False)
+        c = self.como(self.luis)
+        self.assertEqual(c.get(f'/api/talento/documentos/?usuario={self.luis.pk}').json(), [])
+        self.assertEqual(c.delete(f'/api/talento/documentos/{oculto.pk}/').status_code, 404)
+        f = SimpleUploadedFile('c.pdf', b'%PDF', content_type='application/pdf')
+        r = c.post('/api/talento/documentos/', {'colaborador': self.luis.pk, 'tipo': 'OTRO', 'titulo': 'x', 'archivo': f}, format='multipart')
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(DocumentoEmpleado.objects.filter(pk=oculto.pk).exists())

@@ -85,3 +85,13 @@ class RentabilidadTests(TestCase):
         g = Gasto.objects.create(concepto='x', monto=Decimal('10'), moneda='USD', fecha=date(2026, 10, 1))
         r = rentabilidad([f], [g], [])
         self.assertEqual((r['facturado'], r['gastos'], r['margen']), (Decimal('6000.00'), Decimal('600.00'), Decimal('5400.00')))
+
+    def test_anticipo_no_baja_el_ingreso_y_antes_de_la_primera_tasa_no_se_inventa(self):
+        Factura.objects.create(cliente=self.cli, orden=self.ot, estado='EMITIDA', es_anticipo=True, subtotal=Decimal('10000'), total=Decimal('11800'),
+                               fecha=date(2026, 10, 5))
+        self._horas(60)
+        f = rentabilidad_ordenes(date(2026, 10, 1), date(2026, 10, 31))['ordenes'][0]
+        self.assertEqual((f['ingreso'], f['base']), (20000.0, 'VENDIDO'))
+        TasaCambio.objects.create(fecha=date(2026, 10, 20), usd_dop=Decimal('60'))
+        Gasto.objects.create(concepto='x', monto=Decimal('10'), moneda='USD', orden=self.ot, fecha=date(2026, 10, 2))
+        self.assertEqual(rentabilidad_ordenes(date(2026, 10, 1), date(2026, 10, 31))['montos_sin_tasa'], 1)

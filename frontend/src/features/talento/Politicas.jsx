@@ -69,8 +69,8 @@ function MisPoliticas({ abrir }) {
   useEffect(() => { cargar(); }, [cargar]);
   const aceptar = async () => {
     setAceptando(true);
-    try { await aceptarPoliticaEmpresa(leyendo.id); avisar("Aceptada. Queda tu constancia con fecha y versión."); setLeyendo(null); cargar(); recargar?.(); }
-    catch (e) { setError(e.message); }
+    try { await aceptarPoliticaEmpresa(leyendo.id, leyendo.version); avisar("Aceptada. Queda tu constancia con fecha y versión."); setLeyendo(null); cargar(); recargar?.(); }
+    catch (e) { setError(e.message); if (e.status === 409) { setLeyendo(null); cargar(); } }
     setAceptando(false);
   };
   if (error) return <Alerta>{error}</Alerta>;

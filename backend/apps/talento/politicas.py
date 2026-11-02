@@ -44,7 +44,8 @@ def aplica(politica, usuario):
     puesto = getattr(getattr(usuario, 'perfil', None), 'puesto_trabajo', None)
     if puesto is None:
         return False
-    return politica.puestos.filter(pk=puesto.pk).exists() or politica.departamentos.filter(pk=puesto.departamento_id).exists()
+    return (any(p.pk == puesto.pk for p in politica.puestos.all())  # usa el prefetch: sin consultas por política
+            or any(d.pk == puesto.departamento_id for d in politica.departamentos.all()))
 
 
 def de_usuario(usuario):

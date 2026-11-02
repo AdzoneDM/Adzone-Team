@@ -171,13 +171,19 @@ def nivel_riesgo(puntos):
 def riesgo(ids, desde, hasta):
     """Puntos de riesgo por persona: suma del peso de cada incidencia que cuenta (descartadas no suman)."""
     puntos = defaultdict(int)
+    critico = set()
     reglas = defaultdict(lambda: defaultdict(int))
     for inc in Incidencia.objects.filter(usuario_id__in=ids, dia__range=(desde, hasta)).exclude(estado='DESCARTADA').select_related('regla'):
         if inc.minutos < inc.regla.minutos_minimos:
             continue
         puntos[inc.usuario_id] += ReglaComportamiento.PESO[inc.regla.riesgo]
+        if inc.regla.riesgo == 'CRITICO':
+            critico.add(inc.usuario_id)
         reglas[inc.usuario_id][inc.regla.nombre] += 1
-    return {u: {'puntos': p, 'nivel': nivel_riesgo(p), 'reglas': sorted(reglas[u].items(), key=lambda x: -x[1])[:3]}
+    def nivel(u, p):
+        n = nivel_riesgo(p)
+        return 'ALTO' if u in critico and n in ('SIN_RIESGO', 'BAJO', 'MEDIO') else n  # una sola incidencia crítica ya es riesgo alto
+    return {u: {'puntos': p, 'nivel': nivel(u, p), 'reglas': sorted(reglas[u].items(), key=lambda x: -x[1])[:3]}
             for u, p in puntos.items()}
 
 

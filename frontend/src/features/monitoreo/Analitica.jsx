@@ -14,7 +14,7 @@ import { SelectorPersonas } from "@/components/Selectores";
 
 const pct = (v) => (v == null ? "—" : `${Number(v).toLocaleString("es-DO", { maximumFractionDigits: 1 })} %`);
 const hora = (iso) => (iso ? new Date(iso).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" }) : "—");
-const menos = (dias) => { const d = new Date(); d.setDate(d.getDate() - dias); return d.toISOString().slice(0, 10); };
+const menos = (dias) => { const d = new Date(); d.setDate(d.getDate() - dias); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }; // fecha local, no UTC
 const RIESGO = { BAJO: ["Bajo", "azul"], MEDIO: ["Medio", "amarillo"], ALTO: ["Alto", "rojo"], CRITICO: ["Crítico", "rojo"], SIN_RIESGO: ["Sin riesgo", "verde"] };
 const CATEGORIA = { PRODUCTIVIDAD: "Productividad", SEGURIDAD: "Seguridad", IA: "Uso de IA", CUMPLIMIENTO: "Cumplimiento" };
 const COLOR_CAT = { P: "bg-verde", I: "bg-rojo", N: "bg-[#9aa7bd]" };

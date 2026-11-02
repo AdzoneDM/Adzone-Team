@@ -65,7 +65,9 @@ class ActivoSerializer(serializers.ModelSerializer):
 
     def to_representation(self, o):
         d = super().to_representation(o)
-        if not servicios.gestiona_activos(self.context['request'].user):
+        if 'gestiona' not in self.context:
+            self.context['gestiona'] = servicios.gestiona_activos(self.context['request'].user)
+        if not self.context['gestiona']:
             for k in ('costo', 'valor_actual', 'valor_residual', 'proveedor'):
                 d[k] = None
         return d

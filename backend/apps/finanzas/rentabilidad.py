@@ -32,7 +32,7 @@ class Conversor:
             if f > fecha:
                 break
             actual = t
-        return actual or (self.tasas[0][1] if self.tasas else None)
+        return actual  # antes de la primera tasa no se inventa: queda como monto sin tasa
 
     def a_dop(self, monto, moneda, fecha):
         monto = monto or CERO
@@ -51,7 +51,8 @@ def _f(v):
 
 def _vacio():
     return {'vendido': CERO, 'facturado': CERO, 'cobrado': CERO, 'mano_obra': CERO, 'materiales': CERO, 'equipos': CERO,
-            'externos': CERO, 'transporte': CERO, 'otros': CERO, 'minutos': 0, 'minutos_sin_costo': 0, 'retrabajo': CERO}
+            'externos': CERO, 'transporte': CERO, 'otros': CERO, 'minutos': 0, 'minutos_sin_costo': 0, 'retrabajo': CERO,
+            'factura_final': False}
 
 
 def _calcular(ordenes, conv):
@@ -67,6 +68,7 @@ def _calcular(ordenes, conv):
     for f in Factura.objects.filter(orden_id__in=ids, estado__in=('EMITIDA', 'PAGADA')):
         d = datos[f.orden_id]
         d['facturado'] += conv.a_dop(f.subtotal, f.moneda, f.fecha)
+        d['factura_final'] = d['factura_final'] or not f.es_anticipo
         # lo cobrado se reparte en proporción del total sin ITBIS
         d['cobrado'] += conv.a_dop(f.pagado * (f.subtotal / f.total) if f.total else CERO, f.moneda, f.fecha)
     for g in Gasto.objects.filter(orden_id__in=ids):
@@ -88,11 +90,13 @@ def _calcular(ordenes, conv):
 
 def _fila(d):
     costo = d['mano_obra'] + d['materiales'] + d['equipos'] + d['externos'] + d['transporte'] + d['otros']
-    ingreso = d['facturado'] if d['facturado'] else d['vendido']
+    # Con factura final, lo facturado manda; si solo hay anticipos, la OT vale lo vendido (el anticipo es una parte).
+    usa_facturado = d['factura_final'] or d['facturado'] >= d['vendido']
+    ingreso = d['facturado'] if usa_facturado and d['facturado'] else d['vendido']
     utilidad = ingreso - costo
     return {
         'vendido': _f(d['vendido']), 'facturado': _f(d['facturado']), 'cobrado': _f(d['cobrado']),
-        'base': 'FACTURADO' if d['facturado'] else 'VENDIDO', 'ingreso': _f(ingreso),
+        'base': 'FACTURADO' if usa_facturado and d['facturado'] else 'VENDIDO', 'ingreso': _f(ingreso),
         'mano_obra': _f(d['mano_obra']), 'materiales': _f(d['materiales']), 'equipos': _f(d['equipos']), 'externos': _f(d['externos']),
         'transporte': _f(d['transporte']), 'otros': _f(d['otros']), 'costo': _f(costo), 'utilidad': _f(utilidad),
         'margen': round(float(utilidad / ingreso * 100), 1) if ingreso else None,

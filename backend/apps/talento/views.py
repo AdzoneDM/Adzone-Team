@@ -374,8 +374,13 @@ class PoliticaSerializer(serializers.ModelSerializer):
         return self._aceptacion(o)
 
     def validate(self, data):
-        if self.instance and not self.instance.borrador and 'contenido' in data and data['contenido'] != self.instance.contenido:
-            raise serializers.ValidationError({'contenido': 'Una política publicada se cambia con «Nueva versión», para que todos la acepten de nuevo.'})
+        p = self.instance
+        if p is not None and (not p.borrador or p.aceptaciones.exists()):
+            for campo in ('contenido', 'titulo'):
+                if campo in data and data[campo] != getattr(p, campo):
+                    raise serializers.ValidationError({campo: 'Una política publicada se cambia con «Nueva versión», para que todos la acepten de nuevo.'})
+            if data.get('borrador'):
+                raise serializers.ValidationError({'borrador': 'Una política publicada no vuelve a borrador; desactívala si ya no aplica.'})
         return data
 
 
@@ -409,18 +414,26 @@ class PoliticaViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         antes = serializer.instance.borrador
         p = serializer.save()
-        if p.borrador:  # mientras es borrador, el texto de la versión 1 sigue al de la política
+        if p.borrador and not p.aceptaciones.exists():  # mientras es borrador sin aceptar, la versión sigue al texto
             VersionPolitica.objects.filter(politica=p, version=p.version).update(titulo=p.titulo, contenido=p.contenido)
         elif antes and p.activa:
             p.vigente_desde = timezone.localdate()
             p.save(update_fields=['vigente_desde'])
             pol.avisar_publicacion(p, self.request.user)
 
+    def perform_destroy(self, instance):
+        if not instance.borrador or instance.aceptaciones.exists():
+            raise exceptions.ValidationError('Ya se publicó: desactívala en vez de borrarla, para conservar quién la aceptó.')
+        instance.delete()
+
     @action(detail=True, methods=['post'])
     def aceptar(self, request, pk=None):
         p = self.get_object()
         if p.borrador or not p.activa:
             return Response({'detail': 'Esta política no está publicada.'}, status=400)
+        leida = request.data.get('version')
+        if leida is not None and str(leida) != str(p.version):
+            return Response({'detail': 'La política cambió mientras la leías. Vuelve a abrirla para leer la versión nueva.'}, status=409)
         a = pol.aceptar(p, request.user, _ip(request), request.META.get('HTTP_USER_AGENT', ''))
         return Response({'aceptada': True, 'version': a.version, 'fecha': a.fecha})
 
@@ -516,16 +529,38 @@ class DocumentoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         u = self.request.user
         qs = DocumentoEmpleado.objects.select_related('colaborador', 'subido_por')
+        propios = qs.filter(colaborador=u, visible_al_colaborador=True)
         if pol.es_rrhh(u):
             persona = _persona_param(self.request)
+            if not es_administrador(u):
+                # Gestión del Talento no ve ni toca lo oculto de su propio expediente.
+                if persona and persona.pk == u.pk:
+                    return propios
+                qs = qs.exclude(colaborador=u) | propios
             return qs.filter(colaborador=persona) if persona else qs
-        return qs.filter(colaborador=u, visible_al_colaborador=True)
+        return propios
+
+    def _no_propio(self, colaborador):
+        if colaborador.pk == self.request.user.pk and not es_administrador(self.request.user):
+            raise exceptions.PermissionDenied("Tu propio expediente lo maneja otra persona de Gestión del Talento o la administración.")
 
     def perform_create(self, serializer):
+        self._no_propio(serializer.validated_data['colaborador'])
         serializer.save(subido_por=self.request.user)
 
     def perform_update(self, serializer):
-        serializer.save(colaborador=serializer.instance.colaborador)
+        self._no_propio(serializer.instance.colaborador)
+        viejo = serializer.instance.archivo.name if 'archivo' in serializer.validated_data else None
+        d = serializer.save(colaborador=serializer.instance.colaborador)
+        if viejo and viejo != d.archivo.name:
+            d.archivo.storage.delete(viejo)
+
+    def perform_destroy(self, instance):
+        self._no_propio(instance.colaborador)
+        nombre, storage = instance.archivo.name, instance.archivo.storage
+        instance.delete()
+        if nombre:
+            storage.delete(nombre)  # copias de identificación y contratos no quedan en el disco
 
     @action(detail=True, methods=['get'])
     def archivo(self, request, pk=None):

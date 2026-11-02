@@ -13,7 +13,8 @@ const CATEGORIAS = [["COMPUTADORA", "Computadora de escritorio"], ["LAPTOP", "La
   ["VEHICULO", "Vehículo"], ["RED", "Red y servidores"], ["MOBILIARIO", "Mobiliario"], ["OTRO", "Otro"]];
 const TONO = { DISPONIBLE: "verde", ASIGNADO: "azul", MANTENIMIENTO: "amarillo", DANADO: "rojo", BAJA: "neutro" };
 const fecha = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T12:00`).toLocaleDateString("es-DO", { day: "numeric", month: "short", year: "numeric" }) : "—");
-const hoy = () => new Date().toISOString().slice(0, 10);
+const local = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const hoy = () => local(new Date());
 
 export default function Activos() {
   const { gestionaActivos } = useSesion();

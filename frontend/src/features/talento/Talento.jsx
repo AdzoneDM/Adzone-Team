@@ -15,8 +15,9 @@ const TIPOS_EVENTO = [["RECONOCIMIENTO", "Reconocimiento"], ["OBSERVACION", "Obs
   ["AMONESTACION_ESCRITA", "Amonestación escrita"], ["INCIDENCIA", "Incidencia"], ["CAPACITACION", "Capacitación"], ["BONO", "Bono"], ["OTRO", "Otro"]];
 const TONO_EVENTO = { RECONOCIMIENTO: "verde", CAPACITACION: "azul", BONO: "verde", OBSERVACION: "amarillo", INCIDENCIA: "amarillo",
   AMONESTACION_VERBAL: "rojo", AMONESTACION_ESCRITA: "rojo", OTRO: "neutro" };
-const hoy = () => new Date().toISOString().slice(0, 10);
-const enDias = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+const local = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const hoy = () => local(new Date());
+const enDias = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return local(d); };
 const num = (v) => (v == null ? "—" : Number(v).toLocaleString("es-DO", { maximumFractionDigits: 2 }));
 
 export default function Talento() {
