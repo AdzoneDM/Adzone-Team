@@ -450,3 +450,10 @@ export const borrarEquipoExtra = (id) => api(`/api/accesos/equipo-extra/${id}/`,
 // Calibración del piloto: lo que ninguna regla de productividad clasifica
 export const calibracion = (dias = 7) => api(`/api/monitoreo/calibracion/?dias=${dias}`);
 export const clasificar = (r) => api("/api/monitoreo/calibracion/", { method: "POST", body: r });
+
+// Lugares de marcaje (oficina con pantalla de QR) y pantalla pública del QR
+export const sitiosMarcaje = () => api(`${AS}/sitios/`);
+export const guardarSitio = (s) => api(s.id ? `${AS}/sitios/${s.id}/` : `${AS}/sitios/`, { method: s.id ? "PATCH" : "POST", body: s });
+export const borrarSitio = (id) => api(`${AS}/sitios/${id}/`, { method: "DELETE" });
+export const nuevaClaveSitio = (id) => api(`${AS}/sitios/${id}/nueva-clave/`, { method: "POST" });
+export const pantallaQR = (clave) => api(`${AS}/pantalla/${encodeURIComponent(clave)}/`);

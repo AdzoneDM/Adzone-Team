@@ -5,6 +5,7 @@ django-cors-headers>=4.3
 django-filter>=24.0
 whitenoise>=6.6        # sirve la app web compilada desde el mismo Django
 Pillow>=10.0           # fotos de evidencia
+pywebpush>=2.0         # notificaciones en el celular (Web Push)
 qrcode>=7.4            # código QR para activar la verificación en dos pasos
 PyMySQL>=1.1           # solo si se usa MySQL/MariaDB en Plesk (DB_ENGINE=mysql)
 gunicorn>=22.0 ; sys_platform != "win32"   # servidor de producción (Linux)

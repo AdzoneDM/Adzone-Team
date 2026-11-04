@@ -67,7 +67,7 @@ def en_jornada(usuario, ahora=None):
 SIGUIENTES = {'FUERA': [Marcaje.ENTRADA], 'TRABAJANDO': [Marcaje.PAUSA, Marcaje.SALIDA], 'EN_PAUSA': [Marcaje.REGRESO, Marcaje.SALIDA]}
 
 
-def marcar(usuario, tipo, origen='WEB', ip=None, motivo='', nota='', momento=None):
+def marcar(usuario, tipo, origen='WEB', ip=None, motivo='', nota='', momento=None, lugar=None):
     """Registra un marcaje si tiene sentido según el estado actual. Devuelve (marcaje, error)."""
     estado, _ = estado_actual(usuario, momento)
     motivo, nota = str(motivo or ''), str(nota or '')
@@ -75,7 +75,7 @@ def marcar(usuario, tipo, origen='WEB', ip=None, motivo='', nota='', momento=Non
         textos = {'FUERA': 'No has marcado entrada hoy.', 'TRABAJANDO': 'Ya marcaste entrada.', 'EN_PAUSA': 'Estás en pausa: marca tu regreso.'}
         return None, textos[estado]
     return Marcaje.objects.create(usuario=usuario, tipo=tipo, origen=origen, ip=ip, motivo_pausa=motivo[:60],
-                                  nota=nota[:255], momento=momento or timezone.now()), None
+                                  nota=nota[:255], momento=momento or timezone.now(), **(lugar or {})), None
 
 
 def inicio_control(usuario):

@@ -6,3 +6,6 @@ class CoreConfig(AppConfig):
     name = 'apps.core'
     label = 'core'  # se mantiene: las tablas de la base de datos no cambian de nombre
     verbose_name = 'Departamentos y sesión'
+
+    def ready(self):
+        from . import push  # noqa: F401  (los avisos de la campanita también llegan al celular)

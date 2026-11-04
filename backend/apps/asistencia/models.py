@@ -41,10 +41,30 @@ class Horario(models.Model):
         return max(0, total - (self.almuerzo_minutos if total > 6 * 60 else 0))
 
 
+class SitioMarcaje(models.Model):
+    """Un lugar donde se marca: la oficina (con su pantalla de QR) o una sucursal. La ubicación sirve como alternativa al QR."""
+    nombre = models.CharField(max_length=80)
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    radio_m = models.PositiveIntegerField(default=150, help_text="A cuántos metros del punto cuenta como «en el lugar».")
+    clave_pantalla = models.CharField(max_length=40, unique=True, help_text="Enlace secreto de la pantalla que muestra el QR.")
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Lugar de marcaje'
+
+    def __str__(self):
+        return self.nombre
+
+
 class AsignacionHorario(models.Model):
+    LUGARES = [('LIBRE', 'Donde sea'), ('OFICINA', 'En la oficina (QR o ubicación)'), ('CALLE', 'Donde sea, con ubicación')]
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='asignacion_horario')
     horario = models.ForeignKey(Horario, on_delete=models.PROTECT, related_name='asignaciones')
     marca_obligatoria = models.BooleanField(default=True, help_text="Si no marca entrada un día laborable, sale como ausente.")
+    donde_marca = models.CharField(max_length=8, choices=LUGARES, default='LIBRE',
+                                   help_text="Oficina: con el QR de la pantalla o estando en el lugar. Calle (instalaciones, eventos): donde sea, guardando la ubicación.")
 
     class Meta:
         verbose_name = 'Horario de una persona'
@@ -53,7 +73,7 @@ class AsignacionHorario(models.Model):
 class Marcaje(models.Model):
     ENTRADA, PAUSA, REGRESO, SALIDA = 'ENTRADA', 'PAUSA', 'REGRESO', 'SALIDA'
     TIPOS = [(ENTRADA, 'Entrada'), (PAUSA, 'Inicio de pausa'), (REGRESO, 'Fin de pausa'), (SALIDA, 'Salida')]
-    ORIGENES = [('WEB', 'Plataforma'), ('MOVIL', 'Celular'), ('AGENTE', 'Agente de escritorio'), ('MANUAL', 'Corrección manual')]
+    ORIGENES = [('WEB', 'Plataforma'), ('MOVIL', 'Celular'), ('QR', 'QR de la oficina'), ('AGENTE', 'Agente de escritorio'), ('MANUAL', 'Corrección manual')]
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='marcajes')
     tipo = models.CharField(max_length=10, choices=TIPOS)
     momento = models.DateTimeField(db_index=True)
@@ -63,6 +83,10 @@ class Marcaje(models.Model):
     nota = models.CharField(max_length=255, blank=True)
     corregido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
                                       help_text="Quién lo agregó o corrigió a mano (vacío = la propia persona).")
+    sitio = models.ForeignKey('SitioMarcaje', on_delete=models.SET_NULL, null=True, blank=True, related_name='marcajes')
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    precision_m = models.PositiveIntegerField(null=True, blank=True, help_text="Precisión de la ubicación que dio el celular.")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:

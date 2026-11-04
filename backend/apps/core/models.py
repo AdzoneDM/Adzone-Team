@@ -105,3 +105,16 @@ class DispositivoConocido(models.Model):
     class Meta:
         unique_together = ('usuario', 'huella')
         verbose_name = 'Dispositivo conocido'
+
+
+class SuscripcionPush(models.Model):
+    """Un celular o navegador que recibe los avisos de la campanita como notificación (Web Push)."""
+    usuario = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='suscripciones_push')
+    endpoint = models.URLField(max_length=600, unique=True)
+    p256dh = models.CharField(max_length=200)
+    auth = models.CharField(max_length=100)
+    navegador = models.CharField(max_length=200, blank=True)
+    creada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Suscripción a notificaciones'

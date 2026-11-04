@@ -203,3 +203,31 @@ class EndurecimientoTests(Base):
         r = c.post('/api/auth/login/', {'username': 'dir', 'password': CLAVE}, format='json')
         self.assertTrue(r.json()['dos_pasos'])
         self.assertIn(c.get('/api/desempeno/tareas/').status_code, (401, 403))  # Ana ya no está en este navegador
+
+
+class PushTests(Base):
+    @override_settings(VAPID_PUBLICA='pub', VAPID_PRIVADA='priv', PUSH_SINCRONO=True)
+    def test_suscribirse_y_cada_aviso_llega_al_celular(self):
+        from apps.core.models import SuscripcionPush
+        from apps.desempeno.servicios import avisar
+        c, _ = self.entrar(self.ana)
+        self.assertEqual(c.post('/api/cuenta/push/', {'suscripcion': {'endpoint': 'http://inseguro'}}, format='json').status_code, 400)
+        sus = {'endpoint': 'https://push.example/abc', 'keys': {'p256dh': 'k', 'auth': 'a'}}
+        with mock.patch('pywebpush.webpush') as w:
+            self.assertEqual(c.post('/api/cuenta/push/', {'suscripcion': sus}, format='json').status_code, 201)
+            self.assertEqual(c.get('/api/cuenta/push/').json()['suscripciones'], 1)
+            with self.captureOnCommitCallbacks(execute=True):
+                avisar([self.ana], 'ASIGNADA', 'Nueva tarea', 'Diseño del brochure', enlace='/mis-tareas')
+        self.assertTrue(any('Nueva tarea' in str(call) for call in w.call_args_list))
+        # un celular que ya no existe se borra solo
+        from pywebpush import WebPushException
+        resp = mock.Mock(status_code=410)
+        with mock.patch('pywebpush.webpush', side_effect=WebPushException('gone', response=resp)):
+            with self.captureOnCommitCallbacks(execute=True):
+                avisar([self.ana], 'ASIGNADA', 'Otra')
+        self.assertFalse(SuscripcionPush.objects.exists())
+
+    def test_sin_claves_no_se_suscribe(self):
+        c, _ = self.entrar(self.ana)
+        r = c.post('/api/cuenta/push/', {'suscripcion': {'endpoint': 'https://x', 'keys': {'p256dh': 'k', 'auth': 'a'}}}, format='json')
+        self.assertEqual(r.status_code, 400)

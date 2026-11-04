@@ -166,6 +166,10 @@ SESSION_COOKIE_AGE = 7 * 24 * 60 * 60
 # Cierre por inactividad (minutos sin usar la app): más corto para quien maneja datos de la empresa
 INACTIVIDAD_EMPRESA_MIN = int(env('INACTIVIDAD_EMPRESA_MIN', '30'))
 INACTIVIDAD_MIN = int(env('INACTIVIDAD_MIN', str(12 * 60)))
+# Notificaciones en el celular (Web Push). Claves con: python manage.py generar_vapid
+VAPID_PUBLICA = env('VAPID_PUBLICA')
+VAPID_PRIVADA = env('VAPID_PRIVADA')
+VAPID_CORREO = env('VAPID_CORREO', 'adzonedigitalm@gmail.com')
 # Respaldos cifrados que deja servidor/respaldo.sh (la Dirección los descarga desde la plataforma)
 RESPALDOS_DIR = Path(env('RESPALDOS_DIR') or BASE_DIR.parent.parent / 'kpi-respaldos')
 SESSION_COOKIE_HTTPONLY = True

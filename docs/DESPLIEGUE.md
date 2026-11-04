@@ -70,6 +70,19 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### App de celular: avisos y marcaje con QR (versión 12.1)
+
+```bash
+venv/bin/pip install -r backend/requirements.txt   # agrega «pywebpush»
+python manage.py migrate
+python manage.py generar_vapid                      # copia las 3 líneas VAPID_… a backend/.env y reinicia la app
+```
+
+1. **Asistencia → Horarios → Lugares de marcaje → Lugar**: crea «Oficina Bonao». Estando en la oficina, toca «Usar mi ubicación actual».
+2. Copia el **enlace de la pantalla** y ábrelo en una tablet o monitor de la recepción (pantalla completa, sin apagarse). No necesita entrar con usuario. Si el enlace se comparte por error, genera otro (↻).
+3. En **Horario de cada persona → Dónde marca**: «En la oficina» para quien trabaja allí, «En la calle» para instalación, eventos y producción fuera.
+4. Pide al equipo que instale la app y active los avisos (Mi cuenta → Avisos en este celular).
+
 ### Seguridad de las cuentas y respaldos cifrados (versión 12.0)
 
 ```bash

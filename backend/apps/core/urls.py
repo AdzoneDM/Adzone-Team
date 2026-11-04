@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import views, views_accesos as acc, views_dos_pasos as dp, views_respaldos as resp
+from . import views, views_accesos as acc, views_dos_pasos as dp, views_respaldos as resp, views_push
 
 router = DefaultRouter()
 router.register(r'departamentos', views.DepartamentoViewSet, basename='departamento')
@@ -17,6 +17,7 @@ urlpatterns = [
     path('auth/clave-equipo/', views.clave_equipo_view, name='api_clave_equipo'),
     path('auth/dos-pasos/', views.dos_pasos_login_view, name='api_dos_pasos_login'),
     path('respaldos/', resp.respaldos_view, name='respaldos'),
+    path('cuenta/push/', views_push.push_view, name='push'),
     path('respaldos/<str:nombre>/', resp.descargar_view, name='respaldo_descargar'),
     path('cuenta/dos-pasos/', dp.estado_view, name='dos_pasos_estado'),
     path('cuenta/dos-pasos/iniciar/', dp.iniciar_view, name='dos_pasos_iniciar'),

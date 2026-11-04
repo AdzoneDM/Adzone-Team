@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import { diaSemana, fechaCorta, mesActual, reloj } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
+import Lugares from "./Lugares";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Puntaje, SelectorMes, cx, useAviso, useConfirmar } from "@/components/ui";
 
 const hora = (iso) => (iso ? new Date(iso).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" }) : "—");
@@ -267,6 +268,8 @@ function Permisos({ gestiona }) {
 
 const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
+const LUGARES = [["LIBRE", "Donde sea"], ["OFICINA", "En la oficina (QR o ubicación)"], ["CALLE", "En la calle (con ubicación)"]];
+
 function Horarios() {
   const avisar = useAviso();
   const confirmar = useConfirmar();
@@ -303,7 +306,7 @@ function Horarios() {
       <Panel titulo="Horario de cada persona" cuerpo="p-0">
         <div className="overflow-x-auto">
           <table className="tabla">
-            <thead><tr><th>Persona</th><th>Horario</th><th>Marca obligatoria</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Horario</th><th>Marca obligatoria</th><th>Dónde marca</th></tr></thead>
             <tbody>
               {personas.map((p) => (
                 <tr key={p.id}>
@@ -314,12 +317,17 @@ function Horarios() {
                   <td><label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" className="accent-azul" checked={p.marca_obligatoria} onChange={async (e) => {
                     try { await asignarHorario({ usuarios: [p.id], horario: p.horario, marca_obligatoria: e.target.checked }); cargar(); } catch (er) { avisar(er.message, "rojo"); }
                   }} />{p.marca_obligatoria ? "Sí: si no marca, sale ausente" : "No (dirección, trabajo libre)"}</label></td>
+                  <td><select aria-label={`Dónde marca ${p.nombre}`} className="campo h-10" value={p.donde_marca || "LIBRE"} onChange={async (e) => {
+                    try { await asignarHorario({ usuarios: [p.id], horario: p.horario, marca_obligatoria: p.marca_obligatoria, donde_marca: e.target.value }); cargar(); } catch (er) { avisar(er.message, "rojo"); }
+                  }}>{LUGARES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Panel>
+
+      <Lugares />
 
       <Panel titulo="Feriados" cuerpo="p-0">
         <ul className="divide-y divide-linea-suave">

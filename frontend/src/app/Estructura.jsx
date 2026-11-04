@@ -15,6 +15,7 @@ import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/ti
 import { anunciarNovedades } from "@/lib/novedades";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
+import { SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
 function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
   veMonitoreo, gestionaPersonas, configuraSistema, esRRHH }) {
@@ -409,6 +410,7 @@ function EstructuraInterna() {
       )}
 
       <main className="mx-auto w-full max-w-[1320px] px-4 pb-28 pt-5 md:px-6 lg:px-8 lg:pb-12 lg:pt-7">
+        <SugerenciaApp />
         <Outlet context={{ refrescarAvisos: refrescar }} />
       </main>
 

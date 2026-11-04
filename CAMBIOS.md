@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.1 · 04/11/2026 · App de celular: avisos y marcaje con QR o ubicación
+
+- **Instalar la app**: en el celular aparece la sugerencia de instalar Adzone Team (Android: un toque; iPhone: Compartir → «Agregar a inicio»). Se abre como una app, sin la barra del navegador.
+- **Avisos en el celular**: cada aviso de la campanita (tarea asignada, entrega por validar, recordatorio, devolución…) llega como notificación aunque la app esté cerrada; al tocarla se abre la pantalla del aviso. Se activa en Mi cuenta o en la sugerencia de arriba, por dispositivo. En iPhone funciona con la app instalada (iOS 16.4 o más nuevo).
+- **Marcaje con el QR de la oficina**: una tablet o monitor en la recepción muestra un QR que cambia cada 30 segundos (Asistencia → Horarios → Lugares de marcaje → «Enlace de la pantalla»). La persona lo escanea con la cámara y marca entrada, pausa, regreso o salida. Una foto del QR deja de servir al minuto y medio.
+- **Dónde marca cada persona** (Asistencia → Horarios): *Donde sea* (como hasta ahora), *En la oficina* (con el QR o estando dentro del radio del lugar según su celular) o *En la calle* (instalaciones, eventos: marca donde esté, pero el celular debe dar la ubicación y queda guardada con el marcaje). La ubicación solo se pide al marcar: la plataforma no sigue a nadie.
+
 ## 12.0 · 04/11/2026 · Seguridad de las cuentas y respaldos cifrados
 
 - **Verificación en dos pasos** con Google o Microsoft Authenticator: obligatoria para quien maneja la empresa (Dirección, personas y accesos, Gestión del Talento, salarios y configuración); opcional para el resto en Mi cuenta. Se activa escaneando un QR y entrega 10 códigos de respaldo de un solo uso. Un código no sirve dos veces, y hay 5 intentos por entrada. También protege el panel de Django.

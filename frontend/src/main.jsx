@@ -27,4 +27,10 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });
+  // «Instalar la app» (Android/Chrome): se guarda el aviso del navegador para ofrecerlo cuando convenga
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    window.__instalarApp = e;
+    window.dispatchEvent(new Event("adzone:instalable"));
+  });
 }

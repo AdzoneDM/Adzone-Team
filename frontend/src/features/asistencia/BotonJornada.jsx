@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Coffee, LogIn, LogOut, Play } from "lucide-react";
 import { estadoJornada, marcarJornada } from "@/lib/api";
 import { reloj } from "@/lib/formato";
+import { datosDeLugar } from "@/lib/ubicacion";
 import { Boton, Modal, cx, useAviso } from "@/components/ui";
 
 const TEXTO = { ENTRADA: "Marcar entrada", PAUSA: "Pausa", REGRESO: "Volver", SALIDA: "Salida" };
@@ -39,7 +40,8 @@ export default function BotonJornada() {
   const marcar = async (tipo, motivo = "") => {
     setEnviando(true);
     try {
-      await marcarJornada(tipo, { motivo, movil: window.matchMedia("(max-width: 767px)").matches });
+      const lugar = await datosDeLugar(estado.donde_marca);
+      await marcarJornada(tipo, { motivo, movil: window.matchMedia("(max-width: 767px)").matches, ...lugar });
       avisar({ ENTRADA: "Entrada marcada. ¡Buen día!", PAUSA: "Pausa marcada.", REGRESO: "De vuelta.", SALIDA: "Salida marcada. ¡Hasta mañana!" }[tipo]);
       setAbierto(false);
       setPidiendoMotivo(false);

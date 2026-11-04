@@ -30,6 +30,8 @@ const Finanzas = lazy(() => import("@/features/finanzas/Finanzas"));
 const Imprimir = lazy(() => import("@/features/finanzas/Imprimir"));
 const Automatizaciones = lazy(() => import("@/features/automatizaciones/Automatizaciones"));
 const Accesos = lazy(() => import("@/features/organizacion/Accesos"));
+const MarcarQR = lazy(() => import("@/features/asistencia/MarcarQR"));
+const PantallaQR = lazy(() => import("@/features/asistencia/PantallaQR"));
 const Respaldos = lazy(() => import("@/features/organizacion/Respaldos"));
 const DosPasosObligatoria = lazy(() => import("@/features/cuenta/DosPasos").then((m) => ({ default: m.DosPasosObligatoria })));
 const OrdenArea = lazy(() => import("@/features/ordenes/OrdenArea"));
@@ -72,6 +74,7 @@ export default function App() {
       <Routes>
         <Route path="/entrar" element={usuario ? <Navigate to="/" replace /> : <Entrar />} />
         <Route path="/login" element={<Navigate to="/entrar" replace />} />
+        <Route path="/pantalla-qr/:clave" element={<PantallaQR />} />
         <Route path="/imprimir/ot/:id" element={<Protegida><ImprimirFormato tipo="ot" /></Protegida>} />
         <Route path="/imprimir/oa/:id" element={<Protegida><ImprimirFormato tipo="oa" /></Protegida>} />
         <Route path="/imprimir/acta/:id" element={<Protegida><ImprimirFormato tipo="acta" /></Protegida>} />
@@ -111,6 +114,7 @@ export default function App() {
           <Route path="puestos" element={<Protegida admin><Puestos /></Protegida>} />
           <Route path="puestos/:id" element={<Protegida admin><PuestoDetalle /></Protegida>} />
           <Route path="personas" element={<Protegida permiso="personal.usuarios"><Personas /></Protegida>} />
+          <Route path="marcar" element={<MarcarQR />} />
           <Route path="respaldos" element={<Protegida admin><Respaldos /></Protegida>} />
           <Route path="accesos" element={<Protegida permiso="personal.usuarios"><Accesos /></Protegida>} />
           <Route path="plantillas-kpi" element={<Protegida admin><PlantillasKpi /></Protegida>} />

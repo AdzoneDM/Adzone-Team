@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
@@ -52,7 +52,13 @@ def estado_view(request):
         'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento} if ultimo else None,
         'hoy': servicios.jornada(request.user, timezone.localdate()),
         'horario': {'id': horario.id, 'nombre': horario.nombre} if horario else None,
+        'donde_marca': _donde(request.user),
     })
+
+
+def _donde(user):
+    from .lugar import donde_marca
+    return donde_marca(user)
 
 
 @api_view(['POST'])
@@ -60,11 +66,17 @@ def marcar_view(request):
     tipo = request.data.get('tipo')
     if tipo not in dict(Marcaje.TIPOS):
         return Response({'detail': 'Marcaje no válido.'}, status=400)
-    origen = 'MOVIL' if request.data.get('movil') else 'WEB'
-    marcaje, error = servicios.marcar(request.user, tipo, origen, _ip(request), request.data.get('motivo') or '', request.data.get('nota') or '')
+    from .lugar import validar
+    lugar, error = validar(request.user, request.data)
+    if error:
+        return Response({'detail': error, 'lugar': True}, status=400)
+    origen = lugar.pop('origen') or ('MOVIL' if request.data.get('movil') else 'WEB')
+    marcaje, error = servicios.marcar(request.user, tipo, origen, _ip(request), request.data.get('motivo') or '', request.data.get('nota') or '',
+                                      lugar=lugar)
     if error:
         return Response({'detail': error}, status=400)
-    return Response({'ok': True, 'tipo': marcaje.tipo, 'momento': marcaje.momento}, status=201)
+    return Response({'ok': True, 'tipo': marcaje.tipo, 'momento': marcaje.momento,
+                     'sitio': marcaje.sitio.nombre if marcaje.sitio_id else None}, status=201)
 
 
 @api_view(['GET'])
@@ -246,8 +258,10 @@ def asignaciones_view(request):
         horario = get_object_or_404(Horario, pk=request.data.get('horario'))
         ids = request.data.get('usuarios') or []
         for u in User.objects.filter(pk__in=ids):
-            AsignacionHorario.objects.update_or_create(usuario=u, defaults={
-                'horario': horario, 'marca_obligatoria': bool(request.data.get('marca_obligatoria', True))})
+            defaults = {'horario': horario, 'marca_obligatoria': bool(request.data.get('marca_obligatoria', True))}
+            if request.data.get('donde_marca') in dict(AsignacionHorario.LUGARES):
+                defaults['donde_marca'] = request.data['donde_marca']
+            AsignacionHorario.objects.update_or_create(usuario=u, defaults=defaults)
         return Response({'asignados': len(ids)})
     asign = {a.usuario_id: a for a in AsignacionHorario.objects.select_related('horario')}
     defecto = Horario.objects.filter(por_defecto=True).first()
@@ -256,7 +270,8 @@ def asignaciones_view(request):
         a = asign.get(u.pk)
         h = a.horario if a else defecto
         filas.append({**_persona(u), 'horario': h.id if h else None, 'horario_nombre': h.nombre if h else None,
-                      'propio': bool(a), 'marca_obligatoria': a.marca_obligatoria if a else True})
+                      'propio': bool(a), 'marca_obligatoria': a.marca_obligatoria if a else True,
+                      'donde_marca': a.donde_marca if a else 'LIBRE'})
     return Response(filas)
 
 
@@ -331,3 +346,58 @@ def revisar_ausencia_view(request, pk):
     avisar([a.usuario], 'ASISTENCIA', f'Tu solicitud de {a.get_tipo_display().lower()} fue {"aprobada" if aprobar else "rechazada"}',
            a.comentario_revision, enlace='/asistencia?ver=permisos', excepto=request.user)
     return Response(AusenciaSerializer(a, context={'request': request}).data)
+
+
+# ------------------------------------------------------------------ Lugares de marcaje y pantalla del QR
+class SitioSerializer(serializers.ModelSerializer):
+    class Meta:
+        from .models import SitioMarcaje
+        model = SitioMarcaje
+        fields = ['id', 'nombre', 'latitud', 'longitud', 'radio_m', 'clave_pantalla', 'activo']
+        read_only_fields = ['clave_pantalla']
+
+    def validate_radio_m(self, v):
+        if not 30 <= v <= 2000:
+            raise serializers.ValidationError('Entre 30 y 2000 metros.')
+        return v
+
+
+class SitioViewSet(viewsets.ModelViewSet):
+    serializer_class = SitioSerializer
+    permission_classes = [EsAdministrador]
+
+    def get_queryset(self):
+        from .models import SitioMarcaje
+        return SitioMarcaje.objects.all()
+
+    def perform_create(self, serializer):
+        import secrets
+        serializer.save(clave_pantalla=secrets.token_urlsafe(24))
+
+
+@api_view(['POST'])
+@permission_classes([EsAdministrador])
+def sitio_nueva_clave_view(request, pk):
+    """Si el enlace de la pantalla se compartió por error: uno nuevo (el anterior deja de servir)."""
+    import secrets
+    from .models import SitioMarcaje
+    s = get_object_or_404(SitioMarcaje, pk=pk)
+    s.clave_pantalla = secrets.token_urlsafe(24)
+    s.save(update_fields=['clave_pantalla'])
+    return Response(SitioSerializer(s).data)
+
+
+@api_view(['GET'])
+@permission_classes([])
+@authentication_classes([])
+def pantalla_qr_view(request, clave):
+    """La pantalla de la recepción (sin sesión, con su enlace secreto): el QR del momento, que cambia cada 30 s."""
+    from .lugar import VENTANA, token
+    from .models import SitioMarcaje
+    from apps.core.seguridad import qr_svg
+    import time as _t
+    s = SitioMarcaje.objects.filter(clave_pantalla=clave, activo=True).first()
+    if s is None:
+        return Response({'detail': 'Este enlace ya no sirve.'}, status=404)
+    url = request.build_absolute_uri(f'/marcar?s={s.pk}&t={token(s)}')
+    return Response({'sitio': s.nombre, 'qr': qr_svg(url), 'cambia_en': VENTANA - int(_t.time()) % VENTANA})
