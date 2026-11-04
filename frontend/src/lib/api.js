@@ -446,3 +446,7 @@ export const crearExcepcion = (e) => api("/api/accesos/excepciones/", { method: 
 export const borrarExcepcion = (id) => api(`/api/accesos/excepciones/${id}/`, { method: "DELETE" });
 export const crearEquipoExtra = (x) => api("/api/accesos/equipo-extra/", { method: "POST", body: x });
 export const borrarEquipoExtra = (id) => api(`/api/accesos/equipo-extra/${id}/`, { method: "DELETE" });
+
+// Calibración del piloto: lo que ninguna regla de productividad clasifica
+export const calibracion = (dias = 7) => api(`/api/monitoreo/calibracion/?dias=${dias}`);
+export const clasificar = (r) => api("/api/monitoreo/calibracion/", { method: "POST", body: r });

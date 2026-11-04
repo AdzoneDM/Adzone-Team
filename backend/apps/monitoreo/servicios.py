@@ -31,6 +31,18 @@ class Clasificador:
             return texto == patron or texto.endswith('.' + patron)  # «x.com» no marca «dropbox.com»
         return patron in texto
 
+    def regla(self, departamento_id, app='', titulo='', dominio=''):
+        """La regla que decide (o None si ninguna aplica y el minuto queda neutral por defecto)."""
+        campos = {'APP': (app or '').lower(), 'TITULO': (titulo or '').lower(), 'DOMINIO': (dominio or '').lower()}
+        for depto in ((departamento_id,) if departamento_id else ()) + (None,):
+            for tipo in ORDEN_TIPOS:
+                texto = campos[tipo]
+                if texto:
+                    for r in self.reglas:
+                        if r['tipo'] == tipo and r['departamento_id'] == depto and self._coincide(tipo, r['patron'], texto):
+                            return r
+        return None
+
     def categoria(self, departamento_id, app='', titulo='', dominio=''):
         campos = {'APP': (app or '').lower(), 'TITULO': (titulo or '').lower(), 'DOMINIO': (dominio or '').lower()}
         for depto in ((departamento_id,) if departamento_id else ()) + (None,):

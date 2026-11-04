@@ -11,6 +11,7 @@ import {
 import { hace, hoyISO, mesActual, nombreMes, reloj } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { Computadoras, Incidencias, Pantallas, Perfiles, ReglasComportamiento, Resumen } from "./Analitica";
+import Calibracion from "./Calibracion";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Puntaje, SelectorMes, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 
 const CAT = { P: ["Productiva", "verde", "bg-verde"], N: ["Neutral", "neutro", "bg-[#9aa7bd]"], I: ["Improductiva", "rojo", "bg-rojo"] };
@@ -525,6 +526,7 @@ export default function Monitoreo() {
     { valor: "justificaciones", etiqueta: "Justificaciones" },
     { valor: "equipos", etiqueta: "Mis equipos y política" },
     gestiona && { valor: "computadoras", etiqueta: "Computadoras" },
+    configuraMonitoreo && { valor: "calibracion", etiqueta: "Calibración" },
     configuraMonitoreo && { valor: "reglas", etiqueta: "Reglas" },
     configuraMonitoreo && { valor: "config", etiqueta: "Configuración" },
   ].filter(Boolean);
@@ -546,6 +548,7 @@ export default function Monitoreo() {
         : ver === "proyectos" && (gestiona || esFinanzas) ? <Proyectos />
         : ver === "justificaciones" ? <Justificaciones gestiona={gestiona} />
         : ver === "equipos" ? <MisEquipos />
+          : ver === "calibracion" && configuraMonitoreo ? <Calibracion />
           : ver === "reglas" && configuraMonitoreo ? <TodasLasReglas />
             : ver === "config" && configuraMonitoreo ? <Configuracion />
               : <DiaPersona />}

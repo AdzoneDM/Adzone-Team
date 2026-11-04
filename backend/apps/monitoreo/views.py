@@ -704,3 +704,32 @@ def computadora_monitorear_view(request, pk):
     d.monitorear = valor
     d.save(update_fields=['monitorear'])
     return Response({'monitorear': d.monitorear})
+
+
+# ------------------------------------------------------------------ Calibración (piloto)
+@api_view(['GET', 'POST'])
+@permission_classes([ConfiguraMonitoreo])
+def calibracion_view(request):
+    """GET: lo que ninguna regla clasifica. POST: crea la regla (empresa o departamento) y reclasifica los últimos 30 días."""
+    from apps.core.models import Departamento
+    from .calibracion import sin_clasificar
+    from .models import IMPRODUCTIVA, NEUTRAL, PRODUCTIVA
+    if request.method == 'GET':
+        try:
+            dias = min(max(int(request.query_params.get('dias', 7)), 1), 30)
+        except ValueError:
+            raise exceptions.ValidationError({'dias': 'Debe ser un número.'})
+        return Response(sin_clasificar(dias))
+    d = request.data
+    if d.get('tipo') not in ('APP', 'DOMINIO') or not str(d.get('patron') or '').strip():
+        raise exceptions.ValidationError({'patron': 'Falta la aplicación o el sitio.'})
+    if d.get('categoria') not in (PRODUCTIVA, NEUTRAL, IMPRODUCTIVA):
+        raise exceptions.ValidationError({'categoria': 'Elige productivo, neutral o improductivo.'})
+    depto = d.get('departamento') or None
+    if depto is not None and not Departamento.objects.filter(pk=depto).exists():
+        raise exceptions.ValidationError({'departamento': 'No existe.'})
+    regla, _ = ReglaProductividad.objects.update_or_create(
+        tipo=d['tipo'], patron=str(d['patron']).strip().lower()[:120], departamento_id=depto,
+        defaults={'categoria': d['categoria'], 'nota': 'Calibración del piloto'})
+    cambiados = servicios.reclasificar(desde=timezone.now() - timedelta(days=30))
+    return Response({'id': regla.pk, 'reclasificados': cambiados}, status=201)

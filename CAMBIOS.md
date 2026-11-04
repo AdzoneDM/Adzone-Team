@@ -6,6 +6,7 @@
 - Quien perdió el celular: **Accesos y permisos → Reiniciar verificación** (con las mismas reglas anti-escalada; nunca la propia).
 - **Cierre de sesión por inactividad**: 30 minutos sin usar la app para las cuentas de empresa y 12 horas para el resto (configurable). Los avisos que la app consulta sola no cuentan como actividad.
 - **Aviso de dispositivo nuevo**: cuando alguien entra desde un navegador o celular donde nunca había entrado, le llega un aviso en la campanita.
+- **Monitoreo → Calibración** (Tecnología y Dirección): las aplicaciones y sitios que el equipo usa y ninguna regla clasifica, del más usado al menos, con cuántas personas y de qué departamentos. Se deciden de un toque (productivo, neutral o improductivo, para toda la empresa o un departamento) y se aplican a los últimos 30 días. Muestra qué parte del tiempo ya tiene regla. Guía de la semana de prueba en `docs/PLAN_PILOTO.md`.
 - **Respaldos cifrados**: cada noche base de datos, archivos privados y configuración, cifrados con AES-256 y guardados 30 días. **Administración → Respaldos** (Dirección) para descargarlos; aviso cada lunes y alerta si un respaldo no se hizo. Sin clave de respaldo no se hacen copias sin cifrar.
 
 ## 11.1 · 03/11/2026 · Puestos adicionales y paquete de despliegue

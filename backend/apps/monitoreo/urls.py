@@ -20,6 +20,7 @@ urlpatterns = [
     path('politica/', views.politica_view),
     path('configuracion/', views.configuracion_view),
     path('reclasificar/', views.reclasificar_view),
+    path('calibracion/', views.calibracion_view),
     path('dia/', views.dia_view),
     path('periodo/', views.periodo_view),
     path('equipo/', views.equipo_view),
