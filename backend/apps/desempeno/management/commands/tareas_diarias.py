@@ -17,6 +17,8 @@ class Command(BaseCommand):
         reglas = revisar_vencimientos()
         from apps.operaciones.servicios_ot import revisar_excepciones
         excepciones = revisar_excepciones()
+        from apps.core.views_respaldos import recordar_semanal
+        recordar_semanal()
         cashflow = ''
         from django.conf import settings
         if settings.CASHFLOW_MODO == 'real':

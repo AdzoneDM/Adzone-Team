@@ -8,6 +8,8 @@ APP="$(pwd)"
 [ -f backend/.env ] || { echo "Falta backend/.env (copia ahí el archivo env-servidor)."; exit 1; }
 grep -q "PON_AQUI" backend/.env && { echo "Completa DB_PASSWORD en backend/.env."; exit 1; }
 chmod 600 backend/.env
+grep -qE '^RESPALDO_CLAVE=.+' backend/.env || echo "AVISO: falta RESPALDO_CLAVE en backend/.env: los respaldos nocturnos no se harán hasta que la pongas."
+
 
 [ -d venv ] || python3 -m venv venv
 venv/bin/pip install -q --upgrade pip

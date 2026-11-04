@@ -331,6 +331,7 @@ class Notificacion(models.Model):
         ('ASISTENCIA', 'Asistencia'),
         ('MONITOREO', 'Monitoreo'),
         ('TALENTO', 'Talento y evaluaciones'),
+        ('SEGURIDAD', 'Seguridad de la cuenta'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",

@@ -20,6 +20,7 @@ Para qué sirve cada una:
 - revisar_activos: mantenimientos de equipos vencidos o próximos.
 - revisar_kpis: KPIs del mes anterior por debajo del umbral.
 - limpiar_monitoreo: borra actividad de más de 90 días y capturas de más de 30.
-- respaldo.sh: base de datos + archivos privados, guarda 14 días en kpi-respaldos/.
+- respaldo.sh: base de datos + archivos privados + .env, CIFRADOS con RESPALDO_CLAVE, guarda 30 días en kpi-respaldos/.
+  La Dirección descarga la copia de la semana en Administración → Respaldos (llega un aviso cada lunes).
 
 Zona horaria: la app usa America/Santo_Domingo. Revisa que el servidor (o la tarea en Plesk) use esa misma hora.

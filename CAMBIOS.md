@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.0 · 04/11/2026 · Seguridad de las cuentas y respaldos cifrados
+
+- **Verificación en dos pasos** con Google o Microsoft Authenticator: obligatoria para quien maneja la empresa (Dirección, personas y accesos, Gestión del Talento, salarios y configuración); opcional para el resto en Mi cuenta. Se activa escaneando un QR y entrega 10 códigos de respaldo de un solo uso. Un código no sirve dos veces, y hay 5 intentos por entrada. También protege el panel de Django.
+- Quien perdió el celular: **Accesos y permisos → Reiniciar verificación** (con las mismas reglas anti-escalada; nunca la propia).
+- **Cierre de sesión por inactividad**: 30 minutos sin usar la app para las cuentas de empresa y 12 horas para el resto (configurable). Los avisos que la app consulta sola no cuentan como actividad.
+- **Aviso de dispositivo nuevo**: cuando alguien entra desde un navegador o celular donde nunca había entrado, le llega un aviso en la campanita.
+- **Respaldos cifrados**: cada noche base de datos, archivos privados y configuración, cifrados con AES-256 y guardados 30 días. **Administración → Respaldos** (Dirección) para descargarlos; aviso cada lunes y alerta si un respaldo no se hizo. Sin clave de respaldo no se hacen copias sin cifrar.
+
 ## 11.1 · 03/11/2026 · Puestos adicionales y paquete de despliegue
 
 - **Puestos adicionales**: una persona puede cubrir además otro puesto (por ejemplo, un Community Manager que también hace de Gerente de Marketing). Recibe el equipo que depende de ese puesto (asignar, validar, avisos) y el perfil Supervisor; su puesto principal sigue mandando para KPIs, puntaje y nómina. Solo la Dirección lo asigna, en Personas → editar.

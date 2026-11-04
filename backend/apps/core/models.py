@@ -76,3 +76,30 @@ class EquipoExtra(models.Model):
     class Meta:
         unique_together = ('jefe', 'colaborador')
         verbose_name = 'Equipo adicional'
+
+
+class DosPasos(models.Model):
+    """Verificación en dos pasos con app de códigos (Google o Microsoft Authenticator)."""
+    usuario = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='dos_pasos')
+    secreto = models.CharField(max_length=64)
+    activo = models.BooleanField(default=False)
+    ultimo_paso = models.BigIntegerField(default=0, help_text="Último intervalo de 30 s usado (un código no sirve dos veces).")
+    respaldo = models.JSONField(default=list, blank=True, help_text="Códigos de respaldo de un solo uso (guardados cifrados).")
+    activado = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Verificación en dos pasos'
+
+
+class DispositivoConocido(models.Model):
+    """Navegadores desde donde entró cada persona, para avisar cuando entra desde uno nuevo."""
+    usuario = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='dispositivos_conocidos')
+    huella = models.CharField(max_length=64)
+    navegador = models.CharField(max_length=200, blank=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    primero = models.DateTimeField(auto_now_add=True)
+    ultimo = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('usuario', 'huella')
+        verbose_name = 'Dispositivo conocido'

@@ -30,6 +30,8 @@ const Finanzas = lazy(() => import("@/features/finanzas/Finanzas"));
 const Imprimir = lazy(() => import("@/features/finanzas/Imprimir"));
 const Automatizaciones = lazy(() => import("@/features/automatizaciones/Automatizaciones"));
 const Accesos = lazy(() => import("@/features/organizacion/Accesos"));
+const Respaldos = lazy(() => import("@/features/organizacion/Respaldos"));
+const DosPasosObligatoria = lazy(() => import("@/features/cuenta/DosPasos").then((m) => ({ default: m.DosPasosObligatoria })));
 const OrdenArea = lazy(() => import("@/features/ordenes/OrdenArea"));
 const Indicadores = lazy(() => import("@/features/ordenes/Indicadores"));
 const ImprimirFormato = lazy(() => import("@/features/ordenes/ImprimirFormato"));
@@ -50,6 +52,7 @@ function Protegida({ children, admin, supervisor, finanzas, permiso }) {
   const { usuario, esAdmin, puedeValidar, esFinanzas, tiene } = useSesion();
   const location = useLocation();
   if (!usuario) return <Navigate to="/entrar" replace state={{ desde: location.pathname + location.search }} />;
+  if (usuario.debe_activar_dos_pasos) return <DosPasosObligatoria />;
   if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (finanzas && !esFinanzas) || (permiso && !tiene(permiso))) return <Navigate to="/" replace />;
   return children;
 }
@@ -108,6 +111,7 @@ export default function App() {
           <Route path="puestos" element={<Protegida admin><Puestos /></Protegida>} />
           <Route path="puestos/:id" element={<Protegida admin><PuestoDetalle /></Protegida>} />
           <Route path="personas" element={<Protegida permiso="personal.usuarios"><Personas /></Protegida>} />
+          <Route path="respaldos" element={<Protegida admin><Respaldos /></Protegida>} />
           <Route path="accesos" element={<Protegida permiso="personal.usuarios"><Accesos /></Protegida>} />
           <Route path="plantillas-kpi" element={<Protegida admin><PlantillasKpi /></Protegida>} />
           <Route path="configuracion" element={<Protegida admin><Configuracion /></Protegida>} />

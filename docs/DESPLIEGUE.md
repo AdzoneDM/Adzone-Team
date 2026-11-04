@@ -70,6 +70,33 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Seguridad de las cuentas y respaldos cifrados (versión 12.0)
+
+```bash
+venv/bin/pip install -r backend/requirements.txt   # agrega «qrcode»
+python manage.py migrate
+```
+
+En `backend/.env` del servidor:
+
+1. **Claves nuevas** (obligatorio si el archivo `env-servidor` pasó por un chat o un correo): genera y reemplaza `DJANGO_SECRET_KEY` y `AUTOMATIZACIONES_SECRETO` (y pon la nueva en n8n):
+   ```bash
+   python3 -c "import secrets; print(secrets.token_urlsafe(50))"
+   ```
+   Cambiar la clave secreta cierra todas las sesiones abiertas: es lo esperado.
+2. **`RESPALDO_CLAVE=`** con una clave larga (mismo comando). **Guárdala también fuera del servidor** (por ejemplo, impresa en la caja fuerte): sin ella no se abre ningún respaldo.
+3. Opcional: `INACTIVIDAD_EMPRESA_MIN=30` y `INACTIVIDAD_MIN=720` (minutos sin usar la app antes de cerrar la sesión).
+
+Después:
+- La primera vez que entre cada persona de **Dirección, Administrador del sistema, Gestión del Talento o Finanzas**, la plataforma le pide **activar la verificación en dos pasos** con Google o Microsoft Authenticator y le entrega 10 códigos de respaldo. Sin eso no puede seguir. Para el resto es opcional (Mi cuenta).
+- Si alguien pierde el celular y sus códigos: **Accesos y permisos → la persona → Reiniciar**. Si la pierde la única persona de Dirección, desde SSH: `python manage.py shell -c "from apps.core.models import DosPasos; DosPasos.objects.filter(usuario__username='USUARIO').delete()"`.
+- La tarea del **respaldo de las 2:30** ahora cifra todo y guarda 30 días. Cada lunes la Dirección recibe un aviso para descargar el de la semana en **Administración → Respaldos** (y una alerta si anoche no se hizo).
+- **Abrir un respaldo** (en tu computadora, con OpenSSL):
+  ```bash
+  openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in base_FECHA.sql.gz.enc -out base_FECHA.sql.gz
+  gunzip base_FECHA.sql.gz        # y luego: mysql adzone_team < base_FECHA.sql
+  ```
+
 ### Accesos y permisos: mínimo privilegio (versión 11.0)
 
 ```bash

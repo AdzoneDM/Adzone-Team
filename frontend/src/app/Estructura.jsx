@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -72,6 +72,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
     esAdmin && { a: "/plantillas-kpi", texto: "Plantillas de KPI", icono: Target },
     esAdmin && { a: "/configuracion", texto: "Reglas del puntaje", icono: Settings2 },
     configuraSistema && { a: "/automatizaciones", texto: "Automatizaciones", icono: Zap },
+    esAdmin && { a: "/respaldos", texto: "Respaldos", icono: DatabaseBackup },
   ].filter(Boolean);
   if (admin.length) s.push({ titulo: "Administración", items: [{ a: "/organigrama", texto: "Organigrama", icono: Network }, ...admin] });
   else s[0].items.push({ a: "/organigrama", texto: "Organigrama", icono: Network });

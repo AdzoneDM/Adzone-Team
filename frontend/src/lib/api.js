@@ -42,9 +42,17 @@ export class ApiError extends Error {
   }
 }
 
+// Cierre por inactividad: el servidor solo cuenta como actividad lo que la persona hace (no los avisos que la app consulta sola).
+let ultimaInteraccion = Date.now();
+if (typeof window !== "undefined") {
+  for (const ev of ["pointerdown", "keydown", "touchstart", "wheel"]) window.addEventListener(ev, () => { ultimaInteraccion = Date.now(); }, { passive: true, capture: true });
+}
+export const EVENTO_SESION = "adzone:sesion";
+
 export async function api(url, { method = "GET", body, signal } = {}) {
   const esFormulario = body instanceof FormData;
   const headers = { Accept: "application/json" };
+  if (Date.now() - ultimaInteraccion < 60000) headers["X-Actividad"] = "1";
   if (method !== "GET") headers["X-CSRFToken"] = getCookie("csrftoken") || "";
   if (body && !esFormulario) headers["Content-Type"] = "application/json";
   let response;
@@ -59,7 +67,13 @@ export async function api(url, { method = "GET", body, signal } = {}) {
   }
   if (response.status === 204) return null;
   const data = await response.json().catch(() => null);
-  if (!response.ok) throw new ApiError(mensajeDeError(data, response.status), response.status, data);
+  if (!response.ok) {
+    // La sesión se cerró (inactividad, código pendiente) o falta activar los dos pasos: la app se entera y reacciona
+    if ((response.status === 401 && data?.detail) || data?.activar_dos_pasos) {
+      window.dispatchEvent(new CustomEvent(EVENTO_SESION, { detail: { estado: response.status, ...data } }));
+    }
+    throw new ApiError(mensajeDeError(data, response.status), response.status, data);
+  }
   return data;
 }
 
@@ -75,6 +89,14 @@ const D = "/api/desempeno";
 export const sesion = () => api("/api/auth/session/");
 // Credenciales: { username, password, remember_me } o, desde el directorio, { user_id, password, remember_me }
 export const entrar = (credenciales) => api("/api/auth/login/", { method: "POST", body: credenciales });
+export const entrarConCodigo = (codigo) => api("/api/auth/dos-pasos/", { method: "POST", body: { codigo } });
+export const dosPasos = () => api("/api/cuenta/dos-pasos/");
+export const iniciarDosPasos = () => api("/api/cuenta/dos-pasos/iniciar/", { method: "POST" });
+export const confirmarDosPasos = (codigo) => api("/api/cuenta/dos-pasos/confirmar/", { method: "POST", body: { codigo } });
+export const nuevosCodigosRespaldo = (codigo) => api("/api/cuenta/dos-pasos/respaldo/", { method: "POST", body: { codigo } });
+export const desactivarDosPasos = (clave) => api("/api/cuenta/dos-pasos/desactivar/", { method: "POST", body: { clave } });
+export const reiniciarDosPasos = (id) => api(`/api/accesos/personas/${id}/dos-pasos/`, { method: "DELETE" });
+export const respaldos = () => api("/api/respaldos/");
 export const abrirEquipo = (clave) => api("/api/auth/equipo/", { method: "POST", body: { clave } });
 export const directorioEntrada = () => api("/api/auth/directorio/");
 export const cambiarClaveEquipo = (nueva) => api("/api/auth/clave-equipo/", { method: "POST", body: { nueva } });

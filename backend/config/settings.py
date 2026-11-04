@@ -81,6 +81,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'apps.talento.auditoria.AuditoriaMiddleware',
+    'apps.core.seguridad.SeguridadMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -160,6 +161,11 @@ REST_FRAMEWORK = {
 
 # La sesión dura 7 días si se marca «Recordarme»; si no, hasta cerrar el navegador.
 SESSION_COOKIE_AGE = 7 * 24 * 60 * 60
+# Cierre por inactividad (minutos sin usar la app): más corto para quien maneja datos de la empresa
+INACTIVIDAD_EMPRESA_MIN = int(env('INACTIVIDAD_EMPRESA_MIN', '30'))
+INACTIVIDAD_MIN = int(env('INACTIVIDAD_MIN', str(12 * 60)))
+# Respaldos cifrados que deja servidor/respaldo.sh (la Dirección los descarga desde la plataforma)
+RESPALDOS_DIR = Path(env('RESPALDOS_DIR') or BASE_DIR.parent.parent / 'kpi-respaldos')
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'

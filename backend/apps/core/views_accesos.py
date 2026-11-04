@@ -117,6 +117,7 @@ def _persona(u, jefes):
                          for x in u.equipo_extra.all()],
         'permisos': sorted(efectivos(u)),
         'superusuario': u.is_superuser,
+        'dos_pasos': hasattr(u, 'dos_pasos') and u.dos_pasos.activo,
     }
 
 
@@ -240,4 +241,19 @@ def equipo_extra_view(request, pk):
         raise exceptions.PermissionDenied("No puedes cambiar tu propio equipo.")
     auditar('Equipo adicional quitado', _nombre(x.jefe), {'colaborador': _nombre(x.colaborador)}, None)
     x.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['DELETE'])
+def reiniciar_dos_pasos_view(request, pk):
+    """Quien perdió el celular: se le borra la verificación y la vuelve a activar al entrar. Nunca la propia."""
+    _gestiona(request.user)
+    from .models import DosPasos
+    persona = get_object_or_404(User, pk=pk)
+    if persona.pk == request.user.pk:
+        raise exceptions.PermissionDenied("La tuya la reinicia otra persona con el permiso «Personas y accesos».")
+    _rechazar(revisar_cambio(request.user, persona, set()))
+    borradas, _ = DosPasos.objects.filter(usuario=persona).delete()
+    if borradas:
+        auditar('Reinició la verificación en dos pasos', _nombre(persona))
     return Response(status=status.HTTP_204_NO_CONTENT)

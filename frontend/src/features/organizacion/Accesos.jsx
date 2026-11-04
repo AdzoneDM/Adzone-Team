@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { Minus, Plus, Search, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import {
   accesos as cargarCatalogo, accesosPersonas, borrarEquipoExtra, borrarExcepcion, borrarPerfilAcceso, crearEquipoExtra,
-  crearExcepcion, crearPerfilAcceso, guardarPerfilAcceso, perfilesDePersona,
+  crearExcepcion, crearPerfilAcceso, guardarPerfilAcceso, perfilesDePersona, reiniciarDosPasos,
 } from "@/lib/api";
 import { fechaCorta } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
@@ -189,6 +189,16 @@ function AccesosDePersona({ persona, catalogo, personas, onCerrar, onCambio }) {
             })}
           </div>
           {!propio && <Boton onClick={guardarPerfiles} cargando={guardando} disabled={!cambiado || !perfiles.size}>Guardar perfiles</Boton>}
+        </section>
+
+        <section className="flex flex-wrap items-center gap-2">
+          <h3 className="mr-auto font-display font-semibold">Verificación en dos pasos</h3>
+          {persona.dos_pasos ? <Insignia tono="verde">Activa</Insignia> : <Insignia>Inactiva</Insignia>}
+          {persona.dos_pasos && !propio && (
+            <Boton tam="sm" variante="secundario" onClick={() => intentar(() => reiniciarDosPasos(persona.id), "Verificación reiniciada: la vuelve a activar al entrar")}>
+              Reiniciar (perdió el celular)
+            </Boton>
+          )}
         </section>
 
         <section className="space-y-2">

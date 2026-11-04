@@ -10,7 +10,7 @@ import { abrirEquipo, directorioEntrada } from "@/lib/api";
 import { useSesion } from "@/lib/sesion";
 
 export default function Entrar() {
-  const { login } = useSesion();
+  const { login, verificarCodigo, avisoSesion } = useSesion();
   const navigate = useNavigate();
   const location = useLocation();
   const [paso, setPaso] = useState("usuario"); // usuario | cargando | equipo | areas | personas | clave
@@ -26,9 +26,11 @@ export default function Entrar() {
       .catch((err) => { setConfigurada(err.data?.configurada !== false); setPaso("equipo"); });
   };
 
+  const ir = () => navigate(location.state?.desde || "/", { replace: true });
   const entrar = async (credenciales) => {
-    await login(credenciales);
-    navigate(location.state?.desde || "/", { replace: true });
+    const r = await login(credenciales);
+    if (r?.dosPasos) setPaso("codigo");
+    else ir();
   };
 
   const ancho = paso === "areas" || paso === "personas" ? "max-w-xl" : "max-w-sm";
@@ -55,7 +57,11 @@ export default function Entrar() {
       <main className="flex flex-col justify-center px-4 py-10 sm:px-12">
         <div className={cx("mx-auto w-full", ancho)}>
           <Marca oscuro={false} className="mb-10 text-lg md:hidden" />
+          {avisoSesion && paso === "usuario" && <Alerta tono="amarillo" className="mb-6">{avisoSesion}</Alerta>}
           {paso === "cargando" && <Cargando />}
+          {paso === "codigo" && (
+            <PasoCodigo onVolver={() => setPaso("usuario")} onEntrar={async (codigo) => { await verificarCodigo(codigo); ir(); }} />
+          )}
           {paso === "usuario" && (
             <PasoUsuario onAdmin={abrirDirectorio}
               onEntrar={(username, password, recordar) => entrar({ username, password, remember_me: recordar })} />
@@ -252,6 +258,33 @@ function PasoClave({ area, persona, onVolver, onEntrar }) {
         <Boton type="submit" tam="lg" className="w-full" cargando={enviando}>Entrar</Boton>
       </form>
       <p className="mt-8 text-sm text-gris">¿No eres tú? Vuelve y elige tu nombre. ¿Olvidaste tu contraseña? Pídele a un administrador de ADZONE que te asigne una nueva.</p>
+    </>
+  );
+}
+
+function PasoCodigo({ onVolver, onEntrar }) {
+  const [codigo, setCodigo] = useState("");
+  const [respaldo, setRespaldo] = useState(false);
+  const { error, enviando, enviar } = useEnvio(() => onEntrar(codigo.trim()));
+  return (
+    <>
+      <Volver onClick={onVolver}>Entrar</Volver>
+      <h1 className="text-3xl font-semibold">Código de verificación</h1>
+      <p className="mt-1 text-gris">{respaldo ? "Escribe uno de tus códigos de respaldo (por ejemplo, a1b2-c3d4)." : "Abre tu app de verificación (Google o Microsoft Authenticator) y escribe el código de 6 dígitos de Adzone Team."}</p>
+      <form onSubmit={(e) => { e.preventDefault(); enviar(() => !codigo.trim() && "Escribe el código."); }} className="mt-8 space-y-5" noValidate>
+        {error && <Alerta>{error}</Alerta>}
+        <div>
+          <label htmlFor="codigo" className="etiqueta">{respaldo ? "Código de respaldo" : "Código"}</label>
+          <input id="codigo" className="campo text-center font-mono text-2xl tracking-[0.3em]" inputMode={respaldo ? "text" : "numeric"}
+            autoComplete="one-time-code" maxLength={respaldo ? 9 : 6} value={codigo} autoFocus
+            onChange={(e) => setCodigo(respaldo ? e.target.value : e.target.value.replace(/\D/g, ""))} />
+        </div>
+        <Boton type="submit" tam="lg" className="w-full" cargando={enviando}>Entrar</Boton>
+      </form>
+      <button type="button" className="mt-6 text-sm text-azul hover:underline" onClick={() => { setRespaldo(!respaldo); setCodigo(""); }}>
+        {respaldo ? "Usar el código de la app" : "No tengo el celular: usar un código de respaldo"}
+      </button>
+      <p className="mt-4 text-sm text-gris">¿Perdiste el celular y los códigos? Pide a quien administra los accesos que reinicie tu verificación.</p>
     </>
   );
 }

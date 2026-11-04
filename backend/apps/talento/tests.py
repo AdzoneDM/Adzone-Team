@@ -159,6 +159,9 @@ class AuditoriaTests(Base):
     def test_cambios_por_la_web_quedan_auditados_y_el_salario_con_historial(self):
         c = APIClient()
         c.force_login(self.dir)
+        sesion = c.session
+        sesion['dos_pasos_ok'] = True  # como si hubiera entrado con su código de verificación
+        sesion.save()
         perfil = self.ana.perfil
         perfil.salario_mensual = 30000
         perfil.save()  # sin sesión: no se audita
@@ -182,6 +185,9 @@ class AuditoriaTests(Base):
         k = KPIAsignado.objects.create(puesto_trabajo=self.p, plantilla_kpi=p, ponderacion=20, objetivo_meta='10')
         c = APIClient()
         c.force_login(self.dir)
+        sesion = c.session
+        sesion['dos_pasos_ok'] = True  # como si hubiera entrado con su código de verificación
+        sesion.save()
         r = c.patch(f'/api/kpis/kpis-asignados/{k.pk}/', {'ponderacion': 30}, format='json')
         self.assertIn(r.status_code, (200, 202), r.content)
         a = AuditoriaCambio.objects.filter(accion__icontains='kpi').first()

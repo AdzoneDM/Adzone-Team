@@ -14,6 +14,9 @@ from apps.callcenter.permisos import es_agente, gestiona_call_center
 from apps.desempeno.permisos import LecturaOAdministrador, es_administrador, puede_validar, puesto_de
 from apps.operaciones.permisos import areas_que_supervisa, es_almacen, es_coordinacion, es_finanzas, gestiona_algo
 from apps.organizacion.models import PerfilUsuario, PuestoDeTrabajo
+import time  # noqa: E402
+
+from . import seguridad as seg
 from .acceso import SESION_EQUIPO, clave_configurada, clave_valida, equipo_abierto, fijar_clave
 from .models import Departamento
 from .serializers import DepartamentoSerializer
@@ -132,10 +135,54 @@ def login_view(request):
         error = 'Contraseña incorrecta.' if user_id else 'Usuario o contraseña incorrectos.'
         return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
 
+    if seg.tiene_dos_pasos(user):
+        # La contraseña estuvo bien: falta el código de la app. La sesión aún no se abre.
+        request.session[PENDIENTE] = {'id': user.pk, 't': int(time.time()), 'recordar': remember_me, 'intentos': 0}
+        return Response({'dos_pasos': True, 'message': 'Escribe el código de 6 dígitos de tu app de verificación.'})
+    return _abrir_sesion(request, user, remember_me, dos_pasos_ok=False)
+
+
+PENDIENTE = 'dos_pasos_pendiente'
+
+
+def _abrir_sesion(request, user, remember_me, dos_pasos_ok):
     django_login(request, user)
     request.session[SESION_EQUIPO] = True
+    request.session[seg.SESION_OK] = dos_pasos_ok
+    request.session[seg.SESION_ACTIVIDAD] = int(time.time())
     request.session.set_expiry(settings.SESSION_COOKIE_AGE if remember_me else 0)
-    return Response({'message': 'Inicio de sesión exitoso.', 'user': datos_usuario(user)}, status=status.HTTP_200_OK)
+    r = Response({'message': 'Inicio de sesión exitoso.', 'user': datos_sesion(request, user)}, status=status.HTTP_200_OK)
+    seg.registrar_dispositivo(request, r, user)
+    return r
+
+
+def datos_sesion(request, user):
+    d = datos_usuario(user)
+    exige, activo = seg.exige_dos_pasos(user), seg.tiene_dos_pasos(user)
+    d['dos_pasos'] = {'activo': activo, 'exige': exige}
+    d['debe_activar_dos_pasos'] = exige and not request.session.get(seg.SESION_OK)
+    d['inactividad_min'] = seg.minutos_inactividad(user)
+    return d
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([LoginThrottle])
+def dos_pasos_login_view(request):
+    """Segundo paso de la entrada: el código de la app (o uno de respaldo). Cinco intentos y cinco minutos."""
+    from .models import DosPasos
+    p = request.session.get(PENDIENTE)
+    if not p or time.time() - p['t'] > 300 or p['intentos'] >= 5:
+        request.session.pop(PENDIENTE, None)
+        return Response({'error': 'Vuelve a escribir tu usuario y contraseña.', 'reiniciar': True}, status=status.HTTP_400_BAD_REQUEST)
+    user = User.objects.filter(pk=p['id'], is_active=True).first()
+    dp = DosPasos.objects.filter(usuario=user, activo=True).first() if user else None
+    if dp is None or not seg.verificar(dp, request.data.get('codigo')):
+        p['intentos'] += 1
+        request.session[PENDIENTE] = p
+        return Response({'error': 'Código incorrecto o vencido.'}, status=status.HTTP_400_BAD_REQUEST)
+    request.session.pop(PENDIENTE, None)
+    return _abrir_sesion(request, user, p['recordar'], dos_pasos_ok=True)
 
 
 @api_view(['POST'])
@@ -156,7 +203,7 @@ def session_view(request):
     """Datos del usuario con sesión, o isAuthenticated=false. También entrega la cookie CSRF."""
     if not request.user.is_authenticated:
         return Response({'isAuthenticated': False, 'user': None}, status=status.HTTP_200_OK)
-    return Response({'isAuthenticated': True, 'user': datos_usuario(request.user)}, status=status.HTTP_200_OK)
+    return Response({'isAuthenticated': True, 'user': datos_sesion(request, request.user)}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
