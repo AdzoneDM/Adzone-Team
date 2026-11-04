@@ -9,7 +9,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import exceptions, status
@@ -34,6 +34,11 @@ def _huella(token):
     return hashlib.sha256((settings.SECRET_KEY + ':portal:' + token).encode()).hexdigest()
 
 
+def _amplio(user):
+    from apps.core.permisos import tiene
+    return bool(tiene(user, 'direccion') or es_coordinacion(user))
+
+
 def puede_crear(user, orden):
     from apps.core.permisos import tiene
     return bool(tiene(user, 'direccion') or es_coordinacion(user) or orden.asesor_comercial_id == user.pk or orden.responsable_id == user.pk)
@@ -51,6 +56,8 @@ def enlaces_view(request, orden_id):
             dias = min(max(int(dias), 1), 90)
         except (TypeError, ValueError):
             raise exceptions.ValidationError({'dias': 'Entre 1 y 90.'})
+        if request.data.get('todas') and not _amplio(request.user):
+            raise exceptions.PermissionDenied("El enlace con todas las órdenes del cliente (y sus facturas) lo crea Coordinación o la Dirección.")
         token = secrets.token_urlsafe(32)
         e = EnlaceCliente.objects.create(cliente=orden.cliente, orden=None if request.data.get('todas') else orden, huella=_huella(token),
                                          para=(request.data.get('para') or orden.contacto or '')[:150], creado_por=request.user,
@@ -70,9 +77,9 @@ def _enlace(e):
 @api_view(['POST'])
 def revocar_view(request, pk):
     e = get_object_or_404(EnlaceCliente.objects.select_related('orden'), pk=pk)
-    orden = e.orden or OrdenTrabajo.objects.filter(cliente=e.cliente).first()
-    if orden is None or not puede_crear(request.user, orden):
-        raise exceptions.PermissionDenied("No puedes revocar este enlace.")
+    permitido = e.creado_por_id == request.user.pk or _amplio(request.user) or (e.orden_id and puede_crear(request.user, e.orden))
+    if not permitido:
+        raise exceptions.PermissionDenied("Revoca el enlace quien lo creó, Coordinación o la Dirección.")
     e.revocado = True
     e.save(update_fields=['revocado'])
     if e.orden_id:
@@ -115,7 +122,9 @@ def _ordenes(e):
 
 
 def _archivos_de(oa):
-    return [{'id': a.pk, 'nombre': a.nombre_original, 'tipo': a.tipo, 'fecha': a.fecha} for a in oa.archivos.all() if a.categoria in ('ARTE', 'APROBACION')]
+    lista = sorted((a for a in oa.archivos.all() if a.categoria in ('ARTE', 'APROBACION')), key=lambda a: a.fecha, reverse=True)
+    return [{'id': a.pk, 'nombre': a.nombre_original, 'tipo': a.tipo if a.tipo in ('image/png', 'image/jpeg', 'image/gif', 'image/webp') else '',
+             'fecha': a.fecha} for a in lista]
 
 
 def _orden(o):
@@ -128,7 +137,8 @@ def _orden(o):
                         for a in areas if a.estado == 'EN_APROBACION'],
         'aprobadas': [{'numero': a.numero, 'que': a.que_produce, 'fecha': a.g4_fecha, 'por': a.g4_aprobado_por}
                       for a in areas if a.g4_aprobado],
-        'actas': [{'id': ac.pk, 'numero': ac.numero, 'fecha': ac.fecha, 'firmada': ac.firmada, 'lista': bool(ac.liberada_por_id) and not ac.firmada,
+        'actas': [{'id': ac.pk, 'numero': ac.numero, 'fecha': ac.fecha, 'firmada': ac.firmada,
+                   'lista': bool(ac.liberada_por_id) and not ac.firmada and o.estado == 'LISTA',
                    'modalidad': ac.get_modalidad_display(), 'items': ac.items, 'direccion': ac.direccion}
                   for ac in o.actas.all()],
     }
@@ -154,19 +164,25 @@ portal_view = publico(portal_view)
 
 def archivo_view(request, token, pk):
     e = _abrir(token)
-    a = ArchivoOrden.objects.filter(pk=pk, orden__in=_ordenes(e), categoria__in=('ARTE', 'APROBACION')).first()
+    # Solo lo que el equipo envió a aprobar (las versiones de trabajo y los editables no salen del equipo)
+    a = ArchivoOrden.objects.filter(pk=pk, orden__in=_ordenes(e), categoria__in=('ARTE', 'APROBACION'), oa__estado='EN_APROBACION').first()
     if a is None:
         raise Http404
     try:
         f = a.archivo.open('rb')
     except FileNotFoundError:
         raise Http404
-    en_linea = (a.tipo or '').startswith('image/') or a.tipo == 'application/pdf'
-    return FileResponse(f, as_attachment=not en_linea, filename=a.nombre_original, content_type=a.tipo or 'application/octet-stream')
+    from apps.core.archivos import entregar
+    return entregar(f, a.nombre_original, a.tipo)
 
 
 archivo_view.metodos = ['GET']
 archivo_view = publico(archivo_view)
+
+
+def _ip_real(request):
+    from apps.core.red import ip_real
+    return ip_real(request)
 
 
 def _texto(v, n):
@@ -187,7 +203,8 @@ def aprobar_view(request, token, oa_id):
         raise exceptions.ValidationError({'nombre': 'Escribe tu nombre.'})
     if not aprobado and len(comentario) < 3:
         raise exceptions.ValidationError({'comentario': 'Cuéntanos qué cambios necesitas.'})
-    ip = request.META.get('REMOTE_ADDR')
+    from apps.core.red import ip_real
+    ip = ip_real(request)
     ultimo = next(iter(_archivos_de(oa)), None)
     oa.g4_aprobado = aprobado
     oa.g4_canales = ['Portal del cliente']
@@ -205,6 +222,11 @@ def aprobar_view(request, token, oa_id):
         Firma.objects.create(orden=oa.orden, oa=oa, contexto='G4', rol='Cliente', nombre=nombre)
     else:
         registrar(oa.orden, None, f"{oa.numero}: cliente pidió cambios en el portal (ronda {oa.g4_ronda})", detalle)
+        if oa.g4_ronda >= oa.orden.rondas_incluidas:
+            from .servicios_ot import coordinadores
+            avisar(coordinadores(), 'ORDEN', f"Rondas agotadas: {oa.numero}",
+                   f"Ya van {oa.g4_ronda} rondas y la cotización incluye {oa.orden.rondas_incluidas}. La siguiente se cobra: registra una Solicitud de Cambio (F-14).",
+                   enlace=enlace(oa.orden, oa))
     gente = [oa.responsable, oa.orden.responsable, oa.orden.asesor_comercial, *[u for t in oa.tareas.all() for u in t.companeros.all()]]
     avisar(gente, 'ORDEN' if aprobado else 'DEVUELTA',
            f"{'Aprobado' if aprobado else 'Cambios pedidos'} por el cliente: {oa.numero}", f"{nombre}: {comentario or 'aprobó sin comentarios.'}",
@@ -224,7 +246,7 @@ def firmar_view(request, token, acta_id):
     acta = get_object_or_404(Acta.objects.select_for_update().select_related('orden'), pk=acta_id, orden__in=_ordenes(e))
     if acta.firmada:
         raise exceptions.ValidationError('El acta ya está firmada.')
-    if not acta.liberada_por_id:
+    if not acta.liberada_por_id or acta.orden.estado != 'LISTA':
         raise exceptions.ValidationError('El acta todavía no está lista para firmar.')
     nombre = _texto(request.data.get('nombre'), 150)
     firma = str(request.data.get('firma') or '')
@@ -247,7 +269,7 @@ def firmar_view(request, token, acta_id):
     orden.recibido_por = nombre
     orden.save(update_fields=['estado', 'fecha_entrega', 'recibido_por'])
     registrar(orden, None, f"Entregada (E6) · acta {acta.numero} firmada en el portal",
-              f"Recibió {nombre} · {acta.get_conformidad_display()} · IP {request.META.get('REMOTE_ADDR')}")
+              f"Recibió {nombre} · {acta.get_conformidad_display()} · IP {_ip_real(request)}")
     avisar([orden.solicitada_por, orden.asesor_comercial, orden.responsable, *finanzas()], 'ORDEN', f"Entregada: {orden.numero}",
            f"{nombre} firmó el acta en el portal. Ya se puede facturar.", enlace=enlace(orden))
     disparar('ORDEN_ESTADO', orden, None)

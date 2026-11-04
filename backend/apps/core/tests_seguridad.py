@@ -212,8 +212,9 @@ class PushTests(Base):
         from apps.desempeno.servicios import avisar
         c, _ = self.entrar(self.ana)
         self.assertEqual(c.post('/api/cuenta/push/', {'suscripcion': {'endpoint': 'http://inseguro'}}, format='json').status_code, 400)
-        sus = {'endpoint': 'https://push.example/abc', 'keys': {'p256dh': 'k', 'auth': 'a'}}
+        sus = {'endpoint': 'https://fcm.googleapis.com/fcm/send/abc', 'keys': {'p256dh': 'k', 'auth': 'a'}}
         with mock.patch('pywebpush.webpush') as w:
+            self.assertEqual(c.post('/api/cuenta/push/', {'suscripcion': {**sus, 'endpoint': 'https://evil.example/x'}}, format='json').status_code, 400)
             self.assertEqual(c.post('/api/cuenta/push/', {'suscripcion': sus}, format='json').status_code, 201)
             self.assertEqual(c.get('/api/cuenta/push/').json()['suscripciones'], 1)
             with self.captureOnCommitCallbacks(execute=True):
@@ -231,3 +232,27 @@ class PushTests(Base):
         c, _ = self.entrar(self.ana)
         r = c.post('/api/cuenta/push/', {'suscripcion': {'endpoint': 'https://x', 'keys': {'p256dh': 'k', 'auth': 'a'}}}, format='json')
         self.assertEqual(r.status_code, 400)
+
+
+
+class PushRevisionTests(Base):
+    @override_settings(VAPID_PUBLICA='pub', VAPID_PRIVADA='priv', PUSH_SINCRONO=True)
+    def test_no_se_roba_la_suscripcion_ajena_y_salir_la_borra(self):
+        from apps.core.models import SuscripcionPush
+        sus = {'endpoint': 'https://fcm.googleapis.com/fcm/send/xyz', 'keys': {'p256dh': 'k', 'auth': 'a'}}
+        ca, _ = self.entrar(self.ana)
+        with mock.patch('pywebpush.webpush'):
+            self.assertEqual(ca.post('/api/cuenta/push/', {'suscripcion': sus}, format='json').status_code, 201)
+            otro = User.objects.create_user('otro', password=CLAVE)
+            co, _ = self.entrar(otro)
+            self.assertEqual(co.post('/api/cuenta/push/', {'suscripcion': sus}, format='json').status_code, 400)
+        self.assertEqual(SuscripcionPush.objects.get().usuario, self.ana)
+        ca.post('/api/auth/logout/', {'push_endpoint': sus['endpoint']}, format='json')
+        self.assertFalse(SuscripcionPush.objects.exists())
+
+    def test_redirecciones_desactivadas(self):
+        from apps.core.push import _SinRedirecciones
+        s = _SinRedirecciones()
+        with mock.patch.object(s._s, 'post') as p:
+            s.post('https://fcm.googleapis.com/x', data=b'')
+        self.assertFalse(p.call_args.kwargs['allow_redirects'])

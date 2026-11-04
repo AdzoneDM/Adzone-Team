@@ -31,7 +31,8 @@ from .models import Actividad, Captura, ConfiguracionMonitoreo, Consentimiento, 
 
 
 def _ip(request):
-    return (request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')) or None
+    from apps.core.red import ip_real
+    return ip_real(request)
 
 
 def _fecha(texto):
@@ -121,7 +122,17 @@ def agente_marcar_view(request):
     d = _dispositivo(request)
     if request.data.get('tipo') not in ('ENTRADA', 'PAUSA', 'REGRESO', 'SALIDA'):
         return Response({'detail': 'Marcaje no válido.'}, status=400)
-    marcaje, error = asistencia.marcar(d.usuario, request.data.get('tipo'), 'AGENTE', _ip(request), request.data.get('motivo') or '')
+    from apps.asistencia.lugar import donde_marca, en_red_de
+    from apps.asistencia.models import SitioMarcaje
+    modo = donde_marca(d.usuario)
+    ip = _ip(request)
+    if modo == 'CALLE':
+        return Response({'detail': 'Marca desde el celular: tu marcaje lleva la ubicación.'}, status=400)
+    if modo == 'OFICINA':
+        sitios = [s for s in SitioMarcaje.objects.filter(activo=True) if (s.redes or '').strip()]
+        if not any(en_red_de(s, ip) for s in sitios):
+            return Response({'detail': 'Marca con el QR de la oficina (o conectado a su red).'}, status=400)
+    marcaje, error = asistencia.marcar(d.usuario, request.data.get('tipo'), 'AGENTE', ip, request.data.get('motivo') or '')
     if error:
         return Response({'detail': error}, status=400)
     return Response(servicios.estado_agente(d), status=201)

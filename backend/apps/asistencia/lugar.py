@@ -14,7 +14,7 @@ import time
 from django.conf import settings
 
 VENTANA = 30
-VENTANAS_VALIDAS = 3  # el QR que se ve ahora y los dos anteriores (hasta 90 s)
+VENTANAS_VALIDAS = 2  # el QR que se ve ahora y el anterior (hasta 60 s)
 PRECISION_MAXIMA = 150  # metros: una ubicación peor que esto no prueba que esté en el lugar
 
 
@@ -59,8 +59,16 @@ def _num(v, minimo, maximo):
     return n if minimo <= n <= maximo else None
 
 
-def validar(usuario, datos):
-    """Devuelve ({sitio, latitud, longitud, precision_m, origen}, error)."""
+def en_red_de(sitio, ip):
+    """Si el lugar tiene su red configurada (la IP pública de la oficina), la conexión debe venir de ahí."""
+    from apps.core.red import en_redes
+    return not (sitio.redes or '').strip() or en_redes(ip, sitio.redes)
+
+
+def validar(usuario, datos, ip=None):
+    """Devuelve ({sitio, latitud, longitud, precision_m, origen}, error).
+    La ubicación la da el celular y se puede falsear: por eso, si el lugar tiene su red configurada,
+    el QR y la ubicación de la oficina solo valen conectados a la red de la oficina."""
     from .models import SitioMarcaje
     lat, lng = _num(datos.get('latitud'), -90, 90), _num(datos.get('longitud'), -180, 180)
     precision = _num(datos.get('precision'), 0, 100000)
@@ -69,14 +77,20 @@ def validar(usuario, datos):
              'precision_m': precision, 'sitio': None, 'origen': None}
     qr = datos.get('qr') or {}
     if qr:
+        if not isinstance(qr, dict):
+            return None, 'Código QR no válido.'
         sitio = SitioMarcaje.objects.filter(pk=qr.get('sitio'), activo=True).first() if str(qr.get('sitio') or '').isdigit() else None
         if sitio is None or not token_valido(sitio, qr.get('token')):
             return None, 'El código QR ya cambió: escanéalo de nuevo en la pantalla.'
+        if not en_red_de(sitio, ip):
+            return None, 'Para marcar con el QR, conéctate al wifi de la oficina.'
         extra.update(sitio=sitio, origen='QR')
         return extra, None
     modo = donde_marca(usuario)
     if modo == 'OFICINA':
-        sitio = sitio_cercano(lat, lng, precision)
+        sitio = sitio_cercano(lat, lng, precision) if precision is not None else None  # sin precisión no prueba nada
+        if sitio is not None and not en_red_de(sitio, ip):
+            sitio = None
         if sitio is None:
             if lat is None:
                 return None, 'Marca con el QR de la pantalla de la oficina, o permite la ubicación del celular.'

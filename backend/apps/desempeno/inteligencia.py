@@ -73,7 +73,8 @@ def datos_semana(hoy=None):
         'ot_en_riesgo': riesgo,
         'dinero': dinero,
         'mejores': [{'nombre': f['nombre'], 'puntaje': f['puntaje_total'], 'departamento': f.get('departamento')} for f in ranking[:3]],
-        'por_debajo': [{'nombre': f['nombre'], 'puntaje': f['puntaje_total'], 'motivos': (f.get('motivos') or [])[:2]}
+        'por_debajo': [{'nombre': f['nombre'], 'puntaje': f['puntaje_total'],
+                        'motivos': [m for m in (f.get('motivos') or []) if 'computadora' not in str(m).lower()][:2]}
                        for f in ranking if f.get('evaluacion') == 'BAJO_MINIMO'][:5],
     }
 
@@ -199,10 +200,11 @@ SISTEMA_EVALUACION = (
 
 
 def _datos_evaluacion(evaluacion):
-    from .ficha import ficha
+    from .ficha import _sin_monitoreo, ficha
     u = evaluacion.evaluado
     hoy = timezone.localdate()
-    f = ficha(u, hoy.replace(day=1), visor=evaluacion.evaluador, meses=6)
+    # A la API nunca va la actividad en la computadora, aunque quien evalúa pueda verla
+    f = _sin_monitoreo(ficha(u, hoy.replace(day=1), visor=evaluacion.evaluador, meses=6))
     t = f.get('tareas') or {}
     return {
         'nombre': u.first_name or _nombre(u), 'puesto': (f.get('persona') or {}).get('puesto'), 'tipo': evaluacion.get_tipo_display(),

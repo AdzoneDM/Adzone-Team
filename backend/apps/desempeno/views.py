@@ -334,9 +334,8 @@ def evidencia_archivo_view(request, pk):
     except (FileNotFoundError, ValueError):
         raise Http404
     tipo = mimetypes.guess_type(evidencia.archivo.name)[0] or 'application/octet-stream'
-    inline = tipo.startswith('image/') or tipo == 'application/pdf'
-    respuesta = FileResponse(archivo, content_type=tipo, as_attachment=not inline,
-                             filename=evidencia.nombre_original or os.path.basename(evidencia.archivo.name))
+    from apps.core.archivos import entregar
+    respuesta = entregar(archivo, evidencia.nombre_original or os.path.basename(evidencia.archivo.name), tipo)
     respuesta['Cache-Control'] = 'private, max-age=3600'
     respuesta['X-Content-Type-Options'] = 'nosniff'
     return respuesta

@@ -47,6 +47,8 @@ class SitioMarcaje(models.Model):
     latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     radio_m = models.PositiveIntegerField(default=150, help_text="A cuántos metros del punto cuenta como «en el lugar».")
+    redes = models.CharField(max_length=255, blank=True, help_text="IP pública del internet de la oficina (o varias, separadas por coma). "
+                             "Si se pone, el QR y la ubicación solo valen conectados a esa red.")
     clave_pantalla = models.CharField(max_length=40, unique=True, help_text="Enlace secreto de la pantalla que muestra el QR.")
     activo = models.BooleanField(default=True)
 

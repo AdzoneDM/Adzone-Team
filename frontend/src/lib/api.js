@@ -100,7 +100,7 @@ export const respaldos = () => api("/api/respaldos/");
 export const abrirEquipo = (clave) => api("/api/auth/equipo/", { method: "POST", body: { clave } });
 export const directorioEntrada = () => api("/api/auth/directorio/");
 export const cambiarClaveEquipo = (nueva) => api("/api/auth/clave-equipo/", { method: "POST", body: { nueva } });
-export const salir = () => api("/api/auth/logout/", { method: "POST" });
+export const salir = (pushEndpoint) => api("/api/auth/logout/", { method: "POST", body: pushEndpoint ? { push_endpoint: pushEndpoint } : {} });
 export const cambiarClave = (actual, nueva) => api("/api/auth/cambiar-clave/", { method: "POST", body: { actual, nueva } });
 
 // Tareas
@@ -456,6 +456,7 @@ export const sitiosMarcaje = () => api(`${AS}/sitios/`);
 export const guardarSitio = (s) => api(s.id ? `${AS}/sitios/${s.id}/` : `${AS}/sitios/`, { method: s.id ? "PATCH" : "POST", body: s });
 export const borrarSitio = (id) => api(`${AS}/sitios/${id}/`, { method: "DELETE" });
 export const nuevaClaveSitio = (id) => api(`${AS}/sitios/${id}/nueva-clave/`, { method: "POST" });
+export const miIp = () => api(`${AS}/mi-ip/`);
 export const pantallaQR = (clave) => api(`${AS}/pantalla/${encodeURIComponent(clave)}/`);
 
 // Portal del cliente

@@ -22,7 +22,8 @@ def _nombre(u):
 
 
 def _ip(request):
-    return (request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')) or None
+    from apps.core.red import ip_real
+    return ip_real(request)
 
 
 def _persona(u):
@@ -67,7 +68,7 @@ def marcar_view(request):
     if tipo not in dict(Marcaje.TIPOS):
         return Response({'detail': 'Marcaje no válido.'}, status=400)
     from .lugar import validar
-    lugar, error = validar(request.user, request.data)
+    lugar, error = validar(request.user, request.data, ip=_ip(request))
     if error:
         return Response({'detail': error, 'lugar': True}, status=400)
     origen = lugar.pop('origen') or ('MOVIL' if request.data.get('movil') else 'WEB')
@@ -353,7 +354,7 @@ class SitioSerializer(serializers.ModelSerializer):
     class Meta:
         from .models import SitioMarcaje
         model = SitioMarcaje
-        fields = ['id', 'nombre', 'latitud', 'longitud', 'radio_m', 'clave_pantalla', 'activo']
+        fields = ['id', 'nombre', 'latitud', 'longitud', 'radio_m', 'redes', 'clave_pantalla', 'activo']
         read_only_fields = ['clave_pantalla']
 
     def validate_radio_m(self, v):
@@ -401,3 +402,9 @@ def pantalla_qr_view(request, clave):
         return Response({'detail': 'Este enlace ya no sirve.'}, status=404)
     url = request.build_absolute_uri(f'/marcar?s={s.pk}&t={token(s)}')
     return Response({'sitio': s.nombre, 'qr': qr_svg(url), 'cambia_en': VENTANA - int(_t.time()) % VENTANA})
+
+
+@api_view(['GET'])
+def mi_ip_view(request):
+    """La IP pública desde la que llega esta conexión (para configurar la red de la oficina estando en ella)."""
+    return Response({'ip': _ip(request)})

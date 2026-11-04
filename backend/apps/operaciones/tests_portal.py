@@ -81,6 +81,8 @@ class PortalTests(Base):
         datos = {'nombre': 'Ana Cliente', 'conformidad': 'CONFORME', 'firma': FIRMA}
         self.assertEqual(p.post(f'/api/portal/{token}/actas/{acta.pk}/firmar/', datos, format='json').status_code, 400)  # sin G5
         Acta.objects.filter(pk=acta.pk).update(liberada_por=self.willian, liberada_fecha=timezone.now())
+        self.assertEqual(p.post(f'/api/portal/{token}/actas/{acta.pk}/firmar/', datos, format='json').status_code, 400)  # la OT aún no está lista
+        OrdenTrabajo.objects.filter(pk=self.ot.pk).update(estado='LISTA')
         self.assertEqual(p.post(f'/api/portal/{token}/actas/{acta.pk}/firmar/', {**datos, 'firma': 'x'}, format='json').status_code, 400)
         r = p.post(f'/api/portal/{token}/actas/{acta.pk}/firmar/', datos, format='json')
         self.assertEqual(r.status_code, 200, r.content)
@@ -100,5 +102,32 @@ class PortalTests(Base):
         OrdenTrabajo.objects.create(titulo='Otra del mismo cliente', cliente=self.cliente, numero='OT-26-0502')
         token = self.enlace()
         self.assertEqual(len(APIClient().get(f'/api/portal/{token}/').json()['ordenes']), 1)  # solo esta OT
-        token = self.enlace(todas=True)
+        self.como(self.erlin)
+        self.assertEqual(self.c.post(f'/api/operaciones/ordenes/{self.ot.pk}/enlaces-cliente/', {'todas': True}, format='json').status_code, 403)
+        token = self.enlace(self.yokasta, todas=True)  # Coordinación sí
         self.assertEqual(len(APIClient().get(f'/api/portal/{token}/').json()['ordenes']), 2)
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class PortalRevisionTests(PortalTests):
+    """Casos de la revisión de seguridad de v12.2 (hereda también los casos de PortalTests)."""
+
+    def test_svg_se_descarga_y_no_se_ejecuta(self):
+        svg = ArchivoOrden.objects.create(orden=self.ot, oa=self.oa, categoria='ARTE', nombre_original='logo.svg', tipo='image/svg+xml',
+                                          archivo=ContentFile(b'<svg onload="alert(1)"/>', name='l.svg'))
+        token = self.enlace()
+        r = APIClient().get(f'/api/portal/{token}/archivos/{svg.pk}/')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('attachment', r['Content-Disposition'])
+        self.assertEqual(r['Content-Type'], 'application/octet-stream')
+        self.assertIn('sandbox', r['Content-Security-Policy'])
+        self.como(self.erlin)
+        r = self.c.get(f'/api/operaciones/archivos/{svg.pk}/')
+        self.assertIn('attachment', r['Content-Disposition'])
+
+    def test_no_salen_archivos_de_lo_que_no_espera_aprobacion(self):
+        otra = OrdenArea.objects.create(orden=self.ot, area='IMP', que_produce='Impresión', estado='EN_EJECUCION')
+        editable = ArchivoOrden.objects.create(orden=self.ot, oa=otra, categoria='ARTE', nombre_original='fuente.ai',
+                                               archivo=ContentFile(b'ai', name='f.ai'))
+        token = self.enlace()
+        self.assertEqual(APIClient().get(f'/api/portal/{token}/archivos/{editable.pk}/').status_code, 404)

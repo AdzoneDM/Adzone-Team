@@ -123,6 +123,9 @@ def cerrar_sesiones(user, excepto=None):
     for s in Session.objects.filter(expire_date__gt=timezone.now()).iterator():
         if s.session_key != excepto and str(s.get_decoded().get('_auth_user_id')) == str(user.pk):
             s.delete()
+    if excepto is None:  # sin sesiones abiertas, sus celulares tampoco deben seguir recibiendo sus avisos
+        from .models import SuscripcionPush
+        SuscripcionPush.objects.filter(usuario=user).delete()
 
 
 # ------------------------------------------------------------------ Quién la necesita

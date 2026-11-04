@@ -200,6 +200,10 @@ def dos_pasos_login_view(request):
 def logout_view(request):
     """Cierra la sesión de la persona; el dispositivo vuelve al directorio sin pedir otra vez la clave general."""
     seguia_abierto = bool(request.session.get(SESION_EQUIPO))
+    endpoint = str(request.data.get('push_endpoint') or '')
+    if endpoint:  # este dispositivo deja de recibir los avisos de esta persona
+        from .models import SuscripcionPush
+        SuscripcionPush.objects.filter(usuario=request.user, endpoint=endpoint).delete()
     django_logout(request)
     if seguia_abierto:
         request.session[SESION_EQUIPO] = True

@@ -992,9 +992,8 @@ def archivo_view(request, pk):
         f = archivo.archivo.open('rb')
     except FileNotFoundError:
         raise Http404
-    en_linea = (archivo.tipo or '').startswith('image/') or archivo.tipo == 'application/pdf'
-    return FileResponse(f, as_attachment=not en_linea, filename=archivo.nombre_original,
-                        content_type=archivo.tipo or 'application/octet-stream')
+    from apps.core.archivos import entregar
+    return entregar(f, archivo.nombre_original, archivo.tipo)
 
 
 # ------------------------------------------------------------------ Directorio y búsqueda

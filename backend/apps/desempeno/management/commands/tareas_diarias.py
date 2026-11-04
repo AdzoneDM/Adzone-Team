@@ -20,7 +20,10 @@ class Command(BaseCommand):
         from apps.core.views_respaldos import recordar_semanal
         recordar_semanal()
         from apps.desempeno.inteligencia import avisar_resumen
-        avisar_resumen()
+        try:
+            avisar_resumen()
+        except Exception as e:  # noqa: BLE001 (el resumen nunca detiene el resto de las tareas del día)
+            self.stderr.write(f'Resumen semanal no generado: {e}')
         cashflow = ''
         from django.conf import settings
         if settings.CASHFLOW_MODO == 'real':

@@ -89,8 +89,9 @@ python manage.py generar_vapid                      # copia las 3 líneas VAPID_
 
 1. **Asistencia → Horarios → Lugares de marcaje → Lugar**: crea «Oficina Bonao». Estando en la oficina, toca «Usar mi ubicación actual».
 2. Copia el **enlace de la pantalla** y ábrelo en una tablet o monitor de la recepción (pantalla completa, sin apagarse). No necesita entrar con usuario. Si el enlace se comparte por error, genera otro (↻).
-3. En **Horario de cada persona → Dónde marca**: «En la oficina» para quien trabaja allí, «En la calle» para instalación, eventos y producción fuera.
-4. Pide al equipo que instale la app y active los avisos (Mi cuenta → Avisos en este celular).
+3. Edita el lugar y, **estando conectado al wifi de la oficina**, toca «Usar la de aquí» en **Red de la oficina**. Así el QR y la ubicación solo valen desde la oficina.
+4. En **Horario de cada persona → Dónde marca**: «En la oficina» para quien trabaja allí, «En la calle» para instalación, eventos y producción fuera.
+5. Pide al equipo que instale la app y active los avisos (Mi cuenta → Avisos en este celular).
 
 ### Seguridad de las cuentas y respaldos cifrados (versión 12.0)
 

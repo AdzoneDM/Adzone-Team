@@ -1,0 +1,10 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}/backend"],
+  "files.exclude": { "**/__pycache__": true, "**/node_modules": true },
+  "files.associations": { "*.html": "django-html" },
+  "editor.tabSize": 4,
+  "[javascript]": { "editor.tabSize": 2 },
+  "[javascriptreact]": { "editor.tabSize": 2 },
+  "eslint.workingDirectories": ["frontend"]
+}

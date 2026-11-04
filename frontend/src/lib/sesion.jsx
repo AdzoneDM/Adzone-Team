@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { EVENTO_SESION, entrar, entrarConCodigo, salir, sesion } from "@/lib/api";
+import { suscripcionActual } from "@/lib/push";
 
 const SesionCtx = createContext(null);
 
@@ -53,7 +54,10 @@ export function SesionProvider({ children }) {
     return datos.user;
   };
   const logout = async () => {
-    try { await salir(); } finally { setUsuario(null); }
+    // Al salir, este celular deja de recibir los avisos de esta persona (por si otra lo usa después)
+    let sus = null;
+    try { sus = await suscripcionActual(); } catch { /* sin avisos */ }
+    try { await salir(sus?.endpoint); } finally { try { await sus?.unsubscribe(); } catch { /* ya no estaba */ } setUsuario(null); }
   };
 
   const lista = new Set(usuario?.permisos || []);

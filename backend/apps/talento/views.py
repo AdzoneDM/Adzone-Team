@@ -600,8 +600,8 @@ class DocumentoViewSet(viewsets.ModelViewSet):
         except (FileNotFoundError, ValueError):
             raise Http404
         tipo = mimetypes.guess_type(d.archivo.name)[0] or 'application/octet-stream'
-        r = FileResponse(f, content_type=tipo, as_attachment=not (tipo.startswith('image/') or tipo == 'application/pdf'),
-                         filename=f'{d.titulo}{__import__("os").path.splitext(d.archivo.name)[1]}')
+        from apps.core.archivos import entregar
+        r = entregar(f, f'{d.titulo}{__import__("os").path.splitext(d.archivo.name)[1]}', tipo)
         r['Cache-Control'] = 'private, no-store'
         return r
 
@@ -623,6 +623,11 @@ def borrador_evaluacion_view(request, pk):
         raise exceptions.ValidationError("En la evaluación de compañeros cuenta tu propia mirada: no hay borrador.")
     if e.estado != 'PENDIENTE':
         raise exceptions.ValidationError("Esta evaluación ya se envió.")
+    from django.core.cache import cache
+    clave = f'borrador-eval:{request.user.pk}:{timezone.now():%Y%m%d%H}'
+    if cache.get_or_set(clave, 0, 3700) >= 20:
+        raise exceptions.Throttled(detail="Pediste muchos borradores en esta hora. Intenta más tarde.")
+    cache.incr(clave)
     b = borrador_evaluacion(e)
     b.pop('datos', None)
     return Response(b)

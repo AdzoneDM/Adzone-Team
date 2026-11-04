@@ -31,6 +31,6 @@ def preguntar(sistema, mensaje, max_tokens=1200, temperatura=0.3):
         with urllib.request.urlopen(req, timeout=60) as r:
             datos = json.loads(r.read())
         return ''.join(b.get('text', '') for b in datos.get('content', []) if b.get('type') == 'text').strip() or None
-    except (urllib.error.URLError, TimeoutError, ValueError) as e:
+    except Exception as e:  # noqa: BLE001 (cualquier falla de red o de la API: se usa la versión sin IA)
         log.warning('La API de Claude no respondió: %s', e)
         return None
