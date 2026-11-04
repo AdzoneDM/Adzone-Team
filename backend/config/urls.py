@@ -18,6 +18,8 @@ def app_web(request, *args, **kwargs):
 admin.site.site_header = "Adzone Team · Administración avanzada"
 admin.site.site_title = "Adzone Team"
 
+from apps.operaciones import portal  # noqa: E402
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('apps.core.urls')),
@@ -35,6 +37,11 @@ urlpatterns = [
     path('api/monitoreo/', include('apps.monitoreo.urls')),
     path('api/talento/', include('apps.talento.urls')),
     path('api/activos/', include('apps.activos.urls')),
+    # Portal del cliente (sin sesión, con su enlace seguro)
+    path('api/portal/<str:token>/', portal.portal_view),
+    path('api/portal/<str:token>/archivos/<int:pk>/', portal.archivo_view),
+    path('api/portal/<str:token>/aprobar/<int:oa_id>/', portal.aprobar_view),
+    path('api/portal/<str:token>/actas/<int:acta_id>/firmar/', portal.firmar_view),
     # Todo lo demás es la app web (React). Los archivos (JS, CSS, íconos) los sirve WhiteNoise.
     re_path(r'^(?!api/|admin/|static/).*$', app_web),
 ]

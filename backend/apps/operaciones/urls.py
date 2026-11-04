@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import views
+from . import portal, views
 
 router = DefaultRouter()
 router.register(r'clientes', views.ClienteViewSet, basename='cliente')
@@ -17,6 +17,8 @@ router.register(r'tiempos', views.TiempoEstandarViewSet, basename='tiempo-estand
 urlpatterns = [
     path('', include(router.urls)),
     path('archivos/<int:pk>/', views.archivo_view, name='archivo_orden'),
+    path('ordenes/<int:orden_id>/enlaces-cliente/', portal.enlaces_view, name='enlaces_cliente'),
+    path('enlaces-cliente/<int:pk>/revocar/', portal.revocar_view, name='revocar_enlace_cliente'),
     path('directorio/', views.directorio_view, name='directorio'),
     path('buscar/', views.buscar_view, name='buscar'),
 ]

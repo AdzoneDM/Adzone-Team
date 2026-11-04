@@ -517,3 +517,23 @@ class Comentario(models.Model):
 
     class Meta:
         ordering = ['fecha', 'id']
+
+
+class EnlaceCliente(models.Model):
+    """Enlace seguro para el portal del cliente (sin contraseña): ver sus OT, aprobar artes (G4) y firmar el acta (F-12).
+    Solo se guarda la huella del enlace; vence y se puede revocar."""
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='enlaces_portal')
+    orden = models.ForeignKey(OrdenTrabajo, on_delete=models.CASCADE, null=True, blank=True, related_name='enlaces_portal',
+                              help_text="Vacío = todas las órdenes del cliente.")
+    huella = models.CharField(max_length=64, unique=True)
+    para = models.CharField("Para quién", max_length=150, blank=True)
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    creado = models.DateTimeField(auto_now_add=True)
+    vence = models.DateTimeField()
+    revocado = models.BooleanField(default=False)
+    usos = models.PositiveIntegerField(default=0)
+    ultimo_uso = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-creado']
+        verbose_name = 'Enlace del portal del cliente'

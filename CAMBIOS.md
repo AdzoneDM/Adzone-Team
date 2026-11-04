@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.2 · 04/11/2026 · Portal del cliente
+
+- **Enlace para el cliente** (en cada OT, para Coordinación, el comercial, el responsable y la Dirección): crea un enlace seguro, sin contraseña, para una OT o para todas las del cliente, y lo comparte por **WhatsApp** o **correo** con un mensaje listo. Vence a los 30 días (hasta 90), se puede revocar y muestra cuántas veces se abrió. Solo se guarda la huella del enlace.
+- **Lo que ve el cliente** en su celular: el avance de cada orden (partes listas, fecha prevista o de entrega), sin montos internos ni comprobantes.
+- **Aprobar artes (G4)**: ve el arte o el PDF que el equipo marcó como «Arte» y toca **Aprobar** o **Pedir cambios** con su nombre. Queda por escrito (nombre, fecha, hora e IP), con canal «Portal del cliente», y avisa al equipo. Pedir cambios devuelve la versión a la revisión interna.
+- **Firmar la entrega (F-12)**: cuando Administración liberó la salida (G5), el cliente firma el acta con el dedo, indica si lo recibe conforme o con observaciones, y la OT pasa a **Entregada**; Finanzas recibe el aviso para facturar.
+- **Facturas** emitidas del cliente, con lo pagado y lo pendiente.
+
 ## 12.1 · 04/11/2026 · App de celular: avisos y marcaje con QR o ubicación
 
 - **Instalar la app**: en el celular aparece la sugerencia de instalar Adzone Team (Android: un toque; iPhone: Compartir → «Agregar a inicio»). Se abre como una app, sin la barra del navegador.

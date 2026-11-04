@@ -457,3 +457,13 @@ export const guardarSitio = (s) => api(s.id ? `${AS}/sitios/${s.id}/` : `${AS}/s
 export const borrarSitio = (id) => api(`${AS}/sitios/${id}/`, { method: "DELETE" });
 export const nuevaClaveSitio = (id) => api(`${AS}/sitios/${id}/nueva-clave/`, { method: "POST" });
 export const pantallaQR = (clave) => api(`${AS}/pantalla/${encodeURIComponent(clave)}/`);
+
+// Portal del cliente
+export const enlacesCliente = (ordenId) => api(`/api/operaciones/ordenes/${ordenId}/enlaces-cliente/`);
+export const crearEnlaceCliente = (ordenId, datos) => api(`/api/operaciones/ordenes/${ordenId}/enlaces-cliente/`, { method: "POST", body: datos });
+export const revocarEnlaceCliente = (id) => api(`/api/operaciones/enlaces-cliente/${id}/revocar/`, { method: "POST" });
+const PT = (t) => `/api/portal/${encodeURIComponent(t)}`;
+export const portal = (t) => api(`${PT(t)}/`);
+export const portalArchivo = (t, id) => `${PT(t)}/archivos/${id}/`;
+export const portalAprobar = (t, oa, datos) => api(`${PT(t)}/aprobar/${oa}/`, { method: "POST", body: datos });
+export const portalFirmar = (t, acta, datos) => api(`${PT(t)}/actas/${acta}/firmar/`, { method: "POST", body: datos });

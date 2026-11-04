@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, Ban, BadgeCheck, CircleCheckBig, FilePlus2, FileSignature, FileText, Lock, Pause, Pencil, Play, PlusCircle, Printer,
+  ArrowLeft, ArrowRight, Link2, Ban, BadgeCheck, CircleCheckBig, FilePlus2, FileSignature, FileText, Lock, Pause, Pencil, Play, PlusCircle, Printer,
   Receipt, Send, ShieldAlert, Trash2, Undo2, Upload, Wallet,
 } from "lucide-react";
 import {
@@ -15,6 +15,7 @@ import { useSesion } from "@/lib/sesion";
 import Comentarios from "@/components/Comentarios";
 import { Alerta, Boton, Cargando, Panel, Pestanas, cx, useAviso, useConfirmar } from "@/components/ui";
 import FormOrden from "./FormOrden";
+import EnlaceCliente from "./EnlaceCliente";
 import {
   ActaModal, AgregarAreaModal, AutorizarCambioModal, CambioModal, ExcepcionModal, FirmarActaModal, LiberarG5Modal, LiberarModal, MotivoModal,
   RechazarG0Modal,
@@ -162,6 +163,9 @@ export default function OrdenDetalle() {
   if (esCoordinacion && enProduccion) acciones.push(<Boton key="pa" variante="secundario" icono={Pause} onClick={() => setModal("pausar")}>Pausar</Boton>);
   if (esCoordinacion && o.estado === "EN_PAUSA") acciones.push(<Boton key="rn" icono={Play} onClick={() => accion(() => reanudarOrden(o.id), "OT reanudada.")}>Reanudar</Boton>);
   if (o.puedo_editar) acciones.push(<Boton key="ed" variante="secundario" icono={Pencil} onClick={() => setModal("editar")}>Editar</Boton>);
+  if ((esAdmin || esCoordinacion || o.asesor_comercial === usuario.id || o.responsable === usuario.id) && !["CANCELADA"].includes(o.estado)) {
+    acciones.push(<Boton key="pc" variante="secundario" icono={Link2} onClick={() => setModal("portal")}>Enlace para el cliente</Boton>);
+  }
   const puedeCancelar = !["ENTREGADA", "CERRADA", "CANCELADA"].includes(o.estado) && (esCoordinacion || (enG0 && soyComercial));
   const pendientesCambio = d.cambios.filter((c) => c.estado === "SOLICITADA").length;
 
@@ -425,6 +429,7 @@ export default function OrdenDetalle() {
         onConfirmar={async (m) => { await pausarOrden(o.id, m); hecho(null, "OT en pausa."); }} />
       <MotivoModal titulo={`Cancelar ${o.codigo}`} descripcion="Sus Órdenes de Área y tareas abiertas también se cancelan." boton="Cancelar OT" peligro abierto={modal === "cancelar"} onCerrar={() => setModal(null)}
         onConfirmar={async (m) => { await cancelarOrden(o.id, m); hecho(null, "OT cancelada."); }} />
+      <EnlaceCliente orden={o} abierto={modal === "portal"} onCerrar={() => setModal(null)} />
       <FormOrden abierto={modal === "editar"} inicial={o} onCerrar={() => setModal(null)} onGuardada={() => hecho(null, "Cambios guardados.")} />
     </div>
   );
