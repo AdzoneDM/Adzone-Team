@@ -433,3 +433,16 @@ class ConfiguracionDesempeno(models.Model):
     class Meta:
         verbose_name = "Configuración del desempeño"
         verbose_name_plural = "Configuración del desempeño"
+
+
+class ResumenSemanal(models.Model):
+    """El resumen de la semana para la Dirección: qué va bien, qué OT están en riesgo y dónde se pierde dinero."""
+    semana = models.DateField(unique=True, help_text="Lunes de la semana resumida.")
+    datos = models.JSONField(default=dict)
+    texto = models.TextField()
+    con_ia = models.BooleanField(default=False)
+    creado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-semana']
+        verbose_name = 'Resumen semanal'

@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.3 · 04/11/2026 · Inteligencia en el día a día
+
+- **Resumen de la semana** (Resultados, Dirección): cada lunes, cómo fue la semana anterior (tareas validadas y a tiempo, vencidas, por validar), quién va bien y quién necesita apoyo, qué OT están en riesgo (vencidas o que vencen en 3 días, con sus partes listas) y dónde se pierde dinero (margen y OT con pérdida). Llega un aviso a la Dirección y queda el historial de semanas.
+- **Sugerencia de a quién asignar**: al escribir una tarea nueva, la plataforma propone 3 personas del equipo con la razón (tareas abiertas y vencidas, % a tiempo, calidad y tareas parecidas que ya hizo). Un toque la asigna.
+- **Borrador de la evaluación**: en la evaluación del supervisor (y la autoevaluación), «Borrador con los datos» llena fortalezas, qué mejorar y comentario con las tareas, KPIs y asistencia del mes. Siempre se revisa antes de enviar. No aplica a la evaluación de compañeros.
+- **Con la API de Claude** (`ANTHROPIC_API_KEY` en el servidor) el resumen y el borrador los redacta la IA, a partir de los números que calcula la plataforma; sin clave, o si la API falla, se arman automáticamente. A la API no se envían salarios, documentos ni la actividad en la computadora.
+
 ## 12.2 · 04/11/2026 · Portal del cliente
 
 - **Enlace para el cliente** (en cada OT, para Coordinación, el comercial, el responsable y la Dirección): crea un enlace seguro, sin contraseña, para una OT o para todas las del cliente, y lo comparte por **WhatsApp** o **correo** con un mensaje listo. Vence a los 30 días (hasta 90), se puede revocar y muestra cuántas veces se abrió. Solo se guarda la huella del enlace.

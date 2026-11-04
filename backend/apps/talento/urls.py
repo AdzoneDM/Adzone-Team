@@ -17,6 +17,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('evaluaciones/', views.mis_evaluaciones_view),
     path('evaluaciones/<int:pk>/enviar/', views.enviar_evaluacion_view),
+    path('evaluaciones/<int:pk>/borrador/', views.borrador_evaluacion_view),
     path('evaluaciones/por-revisar/', views.por_revisar_view),
     path('evaluaciones/<int:pk>/confirmar/', views.confirmar_evaluacion_view),
     path('resultados/', views.resultados_view),

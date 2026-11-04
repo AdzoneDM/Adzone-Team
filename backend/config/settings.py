@@ -166,6 +166,9 @@ SESSION_COOKIE_AGE = 7 * 24 * 60 * 60
 # Cierre por inactividad (minutos sin usar la app): más corto para quien maneja datos de la empresa
 INACTIVIDAD_EMPRESA_MIN = int(env('INACTIVIDAD_EMPRESA_MIN', '30'))
 INACTIVIDAD_MIN = int(env('INACTIVIDAD_MIN', str(12 * 60)))
+# Inteligencia con la API de Claude (resumen semanal, borrador de evaluación). Sin clave: versión automática sin IA.
+ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY')
+IA_MODELO = env('IA_MODELO', 'claude-sonnet-5-5')
 # Notificaciones en el celular (Web Push). Claves con: python manage.py generar_vapid
 VAPID_PUBLICA = env('VAPID_PUBLICA')
 VAPID_PRIVADA = env('VAPID_PRIVADA')

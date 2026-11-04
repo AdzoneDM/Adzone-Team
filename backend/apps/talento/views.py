@@ -610,3 +610,19 @@ class DocumentoViewSet(viewsets.ModelViewSet):
 @permission_classes([EsRRHH])
 def estado_documentos_view(request):
     return Response(pol.estado_documentos())
+
+
+@api_view(['POST'])
+def borrador_evaluacion_view(request, pk):
+    """Borrador de fortalezas, aspectos a mejorar y comentario con los datos de la persona. Solo para quien evalúa, y se edita antes de enviar."""
+    from apps.desempeno.inteligencia import borrador_evaluacion
+    e = get_object_or_404(Evaluacion.objects.select_related('evaluado', 'evaluador'), pk=pk)
+    if e.evaluador_id != request.user.pk:
+        raise exceptions.PermissionDenied("El borrador es para quien hace esta evaluación.")
+    if e.tipo == 'PAR':
+        raise exceptions.ValidationError("En la evaluación de compañeros cuenta tu propia mirada: no hay borrador.")
+    if e.estado != 'PENDIENTE':
+        raise exceptions.ValidationError("Esta evaluación ya se envió.")
+    b = borrador_evaluacion(e)
+    b.pop('datos', None)
+    return Response(b)

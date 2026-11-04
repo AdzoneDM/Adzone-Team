@@ -70,6 +70,15 @@ python manage.py collectstatic --noinput
 
 Después, reiniciar la app en Plesk.
 
+### Portal del cliente e inteligencia (versiones 12.2 y 12.3)
+
+```bash
+python manage.py migrate
+```
+
+- **Portal del cliente**: no necesita configuración. En cada OT, «Enlace para el cliente» crea el enlace y lo comparte por WhatsApp o correo. Para que el cliente vea un arte, súbelo a la OT con la categoría **Arte** y en la Orden de Área correspondiente.
+- **IA (opcional)**: crea una clave en console.anthropic.com → API keys y ponla **solo** en `backend/.env` como `ANTHROPIC_API_KEY=` (nunca en el chat ni en GitHub). Reinicia la app. El uso es bajo (un resumen por semana y un borrador cuando lo piden); puedes fijar un límite de gasto en la consola de Anthropic. Opcional: `IA_MODELO=` para otro modelo.
+
 ### App de celular: avisos y marcaje con QR (versión 12.1)
 
 ```bash

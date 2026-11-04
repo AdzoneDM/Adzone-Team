@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -61,6 +61,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
   if (esAdmin) {
     s.push({ titulo: "Resultados", items: [
       { a: "/panel", texto: "Panel gerencial", icono: LayoutDashboard },
+      { a: "/resumen-semanal", texto: "Resumen de la semana", icono: Sparkles },
       { a: "/desempeno", texto: "Desempeño y ranking", icono: Trophy },
       { a: "/kpis-del-mes", texto: "KPIs del mes", icono: SquarePen },
     ] });

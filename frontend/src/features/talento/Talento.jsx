@@ -1,9 +1,9 @@
 // Talento: evaluaciones 360° (evaluar, resultados, revisión de la dirección, ciclos), planes de mejora, expediente y auditoría.
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, ClipboardCheck, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Plus, RotateCcw, Save, Sparkles, Trash2 } from "lucide-react";
 import {
-  auditoria, avanceEvaluacion, borrarEvento, ciclosEvaluacion, confirmarEvaluacion, crearCiclo, editarCiclo, enviarEvaluacion,
+  auditoria, avanceEvaluacion, borradorEvaluacion, borrarEvento, ciclosEvaluacion, confirmarEvaluacion, crearCiclo, editarCiclo, enviarEvaluacion,
   equipo, evaluacionesPorRevisar, expediente, guardarEvento, guardarPlan, misEvaluaciones, planesMejora, resultadosEvaluacion,
 } from "@/lib/api";
 import { useSesion } from "@/lib/sesion";
@@ -128,6 +128,7 @@ function FormEvaluacion({ e, competencias, escala, onCerrar, onListo }) {
       </div>
       {promedio != null && <p className="mt-3 text-sm text-gris">Promedio: <strong className="num">{promedio.toFixed(1)}</strong> de 5</p>}
       <div className="mt-4 grid gap-3">
+        {e.tipo !== "PAR" && <BorradorBoton evaluacion={e} onBorrador={(b) => setTxt({ fortalezas: b.fortalezas, a_mejorar: b.a_mejorar, comentario: b.comentario })} />}
         <Campo etiqueta="Fortalezas">{(id) => <textarea id={id} rows={2} className="campo" value={txt.fortalezas} onChange={(ev) => setTxt({ ...txt, fortalezas: ev.target.value })} />}</Campo>
         <Campo etiqueta="Qué mejorar" ayuda={e.tipo === "SUPERVISOR" && promedio != null && promedio < 3 ? "Obligatorio: la evaluación está por debajo de «Cumple»." : null}>
           {(id) => <textarea id={id} rows={2} className="campo" value={txt.a_mejorar} onChange={(ev) => setTxt({ ...txt, a_mejorar: ev.target.value })} />}</Campo>
@@ -480,5 +481,24 @@ function Auditoria() {
         </table></div>
       )}
     </Panel>
+  );
+}
+
+
+/** Llena los textos con los datos del mes (tareas, KPIs, asistencia). Siempre se revisa antes de enviar. */
+function BorradorBoton({ evaluacion, onBorrador }) {
+  const [cargando, setCargando] = useState(false);
+  const [nota, setNota] = useState("");
+  const pedir = async () => {
+    setCargando(true); setNota("");
+    try { const b = await borradorEvaluacion(evaluacion.id); onBorrador(b); setNota(b.con_ia ? "Borrador redactado con IA a partir de los datos: revísalo y ajústalo." : "Borrador armado con los datos del mes: revísalo y ajústalo."); }
+    catch (e) { setNota(e.message); }
+    setCargando(false);
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Boton tam="sm" variante="secundario" icono={Sparkles} cargando={cargando} onClick={pedir}>Borrador con los datos</Boton>
+      {nota && <span className="text-sm text-gris">{nota}</span>}
+    </div>
   );
 }

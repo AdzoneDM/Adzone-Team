@@ -467,3 +467,9 @@ export const portal = (t) => api(`${PT(t)}/`);
 export const portalArchivo = (t, id) => `${PT(t)}/archivos/${id}/`;
 export const portalAprobar = (t, oa, datos) => api(`${PT(t)}/aprobar/${oa}/`, { method: "POST", body: datos });
 export const portalFirmar = (t, acta, datos) => api(`${PT(t)}/actas/${acta}/firmar/`, { method: "POST", body: datos });
+
+// Inteligencia
+export const resumenSemanal = () => api(`${D}/resumen-semanal/`);
+export const regenerarResumen = () => api(`${D}/resumen-semanal/`, { method: "POST" });
+export const sugerirAsignacion = (titulo, descripcion = "") => api(`${D}/sugerir-asignacion/`, { method: "POST", body: { titulo, descripcion } });
+export const borradorEvaluacion = (id) => api(`/api/talento/evaluaciones/${id}/borrador/`, { method: "POST" });

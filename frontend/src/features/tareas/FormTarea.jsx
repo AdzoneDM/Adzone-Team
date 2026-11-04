@@ -1,7 +1,7 @@
 // Asignar o editar una tarea (también recurrente). Se usa en Mi equipo y en los proyectos.
 import { useEffect, useState } from "react";
-import { Repeat } from "lucide-react";
-import { guardarRecurrente, guardarTarea, listarProyectos } from "@/lib/api";
+import { Repeat, Sparkles } from "lucide-react";
+import { guardarRecurrente, guardarTarea, listarProyectos, sugerirAsignacion } from "@/lib/api";
 import { diasHasta, hoyISO, sumarDias } from "@/lib/formato";
 import { Alerta, Boton, Campo, Modal, cx } from "@/components/ui";
 
@@ -13,6 +13,7 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [proyectos, setProyectos] = useState([]);
+  const [sugeridos, setSugeridos] = useState([]);
   const editando = !!inicial?.id;
   const esRecurrente = inicial?.tipo === "recurrente";
 
@@ -78,6 +79,8 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         <Campo etiqueta="Qué hay que hacer">{(id) => <input id={id} className="campo" value={f.titulo || ""} onChange={cambiar("titulo")} maxLength={255} autoFocus />}</Campo>
         <Campo etiqueta="Detalles (opcional)">{(id) => <textarea id={id} className="campo" rows={3} value={f.descripcion || ""} onChange={cambiar("descripcion")} />}</Campo>
         <Campo etiqueta="Cliente (opcional)">{(id) => <input id={id} className="campo" value={f.cliente || ""} onChange={cambiar("cliente")} maxLength={150} placeholder="Ej.: Plaza Bonao" />}</Campo>
+        {!editando && !esRecurrente && <Sugerencias titulo={f.titulo} descripcion={f.descripcion} lista={sugeridos} setLista={setSugeridos}
+          elegido={f.colaborador} onElegir={(id) => setF((x) => ({ ...x, colaborador: String(id), kpi_asignado: "" }))} />}
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo etiqueta="Responsable">
             {(id) => (
@@ -165,5 +168,30 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         )}
       </form>
     </Modal>
+  );
+}
+
+
+/** A quién conviene asignarla: menos carga, buen cumplimiento y calidad, y experiencia en tareas parecidas. */
+function Sugerencias({ titulo, descripcion, lista, setLista, elegido, onElegir }) {
+  useEffect(() => {
+    if (!titulo || titulo.trim().length < 4) { setLista([]); return undefined; }
+    const t = setTimeout(() => sugerirAsignacion(titulo, descripcion).then((l) => setLista(l.slice(0, 3))).catch(() => setLista([])), 600);
+    return () => clearTimeout(t);
+  }, [titulo, descripcion, setLista]);
+  if (!lista.length) return null;
+  return (
+    <div className="rounded-lg border border-azul/20 bg-azul/5 p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-azul"><Sparkles className="size-4" />Sugerencia para asignar</p>
+      <div className="space-y-1.5">
+        {lista.map((p) => (
+          <button key={p.id} type="button" onClick={() => onElegir(p.id)} aria-pressed={String(elegido) === String(p.id)}
+            className={cx("flex w-full items-start gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm",
+              String(elegido) === String(p.id) ? "border-azul bg-white" : "border-transparent hover:border-linea hover:bg-white")}>
+            <span className="font-medium">{p.nombre}</span><span className="min-w-0 flex-1 truncate text-gris">{p.razon}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

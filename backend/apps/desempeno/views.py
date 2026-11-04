@@ -937,3 +937,26 @@ def panel_exportar_view(request):
     for m in d['tendencia']:
         w.writerow([m['mes'], v(m['puntaje']), m['ot_completadas'], v(m['ot_a_tiempo']), m['tareas_validadas'], v(m['tareas_a_tiempo'])])
     return r
+
+
+# ------------------------------------------------------------------ Inteligencia
+@api_view(['GET', 'POST'])
+@permission_classes([EsAdministrador])
+def resumen_semanal_view(request):
+    """GET: el de esta semana (lo genera si falta) y los anteriores. POST: lo vuelve a generar con los datos de ahora."""
+    from apps.core import ia
+    from .inteligencia import generar_resumen
+    from .models import ResumenSemanal
+    r = generar_resumen(forzar=request.method == 'POST')
+    return Response({'actual': {'semana': r.semana, 'texto': r.texto, 'con_ia': r.con_ia, 'datos': r.datos, 'creado': r.creado},
+                     'anteriores': [{'semana': x.semana, 'texto': x.texto, 'con_ia': x.con_ia} for x in ResumenSemanal.objects.exclude(pk=r.pk)[:8]],
+                     'ia_configurada': ia.activa()})
+
+
+@api_view(['POST'])
+def sugerir_asignacion_view(request):
+    from .inteligencia import sugerir_asignacion
+    from .permisos import equipo_gestionable
+    if not equipo_gestionable(request.user, 'tareas.asignar').exists():
+        raise PermissionDenied("Esta sugerencia es para quien asigna tareas a su equipo.")
+    return Response(sugerir_asignacion(request.user, str(request.data.get('titulo') or '')[:255], str(request.data.get('descripcion') or '')[:2000]))
