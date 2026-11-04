@@ -91,7 +91,7 @@ export const sesion = () => api("/api/auth/session/");
 export const entrar = (credenciales) => api("/api/auth/login/", { method: "POST", body: credenciales });
 export const entrarConCodigo = (codigo) => api("/api/auth/dos-pasos/", { method: "POST", body: { codigo } });
 export const dosPasos = () => api("/api/cuenta/dos-pasos/");
-export const iniciarDosPasos = () => api("/api/cuenta/dos-pasos/iniciar/", { method: "POST" });
+export const iniciarDosPasos = (clave) => api("/api/cuenta/dos-pasos/iniciar/", { method: "POST", body: clave ? { clave } : {} });
 export const confirmarDosPasos = (codigo) => api("/api/cuenta/dos-pasos/confirmar/", { method: "POST", body: { codigo } });
 export const nuevosCodigosRespaldo = (codigo) => api("/api/cuenta/dos-pasos/respaldo/", { method: "POST", body: { codigo } });
 export const desactivarDosPasos = (clave) => api("/api/cuenta/dos-pasos/desactivar/", { method: "POST", body: { clave } });

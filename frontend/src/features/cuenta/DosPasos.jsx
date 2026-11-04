@@ -31,13 +31,13 @@ function CodigosRespaldo({ codigos, onListo }) {
   );
 }
 
-export function ActivarDosPasos({ onActivada }) {
+export function ActivarDosPasos({ onActivada, clave }) {
   const [datos, setDatos] = useState(null);
   const [codigo, setCodigo] = useState("");
   const [respaldo, setRespaldo] = useState(null);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
-  useEffect(() => { iniciarDosPasos().then(setDatos).catch((e) => setError(e.message)); }, []);
+  useEffect(() => { iniciarDosPasos(clave).then(setDatos).catch((e) => setError(e.message)); }, [clave]);
   if (respaldo) return <CodigosRespaldo codigos={respaldo} onListo={onActivada} />;
   if (!datos) return error ? <Alerta>{error}</Alerta> : <Cargando />;
   const confirmar = async (e) => {
@@ -75,7 +75,7 @@ export default function DosPasosPanel() {
   const { recargar } = useSesion();
   const avisar = useAviso();
   const [estado, setEstado] = useState(null);
-  const [modo, setModo] = useState(""); // activar | respaldo | desactivar
+  const [modo, setModo] = useState(""); // activar | respaldo | desactivar | clave-celular | celular
   const [valor, setValor] = useState("");
   const [codigos, setCodigos] = useState(null);
   const [error, setError] = useState("");
@@ -96,6 +96,14 @@ export default function DosPasosPanel() {
         {error && <Alerta>{error}</Alerta>}
         {codigos ? <CodigosRespaldo codigos={codigos} onListo={terminar} />
           : modo === "activar" ? <ActivarDosPasos onActivada={() => { avisar("Verificación en dos pasos activada"); terminar(); }} />
+            : modo === "celular" ? <ActivarDosPasos clave={valor} onActivada={() => { avisar("Listo: ahora usa el celular nuevo"); terminar(); }} />
+            : modo === "clave-celular" ? (
+              <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); setModo("celular"); }}>
+                <Campo etiqueta="Tu contraseña">{(id) => <input id={id} type="password" className="campo" value={valor} onChange={(e) => setValor(e.target.value)} autoComplete="current-password" autoFocus />}</Campo>
+                <Boton type="submit" disabled={!valor}>Seguir</Boton>
+                <Boton variante="fantasma" onClick={() => setModo("")}>Cancelar</Boton>
+              </form>
+            )
             : modo === "respaldo" ? (
               <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); accion(() => nuevosCodigosRespaldo(valor)); }}>
                 <Campo etiqueta="Código de tu app">{() => <CampoCodigo valor={valor} onCambio={setValor} autoFocus />}</Campo>
@@ -112,6 +120,7 @@ export default function DosPasosPanel() {
               <div className="flex flex-wrap items-center gap-2">
                 <p className="mr-auto text-sm">Te quedan <b>{estado.respaldo_restantes}</b> códigos de respaldo.</p>
                 <Boton variante="secundario" onClick={() => { setValor(""); setModo("respaldo"); }}>Códigos de respaldo nuevos</Boton>
+                <Boton variante="secundario" onClick={() => { setValor(""); setModo("clave-celular"); }}>Cambiar de celular</Boton>
                 {!estado.exige && <Boton variante="fantasma" className="text-rojo" onClick={() => { setValor(""); setModo("desactivar"); }}>Desactivar</Boton>}
               </div>
             ) : <Boton icono={Smartphone} onClick={() => setModo("activar")}>Activar con mi celular</Boton>}

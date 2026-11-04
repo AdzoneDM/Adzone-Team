@@ -58,6 +58,8 @@ class UserViewSet(viewsets.ModelViewSet):
         yo = self.request.user
         admins = administradores()
         from apps.core.permisos import efectivos
+        if usuario.pk != yo.pk and usuario.is_superuser and not yo.is_superuser:
+            return "La cuenta de superusuario solo la cambia otro superusuario."
         if usuario.pk != yo.pk and not yo.is_superuser and not efectivos(usuario) <= efectivos(yo):
             return "Esta persona tiene permisos que tú no tienes: su cuenta (contraseña, estado y perfiles) la cambia la Dirección."
         if usuario.pk == yo.pk:

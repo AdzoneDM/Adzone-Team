@@ -154,3 +154,52 @@ class RespaldosTests(Base):
                 self.assertEqual(c.get('/api/respaldos/..%2F..%2Fetc%2Fpasswd/').status_code, 404)
                 ca, _ = self.entrar(self.ana)
                 self.assertEqual(ca.get('/api/respaldos/').status_code, 403)
+
+
+class EndurecimientoTests(Base):
+    """Casos de la revisión de seguridad de v12."""
+
+    def test_bloqueo_por_persona_aunque_cambie_de_sesion(self):
+        c, _ = self.entrar(self.dir)
+        self.activar(c)
+        for _ in range(2):  # dos sesiones distintas, cada una con su propio contador
+            c2 = APIClient()
+            c2.post('/api/auth/login/', {'username': 'dir', 'password': CLAVE}, format='json')
+            for _ in range(3):
+                c2.post('/api/auth/dos-pasos/', {'codigo': '123456'}, format='json')
+        dp = DosPasos.objects.get(usuario=self.dir)
+        self.assertTrue(seg.bloqueado(dp))
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.dir, tipo='SEGURIDAD', titulo__contains='equivocados').exists())
+        c3 = APIClient()
+        c3.post('/api/auth/login/', {'username': 'dir', 'password': CLAVE}, format='json')
+        self.assertEqual(c3.post('/api/auth/dos-pasos/', {'codigo': '123456'}, format='json').status_code, 429)
+
+    def test_sin_activar_no_cambia_la_clave_del_equipo(self):
+        c, _ = self.entrar(self.dir)
+        self.assertEqual(c.post('/api/auth/clave-equipo/', {'nueva': 'otra-clave-larga'}, format='json').status_code, 403)
+
+    def test_cambiar_de_celular_pide_la_contrasena(self):
+        c, _ = self.entrar(self.dir)
+        self.activar(c)
+        self.assertEqual(c.post('/api/cuenta/dos-pasos/iniciar/').status_code, 400)
+        self.assertEqual(c.post('/api/cuenta/dos-pasos/iniciar/', {'clave': CLAVE}, format='json').status_code, 200)
+
+    def test_reiniciar_cierra_sus_sesiones_y_superusuario_solo_por_superusuario(self):
+        ca, _ = self.entrar(self.ana)
+        self.activar(ca)
+        cd, _ = self.entrar(self.dir)
+        self.activar(cd)
+        self.assertEqual(cd.delete(f'/api/accesos/personas/{self.ana.pk}/dos-pasos/').status_code, 204)
+        self.assertIn(ca.get('/api/desempeno/tareas/').status_code, (401, 403))  # su sesión se cerró
+        sup = User.objects.create_superuser('root', password=CLAVE)
+        DosPasos.objects.create(usuario=sup, secreto=seg.nuevo_secreto(), activo=True)
+        self.assertEqual(cd.delete(f'/api/accesos/personas/{sup.pk}/dos-pasos/').status_code, 403)
+        self.assertEqual(cd.patch(f'/api/organizacion/usuarios/{sup.pk}/', {'password': 'Otra-Clave-Larga-2026'}, format='json').status_code, 400)
+
+    def test_entrar_con_otra_cuenta_cierra_la_sesion_abierta(self):
+        c, _ = self.entrar(self.ana)
+        cd, _ = self.entrar(self.dir)
+        self.activar(cd)
+        r = c.post('/api/auth/login/', {'username': 'dir', 'password': CLAVE}, format='json')
+        self.assertTrue(r.json()['dos_pasos'])
+        self.assertIn(c.get('/api/desempeno/tareas/').status_code, (401, 403))  # Ana ya no está en este navegador

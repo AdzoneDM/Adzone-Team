@@ -3,11 +3,12 @@
 ## 12.0 · 04/11/2026 · Seguridad de las cuentas y respaldos cifrados
 
 - **Verificación en dos pasos** con Google o Microsoft Authenticator: obligatoria para quien maneja la empresa (Dirección, personas y accesos, Gestión del Talento, salarios y configuración); opcional para el resto en Mi cuenta. Se activa escaneando un QR y entrega 10 códigos de respaldo de un solo uso. Un código no sirve dos veces, y hay 5 intentos por entrada. También protege el panel de Django.
-- Quien perdió el celular: **Accesos y permisos → Reiniciar verificación** (con las mismas reglas anti-escalada; nunca la propia).
+- **Bloqueo por persona**: 5 códigos equivocados seguidos bloquean la verificación 15 minutos (aunque se intente desde otras sesiones) y avisan a la persona. Cambiar de celular pide la contraseña, avisa y cierra las demás sesiones. El límite de intentos ahora cuenta la IP real detrás del proxy y aplica también a quien ya tiene una sesión abierta; el formulario de /admin tiene su propio límite.
+- Quien perdió el celular: **Accesos y permisos → Reiniciar verificación** (con las mismas reglas anti-escalada; nunca la propia; un superusuario solo lo reinicia otro). Reiniciar cierra sus sesiones abiertas.
 - **Cierre de sesión por inactividad**: 30 minutos sin usar la app para las cuentas de empresa y 12 horas para el resto (configurable). Los avisos que la app consulta sola no cuentan como actividad.
 - **Aviso de dispositivo nuevo**: cuando alguien entra desde un navegador o celular donde nunca había entrado, le llega un aviso en la campanita.
 - **Monitoreo → Calibración** (Tecnología y Dirección): las aplicaciones y sitios que el equipo usa y ninguna regla clasifica, del más usado al menos, con cuántas personas y de qué departamentos. Se deciden de un toque (productivo, neutral o improductivo, para toda la empresa o un departamento) y se aplican a los últimos 30 días. Muestra qué parte del tiempo ya tiene regla. Guía de la semana de prueba en `docs/PLAN_PILOTO.md`.
-- **Respaldos cifrados**: cada noche base de datos, archivos privados y configuración, cifrados con AES-256 y guardados 30 días. **Administración → Respaldos** (Dirección) para descargarlos; aviso cada lunes y alerta si un respaldo no se hizo. Sin clave de respaldo no se hacen copias sin cifrar.
+- **Respaldos cifrados**: cada noche base de datos, archivos privados y configuración, cifrados con AES-256 y guardados 30 días. **Administración → Respaldos** (Dirección) para descargarlos; aviso cada lunes y alerta si un respaldo no se hizo. Sin clave de respaldo no se hacen copias sin cifrar; cada copia lleva su huella SHA-256 y las copias sin cifrar de versiones anteriores se borran.
 
 ## 11.1 · 03/11/2026 · Puestos adicionales y paquete de despliegue
 

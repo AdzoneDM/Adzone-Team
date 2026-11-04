@@ -86,6 +86,8 @@ class DosPasos(models.Model):
     ultimo_paso = models.BigIntegerField(default=0, help_text="Último intervalo de 30 s usado (un código no sirve dos veces).")
     respaldo = models.JSONField(default=list, blank=True, help_text="Códigos de respaldo de un solo uso (guardados cifrados).")
     activado = models.DateTimeField(null=True, blank=True)
+    fallos = models.PositiveSmallIntegerField(default=0, help_text="Códigos equivocados seguidos (por persona, no por sesión).")
+    bloqueado_hasta = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Verificación en dos pasos'

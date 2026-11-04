@@ -157,6 +157,8 @@ REST_FRAMEWORK = {
     # Límite de intentos de entrada: solo en el servidor. En desarrollo (y por el túnel de Cloudflare)
     # todos llegan desde el mismo proxy local y compartirían el límite, así que se desactiva.
     'DEFAULT_THROTTLE_RATES': {'login': None if DEBUG else env('LOGIN_LIMITE', '10/min')},
+    # Detrás del proxy de Plesk (nginx) hay 1 salto: la IP real es la que agrega el proxy, no la que manda el navegador
+    'NUM_PROXIES': None if DEBUG else int(env('NUM_PROXIES', '1')),
 }
 
 # La sesión dura 7 días si se marca «Recordarme»; si no, hasta cerrar el navegador.

@@ -106,7 +106,11 @@ def datos_usuario(user):
 
 
 class LoginThrottle(AnonRateThrottle):
+    """Por conexión, haya o no sesión abierta (si no, alguien con cuenta propia se saltaría el límite)."""
     scope = 'login'
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': self.scope, 'ident': self.get_ident(request)}
 
 
 @api_view(['POST'])
@@ -135,6 +139,8 @@ def login_view(request):
         error = 'Contraseña incorrecta.' if user_id else 'Usuario o contraseña incorrectos.'
         return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
 
+    if request.user.is_authenticated and request.user.pk != user.pk:
+        django_logout(request)  # otra cuenta en este navegador: se cierra antes de seguir
     if seg.tiene_dos_pasos(user):
         # La contraseña estuvo bien: falta el código de la app. La sesión aún no se abre.
         request.session[PENDIENTE] = {'id': user.pk, 't': int(time.time()), 'recordar': remember_me, 'intentos': 0}
@@ -177,6 +183,10 @@ def dos_pasos_login_view(request):
         return Response({'error': 'Vuelve a escribir tu usuario y contraseña.', 'reiniciar': True}, status=status.HTTP_400_BAD_REQUEST)
     user = User.objects.filter(pk=p['id'], is_active=True).first()
     dp = DosPasos.objects.filter(usuario=user, activo=True).first() if user else None
+    if dp is not None and seg.bloqueado(dp):
+        request.session.pop(PENDIENTE, None)
+        return Response({'error': 'Demasiados códigos equivocados: espera 15 minutos e inténtalo de nuevo.', 'reiniciar': True},
+                        status=status.HTTP_429_TOO_MANY_REQUESTS)
     if dp is None or not seg.verificar(dp, request.data.get('codigo')):
         p['intentos'] += 1
         request.session[PENDIENTE] = p

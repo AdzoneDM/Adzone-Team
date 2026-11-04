@@ -252,8 +252,12 @@ def reiniciar_dos_pasos_view(request, pk):
     persona = get_object_or_404(User, pk=pk)
     if persona.pk == request.user.pk:
         raise exceptions.PermissionDenied("La tuya la reinicia otra persona con el permiso «Personas y accesos».")
+    if persona.is_superuser and not request.user.is_superuser:
+        raise exceptions.PermissionDenied("La cuenta de superusuario solo la cambia otro superusuario.")
     _rechazar(revisar_cambio(request.user, persona, set()))
     borradas, _ = DosPasos.objects.filter(usuario=persona).delete()
     if borradas:
+        from . import seguridad
+        seguridad.cerrar_sesiones(persona)
         auditar('Reinició la verificación en dos pasos', _nombre(persona))
     return Response(status=status.HTTP_204_NO_CONTENT)
