@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import m2m_changed, post_save, pre_save
 from django.contrib.auth.models import User # El modelo User de Django es el "sender"
 from django.dispatch import receiver
 from .models import PerfilUsuario # El modelo PerfilUsuario que queremos crear
@@ -72,3 +72,13 @@ def perfil_de_jefe_segun_organigrama(sender, instance, raw=False, **kwargs):
                 _dar_supervisor(u)
             break
         jefe = jefe.supervisor
+
+
+@receiver(m2m_changed, sender=PerfilUsuario.puestos_adicionales.through)
+def perfil_de_jefe_por_puesto_adicional(sender, instance, action, reverse, **kwargs):
+    """Igual que con el puesto principal: quien cubre además un puesto con gente debajo recibe «Supervisor»."""
+    if action != 'post_add' or reverse:
+        return
+    from apps.desempeno.permisos import subordinados
+    if subordinados(instance.user).exists():
+        _dar_supervisor(instance.user)

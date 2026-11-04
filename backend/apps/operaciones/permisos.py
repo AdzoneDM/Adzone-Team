@@ -76,15 +76,14 @@ def departamentos_a_cargo(user):
     """Ids de departamentos que `user` gestiona. None = todos (administrador)."""
     if es_administrador(user):
         return None
-    puesto = puesto_de(user)
-    if puesto is None:
-        return set()
-    debajo = puestos_debajo(puesto)
-    if not debajo:
-        return set()
+    from apps.desempeno.permisos import puestos_de
     from apps.organizacion.models import PuestoDeTrabajo
-    ids = set(PuestoDeTrabajo.objects.filter(id__in=debajo).values_list('departamento_id', flat=True))
-    ids.add(puesto.departamento_id)
+    ids = set()
+    for puesto in puestos_de(user):  # el principal y los adicionales (un puesto sin nadie debajo no da departamento)
+        debajo = puestos_debajo(puesto)
+        if debajo:
+            ids |= set(PuestoDeTrabajo.objects.filter(id__in=debajo).values_list('departamento_id', flat=True))
+            ids.add(puesto.departamento_id)
     ids.discard(None)
     return ids
 

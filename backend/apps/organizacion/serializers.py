@@ -103,6 +103,9 @@ class UserSerializer(serializers.ModelSerializer):
     salario_mensual = serializers.DecimalField(source='perfil.salario_mensual', max_digits=12, decimal_places=2,
                                                required=False, allow_null=True, min_value=0)
     nomina = serializers.CharField(source='perfil.nomina', required=False, allow_blank=True, max_length=60)
+    puestos_adicionales = serializers.SerializerMethodField()
+    puestos_adicionales_ids = serializers.PrimaryKeyRelatedField(
+        queryset=PuestoDeTrabajo.objects.all(), many=True, write_only=True, required=False)
 
     class Meta:
         model = User
@@ -110,6 +113,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name', 'nombre', 'is_active', 'last_login',
             'password', 'puesto_trabajo_id', 'perfil', 'puesto', 'puesto_id', 'departamento',
             'groups', 'roles', 'roles_asignados', 'horas_semana', 'costo_hora', 'salario_mensual', 'nomina',
+            'puestos_adicionales', 'puestos_adicionales_ids',
         ]
         read_only_fields = ['last_login']
         extra_kwargs = {
@@ -119,6 +123,29 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_nombre(self, obj):
         return obj.get_full_name() or obj.username
+
+    def get_puestos_adicionales(self, obj):
+        perfil = getattr(obj, 'perfil', None)
+        if perfil is None:
+            return []
+        return [{'id': p.id, 'nombre': p.nombre, 'departamento': p.departamento.nombre if p.departamento_id else None}
+                for p in perfil.puestos_adicionales.select_related('departamento')]
+
+    def validate_puestos_adicionales_ids(self, puestos):
+        """Un puesto adicional da el equipo de ese puesto: solo la Dirección lo asigna o lo quita."""
+        from apps.desempeno.permisos import es_administrador
+        quien = self._quien()
+        actuales = set(self.instance.perfil.puestos_adicionales.values_list('pk', flat=True)) \
+            if self.instance is not None and hasattr(self.instance, 'perfil') else set()
+        if {p.pk for p in puestos} != actuales and quien is not None and not es_administrador(quien):
+            raise serializers.ValidationError("Solo la Dirección asigna puestos adicionales.")
+        return list(dict.fromkeys(puestos))
+
+    def _puestos_adicionales(self, user, puestos):
+        if puestos is None:
+            return
+        principal = user.perfil.puesto_trabajo_id
+        user.perfil.puestos_adicionales.set([p for p in puestos if p.pk != principal])
 
     def get_roles(self, obj):
         return [g.name for g in obj.groups.all()]
@@ -210,6 +237,7 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         perfil_data = validated_data.pop('perfil', {})
         roles = validated_data.pop('roles_asignados', ['Colaborador'])
+        adicionales = validated_data.pop('puestos_adicionales_ids', None)
         user = User.objects.create_user(**validated_data)
         user.perfil.puesto_trabajo = perfil_data.get('puesto_trabajo')
         for campo in PERFIL_EDITABLE[1:]:
@@ -218,6 +246,7 @@ class UserSerializer(serializers.ModelSerializer):
         costo_desde_salario(user.perfil, perfil_data)
         self._roles(user, roles or ['Colaborador'])  # antes de guardar el puesto: así el organigrama puede sumar «Supervisor»
         user.perfil.save()
+        self._puestos_adicionales(user, adicionales)
         return user
 
     def update(self, instance, validated_data):
@@ -233,7 +262,9 @@ class UserSerializer(serializers.ModelSerializer):
             costo_desde_salario(perfil, perfil_data)
             perfil.save()
         roles = validated_data.pop('roles_asignados', None)
+        adicionales = validated_data.pop('puestos_adicionales_ids', None)
         instance = super().update(instance, validated_data)
         if roles is not None:
             self._roles(instance, roles)
+        self._puestos_adicionales(instance, adicionales)
         return instance

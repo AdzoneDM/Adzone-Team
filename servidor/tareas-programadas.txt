@@ -1,0 +1,25 @@
+Tareas programadas para Plesk (Herramientas y configuración → Tareas programadas, o en el dominio → Tareas programadas).
+Tipo: «Ejecutar un comando». Copia cada comando tal cual.
+
+P=/var/www/vhosts/adzone.marketing/kpi-app
+
+| Cuándo                         | Cron (min hora día mes díaSemana) | Comando
+|--------------------------------|-----------------------------------|---------------------------------------------------------------
+| Todos los días 7:00            | 0 7 * * *                         | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py tareas_diarias
+| Cada 10 min de 7:00 a 20:59    | */10 7-20 * * *                   | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py revisar_jornadas
+| Todos los días 7:30            | 30 7 * * *                        | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py revisar_talento
+| Todos los días 7:35            | 35 7 * * *                        | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py revisar_activos
+| Días 1 al 5 del mes, 7:00      | 0 7 1-5 * *                       | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py revisar_kpis
+| Todos los días 3:00            | 0 3 * * *                         | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py limpiar_monitoreo
+| Todos los días 2:30 (respaldo) | 30 2 * * *                        | bash /var/www/vhosts/adzone.marketing/kpi-app/servidor/respaldo.sh
+
+Para qué sirve cada una:
+- tareas_diarias: crea las recurrentes, avisa lo que vence mañana, automatizaciones de vencidas y trae pagos de Cashflow.
+- revisar_jornadas: tardanzas, sin marcar, inactividad, PC sin reportar, tiempo improductivo.
+- revisar_talento: documentos por vencer y recordatorio de políticas pendientes.
+- revisar_activos: mantenimientos de equipos vencidos o próximos.
+- revisar_kpis: KPIs del mes anterior por debajo del umbral.
+- limpiar_monitoreo: borra actividad de más de 90 días y capturas de más de 30.
+- respaldo.sh: base de datos + archivos privados, guarda 14 días en kpi-respaldos/.
+
+Zona horaria: la app usa America/Santo_Domingo. Revisa que el servidor (o la tarea en Plesk) use esa misma hora.

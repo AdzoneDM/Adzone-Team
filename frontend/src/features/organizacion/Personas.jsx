@@ -25,8 +25,8 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
   useEffect(() => {
     if (!abierto) return;
     setError("");
-    setF(nuevo ? { first_name: "", last_name: "", username: "", email: "", puesto_trabajo_id: "", password: generarClave(), is_active: true, horas_semana: 44, costo_hora: "", salario_mensual: "", nomina: "" }
-      : { ...inicial, puesto_trabajo_id: inicial.puesto_id || "", password: "", horas_semana: inicial.horas_semana ?? 44, costo_hora: inicial.costo_hora ?? "",
+    setF(nuevo ? { first_name: "", last_name: "", username: "", email: "", puesto_trabajo_id: "", password: generarClave(), is_active: true, horas_semana: 44, costo_hora: "", salario_mensual: "", nomina: "", adicionales: [] }
+      : { ...inicial, puesto_trabajo_id: inicial.puesto_id || "", password: "", adicionales: (inicial.puestos_adicionales || []).map((p) => p.id), horas_semana: inicial.horas_semana ?? 44, costo_hora: inicial.costo_hora ?? "",
         salario_mensual: inicial.salario_mensual ?? "", nomina: inicial.nomina || "" });
   }, [abierto, inicial, nuevo]);
   const cambiar = (c) => (e) => setF({ ...f, [c]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
@@ -42,6 +42,8 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
         email: (f.email || "").trim().toLowerCase(), puesto_trabajo_id: f.puesto_trabajo_id ? Number(f.puesto_trabajo_id) : null,
         is_active: !!f.is_active, horas_semana: f.horas_semana || 44,
       };
+      // Solo la Dirección asigna puestos adicionales (dan el equipo de ese puesto)
+      if (esAdmin) datos.puestos_adicionales_ids = (f.adicionales || []).filter((y) => String(y) !== String(f.puesto_trabajo_id));
       if (nuevo) datos.roles_asignados = ["Colaborador"]; // si su puesto supervisa a otros, recibe «Supervisor» solo
       if (veSalarios) Object.assign(datos, {
         costo_hora: f.costo_hora === "" || f.costo_hora == null ? null : f.costo_hora,
@@ -74,6 +76,24 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
             </select>
           )}
         </Campo>
+        {esAdmin && (
+          <fieldset>
+            <legend className="mb-1 text-sm font-medium">Puestos adicionales <span className="font-normal text-gris">(opcional)</span></legend>
+            <p className="mb-2 text-sm text-gris">Si además cubre otro puesto (por ejemplo, Gerente de Marketing), recibe el equipo de ese puesto y puede asignarle tareas. Su puesto principal sigue mandando para KPIs y puntaje.</p>
+            <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-linea p-2">
+              {puestos.filter((p) => String(p.id) !== String(f.puesto_trabajo_id)).map((p) => {
+                const si = (f.adicionales || []).includes(p.id);
+                return (
+                  <label key={p.id} className="flex min-h-9 items-center gap-2 rounded px-2 text-sm hover:bg-linea-suave">
+                    <input type="checkbox" className="accent-azul" checked={si}
+                      onChange={() => setF({ ...f, adicionales: si ? f.adicionales.filter((x) => x !== p.id) : [...(f.adicionales || []), p.id] })} />
+                    {p.nombre} <span className="text-gris">({p.departamento_nombre})</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
         <p className="rounded-lg border border-linea bg-niebla/60 p-3 text-sm text-gris">
           {nuevo ? "Entra como Colaborador (solo ve y entrega lo suyo). Si su puesto supervisa a otros, recibe el perfil Supervisor."
             : <>Perfiles: <span className="font-medium text-noche">{perfilesDe(inicial?.roles)}</span>.</>}{" "}
@@ -177,7 +197,8 @@ export default function Personas() {
                         </div>
                       </div>
                     </td>
-                    <td className="hidden md:table-cell">{u.puesto ? <><p className="text-sm">{u.puesto}</p><p className="text-xs text-gris">{u.departamento}</p></> : <Insignia tono="amarillo">Sin puesto</Insignia>}</td>
+                    <td className="hidden md:table-cell">{u.puesto ? <><p className="text-sm">{u.puesto}</p><p className="text-xs text-gris">{u.departamento}</p>
+                      {u.puestos_adicionales?.length > 0 && <p className="text-xs text-azul">+ {u.puestos_adicionales.map((p) => p.nombre).join(", ")}</p>}</> : <Insignia tono="amarillo">Sin puesto</Insignia>}</td>
                     <td className="hidden md:table-cell"><Insignia tono={u.roles.includes("Administrador") ? "noche" : "neutro"}>{perfilesDe(u.roles)}</Insignia>{!u.is_active && <Insignia className="ml-1">Desactivada</Insignia>}</td>
                     {veSalarios && <td className="hidden whitespace-nowrap text-right lg:table-cell">{u.salario_mensual != null ? <><span className="num">{Number(u.salario_mensual).toLocaleString("es-DO", { maximumFractionDigits: 0 })}</span>{u.nomina && <span className="block text-xs text-gris">{u.nomina}</span>}</> : <span className="text-sm text-gris">—</span>}</td>}
                     <td className="hidden whitespace-nowrap text-sm text-gris xl:table-cell">{u.last_login ? fechaCorta(u.last_login) : "Nunca"}</td>

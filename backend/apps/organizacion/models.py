@@ -71,6 +71,15 @@ class PerfilUsuario(models.Model):
         related_name="perfiles_usuarios",
         verbose_name="Puesto de Trabajo"
     )
+    # Puestos que además cubre (por ejemplo, un Community Manager que también hace de Gerente de Marketing).
+    # Le dan el equipo de esos puestos en el organigrama; su puesto principal sigue mandando para KPIs, puntaje y nómina.
+    puestos_adicionales = models.ManyToManyField(
+        PuestoDeTrabajo,
+        blank=True,
+        related_name="perfiles_adicionales",
+        verbose_name="Puestos adicionales",
+        help_text="Puestos que también cubre: recibe el equipo que depende de ellos. Solo lo asigna la Dirección.",
+    )
     horas_semana = models.DecimalField(
         max_digits=4, decimal_places=1, default=44, verbose_name="Horas por semana",
         help_text="Capacidad semanal para medir la carga (jornada legal en RD: 44 horas).")

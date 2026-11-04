@@ -24,7 +24,29 @@ def tiene(user, permiso):
 
 
 def puesto_de(user):
+    """Puesto principal (KPIs, puntaje, departamento). Para saber a quién supervisa, usar `puestos_de`."""
     return getattr(getattr(user, 'perfil', None), 'puesto_trabajo', None)
+
+
+def puestos_de(user):
+    """Todos los puestos que cubre `user`: el principal y los adicionales (sin repetir)."""
+    perfil = getattr(user, 'perfil', None)
+    if perfil is None or not getattr(user, 'pk', None):
+        return []
+    puestos = [perfil.puesto_trabajo] if perfil.puesto_trabajo_id else []
+    vistos = {p.pk for p in puestos}
+    for p in perfil.puestos_adicionales.all():
+        if p.pk not in vistos:
+            vistos.add(p.pk)
+            puestos.append(p)
+    return puestos
+
+
+def ocupantes_de(puesto_id):
+    """Personas activas que cubren un puesto, como principal o adicional."""
+    from django.db.models import Q
+    return User.objects.filter(Q(perfil__puesto_trabajo_id=puesto_id) | Q(perfil__puestos_adicionales__id=puesto_id),
+                               is_active=True).distinct()
 
 
 def puestos_debajo(puesto):
@@ -43,19 +65,27 @@ def puestos_debajo(puesto):
     return encontrados
 
 
+def puestos_debajo_de(user):
+    """Ids de los puestos que dependen de cualquiera de los puestos de `user` (principal o adicionales)."""
+    debajo = set()
+    for puesto in puestos_de(user):
+        debajo |= puestos_debajo(puesto)
+    return debajo
+
+
 def subordinados(user):
-    """Usuarios activos cuyos puestos dependen (directa o indirectamente) del puesto de `user`."""
-    puesto = puesto_de(user)
-    if puesto is None:
+    """Usuarios activos cuyo puesto principal depende (directa o indirectamente) de alguno de los puestos de `user`."""
+    debajo = puestos_debajo_de(user)
+    if not debajo:
         return User.objects.none()
-    return User.objects.filter(is_active=True, perfil__puesto_trabajo__in=puestos_debajo(puesto)).exclude(pk=user.pk)
+    return User.objects.filter(is_active=True, perfil__puesto_trabajo__in=debajo).exclude(pk=user.pk)
 
 
 def subordinados_directos(user):
-    puesto = puesto_de(user)
-    if puesto is None:
+    puestos = [p.pk for p in puestos_de(user)]
+    if not puestos:
         return User.objects.none()
-    return User.objects.filter(is_active=True, perfil__puesto_trabajo__supervisor=puesto).exclude(pk=user.pk)
+    return User.objects.filter(is_active=True, perfil__puesto_trabajo__supervisor__in=puestos).exclude(pk=user.pk)
 
 
 def equipo_base(user):
@@ -113,8 +143,7 @@ def revisores_de(colaborador, permiso='tareas.validar'):
     vistos = set()
     while puesto is not None and puesto.supervisor_id and puesto.supervisor_id not in vistos:
         vistos.add(puesto.supervisor_id)
-        jefes = [j for j in User.objects.filter(is_active=True, perfil__puesto_trabajo_id=puesto.supervisor_id).exclude(pk=colaborador.pk)
-                 if tiene(j, permiso)]
+        jefes = [j for j in ocupantes_de(puesto.supervisor_id).exclude(pk=colaborador.pk) if tiene(j, permiso)]
         if jefes:
             return list({u.pk: u for u in jefes + extra}.values())
         puesto = puesto.supervisor

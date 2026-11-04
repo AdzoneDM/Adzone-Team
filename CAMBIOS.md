@@ -1,5 +1,11 @@
 # Cambios
 
+## 11.1 · 03/11/2026 · Puestos adicionales y paquete de despliegue
+
+- **Puestos adicionales**: una persona puede cubrir además otro puesto (por ejemplo, un Community Manager que también hace de Gerente de Marketing). Recibe el equipo que depende de ese puesto (asignar, validar, avisos) y el perfil Supervisor; su puesto principal sigue mandando para KPIs, puntaje y nómina. Solo la Dirección lo asigna, en Personas → editar.
+- **Cambiar la contraseña o dar de baja** cierra las sesiones abiertas de esa persona.
+- **Carpeta `servidor/`**: `instalar.sh` (instalación y actualización en Plesk), `respaldo.sh` (base y archivos privados, cada noche) y la lista de tareas programadas.
+
 ## 11.0 · 02/11/2026 · Accesos y permisos: mínimo privilegio
 
 - **Perfil + organigrama**: cada persona tiene uno o más perfiles que dicen **qué** puede hacer; el organigrama dice **sobre quién** (quienes dependen de su puesto), más su **equipo adicional**. Un colaborador solo cumple y ve lo suyo; un supervisor asigna, valida y evalúa solo a su equipo.

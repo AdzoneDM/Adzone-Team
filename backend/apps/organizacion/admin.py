@@ -17,3 +17,4 @@ class PerfilUsuarioAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'user__email', 'puesto_trabajo__nombre')
     list_per_page = 25
     raw_id_fields = ('user', 'puesto_trabajo')
+    filter_horizontal = ('puestos_adicionales',)
