@@ -15,7 +15,7 @@ grep -qE '^RESPALDO_CLAVE=.+' backend/.env || echo "AVISO: falta RESPALDO_CLAVE 
 venv/bin/pip install -q --upgrade pip
 venv/bin/pip install -q -r backend/requirements.txt
 
-MEDIA=$(grep -E '^MEDIA_ROOT=' backend/.env | cut -d= -f2-)
+MEDIA=$( { grep -E '^MEDIA_ROOT=' backend/.env || true; } | cut -d= -f2-)
 [ -n "$MEDIA" ] && mkdir -p "$MEDIA" && chmod 750 "$MEDIA"
 
 cd backend
