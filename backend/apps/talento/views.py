@@ -383,10 +383,10 @@ class PoliticaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Politica
-        fields = ['id', 'clave', 'titulo', 'categoria', 'categoria_nombre', 'resumen', 'contenido', 'version', 'vigente_desde',
+        fields = ['id', 'clave', 'codigo', 'responsable', 'titulo', 'categoria', 'categoria_nombre', 'resumen', 'contenido', 'version', 'vigente_desde',
                   'para_todos', 'departamentos', 'puestos', 'requiere_aceptacion', 'activa', 'borrador', 'actualizada',
                   'aceptada', 'aceptada_en']
-        read_only_fields = ['version', 'vigente_desde', 'actualizada']
+        read_only_fields = ['version', 'vigente_desde', 'actualizada', 'codigo']
         extra_kwargs = {'clave': {'required': False}}
 
     def _aceptacion(self, o):

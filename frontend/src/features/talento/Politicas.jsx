@@ -84,7 +84,7 @@ function MisPoliticas({ abrir }) {
         <ul className="divide-y divide-linea-suave">{[...pendientes, ...lista.filter((p) => !pendientes.includes(p))].map((p) => (
           <li key={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
             <ScrollText className="size-5 shrink-0 text-azul" />
-            <span className="min-w-0 flex-1"><span className="font-medium">{p.titulo}</span> <span className="text-xs text-gris">v{p.version} · {p.categoria_nombre}</span>
+            <span className="min-w-0 flex-1"><span className="font-medium">{p.titulo}</span> <span className="text-xs text-gris">{p.codigo} · v{p.version} · {p.categoria_nombre}</span>
               {p.resumen && <span className="block text-sm text-gris">{p.resumen}</span>}</span>
             {!p.requiere_aceptacion ? <Insignia>Informativa</Insignia> : p.aceptada ? <Insignia tono="verde"><CheckCircle2 className="size-3" />Aceptada {fecha(p.aceptada_en)}</Insignia> : <Insignia tono="amarillo">Pendiente</Insignia>}
             <Boton tam="sm" variante={p.aceptada || !p.requiere_aceptacion ? "secundario" : "primario"} onClick={() => setLeyendo(p)}>{p.aceptada || !p.requiere_aceptacion ? "Leer" : "Leer y aceptar"}</Boton>
@@ -160,7 +160,7 @@ function Administrar() {
       <p className="px-5 pt-4 text-sm text-gris">Las iniciales entran como <strong>borrador</strong>: revísalas (idealmente con su asesor legal), ajústalas y publícalas. Una publicada no se edita en silencio: se crea una nueva versión y todos la aceptan de nuevo.</p>
       <ul className="mt-2 divide-y divide-linea-suave">{lista.map((p) => (
         <li key={p.id} className={cx("flex flex-wrap items-center gap-3 px-5 py-3", !p.activa && "opacity-55")}>
-          <span className="min-w-0 flex-1"><span className="font-medium">{p.titulo}</span> <span className="text-xs text-gris">v{p.version} · {p.categoria_nombre}</span>
+          <span className="min-w-0 flex-1"><span className="font-medium">{p.titulo}</span> <span className="text-xs text-gris">{p.codigo} · v{p.version} · {p.categoria_nombre}</span>
             <span className="block text-xs text-gris">{p.para_todos ? "Toda la empresa" : `${p.departamentos.map((id) => (deptos || []).find((x) => x.id === id)?.nombre).filter(Boolean).join(", ") || "—"}${p.puestos.length ? ` · ${p.puestos.length} puesto(s)` : ""}`}{p.requiere_aceptacion ? "" : " · informativa"}</span></span>
           {p.borrador ? <Insignia tono="amarillo">Borrador</Insignia> : <Insignia tono="verde">Publicada</Insignia>}
           {p.borrador && <Boton tam="sm" icono={Send} onClick={() => publicar(p)}>Publicar</Boton>}
@@ -183,6 +183,7 @@ function Administrar() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-azul" checked={form.requiere_aceptacion} onChange={(e) => setForm({ ...form, requiere_aceptacion: e.target.checked })} />Pide aceptación</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-azul" checked={form.activa} onChange={(e) => setForm({ ...form, activa: e.target.checked })} />Activa</label>
             </div>
+            <Campo etiqueta="Responsable" ayuda="Puesto o área que responde por la política (p. ej. Gerente TI).">{(id) => <input id={id} className="campo" maxLength={120} value={form.responsable || ""} onChange={(e) => setForm({ ...form, responsable: e.target.value })} />}</Campo>
             <Campo etiqueta="Resumen" className="sm:col-span-2">{(id) => <input id={id} className="campo" maxLength={300} value={form.resumen} onChange={(e) => setForm({ ...form, resumen: e.target.value })} />}</Campo>
             <Campo etiqueta="Texto" ayuda="Un párrafo o punto por línea. Los que empiezan con «1.» o «-» se ven como lista." className="sm:col-span-2">
               {(id) => <textarea id={id} rows={12} disabled={form.id && !form.borrador} className="campo" value={form.contenido} onChange={(e) => setForm({ ...form, contenido: e.target.value })} />}</Campo>

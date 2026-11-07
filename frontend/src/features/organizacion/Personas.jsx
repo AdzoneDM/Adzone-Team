@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { KeyRound, Pencil, Plus, Search, UserRound } from "lucide-react";
 import { guardarUsuario, puestos as cargarPuestos, usuarios as cargarUsuarios } from "@/lib/api";
@@ -139,8 +140,11 @@ export default function Personas() {
   const [error, setError] = useState("");
   const [buscar, setBuscar] = useState("");
   const [filtro, setFiltro] = useState("activos");
-  const [form, setForm] = useState(null);
+  const [depto, setDepto] = useState("");
+  const [params, setParams] = useSearchParams();
+  const [form, setForm] = useState(() => (params.get("nuevo") ? {} : null));
   const [claveNueva, setClaveNueva] = useState(null);
+  useEffect(() => { if (params.get("nuevo")) setParams({}, { replace: true }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cargar = useCallback(() => { cargarUsuarios().then(setLista).catch((e) => setError(e.message)); }, []);
   useEffect(() => { cargar(); cargarPuestos().then(setPuestos).catch(() => {}); }, [cargar]);
@@ -149,9 +153,11 @@ export default function Personas() {
     if (filtro === "activos" && !u.is_active) return false;
     if (filtro === "inactivos" && u.is_active) return false;
     if (filtro === "sin_puesto" && (u.puesto_id || !u.is_active)) return false;
+    if (depto && u.departamento !== depto) return false;
     const t = buscar.toLowerCase();
     return !t || [u.nombre, u.username, u.email, u.puesto, u.departamento].some((x) => (x || "").toLowerCase().includes(t));
-  }), [lista, filtro, buscar]);
+  }), [lista, filtro, buscar, depto]);
+  const deptos = useMemo(() => [...new Set((lista || []).map((u) => u.departamento).filter(Boolean))].sort(), [lista]);
 
   if (error) return <Alerta>{error}</Alerta>;
   if (!lista) return <Cargando />;
@@ -167,6 +173,10 @@ export default function Personas() {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" />
           <input className="campo h-11 pl-9" placeholder="Buscar por nombre, correo o puesto" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar persona" />
         </div>
+        <select className="campo h-11 w-auto py-0" value={depto} onChange={(e) => setDepto(e.target.value)} aria-label="Departamento">
+          <option value="">Todos los departamentos</option>
+          {deptos.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
         <select className="campo h-11 w-auto py-0" value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Mostrar">
           <option value="activos">Activas ({lista.filter((u) => u.is_active).length})</option>
           <option value="sin_puesto">Sin puesto ({sinPuesto})</option>

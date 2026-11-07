@@ -1,5 +1,20 @@
 # Cambios
 
+## 12.4 · 07/11/2026 · Espacio de cada departamento
+
+- **Menú «Departamentos»** (o «Mi departamento»): cada área tiene su propio espacio con siete pestañas:
+  - **Resumen**: qué hace el área, sus objetivos y su estructura (encargado, supervisores y personal, tomados del organigrama). La Dirección, Gestión del Talento o el encargado del área editan la descripción y los objetivos.
+  - **KPIs**: como el tablero de ADZONE KPIs, por mes o por trimestre, con el resumen del periodo y una tarjeta por KPI (meta cumplida en verde, cerca en amarillo, bajo la meta en rojo). Lo que no tiene dato aparece como **«Sin dato»**, no como «0 · Bajo la meta».
+  - **Personal**: cada persona con su cargo, a quién reporta, las funciones de su puesto (de la descripción de puesto), su puntaje y sus KPIs.
+  - **Políticas**: las del área y las de toda la empresa, con su **código (POL-001…)**, versión, a quién aplica, responsable, cuántos las aceptaron y quién falta. Cada empleado ve si a él le aplica y si ya la aceptó.
+  - **Procesos**: procedimientos paso a paso del área, con código (PRO-001…) y versión.
+  - **Documentos**: manuales, formularios, reportes y archivos (PDF, Word, Excel, imágenes…), con código (MAN-, FOR-, REP-). Se puede marcar un documento como «solo encargados».
+  - **Evaluaciones**: por persona, tareas abiertas, vencidas, por validar, validadas, % a tiempo, evaluaciones pendientes, la última evaluación del supervisor (promedio de 1 a 5) y si tiene un plan de mejora en curso.
+- **Quién ve qué**: la Dirección y Gestión del Talento ven todos los departamentos completos; quien tiene equipo ve su departamento con el detalle de su gente; cada empleado entra a su propio departamento y ve la información del área, a sus compañeros (cargo, funciones y supervisor), las políticas, los procesos y los documentos, pero de KPIs y seguimiento solo lo suyo. Los salarios, solo con el permiso de salarios; los KPIs que salen de la computadora, solo con el permiso de monitoreo.
+- Las **políticas** tienen ahora código automático (POL-001, POL-002…) y **responsable**, que se edita en Políticas → Administrar.
+- **Personas**: filtro por departamento.
+- Desde el tablero: **Ingresar datos** (KPIs del mes), **Gestionar metas** y **Nuevo integrante**, según los permisos de cada quien.
+
 ## 12.3 · 04/11/2026 · Inteligencia en el día a día
 
 - **Resumen de la semana** (Resultados, Dirección): cada lunes, cómo fue la semana anterior (tareas validadas y a tiempo, vencidas, por validar), quién va bien y quién necesita apoyo, qué OT están en riesgo (vencidas o que vencen en 3 días, con sus partes listas) y dónde se pierde dinero (margen y OT con pérdida). Llega un aviso a la Dirección y queda el historial de semanas.

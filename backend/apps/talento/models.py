@@ -138,6 +138,8 @@ class Politica(models.Model):
                   ('IA', 'Inteligencia artificial'), ('REDES', 'Redes sociales'), ('VEHICULOS', 'Vehículos y herramientas'),
                   ('CALIDAD', 'Calidad y entregas'), ('DISCIPLINA', 'Disciplina'), ('OTRA', 'Otra')]
     clave = models.SlugField(max_length=40, unique=True)
+    codigo = models.CharField(max_length=12, blank=True, default='', help_text="POL-001, POL-002… (se asigna solo)")
+    responsable = models.CharField(max_length=120, blank=True, default='', help_text="Quién responde por la política (puesto o área).")
     titulo = models.CharField(max_length=150)
     categoria = models.CharField(max_length=12, choices=CATEGORIAS, default='OTRA')
     resumen = models.CharField(max_length=300, blank=True, help_text="Lo esencial en una o dos líneas.")
@@ -156,6 +158,13 @@ class Politica(models.Model):
     class Meta:
         ordering = ['categoria', 'titulo']
         verbose_name = 'Política'
+
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            ultimo = Politica.objects.filter(codigo__startswith='POL-').order_by('-codigo').values_list('codigo', flat=True).first()
+            n = int(ultimo[4:]) + 1 if ultimo and ultimo[4:].isdigit() else 1
+            self.codigo = f'POL-{n:03d}'
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.titulo} (v{self.version})'

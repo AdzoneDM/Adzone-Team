@@ -33,6 +33,7 @@ const Accesos = lazy(() => import("@/features/organizacion/Accesos"));
 const MarcarQR = lazy(() => import("@/features/asistencia/MarcarQR"));
 const Portal = lazy(() => import("@/features/portal/Portal"));
 const PantallaQR = lazy(() => import("@/features/asistencia/PantallaQR"));
+const TableroDepartamento = lazy(() => import("@/features/departamentos/TableroDepartamento"));
 const ResumenSemanal = lazy(() => import("@/features/desempeno/ResumenSemanal"));
 const Respaldos = lazy(() => import("@/features/organizacion/Respaldos"));
 const DosPasosObligatoria = lazy(() => import("@/features/cuenta/DosPasos").then((m) => ({ default: m.DosPasosObligatoria })));
@@ -118,6 +119,7 @@ export default function App() {
           <Route path="puestos/:id" element={<Protegida admin><PuestoDetalle /></Protegida>} />
           <Route path="personas" element={<Protegida permiso="personal.usuarios"><Personas /></Protegida>} />
           <Route path="marcar" element={<MarcarQR />} />
+          <Route path="departamentos/:id" element={<TableroDepartamento />} />
           <Route path="resumen-semanal" element={<Protegida admin><ResumenSemanal /></Protegida>} />
           <Route path="respaldos" element={<Protegida admin><Respaldos /></Protegida>} />
           <Route path="accesos" element={<Protegida permiso="personal.usuarios"><Accesos /></Protegida>} />

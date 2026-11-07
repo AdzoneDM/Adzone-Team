@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import views
+from . import departamentos, views
 
 router = DefaultRouter()
 router.register(r'tareas', views.TareaViewSet, basename='tarea')
@@ -17,6 +17,10 @@ urlpatterns = [
     path('mi-resumen/', views.mi_resumen_view, name='mi_resumen_desempeno'),
     path('ficha/', views.ficha_view, name='ficha_productividad'),
     path('resumen-semanal/', views.resumen_semanal_view, name='resumen_semanal'),
+    path('departamentos/', departamentos.departamentos_view, name='tableros_departamentos'),
+    path('departamentos/<int:pk>/', departamentos.departamento_view, name='tablero_departamento'),
+    path('departamentos/<int:pk>/documentos/', departamentos.documentos_view, name='documentos_area'),
+    path('documentos-area/<int:pk>/', departamentos.documento_view, name='documento_area'),
     path('sugerir-asignacion/', views.sugerir_asignacion_view, name='sugerir_asignacion'),
     path('panel/', views.panel_view, name='panel_gerencial'),
     path('panel/exportar/', views.panel_exportar_view, name='panel_exportar'),

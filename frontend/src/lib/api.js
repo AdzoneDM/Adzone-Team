@@ -474,3 +474,17 @@ export const resumenSemanal = () => api(`${D}/resumen-semanal/`);
 export const regenerarResumen = () => api(`${D}/resumen-semanal/`, { method: "POST" });
 export const sugerirAsignacion = (titulo, descripcion = "") => api(`${D}/sugerir-asignacion/`, { method: "POST", body: { titulo, descripcion } });
 export const borradorEvaluacion = (id) => api(`/api/talento/evaluaciones/${id}/borrador/`, { method: "POST" });
+
+// Tableros por departamento (KPIs, personal y políticas)
+export const tablerosDepartamentos = () => api(`${D}/departamentos/`);
+export const tableroDepartamento = (id, { anio, mes, vista }) => api(`${D}/departamentos/${id}/?anio=${anio}&mes=${mes}&vista=${vista}`);
+export const guardarInfoDepartamento = (id, datos) => api(`${D}/departamentos/${id}/`, { method: "PATCH", body: datos });
+export const guardarDocumentoArea = (deptoId, doc, archivo) => {
+  const f = new FormData();
+  ["tipo", "titulo", "resumen", "contenido"].forEach((k) => f.append(k, doc[k] ?? ""));
+  f.append("solo_encargados", doc.solo_encargados ? "true" : "false");
+  if (archivo) f.append("archivo", archivo);
+  return api(doc.id ? `${D}/documentos-area/${doc.id}/` : `${D}/departamentos/${deptoId}/documentos/`, { method: doc.id ? "PATCH" : "POST", body: f });
+};
+export const borrarDocumentoArea = (id) => api(`${D}/documentos-area/${id}/`, { method: "DELETE" });
+export const urlDocumentoArea = (id) => `${D}/documentos-area/${id}/`;

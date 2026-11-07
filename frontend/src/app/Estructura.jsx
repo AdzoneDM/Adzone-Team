@@ -5,7 +5,7 @@ import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
   Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
-import { avisos as cargarAvisos, leerAvisos } from "@/lib/api";
+import { avisos as cargarAvisos, leerAvisos, tablerosDepartamentos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import Marca from "@/components/Marca";
@@ -18,7 +18,7 @@ import BotonJornada from "@/features/asistencia/BotonJornada";
 import { SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
 function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
-  veMonitoreo, gestionaPersonas, configuraSistema, esRRHH }) {
+  veMonitoreo, gestionaPersonas, configuraSistema, esRRHH, tablerosDeptos = [] }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
     { a: "/call-center", texto: "Call Center", icono: Headset },
@@ -57,6 +57,8 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
       { a: "/equipo", texto: "Equipo y tareas", icono: Users },
     ] });
   }
+  // Un tablero por departamento (KPIs, personal y políticas): solo los que esta persona puede ver
+  if (tablerosDeptos.length) s.push({ titulo: tablerosDeptos.length > 1 ? "Departamentos" : "Mi departamento", items: tablerosDeptos.map((d) => ({ a: `/departamentos/${d.id}`, texto: d.nombre, icono: Building2 })) });
   if (esFinanzas) s.push({ titulo: "Finanzas", items: [{ a: "/finanzas", texto: "Finanzas", icono: Wallet }] });
   if (esAdmin) {
     s.push({ titulo: "Resultados", items: [
@@ -351,7 +353,13 @@ function EstructuraInterna() {
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
   }, []);
-  const grupos = secciones(sesion);
+  const [tablerosDeptos, setTablerosDeptos] = useState([]);
+  const veTableros = !!usuario && !sesion.esAgente;
+  useEffect(() => {
+    if (!veTableros) { setTablerosDeptos([]); return; }
+    tablerosDepartamentos().then(setTablerosDeptos).catch(() => setTablerosDeptos([]));
+  }, [veTableros, usuario?.id]);
+  const grupos = secciones({ ...sesion, tablerosDeptos });
   useEffect(() => { setMas(false); }, [location.pathname]);
 
   // Barra inferior del celular: lo del día a día; el resto en «Más».

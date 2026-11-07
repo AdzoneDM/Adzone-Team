@@ -9,6 +9,8 @@ class Departamento(models.Model):
                              help_text="Hex, p. ej. #1d4189. Se usa en etiquetas y gráficos.")
     color_fondo = models.CharField(max_length=7, default='#eef1f6', verbose_name="Color de fondo")
     orden = models.PositiveSmallIntegerField(default=0, verbose_name="Orden en las listas")
+    objetivos = models.TextField(blank=True, default='', verbose_name="Objetivos del área",
+                                 help_text="Uno por línea. Se muestran en el espacio del departamento.")
     fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
     fecha_modificacion = models.DateTimeField(auto_now=True, verbose_name="Fecha de Modificación")
 
@@ -118,3 +120,29 @@ class SuscripcionPush(models.Model):
 
     class Meta:
         verbose_name = 'Suscripción a notificaciones'
+
+
+def _ruta_documento_area(instancia, nombre):
+    import os
+    import uuid
+    return f'areas/{instancia.departamento_id}/{uuid.uuid4().hex}{os.path.splitext(nombre)[1].lower()[:10]}'
+
+
+class DocumentoArea(models.Model):
+    """Procedimientos, manuales, formularios y reportes de un departamento (su biblioteca de trabajo)."""
+    TIPOS = [('PROCEDIMIENTO', 'Procedimiento'), ('MANUAL', 'Manual'), ('FORMULARIO', 'Formulario'), ('REPORTE', 'Reporte'), ('OTRO', 'Otro')]
+    departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='documentos_area')
+    tipo = models.CharField(max_length=14, choices=TIPOS, default='PROCEDIMIENTO')
+    titulo = models.CharField(max_length=150)
+    resumen = models.CharField(max_length=300, blank=True)
+    contenido = models.TextField(blank=True, help_text="Pasos o texto. Una línea por paso; «1.» o «-» al inicio para listas.")
+    archivo = models.FileField(upload_to=_ruta_documento_area, blank=True, null=True)
+    nombre_archivo = models.CharField(max_length=200, blank=True)
+    solo_encargados = models.BooleanField(default=False, help_text="Solo lo ven el encargado, los supervisores del área y la Dirección.")
+    version = models.PositiveIntegerField(default=1)
+    actualizado = models.DateTimeField(auto_now=True)
+    actualizado_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
+    class Meta:
+        ordering = ['tipo', 'titulo']
+        verbose_name = 'Documento del área'
