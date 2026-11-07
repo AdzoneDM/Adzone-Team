@@ -165,7 +165,8 @@ def _abrir_sesion(request, user, remember_me, dos_pasos_ok):
 def datos_sesion(request, user):
     d = datos_usuario(user)
     exige, activo = seg.exige_dos_pasos(user), seg.tiene_dos_pasos(user)
-    d['dos_pasos'] = {'activo': activo, 'exige': exige}
+    # «recomendada»: cuentas que manejan datos de la empresa y aún no la activaron (si no es obligatoria)
+    d['dos_pasos'] = {'activo': activo, 'exige': exige, 'recomendada': not activo and seg.cuenta_de_empresa(user)}
     d['debe_activar_dos_pasos'] = exige and not request.session.get(seg.SESION_OK)
     d['inactividad_min'] = seg.minutos_inactividad(user)
     return d

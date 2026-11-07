@@ -1,4 +1,4 @@
-# Adzone Team 12.4 · Cómo trabajar con este proyecto
+# Adzone Team 12.4.1 · Cómo trabajar con este proyecto
 
 Este zip es el proyecto completo. Con él trabajas en **Visual Studio Code**, lo subes a **GitHub** y lo instalas en **Plesk**.
 La app web ya va compilada en `frontend/dist`, así que para publicar no hace falta compilar nada.
@@ -92,7 +92,7 @@ Para trabajar después: haces cambios → `git add -A` → `git commit -m "qué 
 
 5. **Plesk → Python:** raíz `kpi-app/backend`, archivo de inicio `passenger_wsgi.py`, entorno `kpi-app/venv` → Reiniciar.
 6. **Tareas programadas:** las 7 de `servidor/tareas-programadas.txt` (incluido el respaldo cifrado de las 2:30).
-7. **Primera entrada:** la Dirección activa la verificación en dos pasos y guarda sus 10 códigos de respaldo.
+7. **Primera entrada:** la Dirección activa la verificación en dos pasos (Mi cuenta) y guarda sus 10 códigos de respaldo. Es opcional; para exigirla a las cuentas de empresa, `DOS_PASOS_OBLIGATORIA=1` en `backend/.env`.
 
 **Actualizar más adelante:** sube la carpeta nueva encima (sin tocar `backend/.env` ni `venv/`) y corre
 `bash servidor/instalar.sh --actualizar`.

@@ -129,9 +129,15 @@ def cerrar_sesiones(user, excepto=None):
 
 
 # ------------------------------------------------------------------ Quién la necesita
-def exige_dos_pasos(user):
+def cuenta_de_empresa(user):
+    """Quien maneja datos de la empresa (Dirección, personas, talento, salarios, configuración)."""
     from .permisos import permisos
     return bool(user and user.is_authenticated and (user.is_superuser or permisos(user) & EXIGEN))
+
+
+def exige_dos_pasos(user):
+    """Solo es obligatoria si DOS_PASOS_OBLIGATORIA=1 en el .env; si no, cada quien la activa en Mi cuenta."""
+    return bool(getattr(settings, 'DOS_PASOS_OBLIGATORIA', False)) and cuenta_de_empresa(user)
 
 
 def tiene_dos_pasos(user):
@@ -140,7 +146,7 @@ def tiene_dos_pasos(user):
 
 
 def minutos_inactividad(user):
-    if exige_dos_pasos(user):
+    if cuenta_de_empresa(user):
         return int(getattr(settings, 'INACTIVIDAD_EMPRESA_MIN', 30))
     return int(getattr(settings, 'INACTIVIDAD_MIN', 12 * 60))
 

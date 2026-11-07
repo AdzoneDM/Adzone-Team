@@ -111,7 +111,7 @@ En `backend/.env` del servidor:
 3. Opcional: `INACTIVIDAD_EMPRESA_MIN=30` y `INACTIVIDAD_MIN=720` (minutos sin usar la app antes de cerrar la sesión).
 
 Después:
-- La primera vez que entre cada persona de **Dirección, Administrador del sistema, Gestión del Talento o Finanzas**, la plataforma le pide **activar la verificación en dos pasos** con Google o Microsoft Authenticator y le entrega 10 códigos de respaldo. Sin eso no puede seguir. Para el resto es opcional (Mi cuenta).
+- La **verificación en dos pasos** (Google o Microsoft Authenticator, con 10 códigos de respaldo) se activa en **Mi cuenta** y es opcional. A las cuentas de **Dirección, Administrador del sistema, Gestión del Talento o Finanzas** que no la tengan, la plataforma se la recomienda con un aviso. Con `DOS_PASOS_OBLIGATORIA=1` en `backend/.env` pasa a ser obligatoria para ellas: la primera vez que entren deben activarla para seguir.
 - Si alguien pierde el celular y sus códigos: **Accesos y permisos → la persona → Reiniciar**. Si la pierde la única persona de Dirección, desde SSH: `python manage.py shell -c "from apps.core.models import DosPasos; DosPasos.objects.filter(usuario__username='USUARIO').delete()"`.
 - La tarea del **respaldo de las 2:30** ahora cifra todo y guarda 30 días. Cada lunes la Dirección recibe un aviso para descargar el de la semana en **Administración → Respaldos** (y una alerta si anoche no se hizo).
 - **Abrir un respaldo** (en tu computadora, con OpenSSL):

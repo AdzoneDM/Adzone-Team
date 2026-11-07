@@ -43,6 +43,20 @@ class TotpTests(TestCase):
 
 
 class DosPasosTests(Base):
+    def test_por_defecto_es_opcional_incluso_para_la_direccion(self):
+        c, d = self.entrar(self.dir)
+        self.assertFalse(d['user']['debe_activar_dos_pasos'])
+        self.assertFalse(d['user']['dos_pasos']['exige'])
+        self.assertTrue(d['user']['dos_pasos']['recomendada'])  # se le recomienda con un aviso
+        self.assertEqual(c.get('/api/desempeno/tareas/').status_code, 200)
+        self.activar(c)  # la puede activar desde Mi cuenta
+        self.assertTrue(c.get('/api/cuenta/dos-pasos/').json()['activo'])
+        # y desactivar, porque no es obligatoria
+        r = c.post('/api/cuenta/dos-pasos/desactivar/', {'clave': CLAVE}, format='json')
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertFalse(r.json()['activo'])
+
+    @override_settings(DOS_PASOS_OBLIGATORIA=True)
     def test_direccion_debe_activarla_antes_de_usar_la_plataforma(self):
         c, d = self.entrar(self.dir)
         self.assertTrue(d['user']['debe_activar_dos_pasos'])
@@ -174,6 +188,7 @@ class EndurecimientoTests(Base):
         c3.post('/api/auth/login/', {'username': 'dir', 'password': CLAVE}, format='json')
         self.assertEqual(c3.post('/api/auth/dos-pasos/', {'codigo': '123456'}, format='json').status_code, 429)
 
+    @override_settings(DOS_PASOS_OBLIGATORIA=True)
     def test_sin_activar_no_cambia_la_clave_del_equipo(self):
         c, _ = self.entrar(self.dir)
         self.assertEqual(c.post('/api/auth/clave-equipo/', {'nueva': 'otra-clave-larga'}, format='json').status_code, 403)

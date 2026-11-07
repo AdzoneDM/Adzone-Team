@@ -18,11 +18,12 @@ def activa():
 
 
 def preguntar(sistema, mensaje, max_tokens=1200, temperatura=0.3):
-    """Texto de la respuesta, o None si no hay clave o la llamada falla."""
+    """Texto de la respuesta, o None si no hay clave o la llamada falla.
+    «temperatura» se acepta por compatibilidad, pero no se envía: los modelos Claude 5 rechazan `temperature`."""
     if not activa():
         return None
     cuerpo = json.dumps({
-        'model': settings.IA_MODELO, 'max_tokens': max_tokens, 'temperature': temperatura, 'system': sistema,
+        'model': settings.IA_MODELO, 'max_tokens': max_tokens, 'system': sistema,
         'messages': [{'role': 'user', 'content': mensaje}],
     }).encode()
     req = urllib.request.Request(URL, data=cuerpo, method='POST', headers={

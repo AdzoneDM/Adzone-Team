@@ -84,6 +84,26 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
 }
 
 /** Dos tonos cortos y una vibración: para que un «Recordar» del supervisor no pase desapercibido. */
+const LLAVE_2FA = "adzone:sugerencia-2fa";
+/** Cuentas de empresa sin verificación en dos pasos: la recomienda (si se cierra, vuelve a los 30 días). */
+function SugerenciaDosPasos({ usuario, enCuenta }) {
+  const [cerrada, setCerrada] = useState(() => {
+    try { return Date.now() - Number(localStorage.getItem(LLAVE_2FA) || 0) < 30 * 86400000; } catch { return false; }
+  });
+  if (cerrada || enCuenta || !usuario?.dos_pasos?.recomendada) return null;
+  const cerrar = () => { try { localStorage.setItem(LLAVE_2FA, String(Date.now())); } catch { /* sin almacenamiento */ } setCerrada(true); };
+  return (
+    <div className="mb-4 flex items-start gap-3 rounded-xl border border-amarillo-600/30 bg-amarillo-50 p-3 text-sm text-[#7a5000]">
+      <ShieldCheck className="mt-0.5 size-5 shrink-0" />
+      <p className="min-w-0 flex-1">
+        Tu cuenta maneja datos de la empresa. Activa la <b>verificación en dos pasos</b> para que nadie entre solo con tu contraseña.{" "}
+        <Link to="/mi-cuenta" className="font-semibold underline">Activarla ahora</Link>
+      </p>
+      <button type="button" onClick={cerrar} className="shrink-0 rounded px-1 font-semibold hover:bg-amarillo-600/10" aria-label="Recordármelo más tarde">Más tarde</button>
+    </div>
+  );
+}
+
 function sonarAviso() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -419,6 +439,7 @@ function EstructuraInterna() {
       )}
 
       <main className="mx-auto w-full max-w-[1320px] px-4 pb-28 pt-5 md:px-6 lg:px-8 lg:pb-12 lg:pt-7">
+        <SugerenciaDosPasos usuario={usuario} enCuenta={location.pathname.startsWith("/mi-cuenta")} />
         <SugerenciaApp />
         <Outlet context={{ refrescarAvisos: refrescar }} />
       </main>

@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.4.1 · 07/11/2026 · Une la versión local 12.3.1
+
+- Trae los cambios hechos en la copia local: verificación en dos pasos **opcional** (`DOS_PASOS_OBLIGATORIA=1` para exigirla), la llamada a la IA sin `temperature` y las pruebas que nunca llaman a la API real.
+- A quien maneja datos de la empresa y no tiene la verificación activa, un aviso arriba le recomienda activarla («Más tarde» lo oculta 30 días). La guía de instalación y DESPLIEGUE ya lo explican así.
+
 ## 12.4 · 07/11/2026 · Espacio de cada departamento
 
 - **Menú «Departamentos»** (o «Mi departamento»): cada área tiene su propio espacio con siete pestañas:
@@ -14,6 +19,12 @@
 - Las **políticas** tienen ahora código automático (POL-001, POL-002…) y **responsable**, que se edita en Políticas → Administrar.
 - **Personas**: filtro por departamento.
 - Desde el tablero: **Ingresar datos** (KPIs del mes), **Gestionar metas** y **Nuevo integrante**, según los permisos de cada quien.
+
+## 12.3.1 · 04/11/2026 · Verificación en dos pasos opcional
+
+- La **verificación en dos pasos ya no es obligatoria**: cada persona la activa cuando quiera en **Mi cuenta → Verificación en dos pasos → «Activar con mi celular»**, y la puede desactivar con su contraseña.
+- Para volver a exigirla a quien maneja datos de la empresa (Dirección, personas y accesos, Gestión del Talento, salarios y configuración), poner `DOS_PASOS_OBLIGATORIA=1` en `backend/.env` y reiniciar.
+- Quien ya la tiene activa sigue usando su código al entrar. El cierre por inactividad de 30 minutos para las cuentas de empresa no cambia.
 
 ## 12.3 · 04/11/2026 · Inteligencia en el día a día
 

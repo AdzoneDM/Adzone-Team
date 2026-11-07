@@ -14,6 +14,7 @@ from .inteligencia import datos_semana, generar_resumen, sugerir_asignacion
 from .models import ResumenSemanal, Tarea
 
 
+@override_settings(ANTHROPIC_API_KEY='')  # las pruebas nunca llaman a la API real aunque el .env tenga clave
 class Base(TestCase):
     def setUp(self):
         d = Departamento.objects.create(nombre='Diseño')
