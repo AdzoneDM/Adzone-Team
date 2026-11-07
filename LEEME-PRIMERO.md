@@ -1,4 +1,4 @@
-# Adzone Team 12.3 · Cómo trabajar con este proyecto
+# Adzone Team 12.4 · Cómo trabajar con este proyecto
 
 Este zip es el proyecto completo. Con él trabajas en **Visual Studio Code**, lo subes a **GitHub** y lo instalas en **Plesk**.
 La app web ya va compilada en `frontend/dist`, así que para publicar no hace falta compilar nada.
