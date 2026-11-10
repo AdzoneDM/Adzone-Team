@@ -7,8 +7,12 @@
 set -euo pipefail
 umask 077
 APP="$(cd "$(dirname "$0")/.." && pwd)"
-# Valor de backend/.env sin comillas ni fin de línea de Windows
-leer() { { grep -E "^$1=" "$APP/backend/.env" || true; } | tail -1 | cut -d= -f2- | tr -d '\r' | sed -E 's/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/'; }
+# Valor de backend/.env sin comillas ni fin de línea de Windows. Si no está ahí (Docker), la variable de entorno.
+leer() {
+  local v
+  v="$( { grep -E "^$1=" "$APP/backend/.env" 2>/dev/null || true; } | tail -1 | cut -d= -f2- | tr -d '\r' | sed -E 's/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/')"
+  printf '%s' "${v:-${!1:-}}"
+}
 DESTINO="$(leer RESPALDOS_DIR)"; DESTINO="${DESTINO:-$APP/../kpi-respaldos}"
 DIAS=30
 CLAVE="$(leer RESPALDO_CLAVE)"
@@ -41,7 +45,9 @@ if [ -n "$MEDIA" ] && [ -d "$MEDIA" ]; then
   tar -czf "$TMP/archivos_$FECHA.tar.gz" -C "$(dirname "$MEDIA")" "$(basename "$MEDIA")"
   cifrar "$TMP/archivos_$FECHA.tar.gz"
 fi
-cp "$APP/backend/.env" "$TMP/env_$FECHA" && cifrar "$TMP/env_$FECHA"
+if [ -f "$APP/backend/.env" ]; then   # en Docker la configuración vive fuera del contenedor (.env.docker)
+  cp "$APP/backend/.env" "$TMP/env_$FECHA" && cifrar "$TMP/env_$FECHA"
+fi
 
 find "$DESTINO" -type f \( -name '*.enc' -o -name '*.enc.sha256' \) -mtime +$DIAS -delete
 # Copias SIN cifrar de versiones anteriores (incluido el .env en texto plano): se borran

@@ -1,0 +1,18 @@
+# Tareas programadas de Adzone Team (las mismas de servidor/tareas-programadas.txt).
+# Las corre el servicio «tareas» de docker-compose con supercronic, en hora de RD (TZ=America/Santo_Domingo).
+# min hora día mes díaSemana  comando
+
+# Recurrentes, avisos de lo que vence mañana, automatizaciones de vencidas y pagos de Cashflow
+0 7 * * *       cd /app/backend && python manage.py tareas_diarias
+# Tardanzas, sin marcar, inactividad, PC sin reportar, improductivo
+*/10 7-20 * * * cd /app/backend && python manage.py revisar_jornadas
+# Documentos por vencer y políticas pendientes
+30 7 * * *      cd /app/backend && python manage.py revisar_talento
+# Mantenimientos de equipos
+35 7 * * *      cd /app/backend && python manage.py revisar_activos
+# KPIs del mes anterior por debajo del umbral
+0 7 1-5 * *     cd /app/backend && python manage.py revisar_kpis
+# Borra actividad de más de 90 días y capturas de más de 30
+0 3 * * *       cd /app/backend && python manage.py limpiar_monitoreo
+# Respaldo cifrado: base + archivos privados (queda en el volumen «respaldos»)
+30 2 * * *      bash /app/servidor/respaldo.sh

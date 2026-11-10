@@ -1,0 +1,36 @@
+# Nada de datos reales, claves ni basura de desarrollo dentro de la imagen
+.git
+.github
+.vscode
+.idea
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+**/node_modules
+frontend/dist
+backend/staticfiles
+
+# Datos y secretos: NUNCA en la imagen
+**/.env
+**/.env.*
+!backend/.env.example
+**/*.sqlite3
+**/*.sqlite3-journal
+**/*.sqlite3.*
+backend/media
+backend/tmp
+backend/datos_privados/*
+!backend/datos_privados/LEEME.md
+*.xlsx
+*.dump
+*.sql
+*.json.bak
+
+# No hace falta en el servidor
+agente
+docs
+*.md
+!backend/datos_privados/LEEME.md
+**/*.log
+.playwright-mcp

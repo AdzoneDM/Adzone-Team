@@ -2,6 +2,8 @@
 
 La app es **una sola**: Django sirve la API (`/api/`) y también la app web ya compilada (todo lo demás). No hacen falta dos dominios ni configurar CORS.
 
+> **¿Servidor con Docker?** Usa `docs/DESPLIEGUE_DOCKER.md` (`Dockerfile` y `docker-compose.yml` en la raíz del proyecto) en lugar de los pasos de Plesk.
+
 > **Antes de nada:** el subdominio kpi.adzone.marketing tiene hoy una puerta trasera (`wp-blog-header.php`, `wp-cron.php` y dos `.htaccess` del 28/08/2026). Hay que **vaciar la carpeta del subdominio por completo** antes de subir esto, y cambiar las contraseñas de FTP y Plesk.
 
 ## 1 · En tu computadora: compilar la app web
