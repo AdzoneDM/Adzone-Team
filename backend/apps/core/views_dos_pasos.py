@@ -13,7 +13,8 @@ NUEVO = 'dos_pasos_nuevo'
 def _estado(request):
     u = request.user
     dp = DosPasos.objects.filter(usuario=u, activo=True).first()
-    return {'activo': bool(dp), 'exige': seg.exige_dos_pasos(u), 'activado': dp.activado if dp else None,
+    return {'activo': bool(dp), 'exige': seg.exige_dos_pasos(u), 'disponible': seg.usa_dos_pasos(u),
+            'activado': dp.activado if dp else None,
             'respaldo_restantes': len(dp.respaldo) if dp else 0}
 
 
@@ -25,6 +26,8 @@ def estado_view(request):
 @api_view(['POST'])
 def iniciar_view(request):
     """Genera un secreto nuevo (aún sin activar) y su código QR para escanear con la app."""
+    if not seg.usa_dos_pasos(request.user):
+        raise exceptions.PermissionDenied('La verificación en dos pasos es solo para Gerencia, Administración y Tecnología.')
     if DosPasos.objects.filter(usuario=request.user, activo=True).exists() and \
             not request.user.check_password(request.data.get('clave') or ''):
         raise exceptions.ValidationError({'clave': 'Para cambiar de celular, escribe tu contraseña.'})
@@ -75,7 +78,7 @@ def respaldo_view(request):
 @api_view(['POST'])
 def desactivar_view(request):
     if seg.exige_dos_pasos(request.user):
-        raise exceptions.PermissionDenied("Tu cuenta maneja datos de la empresa: la verificación en dos pasos es obligatoria.")
+        raise exceptions.PermissionDenied("En tu área la verificación en dos pasos es obligatoria.")
     if not request.user.check_password(request.data.get('clave') or ''):
         raise exceptions.ValidationError({'clave': 'Contraseña incorrecta.'})
     DosPasos.objects.filter(usuario=request.user).delete()

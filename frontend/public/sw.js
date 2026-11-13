@@ -36,7 +36,7 @@ self.addEventListener("fetch", (event) => {
 // Avisos en el celular: cada aviso de la campanita llega como notificación, aunque la app esté cerrada.
 self.addEventListener("push", (event) => {
   let d = {};
-  try { d = event.data ? event.data.json() : {}; } catch (e) { d = { titulo: event.data && event.data.text() }; }
+  try { d = event.data ? event.data.json() : {}; } catch { d = { titulo: event.data && event.data.text() }; }
   event.waitUntil(self.registration.showNotification(d.titulo || "Adzone Team", {
     body: d.mensaje || "", icon: "/icono-192.png", badge: "/icono-192.png", data: { enlace: d.enlace || "/" }, tag: d.enlace || undefined,
   }));

@@ -36,3 +36,7 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .playwright-mcp/
+
+# Credenciales del equipo: nunca a GitHub
+CREDENCIALES-USUARIOS.xlsx
+*.xlsx

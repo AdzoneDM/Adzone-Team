@@ -1,8 +1,8 @@
 """
 Seguridad de las cuentas: verificación en dos pasos (TOTP, RFC 6238), cierre por inactividad y aviso de dispositivo nuevo.
 
-- Dos pasos: obligatoria para quien maneja la empresa (Dirección, personas y accesos, Gestión del Talento, salarios
-  y configuración del sistema). Para el resto es opcional.
+- Dos pasos: solo para las áreas de Gerencia, Administración y Tecnología (y los superusuarios). Con
+  DOS_PASOS_OBLIGATORIA=1 es obligatoria para ellas; si no, la activan en Mi cuenta. El resto de áreas no la usa.
 - Inactividad: la sesión se cierra tras N minutos sin que la persona use la app (no cuentan los avisos que la app
   consulta sola). Más corto para las cuentas con permisos de empresa.
 """
@@ -24,6 +24,8 @@ EMISOR = 'Adzone Team'
 SESION_OK = 'dos_pasos_ok'
 SESION_ACTIVIDAD = 'ultima_actividad'
 EXIGEN = {'direccion', 'personal.usuarios', 'talento.rrhh', 'personal.salarios', 'sistema.configurar'}
+# Áreas que usan la verificación en dos pasos (nombre del departamento, sin tildes ni mayúsculas)
+AREAS_DOS_PASOS = {'gerencia', 'administracion', 'tecnologia'}
 
 
 # ------------------------------------------------------------------ TOTP
@@ -135,9 +137,24 @@ def cuenta_de_empresa(user):
     return bool(user and user.is_authenticated and (user.is_superuser or permisos(user) & EXIGEN))
 
 
+def _sin_tildes(texto):
+    import unicodedata
+    return ''.join(c for c in unicodedata.normalize('NFD', texto or '') if unicodedata.category(c) != 'Mn').strip().lower()
+
+
+def usa_dos_pasos(user):
+    """Gerencia, Administración y Tecnología (por cualquiera de sus puestos) y los superusuarios."""
+    if not (user and user.is_authenticated):
+        return False
+    if user.is_superuser:
+        return True
+    from apps.desempeno.permisos import puestos_de
+    return any(p.departamento_id and _sin_tildes(p.departamento.nombre) in AREAS_DOS_PASOS for p in puestos_de(user))
+
+
 def exige_dos_pasos(user):
-    """Solo es obligatoria si DOS_PASOS_OBLIGATORIA=1 en el .env; si no, cada quien la activa en Mi cuenta."""
-    return bool(getattr(settings, 'DOS_PASOS_OBLIGATORIA', False)) and cuenta_de_empresa(user)
+    """Obligatoria para esas áreas si DOS_PASOS_OBLIGATORIA=1 en el .env; si no, la activan en Mi cuenta."""
+    return bool(getattr(settings, 'DOS_PASOS_OBLIGATORIA', False)) and usa_dos_pasos(user)
 
 
 def tiene_dos_pasos(user):

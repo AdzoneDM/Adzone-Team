@@ -7,8 +7,9 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.core import seguridad as seg
-from apps.core.models import DosPasos
+from apps.core.models import Departamento, DosPasos
 from apps.desempeno.models import Notificacion
+from apps.organizacion.models import PuestoDeTrabajo
 
 CLAVE = 'Clave-Segura-2026'
 
@@ -19,6 +20,15 @@ class Base(TestCase):
         self.dir.groups.set([Group.objects.get(name='Administrador')])
         self.ana = User.objects.create_user('ana', password=CLAVE, first_name='Ana')
         self.ana.groups.set([Group.objects.get(name='Colaborador')])
+        # La verificación en dos pasos es solo para Gerencia, Administración y Tecnología
+        self.poner_en(self.dir, 'Gerencia')
+        self.poner_en(self.ana, 'Tecnología')
+
+    @staticmethod
+    def poner_en(u, area):
+        dep, _ = Departamento.objects.get_or_create(nombre=area)
+        u.perfil.puesto_trabajo = PuestoDeTrabajo.objects.create(nombre=f'Puesto {u.username}', departamento=dep)
+        u.perfil.save()
 
     def entrar(self, u, c=None):
         c = c or APIClient()
@@ -192,6 +202,22 @@ class EndurecimientoTests(Base):
     def test_sin_activar_no_cambia_la_clave_del_equipo(self):
         c, _ = self.entrar(self.dir)
         self.assertEqual(c.post('/api/auth/clave-equipo/', {'nueva': 'otra-clave-larga'}, format='json').status_code, 403)
+
+    @override_settings(DOS_PASOS_OBLIGATORIA=True)
+    def test_solo_gerencia_administracion_y_tecnologia(self):
+        luis = User.objects.create_user('luis', password=CLAVE)
+        luis.groups.set([Group.objects.get(name='Administrador')])  # aunque maneje datos de la empresa
+        self.poner_en(luis, 'Call Center')
+        c, d = self.entrar(luis)
+        self.assertFalse(d['user']['debe_activar_dos_pasos'])
+        self.assertFalse(d['user']['dos_pasos']['recomendada'])
+        self.assertFalse(c.get('/api/cuenta/dos-pasos/').json()['disponible'])
+        self.assertEqual(c.post('/api/cuenta/dos-pasos/iniciar/').status_code, 403)
+        self.assertEqual(c.get('/api/desempeno/tareas/').status_code, 200)
+        for area in ('Administración', 'Tecnología'):
+            u = User.objects.create_user(f'u{len(area)}', password=CLAVE)
+            self.poner_en(u, area)
+            self.assertTrue(self.entrar(u)[1]['user']['debe_activar_dos_pasos'], area)
 
     def test_cambiar_de_celular_pide_la_contrasena(self):
         c, _ = self.entrar(self.dir)

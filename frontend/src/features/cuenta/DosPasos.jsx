@@ -1,5 +1,5 @@
 // Verificación en dos pasos con app de códigos (Google Authenticator, Microsoft Authenticator…).
-// Se usa en Mi cuenta y como pantalla obligatoria para quien maneja datos de la empresa.
+// Se usa en Mi cuenta y como pantalla obligatoria (solo Gerencia, Administración y Tecnología).
 import { useEffect, useState } from "react";
 import { Copy, ShieldCheck, Smartphone } from "lucide-react";
 import { confirmarDosPasos, desactivarDosPasos, dosPasos, iniciarDosPasos, nuevosCodigosRespaldo } from "@/lib/api";
@@ -86,12 +86,13 @@ export default function DosPasosPanel() {
     setError("");
     try { const r = await fn(); if (r?.codigos_respaldo) setCodigos(r.codigos_respaldo); else { avisar(ok); terminar(); } } catch (e) { setError(e.message); }
   };
-  if (!estado) return null;
+  // Solo Gerencia, Administración y Tecnología (si alguien de otra área ya la tenía, la sigue viendo para quitarla)
+  if (!estado || (!estado.disponible && !estado.activo)) return null;
   return (
     <Panel titulo="Verificación en dos pasos" accion={estado.activo ? <Insignia tono="verde"><ShieldCheck className="size-3" />Activa</Insignia> : <Insignia>Inactiva</Insignia>}>
       <div className="space-y-4">
         <p className="text-sm text-gris">
-          Además de tu contraseña, al entrar se pide un código de tu celular. {estado.exige ? "Tu cuenta maneja datos de la empresa: es obligatoria." : "Es opcional para tu cuenta, pero la recomendamos."}
+          Además de tu contraseña, al entrar se pide un código de tu celular. {estado.exige ? "En tu área es obligatoria." : "Es opcional para tu cuenta, pero la recomendamos."}
         </p>
         {error && <Alerta>{error}</Alerta>}
         {codigos ? <CodigosRespaldo codigos={codigos} onListo={terminar} />
@@ -123,7 +124,7 @@ export default function DosPasosPanel() {
                 <Boton variante="secundario" onClick={() => { setValor(""); setModo("clave-celular"); }}>Cambiar de celular</Boton>
                 {!estado.exige && <Boton variante="fantasma" className="text-rojo" onClick={() => { setValor(""); setModo("desactivar"); }}>Desactivar</Boton>}
               </div>
-            ) : <Boton icono={Smartphone} onClick={() => setModo("activar")}>Activar con mi celular</Boton>}
+            ) : estado.disponible && <Boton icono={Smartphone} onClick={() => setModo("activar")}>Activar con mi celular</Boton>}
       </div>
     </Panel>
   );
@@ -137,7 +138,7 @@ export function DosPasosObligatoria() {
       <div className="w-full max-w-xl space-y-4 rounded-2xl border border-linea bg-white p-6 shadow-sm">
         <ShieldCheck className="size-8 text-azul" />
         <h1 className="text-2xl font-semibold">Protege tu cuenta, {usuario.first_name || usuario.nombre}</h1>
-        <p className="text-gris">Tu cuenta maneja datos de la empresa (personas, salarios o la configuración). Antes de seguir, activa la verificación en dos pasos: al entrar se te pedirá un código de tu celular.</p>
+        <p className="text-gris">Tu área (Gerencia, Administración o Tecnología) maneja datos de la empresa. Antes de seguir, activa la verificación en dos pasos: al entrar se te pedirá un código de tu celular.</p>
         <ActivarDosPasos onActivada={recargar} />
         <button type="button" className="text-sm text-gris underline" onClick={logout}>Salir</button>
       </div>
