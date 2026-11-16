@@ -1,21 +1,46 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Hand, ListChecks, Play, Send, Target } from "lucide-react";
-import { iniciarTarea, listarTareas, miResumen, pedirTrabajo } from "@/lib/api";
+import { Link, useSearchParams } from "react-router-dom";
+import { Ban, Hand, ListChecks, Play, Send, Target, Unlock } from "lucide-react";
+import { bloquearTarea, desbloquearTarea, iniciarTarea, listarTareas, miDisponibilidad, miResumen, pedirTrabajo } from "@/lib/api";
 import { mesActual } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { refrescarAvisos } from "@/app/Estructura";
 import { DetalleTarea, EntregarModal, EquipoTarea, Evidencias, Progreso, Vencimiento } from "@/features/tareas/componentes";
-import { Alerta, Boton, Cargando, EstadoTarea, Estrellas, Pestanas, PrioridadTarea, SelectorMes, Vacio, cx, useAviso } from "@/components/ui";
+import { Alerta, Boton, Campo, Cargando, EstadoTarea, Estrellas, Modal, Pestanas, PrioridadTarea, SelectorMes, Vacio, cx, useAviso } from "@/components/ui";
 import { MiMes } from "@/features/inicio/Inicio";
 import BotonCronometro from "@/features/tiempo/BotonCronometro";
 import { useCronometro } from "@/features/tiempo/cronometro";
 import { useNovedades } from "@/lib/novedades";
 
-function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, iniciando }) {
-  const devuelta = tarea.comentario_revision && tarea.estado === "EN_PROGRESO";
+/** Bloquear: qué impide seguir. Le llega a su supervisor. */
+function BloquearModal({ tarea, onCerrar, onHecho }) {
+  const avisar = useAviso();
+  const [motivo, setMotivo] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => { setMotivo(""); setError(""); }, [tarea]);
+  const guardar = async () => {
+    setCargando(true); setError("");
+    try { onHecho(await bloquearTarea(tarea.id, motivo)); avisar("Marcada como bloqueada. Tu supervisor ya lo sabe."); }
+    catch (e) { setError(e.message); }
+    setCargando(false);
+  };
   return (
-    <li data-guia="tarea" className={cx("rounded-xl border bg-white", devuelta ? "border-rojo/40" : "border-linea")}>
+    <Modal abierto={!!tarea} onCerrar={onCerrar} titulo="¿Qué impide seguir?" descripcion={tarea?.titulo}
+      pie={<><Boton variante="fantasma" onClick={onCerrar}>Cancelar</Boton><Boton variante="peligro" icono={Ban} onClick={guardar} cargando={cargando}>Marcar bloqueada</Boton></>}>
+      <Campo etiqueta="Motivo" ayuda="Ej.: espero el logo del cliente, falta material, necesito una aprobación.">
+        {(id) => <textarea id={id} className="campo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />}
+      </Campo>
+      {error && <Alerta className="mt-3">{error}</Alerta>}
+    </Modal>
+  );
+}
+
+function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, onBloquear, onDesbloquear, iniciando }) {
+  const devuelta = tarea.comentario_revision && tarea.estado === "EN_PROGRESO";
+  const bloqueada = tarea.estado === "BLOQUEADA";
+  return (
+    <li data-guia="tarea" className={cx("rounded-xl border bg-white", devuelta || bloqueada ? "border-rojo/40" : "border-linea")}>
       <div className="grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6 md:px-5">
         <button type="button" onClick={() => onAbrir(tarea)} className="min-w-0 text-left">
           <p className="font-medium leading-snug text-tinta hover:text-azul">{tarea.titulo}</p>
@@ -38,9 +63,18 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, iniciando }) {
             <Boton variante="acento" icono={Send} onClick={() => onEntregar(tarea)}>
               {devuelta ? "Entregar de nuevo" : "Entregar"}
             </Boton>
+            <Boton variante="fantasma" icono={Ban} onClick={() => onBloquear(tarea)} className="col-span-2 md:col-span-1">Bloqueada</Boton>
           </div>
         )}
+        {bloqueada && (
+          <Boton variante="secundario" icono={Unlock} onClick={() => onDesbloquear(tarea)}>Ya puedo seguir</Boton>
+        )}
       </div>
+      {bloqueada && (
+        <div className="border-t border-rojo/20 bg-rojo-50 px-4 py-3 text-sm text-[#7a1610] md:px-5">
+          <span className="font-medium">Bloqueada: </span><span className="whitespace-pre-line">{tarea.motivo_bloqueo}</span>
+        </div>
+      )}
       {devuelta && (
         <div className="border-t border-rojo/20 bg-rojo-50 px-4 py-3 text-sm text-[#7a1610] md:px-5">
           <span className="font-medium">Para corregir: </span><span className="whitespace-pre-line">{tarea.comentario_revision}</span>
@@ -65,12 +99,14 @@ export default function MisTareas() {
   const [entregando, setEntregando] = useState(null);
   const [iniciando, setIniciando] = useState(null);
   const [pidiendo, setPidiendo] = useState(false);
+  const [bloqueando, setBloqueando] = useState(null);
+  const [disp, setDisp] = useState(null);
   const ver = params.get("ver") || "hacer";
   const abierta = params.get("tarea");
 
   const cargar = useCallback(() => {
-    Promise.all([listarTareas({ ambito: "mias" }), miResumen(mesActual())])
-      .then(([t, r]) => { setTareas(t); setResumen(r); })
+    Promise.all([listarTareas({ ambito: "mias" }), miResumen(mesActual()), miDisponibilidad().catch(() => null)])
+      .then(([t, r, d]) => { setTareas(t); setResumen(r); setDisp(d); })
       .catch((e) => setError(e.message));
   }, []);
   useEffect(() => { cargar(); }, [cargar]);
@@ -81,8 +117,9 @@ export default function MisTareas() {
     const lista = tareas || [];
     const porFecha = (a, b) => a.fecha_limite.localeCompare(b.fecha_limite);
     return {
-      hacer: lista.filter((t) => t.estado === "PENDIENTE" || t.estado === "EN_PROGRESO")
-        .sort((a, b) => (b.comentario_revision ? 1 : 0) - (a.comentario_revision ? 1 : 0) || porFecha(a, b)),
+      hacer: lista.filter((t) => t.estado === "PENDIENTE" || t.estado === "EN_PROGRESO" || t.estado === "BLOQUEADA")
+        .sort((a, b) => (a.estado === "BLOQUEADA" ? 1 : 0) - (b.estado === "BLOQUEADA" ? 1 : 0)
+          || (b.comentario_revision ? 1 : 0) - (a.comentario_revision ? 1 : 0) || porFecha(a, b)),
       revision: lista.filter((t) => t.estado === "EN_REVISION").sort(porFecha),
       validadas: lista.filter((t) => t.estado === "COMPLETADA" && t.fecha_limite.startsWith(mesValidadas)).sort((a, b) => -porFecha(a, b)),
     };
@@ -105,19 +142,37 @@ export default function MisTareas() {
 
   const pedir = async () => {
     setPidiendo(true);
-    try { const r = await pedirTrabajo(); avisar(r.message); } catch (e) { avisar(e.message, "rojo"); }
+    try { const r = await pedirTrabajo(); avisar(r.message); cargar(); } catch (e) { avisar(e.message, "rojo"); }
     setPidiendo(false);
+  };
+  const reemplazar = (t) => setTareas((l) => l.map((x) => (x.id === t.id ? t : x)));
+  const desbloquear = async (t) => {
+    try { reemplazar(await desbloquearTarea(t.id, "")); avisar("De vuelta en curso."); } catch (e) { avisar(e.message, "rojo"); }
   };
 
   if (error) return <Alerta>{error}</Alerta>;
   if (!tareas || !resumen) return <Cargando />;
 
   const lista = grupos[ver] || grupos.hacer;
+  const soloBloqueadas = ver === "hacer" && lista.length > 0 && lista.every((t) => t.estado === "BLOQUEADA");
   const detalle = abierta ? tareas.find((t) => String(t.id) === abierta) : null;
 
   return (
     <div className="space-y-6">
       <MiMes resumen={resumen} nombre={usuario.nombre} />
+
+      {disp?.en_espera && (
+        <Alerta tono="amarillo" className="border border-amarillo bg-amarillo-50 text-[#7a5000]">
+          <span className="font-medium">En espera de asignación</span> desde las {new Date(disp.desde).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" })}: tu supervisor ya lo sabe.
+          {" "}Mientras tanto, <Link to="/colaboracion?ver=actividades" className="font-medium underline">registra lo que hagas</Link> (archivos, estudio, capacitación, apoyo a compañeros).
+        </Alerta>
+      )}
+      {soloBloqueadas && !disp?.en_espera && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amarillo bg-amarillo-50 px-4 py-3 text-[15px] text-[#7a5000]">
+          <span>Solo te quedan tareas bloqueadas. Avisa a tu supervisor que puedes tomar otra cosa.</span>
+          <Boton variante="acento" tam="sm" icono={Hand} onClick={pedir} cargando={pidiendo}>Pedir más trabajo</Boton>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <Pestanas className="md:max-w-xl md:flex-1" valor={ver} onCambio={cambiarVista} opciones={[
@@ -131,13 +186,15 @@ export default function MisTareas() {
       {lista.length === 0 ? (
         <Vacio icono={ListChecks} accion={ver === "hacer" && <Boton variante="acento" icono={Hand} onClick={pedir} cargando={pidiendo}>Pedir más trabajo</Boton>} titulo={
           ver === "hacer" ? "No tienes tareas pendientes" : ver === "revision" ? "Nada esperando validación" : "Sin tareas validadas en ese mes"}>
-          {ver === "hacer" ? "Estás al día. Avísale a tu supervisor que puedes tomar más, o espera: cuando te asignen una, te llega el aviso."
+          {ver === "hacer" ? (disp?.en_espera ? "Tu supervisor ya sabe que estás disponible. Mientras llega una tarea, registra tus actividades adicionales."
+            : "Estás al día. Avísale a tu supervisor que puedes tomar más: quedas «en espera de asignación» hasta que te llegue una tarea.")
             : ver === "revision" ? "Lo que entregues queda aquí hasta que tu supervisor lo valide o te lo devuelva."
               : "Las tareas validadas son las que suman a tu puntaje."}
         </Vacio>
       ) : (
         <ul className="space-y-3">
-          {lista.map((t) => <FilaTarea key={t.id} tarea={t} onAbrir={abrir} onIniciar={iniciar} onEntregar={setEntregando} iniciando={iniciando} />)}
+          {lista.map((t) => <FilaTarea key={t.id} tarea={t} onAbrir={abrir} onIniciar={iniciar} onEntregar={setEntregando}
+            onBloquear={setBloqueando} onDesbloquear={desbloquear} iniciando={iniciando} />)}
         </ul>
       )}
 
@@ -147,6 +204,8 @@ export default function MisTareas() {
           <BotonCronometro tarea={detalle.id} />
           <Boton variante="acento" icono={Send} onClick={() => { cerrar(); setEntregando(detalle); }}>Entregar</Boton>
         </>)} />
+
+      <BloquearModal tarea={bloqueando} onCerrar={() => setBloqueando(null)} onHecho={(t) => { setBloqueando(null); reemplazar(t); }} />
 
       <EntregarModal tarea={entregando} abierto={!!entregando} onCerrar={() => setEntregando(null)}
         onEntregada={(t) => {

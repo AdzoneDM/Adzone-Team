@@ -124,6 +124,21 @@ export const reabrirTarea = (id, motivo) => api(`${D}/tareas/${id}/reabrir/`, { 
 export const cancelarTarea = (id, motivo) => api(`${D}/tareas/${id}/cancelar/`, { method: "POST", body: { motivo } });
 export const recordarTarea = (id, mensaje) => api(`${D}/tareas/${id}/recordar/`, { method: "POST", body: { mensaje } });
 export const pedirTrabajo = () => api(`${D}/pedir-trabajo/`, { method: "POST" });
+export const bloquearTarea = (id, motivo) => api(`${D}/tareas/${id}/bloquear/`, { method: "POST", body: { motivo } });
+export const desbloquearTarea = (id, nota) => api(`${D}/tareas/${id}/desbloquear/`, { method: "POST", body: { nota } });
+export const miDisponibilidad = () => api(`${D}/mi-disponibilidad/`);
+// Actividades adicionales y colaboración (12.4)
+export const listarActividades = (params = {}) => api(`${D}/actividades/${q(params)}`);
+export const crearActividad = (datos) => api(`${D}/actividades/`, { method: "POST", body: datos });
+export const borrarActividad = (id) => api(`${D}/actividades/${id}/`, { method: "DELETE" });
+export const revisarActividad = (id, aprobar, comentario) =>
+  api(`${D}/actividades/${id}/${aprobar ? "validar" : "rechazar"}/`, { method: "POST", body: { comentario } });
+export const listarColaboraciones = (params = {}) => api(`${D}/colaboraciones/${q(params)}`);
+export const crearColaboracion = (datos) => api(`${D}/colaboraciones/`, { method: "POST", body: datos });
+export const retirarColaboracion = (id) => api(`${D}/colaboraciones/${id}/`, { method: "DELETE" });
+export const pasoColaboracion = (id, accion, texto = "", minutos = 0) =>
+  api(`${D}/colaboraciones/${id}/accion/`, { method: "POST", body: { accion, texto, minutos } });
+export const personasColaborar = () => api(`${D}/personas/`);
 export const marcarPaso = (id, pasoId, hecho) => api(`${D}/tareas/${id}/pasos/${pasoId}/`, { method: "POST", body: { hecho } });
 
 // Recurrentes

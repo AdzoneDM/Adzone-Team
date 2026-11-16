@@ -42,6 +42,10 @@ class PlantillaKPI(models.Model):
         ('DENTRO_ESTIMADO', '% de tareas dentro de las horas estimadas'),
         ('UTILIZACION', '% de la jornada registrado en tareas con el cronómetro'),
         ('HORAS_EXTRA', 'Horas extra del mes'),
+        ('FUERA_DE_PLAZO', 'Tareas del mes entregadas tarde o vencidas sin entregar'),
+        ('DIAS_EJECUCION', 'Días promedio desde que empezó la tarea hasta entregarla'),
+        ('ACTIVIDADES_EXTRA', 'Actividades adicionales validadas en el mes'),
+        ('COLABORACIONES', 'Apoyos a compañeros validados en el mes'),
     ]
     fuente = models.CharField(max_length=20, choices=FUENTES, blank=True, default='',
                               help_text="Solo para KPIs automáticos: de dónde la plataforma saca el valor.")

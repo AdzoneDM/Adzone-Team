@@ -59,6 +59,7 @@ export const primerNombre = (nombre = "") => nombre.split(/\s+/)[0] || nombre;
 export const ESTADOS = {
   PENDIENTE: "Por empezar",
   EN_PROGRESO: "En curso",
+  BLOQUEADA: "Bloqueada",
   EN_REVISION: "En revisión",
   COMPLETADA: "Validada",
   CANCELADA: "Cancelada",

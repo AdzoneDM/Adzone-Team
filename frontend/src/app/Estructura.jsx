@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  Award, CalendarClock, Gauge, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, Gauge, HeartHandshake, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos, tablerosDepartamentos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -33,6 +33,7 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
     { titulo: "Mi trabajo", items: [
       { a: "/", texto: "Inicio", icono: House, fin: true },
       { a: "/mis-tareas", texto: "Mis tareas", icono: ListChecks },
+      { a: "/colaboracion", texto: "Colaboración", icono: HeartHandshake },
       { a: "/tiempo", texto: "Tiempo", icono: Clock },
       { a: "/asistencia", texto: "Asistencia", icono: CalendarClock },
       { a: "/monitoreo", texto: veMonitoreo ? "Monitoreo" : "Mi actividad", icono: MonitorSmartphone },

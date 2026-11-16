@@ -19,7 +19,8 @@ from apps.kpis.models import KPIAsignado
 from apps.tiempo import servicios as cronometro
 from . import servicios
 from .models import (
-    ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, Notificacion, ResultadoKPI, Tarea, TareaRecurrente,
+    ConfiguracionDesempeno, EmpleadoDelMes, EsperaAsignacion, EvidenciaArchivo, Notificacion, ResultadoKPI, Tarea,
+    TareaRecurrente,
 )
 from .permisos import (
     EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar, puede_revisar,
@@ -132,7 +133,9 @@ class TareaViewSet(viewsets.ModelViewSet):
             self._exigir_gestion(companero)
         anterior = serializer.instance.colaborador
         antes = set(serializer.instance.companeros.values_list('pk', flat=True))
+        previos = {c: getattr(serializer.instance, c, None) for c in servicios.CAMPOS_AVISO}
         tarea = serializer.save()
+        cambiados = [c for c, v in previos.items() if c in serializer.validated_data and getattr(tarea, c, None) != v]
         nuevos = [u for u in tarea.companeros.all() if u.pk not in antes]
         if nuevos:
             servicios.avisar(nuevos, 'ASIGNADA', f"Te sumaron a una tarea: {tarea.titulo}",
@@ -144,6 +147,11 @@ class TareaViewSet(viewsets.ModelViewSet):
             servicios.avisar([nuevo], 'ASIGNADA', f"Nueva tarea: {tarea.titulo}",
                              f"{_nombre(self.request.user)} te la asignó.", tarea=tarea, enlace='/mis-tareas',
                              excepto=self.request.user)
+            servicios.cerrar_esperas([nuevo], tarea)
+        else:
+            servicios.al_modificar(tarea, self.request.user, cambiados)
+        if nuevos:
+            servicios.cerrar_esperas(nuevos, tarea)
 
     def perform_destroy(self, instance):
         self._exigir_gestion(instance.colaborador)
@@ -167,6 +175,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         if tarea.estado != 'PENDIENTE':
             return Response({"detail": "La tarea ya fue iniciada."}, status=status.HTTP_400_BAD_REQUEST)
         tarea.estado = 'EN_PROGRESO'
+        tarea.fecha_inicio_trabajo = tarea.fecha_inicio_trabajo or timezone.now()
         tarea.save()
         servicios.registrar(tarea, request.user, 'INICIADA')
         servicios.tras_cambio(tarea, request.user)
@@ -195,6 +204,8 @@ class TareaViewSet(viewsets.ModelViewSet):
             tarea.evidencia_enlace = datos.get('evidencia_enlace', '')
             tarea.estado = 'EN_REVISION'
             tarea.fecha_completada = timezone.localdate()
+            tarea.fecha_entrega_real = timezone.now()
+            tarea.fecha_inicio_trabajo = tarea.fecha_inicio_trabajo or tarea.fecha_entrega_real
             tarea.comentario_revision = ''
             tarea.save()
             for archivo in datos.get('archivos', []):
@@ -305,6 +316,42 @@ class TareaViewSet(viewsets.ModelViewSet):
         if motivo:
             return Response({"detail": motivo}, status=status.HTTP_429_TOO_MANY_REQUESTS)
         return Response({"message": f"Le llegó el recordatorio a {_nombre(tarea.colaborador)}."})
+
+    @action(detail=True, methods=['post'])
+    def bloquear(self, request, pk=None):
+        """Quien la trabaja (o quien la asigna) la marca bloqueada con el motivo; se avisa al supervisor."""
+        tarea = self.get_object()
+        if request.user.pk not in tarea.participantes_ids():
+            self._exigir_gestion(tarea.colaborador)
+        if tarea.estado not in ('PENDIENTE', 'EN_PROGRESO'):
+            return Response({"detail": "Solo se bloquea una tarea por hacer."}, status=status.HTTP_400_BAD_REQUEST)
+        motivo = (request.data.get('motivo') or '').strip()[:1000]
+        if len(motivo) < 5:
+            return Response({"detail": "Escribe qué impide seguir (por ejemplo, «espero el logo del cliente»)."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        tarea.estado = 'BLOQUEADA'
+        tarea.motivo_bloqueo = motivo
+        tarea.bloqueada_desde = timezone.now()
+        tarea.save()
+        servicios.al_bloquear(tarea, request.user)
+        corriendo = cronometro.activo(request.user)
+        if corriendo and corriendo.tarea_id == tarea.pk:
+            cronometro.detener(corriendo)
+        return self._respuesta(tarea)
+
+    @action(detail=True, methods=['post'])
+    def desbloquear(self, request, pk=None):
+        tarea = self.get_object()
+        if request.user.pk not in tarea.participantes_ids():
+            self._exigir_gestion(tarea.colaborador)
+        if tarea.estado != 'BLOQUEADA':
+            return Response({"detail": "La tarea no está bloqueada."}, status=status.HTTP_400_BAD_REQUEST)
+        tarea.estado = 'EN_PROGRESO'
+        tarea.fecha_inicio_trabajo = tarea.fecha_inicio_trabajo or timezone.now()
+        tarea.bloqueada_desde = None
+        tarea.save()
+        servicios.al_desbloquear(tarea, request.user, (request.data.get('nota') or '').strip()[:500])
+        return self._respuesta(tarea)
 
     @action(detail=True, methods=['post'])
     def cancelar(self, request, pk=None):
@@ -810,14 +857,15 @@ def pedir_trabajo_view(request):
     return Response({"message": f"Listo. Le avisamos a {quienes} que puedes tomar más trabajo."})
 
 
-ORDEN_ESTADO_PERSONA = {'vencida': 0, 'pide_trabajo': 1, 'libre': 2, 'en_revision': 3, 'por_empezar': 4, 'trabajando': 5}
+ORDEN_ESTADO_PERSONA = {'vencida': 0, 'bloqueada': 1, 'en_espera': 2, 'libre': 3, 'en_revision': 4, 'por_empezar': 5, 'trabajando': 6}
 
 
 @api_view(['GET'])
 def carga_equipo_view(request):
     """
     Tablero del equipo (lo que era el TeamBoard de Adzone Team): en qué está cada persona ahora.
-    Estado: vencida, trabajando, por_empezar, en_revision o libre; y si pidió más trabajo hoy.
+    Estado: vencida, bloqueada (solo le quedan tareas bloqueadas), trabajando, por_empezar, en_revision,
+    en_espera (terminó y avisó: espera asignación) o libre (sin tareas y sin avisar).
     """
     user = request.user
     if not puede_validar(user):
@@ -827,7 +875,7 @@ def carga_equipo_view(request):
                   .select_related('perfil__puesto_trabajo__departamento').order_by('first_name', 'username'))
     ids = {u.pk for u in equipo}
     abiertas = (Tarea.objects.filter(Q(colaborador__in=ids) | Q(companeros__in=ids),
-                                     estado__in=['PENDIENTE', 'EN_PROGRESO', 'EN_REVISION'])
+                                     estado__in=['PENDIENTE', 'EN_PROGRESO', 'EN_REVISION', 'BLOQUEADA'])
                 .distinct().prefetch_related('companeros', 'pasos').order_by('fecha_limite'))
     por_persona = {}
     for tarea in abiertas:
@@ -835,13 +883,14 @@ def carga_equipo_view(request):
             if pid in ids:
                 por_persona.setdefault(pid, []).append(tarea)
     inicio_hoy = timezone.make_aware(datetime.combine(hoy, datetime.min.time()))
-    piden = set(Notificacion.objects.filter(tipo='PIDE_TRABAJO', fecha__gte=inicio_hoy, remitente__in=ids)
-                .values_list('remitente_id', flat=True))
+    esperas = {e.usuario_id: e for e in EsperaAsignacion.objects.filter(usuario__in=ids, hasta__isnull=True)}
+    piden = set(esperas)
 
     def resumen(t):
         pasos = list(t.pasos.all())
         return {'id': t.id, 'titulo': t.titulo, 'cliente': t.cliente, 'estado': t.estado,
-                'fecha_limite': t.fecha_limite, 'vencida': t.fecha_limite < hoy and t.estado != 'EN_REVISION',
+                'motivo_bloqueo': t.motivo_bloqueo if t.estado == 'BLOQUEADA' else '',
+                'fecha_limite': t.fecha_limite, 'vencida': t.fecha_limite < hoy and t.estado not in ('EN_REVISION', 'BLOQUEADA'),
                 'progreso': {'hechos': sum(p.hecho for p in pasos), 'total': len(pasos)} if pasos else None}
 
     personas = []
@@ -850,17 +899,22 @@ def carga_equipo_view(request):
         por_hacer = [t for t in tareas if t.estado in ('PENDIENTE', 'EN_PROGRESO')]
         vencidas = [t for t in por_hacer if t.fecha_limite < hoy]
         en_curso = [t for t in por_hacer if t.estado == 'EN_PROGRESO']
+        bloqueadas = [t for t in tareas if t.estado == 'BLOQUEADA']
         if vencidas:
             estado = 'vencida'
         elif en_curso:
             estado = 'trabajando'
         elif por_hacer:
             estado = 'por_empezar'
+        elif u.pk in piden:
+            estado = 'en_espera'
+        elif bloqueadas:
+            estado = 'bloqueada'
         elif tareas:
             estado = 'en_revision'
         else:
-            estado = 'pide_trabajo' if u.pk in piden else 'libre'
-        actual = (vencidas or en_curso or por_hacer or tareas or [None])[0]
+            estado = 'libre'
+        actual = (vencidas or en_curso or por_hacer or bloqueadas or tareas or [None])[0]
         puesto = puesto_de(u)
         depto = puesto.departamento if puesto else None
         personas.append({
@@ -869,7 +923,8 @@ def carga_equipo_view(request):
             'departamento': depto.nombre if depto else None,
             'color': depto.color if depto else None, 'color_fondo': depto.color_fondo if depto else None,
             'estado': estado, 'pide_trabajo': u.pk in piden,
-            'abiertas': len(por_hacer), 'vencidas': len(vencidas),
+            'esperando_desde': esperas[u.pk].desde if u.pk in esperas else None,
+            'abiertas': len(por_hacer), 'vencidas': len(vencidas), 'bloqueadas': len(bloqueadas),
             'en_revision': sum(1 for t in tareas if t.estado == 'EN_REVISION'),
             'actual': resumen(actual) if actual else None,
         })

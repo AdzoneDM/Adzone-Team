@@ -10,6 +10,7 @@ import MisTareas from "@/features/tareas/MisTareas";
 // Las pantallas de supervisión y administración se cargan al abrirlas: la app del celular pesa menos.
 const Validar = lazy(() => import("@/features/tareas/Validar"));
 const Equipo = lazy(() => import("@/features/equipo/Equipo"));
+const Colaboracion = lazy(() => import("@/features/colaboracion/Colaboracion"));
 const Desempeno = lazy(() => import("@/features/desempeno/Desempeno"));
 const KpisDelMes = lazy(() => import("@/features/desempeno/KpisDelMes"));
 const Organigrama = lazy(() => import("@/features/organizacion/Organigrama"));
@@ -87,6 +88,7 @@ export default function App() {
           <Route index element={<InicioSegunRol />} />
           <Route path="call-center" element={<CallCenter />} />
           <Route path="mis-tareas" element={<MisTareas />} />
+          <Route path="colaboracion" element={<Colaboracion />} />
           <Route path="organigrama" element={<Organigrama />} />
           <Route path="mi-cuenta" element={<MiCuenta />} />
           <Route path="ordenes" element={<Ordenes />} />

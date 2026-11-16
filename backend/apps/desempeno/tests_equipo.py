@@ -102,7 +102,7 @@ class CargaEquipoTests(Base):
         self.assertEqual(self.c.post('/api/desempeno/pedir-trabajo/').status_code, 200)
         self.como(self.vladi)
         personas = {p['id']: p for p in self.c.get('/api/desempeno/equipo/carga/').json()['personas']}
-        self.assertEqual(personas[self.erlin.id]['estado'], 'pide_trabajo')
+        self.assertEqual(personas[self.erlin.id]['estado'], 'en_espera')
         self.assertEqual(personas[self.ashley.id]['estado'], 'libre')
 
     def test_un_colaborador_no_ve_la_carga(self):

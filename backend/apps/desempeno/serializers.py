@@ -104,6 +104,7 @@ class TareaSerializer(serializers.ModelSerializer):
             'validada_por', 'validada_por_nombre', 'fecha_validacion', 'comentario_revision',
             'calificacion_calidad', 'comentario_evaluacion', 'rondas_revision', 'es_recurrente',
             'puedo_gestionar', 'puedo_revisar', 'soy_participante',
+            'motivo_bloqueo', 'bloqueada_desde', 'fecha_inicio_trabajo', 'fecha_entrega_real',
             'fecha_creacion', 'fecha_modificacion',
         ]
         # El estado y la calificación solo cambian con las acciones (iniciar, entregar, validar,
@@ -112,6 +113,7 @@ class TareaSerializer(serializers.ModelSerializer):
             'asignada_por', 'estado', 'orden', 'oa', 'fecha_completada', 'evidencia_nota', 'evidencia_enlace',
             'validada_por', 'fecha_validacion', 'comentario_revision', 'calificacion_calidad',
             'comentario_evaluacion', 'rondas_revision',
+            'motivo_bloqueo', 'bloqueada_desde', 'fecha_inicio_trabajo', 'fecha_entrega_real',
         ]
 
     def _usuario(self):

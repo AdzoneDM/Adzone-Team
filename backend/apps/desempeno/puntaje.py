@@ -207,6 +207,29 @@ class Mediciones:
         if fuente == 'UTILIZACION':
             trabajados = self.asistencia['minutos_trabajados']
             return round(min(sum(self.minutos_por_tarea(todas=True).values()) / trabajados, 1) * 100, 1) if trabajados else None
+        if fuente == 'FUERA_DE_PLAZO':
+            from django.utils import timezone as tz
+            hoy = tz.localdate()
+            del_mes = Tarea.objects.filter(Q(colaborador=self.usuario) | Q(companeros=self.usuario),
+                                           fecha_limite__range=(self.inicio, min(self.fin, hoy))).exclude(estado='CANCELADA').distinct()
+            if not del_mes.exists():
+                return None
+            tarde = sum(1 for x in del_mes if (x.fecha_completada and x.fecha_completada > x.fecha_limite)
+                        or (not x.fecha_completada and x.fecha_limite < hoy))
+            return float(tarde)
+        if fuente == 'DIAS_EJECUCION':
+            con = [x for x in t if x.fecha_inicio_trabajo and x.fecha_entrega_real]
+            return round(sum((x.fecha_entrega_real - x.fecha_inicio_trabajo).total_seconds() for x in con) / len(con) / 86400, 2) if con else None
+        if fuente == 'ACTIVIDADES_EXTRA':
+            from .models import ActividadAdicional
+            n = ActividadAdicional.objects.filter(usuario=self.usuario, estado='VALIDADA', fecha__range=(self.inicio, self.fin)).count()
+            return float(n)
+        if fuente == 'COLABORACIONES':
+            from apps.asistencia.servicios import rango
+            from .models import Colaboracion
+            n = Colaboracion.objects.filter(ayudante=self.usuario, estado='VALIDADA',
+                                            fecha_realizada__range=rango(self.inicio, self.fin)).count()
+            return float(n)
         if fuente == 'HORAS_EXTRA':
             return round(self.asistencia['minutos_extra'] / 60, 1) if self.asistencia['dias_laborables'] else None
         a = self.asistencia

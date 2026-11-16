@@ -10,9 +10,11 @@ from apps.kpis.models import KPIAsignado
 class Tarea(models.Model):
     # Flujo: PENDIENTE → EN_PROGRESO → EN_REVISION (entregada) → COMPLETADA (validada).
     # Si el supervisor rechaza la entrega, vuelve a EN_PROGRESO con un comentario.
+    # BLOQUEADA: no puede seguir por una dependencia o un problema (con motivo); al resolverse vuelve a EN_PROGRESO.
     ESTADO_CHOICES = [
         ('PENDIENTE', 'Pendiente'),
         ('EN_PROGRESO', 'En progreso'),
+        ('BLOQUEADA', 'Bloqueada'),
         ('EN_REVISION', 'En revisión'),
         ('COMPLETADA', 'Validada'),
         ('CANCELADA', 'Cancelada'),
@@ -112,6 +114,12 @@ class Tarea(models.Model):
         help_text="Calidad del trabajo entregado, de 1 (deficiente) a 5 (excelente)."
     )
     comentario_evaluacion = models.TextField(blank=True, verbose_name="Comentario de Evaluación")
+    motivo_bloqueo = models.TextField(blank=True, verbose_name="Motivo del bloqueo",
+                                      help_text="Qué impide seguir (dependencia, falta de material, aprobación…).")
+    bloqueada_desde = models.DateTimeField(null=True, blank=True, verbose_name="Bloqueada desde")
+    fecha_inicio_trabajo = models.DateTimeField(null=True, blank=True, verbose_name="Empezó a trabajarla",
+                                                help_text="Primera vez que pasó a «En progreso»: mide el tiempo de ejecución.")
+    fecha_entrega_real = models.DateTimeField(null=True, blank=True, verbose_name="Entregada (fecha y hora)")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
 
@@ -298,6 +306,8 @@ class HistorialTarea(models.Model):
         ('DEVUELTA', 'Devuelta'),
         ('REABIERTA', 'Reabierta'),
         ('CANCELADA', 'Cancelada'),
+        ('BLOQUEADA', 'Bloqueada'),
+        ('DESBLOQUEADA', 'Desbloqueada'),
     ]
     tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name="historial")
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
@@ -332,6 +342,10 @@ class Notificacion(models.Model):
         ('MONITOREO', 'Monitoreo'),
         ('TALENTO', 'Talento y evaluaciones'),
         ('SEGURIDAD', 'Seguridad de la cuenta'),
+        ('MODIFICADA', 'Tarea modificada'),
+        ('BLOQUEADA', 'Tarea bloqueada'),
+        ('COLABORACION', 'Colaboración'),
+        ('ACTIVIDAD', 'Actividad adicional'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
@@ -446,3 +460,88 @@ class ResumenSemanal(models.Model):
     class Meta:
         ordering = ['-semana']
         verbose_name = 'Resumen semanal'
+
+
+# ---------------------------------------------------------------------------
+# Disponibilidad, actividades adicionales y colaboración (12.4)
+# ---------------------------------------------------------------------------
+class EsperaAsignacion(models.Model):
+    """La persona terminó todo y avisó a su supervisor: queda «en espera de asignación» hasta que le llegue una tarea."""
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="esperas")
+    desde = models.DateTimeField(auto_now_add=True)
+    hasta = models.DateTimeField(null=True, blank=True, help_text="Vacío mientras sigue esperando.")
+    tarea_recibida = models.ForeignKey(Tarea, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+                                       help_text="La tarea con la que terminó la espera.")
+
+    @property
+    def minutos(self):
+        from django.utils import timezone
+        return int(((self.hasta or timezone.now()) - self.desde).total_seconds() // 60)
+
+    class Meta:
+        verbose_name = "Espera de asignación"
+        verbose_name_plural = "Esperas de asignación"
+        ordering = ['-desde']
+        indexes = [models.Index(fields=['usuario', 'hasta'])]
+
+
+class ActividadAdicional(models.Model):
+    """Lo que la persona hace por iniciativa propia (sobre todo mientras espera tareas). El supervisor la valida."""
+    TIPOS = [
+        ('DOCUMENTACION', 'Organizar y actualizar archivos y documentación'),
+        ('ESTUDIO', 'Estudiar políticas, procedimientos y documentación interna'),
+        ('CAPACITACION', 'Capacitación y aprendizaje'),
+        ('APOYO', 'Apoyo a compañeros'),
+        ('OTRO_DEPARTAMENTO', 'Colaboración con otro departamento (autorizada)'),
+        ('MEJORA', 'Oportunidad de mejora en un proceso'),
+        ('OTRA', 'Otra actividad de sus funciones'),
+    ]
+    ESTADOS = [('REGISTRADA', 'Por validar'), ('VALIDADA', 'Validada'), ('NO_VALIDADA', 'No validada')]
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="actividades_adicionales")
+    fecha = models.DateField()
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    descripcion = models.TextField(help_text="Qué hizo.")
+    resultado = models.TextField(blank=True, help_text="Qué quedó (documento, mejora propuesta, lo aprendido…).")
+    minutos = models.PositiveIntegerField(default=0)
+    proyecto = models.ForeignKey('operaciones.Proyecto', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    estado = models.CharField(max_length=12, choices=ESTADOS, default='REGISTRADA')
+    validada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    fecha_validacion = models.DateTimeField(null=True, blank=True)
+    comentario_supervisor = models.TextField(blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Actividad adicional"
+        verbose_name_plural = "Actividades adicionales"
+        ordering = ['-fecha', '-id']
+        indexes = [models.Index(fields=['usuario', 'fecha'])]
+
+
+class Colaboracion(models.Model):
+    """
+    Una persona apoya a otra. Flujo: SOLICITADA (alguien pide ayuda) → ACEPTADA → REALIZADA (con resultado)
+    → VALIDADA / NO_VALIDADA por el supervisor de quien ayudó. También se puede registrar un apoyo ya dado (REALIZADA).
+    """
+    ESTADOS = [('SOLICITADA', 'Solicitada'), ('ACEPTADA', 'Aceptada'), ('RECHAZADA', 'No pudo'),
+               ('REALIZADA', 'Realizada (por validar)'), ('VALIDADA', 'Validada'), ('NO_VALIDADA', 'No validada')]
+    solicitante = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ayudas_pedidas",
+                                    help_text="Quién necesita (o recibió) el apoyo.")
+    ayudante = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ayudas_dadas",
+                                 help_text="Quién da el apoyo.")
+    registrada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="+")
+    tarea = models.ForeignKey(Tarea, on_delete=models.SET_NULL, null=True, blank=True, related_name="colaboraciones")
+    proyecto = models.ForeignKey('operaciones.Proyecto', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    descripcion = models.TextField(help_text="En qué se necesita (o se dio) el apoyo.")
+    resultado = models.TextField(blank=True)
+    minutos = models.PositiveIntegerField(default=0)
+    estado = models.CharField(max_length=12, choices=ESTADOS, default='SOLICITADA')
+    motivo = models.TextField(blank=True, help_text="Por qué no pudo ayudar o por qué no se validó.")
+    validada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    fecha_validacion = models.DateTimeField(null=True, blank=True)
+    fecha_realizada = models.DateTimeField(null=True, blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Colaboración"
+        verbose_name_plural = "Colaboraciones"
+        ordering = ['-fecha_creacion', '-id']

@@ -1,13 +1,15 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import departamentos, views
+from . import departamentos, views, views_equipo
 
 router = DefaultRouter()
 router.register(r'tareas', views.TareaViewSet, basename='tarea')
 router.register(r'recurrentes', views.TareaRecurrenteViewSet, basename='recurrente')
 router.register(r'resultados-kpi', views.ResultadoKPIViewSet, basename='resultadokpi')
 router.register(r'empleados-del-mes', views.EmpleadoDelMesViewSet, basename='empleadodelmes')
+router.register(r'actividades', views_equipo.ActividadAdicionalViewSet, basename='actividad')
+router.register(r'colaboraciones', views_equipo.ColaboracionViewSet, basename='colaboracion')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -31,4 +33,6 @@ urlpatterns = [
     path('configuracion/', views.configuracion_view, name='configuracion'),
     path('equipo/carga/', views.carga_equipo_view, name='carga_equipo'),
     path('pedir-trabajo/', views.pedir_trabajo_view, name='pedir_trabajo'),
+    path('mi-disponibilidad/', views_equipo.mi_disponibilidad_view, name='mi_disponibilidad'),
+    path('personas/', views_equipo.personas_view, name='personas_colaborar'),
 ]

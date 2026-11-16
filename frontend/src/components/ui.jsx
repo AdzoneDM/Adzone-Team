@@ -47,7 +47,7 @@ export function Insignia({ tono = "neutro", className, children }) {
   return <span className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium", TONOS[tono], className)}>{children}</span>;
 }
 
-const TONO_ESTADO = { PENDIENTE: "neutro", EN_PROGRESO: "azul", EN_REVISION: "amarillo", COMPLETADA: "verde", CANCELADA: "neutro" };
+const TONO_ESTADO = { PENDIENTE: "neutro", EN_PROGRESO: "azul", BLOQUEADA: "rojo", EN_REVISION: "amarillo", COMPLETADA: "verde", CANCELADA: "neutro" };
 export const EstadoTarea = ({ estado }) => <Insignia tono={TONO_ESTADO[estado]}>{ESTADOS[estado] || estado}</Insignia>;
 
 const TONO_PRIORIDAD = { ALTA: "rojo", MEDIA: "amarillo", BAJA: "neutro" };

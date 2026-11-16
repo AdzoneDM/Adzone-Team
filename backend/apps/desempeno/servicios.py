@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import EvidenciaArchivo, HistorialTarea, Notificacion, Tarea, TareaRecurrente
+from .models import EsperaAsignacion, EvidenciaArchivo, HistorialTarea, Notificacion, Tarea, TareaRecurrente
 from .permisos import administradores, revisores_de
 
 log = logging.getLogger('adzone')
@@ -41,8 +41,16 @@ def tras_cambio(tarea, quien, evento=None):
         disparar(evento, tarea, quien=quien)
 
 
+def cerrar_esperas(usuarios, tarea):
+    """Llegó trabajo nuevo: termina la «espera de asignación» de esas personas."""
+    ids = [u.pk for u in usuarios if u is not None]
+    if ids:
+        EsperaAsignacion.objects.filter(usuario_id__in=ids, hasta__isnull=True).update(hasta=timezone.now(), tarea_recibida=tarea)
+
+
 def al_asignar(tarea, quien):
     registrar(tarea, quien, 'CREADA')
+    cerrar_esperas([tarea.colaborador, *tarea.companeros.all()], tarea)
     avisar([tarea.colaborador, *tarea.companeros.all()], 'ASIGNADA', f"Nueva tarea: {tarea.titulo}",
            f"{nombre(quien)} te la asignó. Entrega: {tarea.fecha_limite:%d/%m/%Y}.",
            tarea=tarea, enlace='/mis-tareas', excepto=quien)
@@ -75,6 +83,58 @@ def al_devolver(tarea, quien):
     avisar([tarea.colaborador, *tarea.companeros.all()], 'DEVUELTA', f"Para corregir: {tarea.titulo}",
            tarea.comentario_revision, tarea=tarea, enlace='/mis-tareas', excepto=quien)
     tras_cambio(tarea, quien)
+
+
+CAMPOS_AVISO = {'titulo': 'el título', 'descripcion': 'la descripción', 'fecha_limite': 'la fecha de entrega',
+                'prioridad': 'la prioridad', 'fecha_inicio': 'la fecha de inicio', 'horas_estimadas': 'las horas estimadas',
+                'cliente': 'el cliente', 'proyecto': 'el proyecto', 'pasos_texto': 'los pasos'}
+
+
+def al_modificar(tarea, quien, campos):
+    """Aviso a los participantes cuando cambia algo que les importa (no por cada guardado sin cambios)."""
+    cambios = [CAMPOS_AVISO[c] for c in campos if c in CAMPOS_AVISO]
+    if not cambios or tarea.estado in ('COMPLETADA', 'CANCELADA'):
+        return
+    texto = ', '.join(cambios)
+    extra = f" Nueva entrega: {tarea.fecha_limite:%d/%m/%Y}." if 'fecha_limite' in campos else ''
+    avisar([tarea.colaborador, *tarea.companeros.all()], 'MODIFICADA', f"Cambió una tarea: {tarea.titulo}",
+           f"{nombre(quien)} cambió {texto}.{extra}", tarea=tarea, enlace=f'/mis-tareas?tarea={tarea.pk}', excepto=quien)
+
+
+def al_bloquear(tarea, quien):
+    registrar(tarea, quien, 'BLOQUEADA', tarea.motivo_bloqueo)
+    avisar([*revisores_de(tarea.colaborador), tarea.colaborador, *tarea.companeros.all()], 'BLOQUEADA',
+           f"Bloqueada: {tarea.titulo}", f"{nombre(quien)}: {tarea.motivo_bloqueo}",
+           tarea=tarea, enlace=f'/equipo?colaborador={tarea.colaborador_id}', excepto=quien)
+    tras_cambio(tarea, quien)
+
+
+def al_desbloquear(tarea, quien, nota=''):
+    registrar(tarea, quien, 'DESBLOQUEADA', nota)
+    avisar([*revisores_de(tarea.colaborador), tarea.colaborador, *tarea.companeros.all()], 'BLOQUEADA',
+           f"Se puede seguir: {tarea.titulo}", nota or f"{nombre(quien)} la desbloqueó.",
+           tarea=tarea, enlace='/mis-tareas', excepto=quien)
+    tras_cambio(tarea, quien)
+
+
+DIAS_BLOQUEO_AVISO = 2
+
+
+def avisar_bloqueadas(ahora=None):
+    """Tareas bloqueadas hace más de 2 días: recordatorio diario al supervisor (para el cron)."""
+    ahora = ahora or timezone.now()
+    limite = ahora - timedelta(days=DIAS_BLOQUEO_AVISO)
+    hoy0 = ahora - timedelta(hours=20)
+    n = 0
+    for tarea in Tarea.objects.filter(estado='BLOQUEADA', bloqueada_desde__lte=limite).select_related('colaborador'):
+        if Notificacion.objects.filter(tarea=tarea, tipo='BLOQUEADA', fecha__gte=hoy0).exists():
+            continue
+        dias = (ahora - tarea.bloqueada_desde).days
+        avisar(revisores_de(tarea.colaborador), 'BLOQUEADA', f"Sigue bloqueada ({dias} días): {tarea.titulo}",
+               f"{nombre(tarea.colaborador)}: {tarea.motivo_bloqueo}", tarea=tarea,
+               enlace=f'/equipo?colaborador={tarea.colaborador_id}')
+        n += 1
+    return n
 
 
 def al_reabrir(tarea, quien, motivo):
@@ -188,15 +248,26 @@ def recordar(tarea, quien, mensaje=''):
     return None
 
 
+def espera_abierta(usuario):
+    return EsperaAsignacion.objects.filter(usuario=usuario, hasta__isnull=True).first()
+
+
 def pedir_trabajo(quien):
-    """El colaborador sin tareas pendientes avisa a su supervisor que puede tomar más."""
+    """
+    El colaborador sin tareas por hacer avisa a su supervisor: queda «en espera de asignación» hasta que le llegue
+    una tarea. Las tareas bloqueadas no cuentan como trabajo por hacer (no puede avanzarlas).
+    """
     abiertas = Tarea.objects.filter(Q(colaborador=quien) | Q(companeros=quien), estado__in=['PENDIENTE', 'EN_PROGRESO']).distinct().count()
     if abiertas:
-        return f"Todavía tienes {abiertas} tarea(s) por hacer. Pide más cuando termines."
+        return f"Todavía tienes {abiertas} tarea(s) por hacer. Avisa cuando termines."
+    bloqueadas = Tarea.objects.filter(Q(colaborador=quien) | Q(companeros=quien), estado='BLOQUEADA').distinct().count()
     hace_poco = timezone.now() - ESPERA_PEDIR_TRABAJO
-    if Notificacion.objects.filter(remitente=quien, tipo='PIDE_TRABAJO', fecha__gte=hace_poco).exists():
-        return "Ya avisaste hace poco. Tu supervisor ya lo sabe."
+    if espera_abierta(quien) and Notificacion.objects.filter(remitente=quien, tipo='PIDE_TRABAJO', fecha__gte=hace_poco).exists():
+        return "Ya avisaste hace poco. Tu supervisor ya lo sabe: mientras tanto puedes registrar actividades adicionales."
+    if not espera_abierta(quien):
+        EsperaAsignacion.objects.create(usuario=quien)
     jefes = revisores_de(quien)
-    avisar(jefes, 'PIDE_TRABAJO', f"{nombre(quien)} terminó sus tareas y pide más trabajo",
-           "No tiene tareas pendientes.", enlace=f'/equipo?colaborador={quien.id}', excepto=quien)
+    extra = f" Tiene {bloqueadas} tarea(s) bloqueada(s)." if bloqueadas else ''
+    avisar(jefes, 'PIDE_TRABAJO', f"{nombre(quien)} terminó sus tareas: en espera de asignación",
+           f"No tiene tareas por hacer.{extra}", enlace=f'/equipo?colaborador={quien.id}', excepto=quien)
     return [nombre(j) for j in jefes]

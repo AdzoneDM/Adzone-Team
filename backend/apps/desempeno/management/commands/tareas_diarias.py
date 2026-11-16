@@ -4,7 +4,7 @@
 """
 from django.core.management.base import BaseCommand
 
-from apps.desempeno.servicios import avisar_por_vencer, generar_recurrentes
+from apps.desempeno.servicios import avisar_bloqueadas, avisar_por_vencer, generar_recurrentes
 
 
 class Command(BaseCommand):
@@ -13,6 +13,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         creadas = generar_recurrentes()
         avisos = avisar_por_vencer()
+        bloqueadas = avisar_bloqueadas()
         from apps.automatizaciones.motor import revisar_vencimientos
         reglas = revisar_vencimientos()
         from apps.operaciones.servicios_ot import revisar_excepciones
@@ -31,5 +32,5 @@ class Command(BaseCommand):
             r = sincronizar_pendientes()
             cashflow = f" Cashflow: {r['facturas']} facturas, {r['pagos']} pagos nuevos, {r['errores']} errores."
         self.stdout.write(self.style.SUCCESS(
-            f"Tareas recurrentes creadas: {creadas}. Avisos de vencimiento: {avisos}. Automatizaciones ejecutadas: {reglas}. "
+            f"Tareas recurrentes creadas: {creadas}. Avisos de vencimiento: {avisos}. Bloqueadas recordadas: {bloqueadas}. Automatizaciones ejecutadas: {reglas}. "
             f"Excepciones G0 sin regularizar: {excepciones}.{cashflow}"))

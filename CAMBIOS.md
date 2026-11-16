@@ -1,5 +1,16 @@
 # Cambios
 
+## 12.5 · 16/11/2026 · Disponibilidad, colaboración y actividades adicionales
+
+- **Tarea bloqueada**: quien trabaja una tarea (o quien la asigna) la marca «Bloqueada» con el motivo (espera de material, de una aprobación, de otra área…). Le llega el aviso al supervisor; si sigue bloqueada más de 2 días, la tarea diaria se lo recuerda una vez al día. «Ya puedo seguir» la devuelve a «En curso».
+- **En espera de asignación**: «Pedir más trabajo» deja a la persona en espera hasta que le asignen una tarea (antes solo contaba el aviso del día). En *Mi equipo → Ahora* se ve desde qué hora espera; al asignarle una tarea, la espera termina y queda registrada. Las tareas bloqueadas no impiden avisar.
+- **Actividades adicionales** (*Colaboración → Mis actividades*): documentación, estudio de políticas y procedimientos, capacitación, apoyo, colaboración con otro departamento, mejoras de procesos u otras. El supervisor las valida o no (con motivo).
+- **Colaboración entre compañeros** (*Colaboración → Apoyos*): pedir apoyo a un compañero (aceptar / no puedo / terminé, con resultado y tiempo) o registrar un apoyo ya dado. Queda quién pidió, quién ayudó, la tarea y el resultado; lo valida el supervisor de quien ayudó. Entre departamentos solo lo coordina un supervisor o la administración (las áreas siguen aisladas).
+- **Avisos nuevos**: tarea modificada (fecha, título, descripción, prioridad, pasos…), tarea bloqueada y desbloqueada, pedido y resultado de colaboración, actividad validada.
+- **Mi equipo → Ahora**: estados «Con tareas bloqueadas» y «En espera de asignación», motivo del bloqueo en la tarjeta, avisos de bloqueadas y filtro por departamento.
+- **KPIs automáticos nuevos** (plantilla de KPI → fuente), para usarlos solo en los puestos donde tienen sentido: tareas fuera de plazo, días de ejecución (desde que empieza hasta que entrega), actividades adicionales validadas y apoyos a compañeros validados. El puntaje existente no cambia hasta que se asignen.
+- La tarea guarda cuándo se empezó a trabajar y la fecha y hora exacta de entrega (para el tiempo de ejecución).
+
 ## 12.4.1 · 07/11/2026 · Une la versión local 12.3.1
 
 - Trae los cambios hechos en la copia local: verificación en dos pasos **opcional** (`DOS_PASOS_OBLIGATORIA=1` para exigirla), la llamada a la IA sin `temperature` y las pruebas que nunca llaman a la API real.
