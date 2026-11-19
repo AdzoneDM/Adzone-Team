@@ -107,7 +107,7 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         'fecha': dia.isoformat(), 'laborable': laborable, 'feriado': dia in feriados,
         'turno': list(turno) if laborable else None, 'programados': programados,
         'entrada': None, 'salida': None, 'trabajados': 0, 'pausa': 0, 'tardanza': 0, 'salida_temprana': 0,
-        'extra': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
+        'extra': 0, 'segundos_en_curso': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
         'ausencia': ausencia.get_tipo_display() if ausencia else None,
         'marcajes': [{'id': m.id, 'tipo': m.tipo, 'momento': m.momento.isoformat(), 'origen': m.origen,
                       'motivo': m.motivo_pausa, 'corregido': bool(m.corregido_por_id)} for m in marcajes],
@@ -150,6 +150,7 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
             inicio = None
         elif ahora - inicio < TURNO_MAXIMO:
             trabajados += _minutos(ahora - inicio)  # en curso
+            fila['segundos_en_curso'] = int((ahora - inicio).total_seconds()) % 60  # para el contador en vivo
         else:
             cierre = _aware(dia, _hora(turno[1])) if turno else inicio
             trabajados += _minutos(max(cierre, inicio) - inicio)

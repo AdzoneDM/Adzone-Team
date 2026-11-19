@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.5.1 · 19/11/2026 · Contador de jornada en vivo
+
+- **Contador con segundos**: el tiempo trabajado del botón de jornada (arriba y en su panel) corre en vivo, `H:MM:SS`, mientras la persona está trabajando. En pausa o fuera de jornada se sigue mostrando en minutos. El servidor manda ahora `segundos_en_curso` para que el contador no pierda segundos entre consultas.
+- **Simulación de un día de empresa** (`apps/desempeno/tests_simulacion.py`): gerencia, supervisor y empleados recorren por la API real entradas, pausas, tareas, bloqueos, validaciones, actividades, colaboración y permisos (83 comprobaciones).
+
 ## 12.5 · 16/11/2026 · Disponibilidad, colaboración y actividades adicionales
 
 - **Tarea bloqueada**: quien trabaja una tarea (o quien la asigna) la marca «Bloqueada» con el motivo (espera de material, de una aprobación, de otra área…). Le llega el aviso al supervisor; si sigue bloqueada más de 2 días, la tarea diaria se lo recuerda una vez al día. «Ya puedo seguir» la devuelve a «En curso».
