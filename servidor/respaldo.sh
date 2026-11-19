@@ -45,7 +45,7 @@ if [ -n "$MEDIA" ] && [ -d "$MEDIA" ]; then
   tar -czf "$TMP/archivos_$FECHA.tar.gz" -C "$(dirname "$MEDIA")" "$(basename "$MEDIA")"
   cifrar "$TMP/archivos_$FECHA.tar.gz"
 fi
-if [ -f "$APP/backend/.env" ]; then   # en Docker la configuración vive fuera del contenedor (.env.docker)
+if [ -f "$APP/backend/.env" ]; then   # en Docker la configuración vive fuera del contenedor (variables del stack)
   cp "$APP/backend/.env" "$TMP/env_$FECHA" && cifrar "$TMP/env_$FECHA"
 fi
 

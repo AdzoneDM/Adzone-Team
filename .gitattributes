@@ -1,0 +1,5 @@
+# Lo que corre en Linux (contenedor o servidor) va siempre con fin de línea LF, aunque se clone en Windows
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker/** text eol=lf
+servidor/** text eol=lf

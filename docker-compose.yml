@@ -1,56 +1,118 @@
-# Adzone Team con Docker: app (Gunicorn) + tareas programadas + MariaDB.
+# Adzone Team con Docker (stack de Portainer o «docker compose»): app (Gunicorn) + tareas programadas + MariaDB.
 #
-#   cp docker/env.ejemplo .env.docker    # y completa las claves
-#   docker compose up -d --build
-#
-# La app escucha solo en 127.0.0.1:8000: delante va el proxy con HTTPS (nginx, Plesk, Caddy, Traefik…).
-# Guía completa: docs/DESPLIEGUE_DOCKER.md
+# La configuración llega por variables (pestaña «Environment variables» del stack en Portainer, o un .env junto
+# a este archivo con «docker compose»). Plantilla: .env.example. Ningún valor secreto va escrito aquí.
+# La app escucha en ${HTTP_BIND}:${PUERTO} (127.0.0.1:8000 por defecto): delante va el proxy con HTTPS.
+
+name: adzone-team
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
 
 x-app: &app
   build: .
-  image: adzone-team:latest
+  image: adzone-team:${ADZONE_TAG:-local}
+  pull_policy: build
   restart: unless-stopped
-  env_file: .env.docker
   environment:
+    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Falta DJANGO_SECRET_KEY}
+    DJANGO_DEBUG: "0"
+    DJANGO_ALLOWED_HOSTS: ${DOMINIO:?Falta DOMINIO (el dominio de la app, sin https)}
+    CSRF_ORIGINS: https://${DOMINIO:?Falta DOMINIO}
+    NUM_PROXIES: ${NUM_PROXIES:-1}
     DB_ENGINE: mysql
     DB_HOST: db
     DB_PORT: "3306"
+    DB_NAME: adzone_team
+    DB_USER: adzone_team
+    DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
     MEDIA_ROOT: /data/media
     RESPALDOS_DIR: /data/respaldos
+    RESPALDO_CLAVE: ${RESPALDO_CLAVE:?Falta RESPALDO_CLAVE}
+    GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+    GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+    # Opcionales: vacíos = función apagada o valor por defecto de la app
+    AUTOMATIZACIONES_SECRETO: ${AUTOMATIZACIONES_SECRETO:-}
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    IA_MODELO: ${IA_MODELO:-claude-sonnet-5-5}
+    VAPID_PUBLICA: ${VAPID_PUBLICA:-}
+    VAPID_PRIVADA: ${VAPID_PRIVADA:-}
+    VAPID_CORREO: ${VAPID_CORREO:-adzonedigitalm@gmail.com}
+    INACTIVIDAD_EMPRESA_MIN: ${INACTIVIDAD_EMPRESA_MIN:-30}
+    INACTIVIDAD_MIN: ${INACTIVIDAD_MIN:-720}
+    DOS_PASOS_OBLIGATORIA: ${DOS_PASOS_OBLIGATORIA:-0}
+    CASHFLOW_API_KEY: ${CASHFLOW_API_KEY:-}
+    CASHFLOW_API_URL: ${CASHFLOW_API_URL:-https://api.cashflow.do}
   volumes:
     - media:/data/media
     - respaldos:/data/respaldos
   depends_on:
     db:
       condition: service_healthy
+  networks: [interna, salida]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  logging: *logging
 
 services:
   web:
     <<: *app
     command: web
     ports:
-      - "127.0.0.1:${PUERTO:-8000}:8000"
+      - "${HTTP_BIND:-127.0.0.1}:${PUERTO:-8000}:8000"
+    # El código es de solo lectura; Gunicorn y las subidas usan /tmp en memoria
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "python", "/app/docker/salud.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
 
   tareas:
     <<: *app
     command: tareas
+    # Sin read_only: el respaldo nocturno arma la copia en /tmp (en disco) antes de cifrarla
     healthcheck:
-      disable: true
+      test: ["CMD", "python", "/app/docker/salud.py", "tareas"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   db:
-    image: mariadb:11.4
+    image: mariadb:11.4.13
     restart: unless-stopped
-    env_file: .env.docker
     environment:
+      MARIADB_DATABASE: adzone_team
+      MARIADB_USER: adzone_team
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Falta DB_ROOT_PASSWORD}
       MARIADB_AUTO_UPGRADE: "1"
+      TZ: America/Santo_Domingo
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     volumes:
       - db:/var/lib/mysql
+    # Red interna: la base no tiene salida a Internet ni puerto publicado
+    networks: [interna]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 30s
+
+networks:
+  interna:
+    internal: true
+  salida: {}
 
 volumes:
   db:

@@ -6,11 +6,11 @@ Alternativa a Plesk + Passenger (`docs/DESPLIEGUE.md`) para un VPS o cualquier s
 
 | Archivo | Para qué |
 |---|---|
-| `Dockerfile` | Imagen única: compila el frontend (Node 22) y lo sirve con Django + Gunicorn (Python 3.12) |
+| `Dockerfile` | Imagen única: compila el frontend (Node 24.22.3) y lo sirve con Django + Gunicorn (Python 3.12.16) |
 | `docker-compose.yml` | 3 servicios: `web` (la app), `tareas` (tareas programadas) y `db` (MariaDB 11.4) |
 | `docker/entrypoint.sh` | `web`: espera la base, `check --deploy`, `migrate` y Gunicorn · `tareas`: cron (supercronic) |
 | `docker/crontab` | Las tareas de `servidor/tareas-programadas.txt`, en hora de RD, más el respaldo cifrado de las 2:30 |
-| `docker/env.ejemplo` | Plantilla de la configuración (`.env.docker`) |
+| `.env.example` | Plantilla de las variables (`.env` o variables del stack en Portainer) |
 | `.dockerignore` | Deja fuera de la imagen `.env`, bases `.sqlite3`, `media/`, `datos_privados/` y `.xlsx` |
 
 Volúmenes: `db` (MariaDB), `media` (evidencias y archivos privados, `/data/media`) y `respaldos` (`/data/respaldos`).
@@ -19,13 +19,13 @@ Volúmenes: `db` (MariaDB), `media` (evidencias y archivos privados, `/data/medi
 
 ```bash
 git clone <repo> adzone-team && cd adzone-team
-cp docker/env.ejemplo .env.docker && chmod 600 .env.docker
-nano .env.docker            # DJANGO_SECRET_KEY, contraseñas de la base (DB_* = MARIADB_*), RESPALDO_CLAVE, dominio
+cp .env.example .env && chmod 600 .env
+nano .env                   # DOMINIO, DJANGO_SECRET_KEY, DB_PASSWORD, DB_ROOT_PASSWORD, RESPALDO_CLAVE
 docker compose up -d --build
 docker compose ps           # web «healthy», tareas y db arriba
 ```
 
-Claves: `python3 -c "import secrets; print(secrets.token_urlsafe(50))"`. **Guarda `RESPALDO_CLAVE` y una copia de `.env.docker` fuera del servidor**: en Docker el respaldo no incluye la configuración.
+Claves: `python3 -c "import secrets; print(secrets.token_urlsafe(50))"`. **Guarda `RESPALDO_CLAVE` y una copia de `.env` fuera del servidor**: en Docker el respaldo no incluye la configuración.
 
 Datos iniciales (una sola vez):
 
@@ -45,7 +45,7 @@ docker compose exec web python manage.py loaddata /tmp/datos.json
 docker compose exec web rm /tmp/datos.json
 ```
 
-Avisos al celular: `docker compose exec web python manage.py generar_vapid`, pega las 3 líneas `VAPID_…` en `.env.docker` y `docker compose up -d`.
+Avisos al celular: `docker compose exec web python manage.py generar_vapid`, pega las 3 líneas `VAPID_…` en `.env` y `docker compose up -d`.
 
 ## 2 · Proxy con HTTPS (obligatorio)
 
@@ -68,7 +68,7 @@ server {
 }
 ```
 
-`NUM_PROXIES=1` en `.env.docker` corresponde a un solo proxy delante (ajústalo si hay Cloudflare + nginx = 2).
+`NUM_PROXIES=1` en `.env` corresponde a un solo proxy delante (ajústalo si hay Cloudflare + nginx = 2).
 
 ## 3 · Actualizar
 
