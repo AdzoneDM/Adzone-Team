@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.16 · 20/11/2026 · Al recargar o volver a entrar, te quedas donde estabas
+
+- **Volver a entrar te devuelve a la misma pantalla**: si la sesión vence (o abres un enlace sin sesión), después de entrar vas a esa pantalla (con sus filtros en la dirección), no siempre al Inicio. Había un cruce que mandaba a Inicio antes de que se aplicara el regreso.
+- **Recargar conserva el punto de la página**: se recuerda hasta dónde habías bajado en cada pantalla y, al recargar o volver atrás, vuelve ahí (espera a que la pantalla termine de cargar sus datos). Al abrir otra pantalla desde el menú o un enlace, empieza arriba como siempre.
+- **El chat se recuerda**: si recargas con el chat abierto, se vuelve a abrir en la misma conversación; si estaba cerrado, sigue cerrado.
+- Solo frontend (`lib/posicion.js`, `App.jsx`, `ChatFlotante.jsx`): sin migraciones.
+
 ## 12.15.1 · 20/11/2026 · «Comenzar» al entrar a la plataforma
 
 - La pantalla que aparece al entrar en el día ahora tiene **un solo botón: «Comenzar»**. Al tocarlo se inicia la jornada (se marca la entrada y arranca el contador de tiempo) y la pantalla desaparece; el aviso dice «Jornada iniciada a las 8:40:12 a. m.». Se quitó «Más tarde».

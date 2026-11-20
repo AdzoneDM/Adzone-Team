@@ -63,6 +63,12 @@ function Protegida({ children, admin, supervisor, asignar, finanzas, permiso }) 
   return children;
 }
 
+/** Ya con sesión, la pantalla de entrada te devuelve a donde estabas (si la sesión venció, vuelves a esa misma pantalla) y no siempre al Inicio. */
+function VolverDondeEstaba() {
+  const location = useLocation();
+  return <Navigate to={location.state?.desde || "/"} replace />;
+}
+
 /** El agente de call center entra directo a su pantalla; el resto, al Inicio de siempre. */
 function InicioSegunRol() {
   const { esAgente } = useSesion();
@@ -76,7 +82,7 @@ export default function App() {
   return (
     <Suspense fallback={<Cargando />}>
       <Routes>
-        <Route path="/entrar" element={usuario ? <Navigate to="/" replace /> : <Entrar />} />
+        <Route path="/entrar" element={usuario ? <VolverDondeEstaba /> : <Entrar />} />
         <Route path="/login" element={<Navigate to="/entrar" replace />} />
         <Route path="/pantalla-qr/:clave" element={<PantallaQR />} />
         <Route path="/portal/:token" element={<Portal />} />

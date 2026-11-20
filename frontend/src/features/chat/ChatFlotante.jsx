@@ -13,6 +13,11 @@ import { useConversaciones } from "./useChat";
 
 const esEscritorio = () => window.matchMedia("(min-width: 640px)").matches;
 
+// Si recargas la página con el chat abierto, vuelve a abrirse en la misma conversación
+const LLAVE_CHAT = "adzone:chat";
+const leerChat = () => { try { return JSON.parse(sessionStorage.getItem(LLAVE_CHAT) || "null"); } catch { return null; } };
+const guardarChat = (v) => { try { if (v) sessionStorage.setItem(LLAVE_CHAT, JSON.stringify(v)); else sessionStorage.removeItem(LLAVE_CHAT); } catch { /* sin almacenamiento */ } };
+
 function Cabecera({ conv, titulo, onAtras, onCerrar, soloMovil, etiquetaAtras = "Todos los chats" }) {
   const global = conv?.tipo === "GLOBAL";
   const subtitulo = !conv ? "Tu equipo, en un solo lugar"
@@ -41,7 +46,8 @@ function Cabecera({ conv, titulo, onAtras, onCerrar, soloMovil, etiquetaAtras = 
 
 export default function ChatFlotante() {
   const { usuario } = useSesion();
-  const [abierto, setAbierto] = useState(false);
+  const recordado = useRef(leerChat()); // { conv } si estaba abierto al recargar
+  const [abierto, setAbierto] = useState(() => !!recordado.current);
   const [conv, setConv] = useState(null); // conversación abierta a la derecha
   const [listaMovil, setListaMovil] = useState(false); // celular: lista completa con buscador (si no, la conversación con su tira)
   const [error, setError] = useState("");
@@ -50,7 +56,17 @@ export default function ChatFlotante() {
   const boton = useRef(null);
   const eligioAlgo = useRef(false);
 
-  const cerrar = useCallback(() => { setAbierto(false); setConv(null); setListaMovil(false); eligioAlgo.current = false; boton.current?.focus(); }, []);
+  const cerrar = useCallback(() => { setAbierto(false); setConv(null); setListaMovil(false); eligioAlgo.current = false; guardarChat(null); boton.current?.focus(); }, []);
+
+  // Recuerda el chat abierto y su conversación
+  useEffect(() => { if (abierto) guardarChat({ conv: conv?.id ?? null }); }, [abierto, conv?.id]);
+  // Al recargar: vuelve a la conversación que tenías (cuando llega la lista)
+  useEffect(() => {
+    if (!recordado.current || !conversaciones.length) return;
+    const guardada = conversaciones.find((c) => c.id === recordado.current.conv);
+    recordado.current = null;
+    if (guardada) { eligioAlgo.current = true; setConv(guardada); }
+  }, [conversaciones]);
   const verLista = useCallback(() => { setListaMovil(true); setError(""); refrescar(); }, [refrescar]);
 
   // Al abrir ya hay una conversación a la vista (la de la empresa), en PC y en celular

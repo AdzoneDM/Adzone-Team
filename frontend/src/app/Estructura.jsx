@@ -15,6 +15,7 @@ import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/ti
 import { esAlertaTarea } from "@/lib/alertas";
 import { sonarAlerta, sonarNotificacion } from "@/lib/sonido";
 import { anunciarNovedades } from "@/lib/novedades";
+import { useRecordarPosicion } from "@/lib/posicion";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
 import PantallaEntrada from "@/features/asistencia/PantallaEntrada";
@@ -331,6 +332,7 @@ function EstructuraInterna() {
   const sesion = useSesion();
   const { usuario, logout } = sesion;
   const guia = useGuia();
+  useRecordarPosicion();
   const [datos, refrescar] = useAvisos();
   const [mas, setMas] = useState(false);
   const [buscando, setBuscando] = useState(false);
