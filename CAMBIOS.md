@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.20 · 20/11/2026 · Ya no hay que recargar a mano después de una actualización
+
+- **Causa** de «tengo que dar a recargar para entrar a /puestos»: cada versión nueva cambia los nombres de los archivos de la app. Una pestaña que ya estaba abierta intentaba cargar una pantalla que aún no había visitado (por ejemplo Puestos) con el nombre **viejo**, que ya no existe: el servidor respondía la página principal en vez del archivo y la pantalla se quedaba cargando hasta que recargabas.
+- **Corrección**: si un archivo de pantalla no se puede cargar, la app **se recarga sola una vez** (trae la versión nueva y vuelve a la misma pantalla). Si aun así falla, en vez de dejar la pantalla en blanco muestra «Hay una versión nueva de Adzone Team — Recarga la página» y **el menú sigue funcionando** (puedes ir a otra pantalla). No entra en bucle: máximo una recarga automática cada 20 s.
+- También se atrapan los errores al dibujar una pantalla: aparece «No se pudo abrir esta pantalla» con «Reintentar» y «Recargar la página», sin tumbar toda la aplicación.
+- Solo frontend (`lib/perezosa.js`, `components/LimiteDeErrores.jsx`).
+- Despliegue (servidor): las versiones nuevas conservan los archivos de las anteriores (`assets/`), para que las pestañas abiertas sigan funcionando hasta que se recarguen.
+
 ## 12.19 · 20/11/2026 · Organigrama sin «divisiones» y buscador con autocompletado en Mi equipo
 
 - **Organigrama: un departamento se ve completo**. Causa: en el organigrama real, Marketing cuelga de una cadena larga (Presidente → Vicepresidente → CEO → Gerente de Marketing → Encargado de Creatividad → …) y el gráfico solo abría en fila los dos primeros niveles, así que todas las gerencias quedaban anidadas hacia abajo y Marketing aparecía partido. Ahora **la cadena de un solo puesto se dibuja en vertical y el abanico de áreas, en fila** (como un organigrama normal).

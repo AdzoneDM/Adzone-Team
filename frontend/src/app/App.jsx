@@ -1,58 +1,60 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Estructura from "@/app/Estructura";
+import LimiteDeErrores from "@/components/LimiteDeErrores";
 import { Cargando } from "@/components/ui";
+import { perezosa } from "@/lib/perezosa";
 import { useSesion } from "@/lib/sesion";
 import Entrar from "@/features/cuenta/Entrar";
 import Inicio from "@/features/inicio/Inicio";
 import MisTareas from "@/features/tareas/MisTareas";
 
 // Las pantallas de supervisión y administración se cargan al abrirlas: la app del celular pesa menos.
-const Validar = lazy(() => import("@/features/tareas/Validar"));
-const Equipo = lazy(() => import("@/features/equipo/Equipo"));
-const Colaboracion = lazy(() => import("@/features/colaboracion/Colaboracion"));
-const Desempeno = lazy(() => import("@/features/desempeno/Desempeno"));
-const KpisDelMes = lazy(() => import("@/features/desempeno/KpisDelMes"));
-const Organigrama = lazy(() => import("@/features/organizacion/Organigrama"));
-const Puestos = lazy(() => import("@/features/organizacion/Puestos"));
-const PuestoDetalle = lazy(() => import("@/features/organizacion/PuestoDetalle"));
-const Personas = lazy(() => import("@/features/organizacion/Personas"));
-const PlantillasKpi = lazy(() => import("@/features/kpis/PlantillasKpi"));
-const Configuracion = lazy(() => import("@/features/desempeno/Configuracion"));
-const MiCuenta = lazy(() => import("@/features/cuenta/MiCuenta"));
-const Ordenes = lazy(() => import("@/features/ordenes/Ordenes"));
-const OrdenDetalle = lazy(() => import("@/features/ordenes/OrdenDetalle"));
-const Proyectos = lazy(() => import("@/features/proyectos/Proyectos"));
-const ProyectoDetalle = lazy(() => import("@/features/proyectos/ProyectoDetalle"));
-const Clientes = lazy(() => import("@/features/clientes/Clientes"));
-const ClienteDetalle = lazy(() => import("@/features/clientes/ClienteDetalle"));
-const MiTiempo = lazy(() => import("@/features/tiempo/MiTiempo"));
-const Finanzas = lazy(() => import("@/features/finanzas/Finanzas"));
-const Imprimir = lazy(() => import("@/features/finanzas/Imprimir"));
-const Automatizaciones = lazy(() => import("@/features/automatizaciones/Automatizaciones"));
-const Accesos = lazy(() => import("@/features/organizacion/Accesos"));
-const MarcarQR = lazy(() => import("@/features/asistencia/MarcarQR"));
-const Portal = lazy(() => import("@/features/portal/Portal"));
-const PantallaQR = lazy(() => import("@/features/asistencia/PantallaQR"));
-const TableroDepartamento = lazy(() => import("@/features/departamentos/TableroDepartamento"));
-const ResumenSemanal = lazy(() => import("@/features/desempeno/ResumenSemanal"));
-const Respaldos = lazy(() => import("@/features/organizacion/Respaldos"));
-const DosPasosObligatoria = lazy(() => import("@/features/cuenta/DosPasos").then((m) => ({ default: m.DosPasosObligatoria })));
-const OrdenArea = lazy(() => import("@/features/ordenes/OrdenArea"));
-const Indicadores = lazy(() => import("@/features/ordenes/Indicadores"));
-const ImprimirFormato = lazy(() => import("@/features/ordenes/ImprimirFormato"));
-const AjustesProduccion = lazy(() => import("@/features/ordenes/AjustesProduccion"));
-const Almacen = lazy(() => import("@/features/almacen/Almacen"));
-const CallCenter = lazy(() => import("@/features/callcenter/CallCenter"));
-const Asistencia = lazy(() => import("@/features/asistencia/Asistencia"));
-const Monitoreo = lazy(() => import("@/features/monitoreo/Monitoreo"));
-const Ficha = lazy(() => import("@/features/desempeno/Ficha"));
-const Computadora = lazy(() => import("@/features/monitoreo/Computadora"));
-const Talento = lazy(() => import("@/features/talento/Talento"));
-const Politicas = lazy(() => import("@/features/talento/Politicas"));
-const Activos = lazy(() => import("@/features/activos/Activos"));
-const Constancia = lazy(() => import("@/features/talento/Politicas").then((m) => ({ default: m.Constancia })));
-const PanelGerencial = lazy(() => import("@/features/desempeno/PanelGerencial"));
+const Validar = perezosa(() => import("@/features/tareas/Validar"));
+const Equipo = perezosa(() => import("@/features/equipo/Equipo"));
+const Colaboracion = perezosa(() => import("@/features/colaboracion/Colaboracion"));
+const Desempeno = perezosa(() => import("@/features/desempeno/Desempeno"));
+const KpisDelMes = perezosa(() => import("@/features/desempeno/KpisDelMes"));
+const Organigrama = perezosa(() => import("@/features/organizacion/Organigrama"));
+const Puestos = perezosa(() => import("@/features/organizacion/Puestos"));
+const PuestoDetalle = perezosa(() => import("@/features/organizacion/PuestoDetalle"));
+const Personas = perezosa(() => import("@/features/organizacion/Personas"));
+const PlantillasKpi = perezosa(() => import("@/features/kpis/PlantillasKpi"));
+const Configuracion = perezosa(() => import("@/features/desempeno/Configuracion"));
+const MiCuenta = perezosa(() => import("@/features/cuenta/MiCuenta"));
+const Ordenes = perezosa(() => import("@/features/ordenes/Ordenes"));
+const OrdenDetalle = perezosa(() => import("@/features/ordenes/OrdenDetalle"));
+const Proyectos = perezosa(() => import("@/features/proyectos/Proyectos"));
+const ProyectoDetalle = perezosa(() => import("@/features/proyectos/ProyectoDetalle"));
+const Clientes = perezosa(() => import("@/features/clientes/Clientes"));
+const ClienteDetalle = perezosa(() => import("@/features/clientes/ClienteDetalle"));
+const MiTiempo = perezosa(() => import("@/features/tiempo/MiTiempo"));
+const Finanzas = perezosa(() => import("@/features/finanzas/Finanzas"));
+const Imprimir = perezosa(() => import("@/features/finanzas/Imprimir"));
+const Automatizaciones = perezosa(() => import("@/features/automatizaciones/Automatizaciones"));
+const Accesos = perezosa(() => import("@/features/organizacion/Accesos"));
+const MarcarQR = perezosa(() => import("@/features/asistencia/MarcarQR"));
+const Portal = perezosa(() => import("@/features/portal/Portal"));
+const PantallaQR = perezosa(() => import("@/features/asistencia/PantallaQR"));
+const TableroDepartamento = perezosa(() => import("@/features/departamentos/TableroDepartamento"));
+const ResumenSemanal = perezosa(() => import("@/features/desempeno/ResumenSemanal"));
+const Respaldos = perezosa(() => import("@/features/organizacion/Respaldos"));
+const DosPasosObligatoria = perezosa(() => import("@/features/cuenta/DosPasos").then((m) => ({ default: m.DosPasosObligatoria })));
+const OrdenArea = perezosa(() => import("@/features/ordenes/OrdenArea"));
+const Indicadores = perezosa(() => import("@/features/ordenes/Indicadores"));
+const ImprimirFormato = perezosa(() => import("@/features/ordenes/ImprimirFormato"));
+const AjustesProduccion = perezosa(() => import("@/features/ordenes/AjustesProduccion"));
+const Almacen = perezosa(() => import("@/features/almacen/Almacen"));
+const CallCenter = perezosa(() => import("@/features/callcenter/CallCenter"));
+const Asistencia = perezosa(() => import("@/features/asistencia/Asistencia"));
+const Monitoreo = perezosa(() => import("@/features/monitoreo/Monitoreo"));
+const Ficha = perezosa(() => import("@/features/desempeno/Ficha"));
+const Computadora = perezosa(() => import("@/features/monitoreo/Computadora"));
+const Talento = perezosa(() => import("@/features/talento/Talento"));
+const Politicas = perezosa(() => import("@/features/talento/Politicas"));
+const Activos = perezosa(() => import("@/features/activos/Activos"));
+const Constancia = perezosa(() => import("@/features/talento/Politicas").then((m) => ({ default: m.Constancia })));
+const PanelGerencial = perezosa(() => import("@/features/desempeno/PanelGerencial"));
 
 function Protegida({ children, admin, supervisor, asignar, finanzas, permiso }) {
   const { usuario, esAdmin, puedeValidar, puedeAsignar, esFinanzas, tiene } = useSesion();
@@ -77,9 +79,11 @@ function InicioSegunRol() {
 
 export default function App() {
   const { cargando, usuario } = useSesion();
+  const location = useLocation();
   if (cargando) return <Cargando texto="Abriendo Adzone Team…" />;
 
   return (
+    <LimiteDeErrores claveReinicio={location.pathname}>
     <Suspense fallback={<Cargando />}>
       <Routes>
         <Route path="/entrar" element={usuario ? <VolverDondeEstaba /> : <Entrar />} />
@@ -144,5 +148,6 @@ export default function App() {
         </Route>
       </Routes>
     </Suspense>
+    </LimiteDeErrores>
   );
 }

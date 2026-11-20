@@ -16,6 +16,7 @@ import { esAlertaTarea } from "@/lib/alertas";
 import { sonarAlerta, sonarNotificacion } from "@/lib/sonido";
 import { anunciarNovedades } from "@/lib/novedades";
 import { useRecordarPosicion } from "@/lib/posicion";
+import LimiteDeErrores from "@/components/LimiteDeErrores";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
 import PantallaEntrada from "@/features/asistencia/PantallaEntrada";
@@ -416,7 +417,8 @@ function EstructuraInterna() {
       <main className="mx-auto w-full max-w-[1320px] px-4 pb-28 pt-5 md:px-6 lg:px-8 lg:pb-12 lg:pt-7">
         <SugerenciaDosPasos usuario={usuario} enCuenta={location.pathname.startsWith("/mi-cuenta")} />
         <SugerenciaApp />
-        <Outlet context={{ refrescarAvisos: refrescar }} />
+        {/* Si una pantalla falla, el menú y la cabecera siguen funcionando: se puede ir a otra pantalla sin recargar */}
+        <LimiteDeErrores claveReinicio={location.pathname}><Outlet context={{ refrescarAvisos: refrescar }} /></LimiteDeErrores>
       </main>
 
       <ChatFlotante />
