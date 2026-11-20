@@ -129,11 +129,15 @@ def _jefes():
 
 
 def _usuarios():
-    """Personas activas con todo lo que se muestra precargado; los permisos efectivos se calculan en memoria (no una consulta por persona)."""
-    usuarios = list(User.objects.filter(is_active=True).select_related('perfil__puesto_trabajo__departamento', 'dos_pasos')
-                    .prefetch_related('groups', 'excepciones_permiso', 'equipo_extra__colaborador').order_by('first_name', 'last_name', 'username'))
+    return (User.objects.filter(is_active=True).select_related('perfil__puesto_trabajo__departamento', 'dos_pasos')
+            .prefetch_related('groups', 'excepciones_permiso', 'equipo_extra__colaborador').order_by('first_name', 'last_name', 'username'))
+
+
+def _con_permisos_calculados(usuarios):
+    """Para listas: los permisos efectivos de cada persona se calculan en memoria con lo ya cargado (no una consulta por persona)."""
+    usuarios = list(usuarios)
     por_perfil = {p.grupo_id: p.permisos or [] for p in PermisosDePerfil.objects.all()}
-    for u in usuarios:  # misma regla que permisos._cache, con lo ya cargado
+    for u in usuarios:  # misma regla que permisos._cache
         efectivos_u = set(CODIGOS)
         if not u.is_superuser:
             efectivos_u = set()
@@ -152,7 +156,7 @@ def _usuarios():
 def personas_view(request):
     _gestiona(request.user)
     jefes = _jefes()
-    return Response([_persona(u, jefes) for u in _usuarios()])
+    return Response([_persona(u, jefes) for u in _con_permisos_calculados(_usuarios())])
 
 
 @api_view(['POST'])
