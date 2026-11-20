@@ -1,8 +1,9 @@
 # Cambios
 
-## 12.14.1 · 20/11/2026 · Organigrama: te lleva solo al departamento
+## 12.14.1 · 20/11/2026 · Organigrama: te lleva solo al departamento y la barra queda fija
 
 - Al elegir un departamento en la leyenda, el organigrama **se desplaza solo hasta él** (dentro del gráfico y en la página), centrándolo en pantalla, en lugar de dejarte buscar con el scroll mientras el resto se atenúa. Lo mismo al buscar: te lleva a la primera coincidencia (después de abrir las ramas que la contienen). Respeta «reducir movimiento» del sistema. Funciona también en la vista de lista.
+- **La barra de búsqueda y departamentos queda fija arriba** mientras te desplazas, para cambiar de departamento sin tener que volver a subir. En el celular se fija la fila de departamentos (que se desliza de lado) y el buscador queda en su lugar.
 
 ## 12.14 · 20/11/2026 · Organigrama empresarial
 

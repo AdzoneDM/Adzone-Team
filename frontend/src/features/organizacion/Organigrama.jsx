@@ -271,9 +271,10 @@ export default function Organigrama() {
         <Alerta tono="amarillo" className="mb-5">{plural(datos.sin_puesto, "persona activa no tiene", "personas activas no tienen")} puesto: no tienen supervisor ni KPIs. <Link to="/personas" className="font-medium underline">Asignar puestos</Link></Alerta>
       )}
 
-      {/* Barra de herramientas */}
-      <div className="no-imprimir mb-4 space-y-3 rounded-xl border border-linea bg-white p-3">
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Barra de herramientas: queda fija arriba al desplazarte, para cambiar de departamento sin volver a subir.
+          En el celular («contents») solo se fija la fila de departamentos; el buscador queda en su lugar. */}
+      <div className="no-imprimir mb-4 max-md:contents md:sticky md:top-14 md:z-20 md:space-y-3 md:rounded-xl md:border md:border-linea md:bg-white/95 md:p-3 md:shadow-sm md:backdrop-blur lg:top-16">
+        <div className="flex flex-wrap items-center gap-2 max-md:mb-3 max-md:rounded-xl max-md:border max-md:border-linea max-md:bg-white max-md:p-3">
           <div className="relative min-w-52 flex-1 md:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" aria-hidden />
             <input className="campo h-10 !pl-9 !pr-9" placeholder="Buscar persona, puesto o departamento" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar en el organigrama" />
@@ -302,20 +303,20 @@ export default function Organigrama() {
           </div>
         </div>
         {/* Leyenda de departamentos: al elegir uno, el resto se atenúa */}
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Departamentos">
+        <div className="flex items-center gap-1.5 max-md:sticky max-md:top-14 max-md:z-20 max-md:-mx-4 max-md:mb-3 max-md:overflow-x-auto max-md:border-b max-md:border-linea max-md:bg-fondo/95 max-md:px-4 max-md:py-2 max-md:backdrop-blur max-md:[scrollbar-width:none] md:flex-wrap" role="group" aria-label="Departamentos">
           {departamentos.map((d) => {
             const c = colorDe(d.id);
             const activo = depto === d.id;
             return (
               <button key={d.id} type="button" onClick={() => setDepto(activo ? null : d.id)} aria-pressed={activo}
-                className={cx("inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors", activo ? "text-white" : "bg-white text-tinta hover:bg-fondo")}
+                className={cx("inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors", activo ? "text-white" : "bg-white text-tinta hover:bg-fondo")}
                 style={activo ? { background: c.acento, borderColor: c.acento } : { borderColor: "#e3e8f1" }}>
                 <span className="size-2 rounded-full" style={{ background: activo ? "#fff" : c.acento }} aria-hidden />
                 {d.nombre}<span className="num opacity-70">{d.personas}</span>
               </button>
             );
           })}
-          {depto != null && <button type="button" onClick={() => setDepto(null)} className="rounded px-2 text-xs font-medium text-azul hover:underline">Quitar filtro</button>}
+          {depto != null && <button type="button" onClick={() => setDepto(null)} className="shrink-0 whitespace-nowrap rounded px-2 text-xs font-medium text-azul hover:underline">Quitar filtro</button>}
         </div>
       </div>
 
