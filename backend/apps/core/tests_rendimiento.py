@@ -10,7 +10,7 @@ from apps.core.models import Departamento
 from apps.kpis.models import KPIAsignado, PlantillaKPI
 from apps.organizacion.models import PuestoDeTrabajo
 
-ENDPOINTS = ['/api/organizacion/usuarios/', '/api/organizacion/puestos-trabajo/', '/api/kpis/kpis-asignados/', '/api/accesos/personas/', '/api/asistencia/hoy/']
+ENDPOINTS = ['/api/kpis/plantillas-kpi/', '/api/organizacion/usuarios/', '/api/organizacion/puestos-trabajo/', '/api/kpis/kpis-asignados/', '/api/accesos/personas/', '/api/asistencia/hoy/']
 TOLERANCIA = 4  # consultas de más al triplicar la gente (por ejemplo, otra página de resultados)
 
 

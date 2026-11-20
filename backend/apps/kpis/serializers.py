@@ -12,7 +12,7 @@ class PlantillaKPISerializer(serializers.ModelSerializer):
                   'responsable_validacion', 'puestos_asignados', 'fecha_creacion', 'fecha_modificacion']
 
     def get_puestos_asignados(self, obj):
-        return obj.asignaciones.count()
+        return len(obj.asignaciones.all())  # con prefetch no hace una consulta por plantilla
 
     def validate_nombre(self, value):
         value = value.strip()

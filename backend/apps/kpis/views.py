@@ -31,7 +31,7 @@ class KPIAsignadoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = KPIAsignado.objects.select_related('puesto_trabajo__departamento', 'puesto_trabajo__supervisor', 'plantilla_kpi')
+        queryset = KPIAsignado.objects.select_related('puesto_trabajo__departamento', 'puesto_trabajo__supervisor', 'plantilla_kpi').prefetch_related('plantilla_kpi__asignaciones')
         orden = ('puesto_trabajo__departamento__nombre', 'puesto_trabajo__nombre', 'plantilla_kpi__nombre')
         if es_administrador(user):
             return queryset.order_by(*orden)
