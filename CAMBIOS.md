@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.19 · 20/11/2026 · Organigrama sin «divisiones» y buscador con autocompletado en Mi equipo
+
+- **Organigrama: un departamento se ve completo**. Causa: en el organigrama real, Marketing cuelga de una cadena larga (Presidente → Vicepresidente → CEO → Gerente de Marketing → Encargado de Creatividad → …) y el gráfico solo abría en fila los dos primeros niveles, así que todas las gerencias quedaban anidadas hacia abajo y Marketing aparecía partido. Ahora **la cadena de un solo puesto se dibuja en vertical y el abanico de áreas, en fila** (como un organigrama normal).
+- Al elegir un departamento: aparece un **resumen con todas sus personas y puestos** (5 personas · 6 puestos · 3 vacantes…), cada uno con un clic para ir a su tarjeta; el gráfico **encuadra todas las tarjetas del departamento** (no solo la primera) y abre las ramas que lleven hasta él.
+- **Mi equipo: buscador con autocompletado**, siempre arriba (en Ahora, Tareas y Recurrentes). Al escribir sugiere **personas** del equipo (nombre, puesto, departamento) y **tareas de cualquier mes** (con el responsable, el estado y la fecha); lo escrito se resalta aunque no pongas tildes. Elegir una persona muestra sus tareas; elegir una tarea la abre; **Enter** busca el texto en todas las tareas (queda una etiqueta «Búsqueda: …» que se quita con un clic). Funciona con teclado (flechas, Enter, Esc) y lectores de pantalla.
+- Solo frontend, sin migraciones.
+
 ## 12.18 · 20/11/2026 · Rendimiento: pantallas más rápidas
 
 Medido en producción con 38 personas (tiempos de servidor, ya "caliente"; la red no era el problema: ~70 ms y 0,25 s por solicitud):

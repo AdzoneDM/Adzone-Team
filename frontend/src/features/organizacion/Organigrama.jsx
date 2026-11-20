@@ -52,7 +52,7 @@ function Tarjeta({ nodo, admin, resumen, abierto, onAlternar, atenuado, destacad
   const color = colorDe(nodo.departamento_id);
   const titulo = admin ? <Link to={`/puestos/${nodo.id}`} className="hover:text-azul hover:underline">{nodo.nombre}</Link> : nodo.nombre;
   return (
-    <div data-depto={nodo.departamento_id} data-coincide={destacado ? "1" : undefined}
+    <div data-nodo={nodo.id} data-depto={nodo.departamento_id} data-coincide={destacado ? "1" : undefined}
       className={cx("relative overflow-hidden rounded-xl border bg-white shadow-sm transition", ancho, atenuado && "opacity-35", destacado ? "border-azul ring-2 ring-azul/30" : "border-linea hover:shadow-md")}>
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: color.acento }} aria-hidden />
       <div className="py-3 pl-4 pr-3">
@@ -96,19 +96,29 @@ function NodoVertical({ nodo, ctx }) {
   );
 }
 
-/** Una raíz y sus áreas en fila, unidas por conectores. */
+/** Una raíz: la cadena de mando de un solo puesto va en vertical (Presidente → Vicepresidente → CEO…) y, donde se abre el
+ *  abanico (la dirección con sus áreas), las áreas van en fila, unidas por conectores. */
 function Arbol({ raiz, ctx }) {
-  const abierta = ctx.abierto(raiz);
-  const n = raiz.hijos.length;
+  // Sigue hacia abajo mientras cada puesto tenga un único puesto a cargo
+  const cadena = [raiz];
+  while (ctx.abierto(cadena[cadena.length - 1]) && cadena[cadena.length - 1].hijos.length === 1) cadena.push(cadena[cadena.length - 1].hijos[0]);
+  const ultimo = cadena[cadena.length - 1];
+  const hijos = ctx.abierto(ultimo) ? ultimo.hijos : [];
+  const n = hijos.length;
   return (
     <div className="inline-flex flex-col items-center">
-      <Tarjeta nodo={raiz} admin={ctx.admin} resumen={contar(raiz)} abierto={abierta} onAlternar={() => ctx.alternar(raiz.id)}
-        atenuado={ctx.atenuado(raiz)} destacado={ctx.destacado(raiz)} ancho="w-[300px]" />
-      {abierta && n > 0 && (
+      {cadena.map((nodo, i) => (
+        <div key={nodo.id} className="flex flex-col items-center">
+          {i > 0 && <span className="h-6 w-px bg-linea" aria-hidden />}
+          <Tarjeta nodo={nodo} admin={ctx.admin} resumen={contar(nodo)} abierto={ctx.abierto(nodo)} onAlternar={() => ctx.alternar(nodo.id)}
+            atenuado={ctx.atenuado(nodo)} destacado={ctx.destacado(nodo)} ancho="w-[300px]" />
+        </div>
+      ))}
+      {n > 0 && (
         <>
           <span className="h-7 w-px bg-linea" aria-hidden />
           <div className="flex items-start justify-center">
-            {raiz.hijos.map((h, i) => (
+            {hijos.map((h, i) => (
               <div key={h.id} className="relative flex flex-col items-center px-3 pt-7">
                 {/* Conector horizontal: de la mitad al borde en los extremos, completo en el medio */}
                 {n > 1 && <span className={cx("absolute top-0 h-px bg-linea", i === 0 ? "left-1/2 right-0" : i === n - 1 ? "left-0 right-1/2" : "inset-x-0")} aria-hidden />}
@@ -149,13 +159,40 @@ function Lienzo({ escala, children }) {
   );
 }
 
+// ── Resumen de un departamento: todas sus personas y puestos, estén en la rama que estén ────────────────────────────
+function PanelDepartamento({ departamento, nodos, onIr, onQuitar }) {
+  const color = colorDe(departamento.id);
+  const puestos = nodos.filter((n) => n.departamento_id === departamento.id);
+  const personas = puestos.reduce((a, n) => a + n.personas.length, 0);
+  const vacantes = puestos.filter((n) => !n.personas.length).length;
+  return (
+    <section aria-label={`Equipo de ${departamento.nombre}`} className="no-imprimir mb-4 overflow-hidden rounded-xl border bg-white" style={{ borderColor: color.acento }}>
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3" style={{ background: color.suave }}>
+        <h2 className="!text-base font-semibold" style={{ color: color.acento }}>{departamento.nombre}</h2>
+        <p className="text-sm text-tinta">{plural(personas, "persona", "personas")} · {plural(puestos.length, "puesto", "puestos")}{vacantes > 0 && ` · ${plural(vacantes, "vacante", "vacantes")}`}</p>
+        <button type="button" onClick={onQuitar} className="ml-auto rounded px-2 py-1 text-xs font-medium text-azul hover:underline">Quitar filtro</button>
+      </header>
+      <ul className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
+        {puestos.map((n) => (
+          <li key={n.id}>
+            <button type="button" onClick={() => onIr(n.id)} className="h-full w-full rounded-lg border border-linea px-3 py-2 text-left transition-colors hover:border-azul/40 hover:bg-fondo" aria-label={`Ir a ${n.nombre}`}>
+              <p className="text-xs font-medium text-gris">{n.nombre}</p>
+              {n.personas.length ? <p className="mt-0.5 text-sm font-medium text-tinta">{n.personas.map((p) => p.nombre).join(" · ")}</p> : <p className="mt-0.5 text-sm italic text-gris">Vacante</p>}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 // ── Lista (celular y accesibilidad) ─────────────────────────────────────────────────────────────────────────────────
 function ItemLista({ nodo, nivel, ctx }) {
   const color = colorDe(nodo.departamento_id);
   const abierto = ctx.abierto(nodo);
   return (
     <li>
-      <div data-depto={nodo.departamento_id} data-coincide={ctx.destacado(nodo) ? "1" : undefined}
+      <div data-nodo={nodo.id} data-depto={nodo.departamento_id} data-coincide={ctx.destacado(nodo) ? "1" : undefined}
         className={cx("flex items-start gap-3 rounded-lg border bg-white px-3 py-2.5", ctx.atenuado(nodo) && "opacity-35", ctx.destacado(nodo) ? "border-azul ring-2 ring-azul/30" : "border-linea")} style={{ borderLeftColor: color.acento, borderLeftWidth: 4 }}>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: color.acento }}>{nodo.departamento}</p>
@@ -193,6 +230,7 @@ export default function Organigrama() {
   useEffect(() => { organigrama().then(setDatos).catch((e) => setError(e.message)); }, []);
 
   const todos = useMemo(() => (datos ? aplanar(datos.raices) : []), [datos]);
+  const padres = useMemo(() => { const m = new Map(); todos.forEach((n) => n.hijos.forEach((h) => m.set(h.id, n.id))); return m; }, [todos]);
   const departamentos = useMemo(() => {
     const m = new Map();
     todos.forEach((n) => { if (!m.has(n.departamento_id)) m.set(n.departamento_id, { id: n.departamento_id, nombre: n.departamento, puestos: 0, personas: 0 }); const d = m.get(n.departamento_id); d.puestos += 1; d.personas += n.personas.length; });
@@ -226,16 +264,39 @@ export default function Organigrama() {
     const t = setTimeout(() => ajustar(0.6), 80);
     return () => clearTimeout(t);
   }, [datos, vista, ajustar]);
-  // Al elegir un departamento o buscar, el organigrama te lleva solo hasta lo que pediste (dentro del gráfico y en la página)
+  // Al elegir un departamento o buscar, el organigrama te lleva solo hasta lo que pediste: encuadra TODAS sus tarjetas
+  // (un departamento puede estar repartido en varias ramas), dentro del gráfico y en la página.
   const irA = useCallback((selector) => {
-    const el = contenedor.current?.parentElement?.querySelector(selector) || document.querySelector(selector);
-    el?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center", inline: "center" });
+    const els = [...document.querySelectorAll(selector)];
+    if (!els.length) return;
+    const suave = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    const r = els.map((e) => e.getBoundingClientRect());
+    const arriba = Math.min(...r.map((x) => x.top)), abajo = Math.max(...r.map((x) => x.bottom));
+    const izq = Math.min(...r.map((x) => x.left)), der = Math.max(...r.map((x) => x.right));
+    const caja = contenedor.current;
+    if (caja) { // horizontal: centra el grupo dentro del gráfico
+      const c = caja.getBoundingClientRect();
+      caja.scrollBy({ left: (izq + der) / 2 - (c.left + c.width / 2), behavior: suave });
+    }
+    // vertical: si cabe, lo centra en el espacio visible (debajo de las barras fijas); si no, deja su inicio a la vista
+    const margen = 190;
+    const alto = abajo - arriba;
+    const y = alto < window.innerHeight - margen - 40 ? (arriba + alto / 2) - (margen + (window.innerHeight - margen) / 2) : arriba - margen - 12;
+    window.scrollBy({ top: y, behavior: suave });
   }, []);
   useEffect(() => {
     if (depto == null) return undefined;
-    const id = requestAnimationFrame(() => irA(`[data-depto="${depto}"]`));
-    return () => cancelAnimationFrame(id);
-  }, [depto, irA, vista]);
+    // Se abren las ramas que llevan hasta ese departamento (por si se habían contraído)
+    setCerrados((cs) => {
+      if (!cs.size) return cs;
+      const abrir = new Set();
+      todos.filter((n) => n.departamento_id === depto).forEach((n) => { for (let p = padres.get(n.id); p != null; p = padres.get(p)) abrir.add(p); });
+      const nuevo = new Set([...cs].filter((id) => !abrir.has(id)));
+      return nuevo.size === cs.size ? cs : nuevo;
+    });
+    const id = setTimeout(() => irA(`[data-depto="${depto}"]`), 120);
+    return () => clearTimeout(id);
+  }, [depto, irA, vista]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!t) return undefined;
     const id = setTimeout(() => irA('[data-coincide="1"]'), 350); // espera a que se abran las ramas con coincidencias
@@ -319,6 +380,11 @@ export default function Organigrama() {
           {depto != null && <button type="button" onClick={() => setDepto(null)} className="shrink-0 whitespace-nowrap rounded px-2 text-xs font-medium text-azul hover:underline">Quitar filtro</button>}
         </div>
       </div>
+
+      {depto != null && (
+        <PanelDepartamento departamento={departamentos.find((d) => d.id === depto) || { id: depto, nombre: "Departamento" }} nodos={todos}
+          onIr={(id) => irA(`[data-nodo="${id}"]`)} onQuitar={() => setDepto(null)} />
+      )}
 
       {vista === "grafico" ? (
         <div ref={contenedor} className="overflow-auto rounded-xl border border-linea bg-[radial-gradient(circle,#dfe5f1_1px,transparent_1px)] [background-size:22px_22px] bg-white p-6 print:overflow-visible print:border-0">

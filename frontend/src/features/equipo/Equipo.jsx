@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BellRing, Ban, ClipboardList, Pencil, Plus, Repeat, RotateCcw, Search, Target, Trash2 } from "lucide-react";
+import { BellRing, Ban, ClipboardList, Pencil, Plus, Repeat, RotateCcw, Search, Target, Trash2, X } from "lucide-react";
 import {
   cancelarTarea, eliminarRecurrente, eliminarTarea, equipo as cargarEquipo, guardarRecurrente,
   listarRecurrentes, listarTareas, obtenerTarea, reabrirTarea, recordarTarea,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { DetalleTarea, EquipoTarea, Progreso, Vencimiento } from "@/features/tareas/componentes";
 import Ahora from "@/features/equipo/Ahora";
+import BuscadorEquipo from "@/features/equipo/BuscadorEquipo";
 import FormTarea from "@/features/tareas/FormTarea";
 import { useNovedades } from "@/lib/novedades";
 
@@ -71,26 +72,30 @@ export default function Equipo() {
   const colaborador = params.get("colaborador") || "";
   const estado = params.get("estado") || "";
   const vencidas = params.get("vencidas") === "1";
-  const [buscar, setBuscar] = useState("");
+  const buscar = params.get("buscar") || "";
 
   useEffect(() => { if (params.get("nueva") === "1") { setForm({}); params.delete("nueva"); setParams(params, { replace: true }); } }, [params, setParams]);
   const poner = (clave, valor) => { if (valor) params.set(clave, valor); else params.delete(clave); setParams(params, { replace: true }); };
 
   const cargar = useCallback((silencioso) => {
     if (silencioso !== true) setTareas(null);
-    listarTareas({ ambito: "equipo", mes: vencidas ? "" : mes, colaborador, estado, vencidas: vencidas ? "1" : "" })
+    // Con una búsqueda de texto se mira en todas las tareas, de cualquier mes
+    listarTareas({ ambito: "equipo", mes: vencidas || buscar ? "" : mes, colaborador, estado, vencidas: vencidas ? "1" : "", buscar })
       .then(setTareas).catch((e) => setError(e.message));
-  }, [mes, colaborador, estado, vencidas]);
+  }, [mes, colaborador, estado, vencidas, buscar]);
   useEffect(() => { cargar(); }, [cargar, version]);
   useNovedades(useCallback(() => cargar(true), [cargar]));
   useEffect(() => { cargarEquipo().then(setGente).catch(() => {}); }, []);
 
-  const lista = useMemo(() => (tareas || []).filter((t) => !buscar || t.titulo.toLowerCase().includes(buscar.toLowerCase()))
-    .sort((a, b) => a.fecha_limite.localeCompare(b.fecha_limite)), [tareas, buscar]);
+  const lista = useMemo(() => [...(tareas || [])].sort((a, b) => a.fecha_limite.localeCompare(b.fecha_limite)), [tareas]);
   const cuenta = (fn) => (tareas || []).filter(fn).length;
   const hoy = hoyISO();
 
   const recargar = () => setVersion((v) => v + 1);
+  // Desde el buscador: una persona muestra sus tareas; un texto busca en todas; una tarea se abre
+  const verPersona = (p) => { const n = new URLSearchParams(params); n.set("ver", "tareas"); n.set("colaborador", String(p.id)); n.delete("buscar"); n.delete("vencidas"); setParams(n); };
+  const buscarTexto = (texto) => { const n = new URLSearchParams(params); n.set("ver", "tareas"); n.set("buscar", texto); n.delete("colaborador"); n.delete("vencidas"); setParams(n); };
+  const abrirTarea = async (t) => { try { setDetalle(await obtenerTarea(t.id)); } catch (e) { avisar(e.message, "rojo"); } };
   const accionDetalle = async (accion) => {
     const t = detalle;
     try {
@@ -124,6 +129,8 @@ export default function Equipo() {
         <Boton icono={Plus} onClick={() => setForm({ colaborador: colaborador || "" })} data-guia="nueva-tarea">Nueva tarea</Boton>
       </Cabecera>
 
+      <BuscadorEquipo gente={gente} onPersona={verPersona} onTarea={abrirTarea} onBuscar={buscarTexto} className="mb-4 max-w-2xl" />
+
       <Pestanas className="mb-5 max-w-md" valor={vista} onCambio={(v) => poner("ver", v === "ahora" ? "" : v)}
         opciones={[{ valor: "ahora", etiqueta: "Ahora" }, { valor: "tareas", etiqueta: "Tareas" }, { valor: "recurrentes", etiqueta: "Recurrentes" }]} />
 
@@ -135,7 +142,7 @@ export default function Equipo() {
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            {!vencidas && <SelectorMes valor={mes} onCambio={(v) => poner("mes", v === mesActual() ? "" : v)} hastaActual={false} />}
+            {!vencidas && !buscar && <SelectorMes valor={mes} onCambio={(v) => poner("mes", v === mesActual() ? "" : v)} hastaActual={false} />}
             <select className="campo h-11 w-auto py-0" value={colaborador} onChange={(e) => poner("colaborador", e.target.value)} aria-label="Persona">
               <option value="">Todo el equipo</option>
               {gente.filter((g) => !g.es_yo).map((g) => <option key={g.id} value={g.id}>{g.nombre}</option>)}
@@ -147,10 +154,11 @@ export default function Equipo() {
             <label className="flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm">
               <input type="checkbox" checked={vencidas} onChange={(e) => poner("vencidas", e.target.checked ? "1" : "")} className="accent-rojo" /> Solo vencidas
             </label>
-            <div className="relative min-w-48 flex-1 md:max-w-xs">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" />
-              <input className="campo h-11 pl-9" placeholder="Buscar tarea" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar tarea" />
-            </div>
+            {buscar && (
+              <button type="button" onClick={() => poner("buscar", "")} className="flex h-11 items-center gap-2 rounded-full border border-azul/30 bg-azul/10 pl-4 pr-3 text-sm font-medium text-azul hover:bg-azul/15" aria-label={`Quitar la búsqueda «${buscar}»`}>
+                <Search className="size-4" aria-hidden />Búsqueda: «{buscar}»<X className="size-4" aria-hidden />
+              </button>
+            )}
           </div>
 
           {tareas && !vencidas && (
