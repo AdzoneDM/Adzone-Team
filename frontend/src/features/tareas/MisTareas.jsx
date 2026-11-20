@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Ban, Hand, ListChecks, Paperclip, Play, Send, Target, Unlock } from "lucide-react";
+import { Ban, Hand, ListChecks, Paperclip, Play, Plus, Send, Target, Unlock } from "lucide-react";
 import { bloquearTarea, desbloquearTarea, iniciarTarea, listarTareas, miDisponibilidad, miResumen, pedirTrabajo } from "@/lib/api";
 import { mesActual } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { refrescarAvisos } from "@/app/Estructura";
 import { DetalleTarea, EntregarModal, EquipoTarea, Evidencias, Progreso, Vencimiento } from "@/features/tareas/componentes";
+import FormTareaPropia from "@/features/tareas/FormTareaPropia";
 import { Alerta, Boton, Campo, Cargando, EstadoTarea, Estrellas, Modal, Pestanas, PrioridadTarea, SelectorMes, Vacio, cx, useAviso } from "@/components/ui";
 import { MiMes } from "@/features/inicio/Inicio";
 import BotonCronometro from "@/features/tiempo/BotonCronometro";
@@ -100,6 +101,7 @@ export default function MisTareas() {
   const [entregando, setEntregando] = useState(null);
   const [iniciando, setIniciando] = useState(null);
   const [pidiendo, setPidiendo] = useState(false);
+  const [creando, setCreando] = useState(false); // nueva tarea para mí
   const [bloqueando, setBloqueando] = useState(null);
   const [disp, setDisp] = useState(null);
   const ver = params.get("ver") || "hacer";
@@ -182,10 +184,13 @@ export default function MisTareas() {
           { valor: "validadas", etiqueta: "Validadas" },
         ]} />
         {ver === "validadas" && <SelectorMes valor={mesValidadas} onCambio={setMesValidadas} />}
+        {usuario.puede_autoasignar && <Boton icono={Plus} onClick={() => setCreando(true)} data-guia="tarea-propia" className="w-full md:w-auto">Nueva tarea para mí</Boton>}
       </div>
 
       {lista.length === 0 ? (
-        <Vacio icono={ListChecks} accion={ver === "hacer" && <Boton variante="acento" icono={Hand} onClick={pedir} cargando={pidiendo}>Pedir más trabajo</Boton>} titulo={
+        <Vacio icono={ListChecks} accion={ver === "hacer" && <div className="flex flex-wrap justify-center gap-2">
+          {usuario.puede_autoasignar && <Boton icono={Plus} onClick={() => setCreando(true)}>Nueva tarea para mí</Boton>}
+          <Boton variante="acento" icono={Hand} onClick={pedir} cargando={pidiendo}>Pedir más trabajo</Boton></div>} titulo={
           ver === "hacer" ? "No tienes tareas pendientes" : ver === "revision" ? "Nada esperando validación" : "Sin tareas validadas en ese mes"}>
           {ver === "hacer" ? (disp?.en_espera ? "Tu supervisor ya sabe que estás disponible. Mientras llega una tarea, registra tus actividades adicionales."
             : "Estás al día. Avísale a tu supervisor que puedes tomar más: quedas «en espera de asignación» hasta que te llegue una tarea.")
@@ -198,6 +203,8 @@ export default function MisTareas() {
             onBloquear={setBloqueando} onDesbloquear={desbloquear} iniciando={iniciando} />)}
         </ul>
       )}
+
+      <FormTareaPropia abierto={creando} onCerrar={() => setCreando(false)} onGuardada={(m) => { setCreando(false); avisar(m); setParams((p) => { p.set("ver", "hacer"); return p; }, { replace: true }); cargar(); }} />
 
       <DetalleTarea tarea={detalle} abierto={!!detalle} onCerrar={cerrar}
         onCambio={(t) => setTareas((l) => l.map((x) => (x.id === t.id ? t : x)))}

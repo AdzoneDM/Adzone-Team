@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from .models import EsperaAsignacion, EvidenciaArchivo, HistorialTarea, Notificacion, Tarea, TareaRecurrente
-from .permisos import administradores, revisores_de
+from .permisos import administradores, revisores_de, revisores_de_tarea
 
 log = logging.getLogger('adzone')
 
@@ -64,7 +64,7 @@ def al_entregar(tarea, quien):
               'nota' if tarea.evidencia_nota else '']
     evidencia = ', '.join(p for p in partes if p)  # entregar exige evidencia: siempre hay algo
     # Su supervisor y también la administración: cualquiera de los dos la valida desde «Por validar».
-    avisar([*revisores_de(tarea.colaborador), *administradores()], 'ENTREGADA', f"Por validar: {tarea.titulo}",
+    avisar([*revisores_de_tarea(tarea), *([] if tarea.revisor_id else administradores())], 'ENTREGADA', f"Por validar: {tarea.titulo}",
            f"{nombre(quien)} la entregó{ronda} con evidencia: {evidencia}.", tarea=tarea, enlace=f'/validar?tarea={tarea.pk}', excepto=quien)
     tras_cambio(tarea, quien, 'TAREA_ENTREGADA')
 
@@ -129,7 +129,7 @@ def al_modificar(tarea, quien, campos):
 
 def al_bloquear(tarea, quien):
     registrar(tarea, quien, 'BLOQUEADA', tarea.motivo_bloqueo)
-    avisar([*revisores_de(tarea.colaborador), tarea.colaborador, *tarea.companeros.all()], 'BLOQUEADA',
+    avisar([*revisores_de_tarea(tarea), tarea.colaborador, *tarea.companeros.all()], 'BLOQUEADA',
            f"Bloqueada: {tarea.titulo}", f"{nombre(quien)}: {tarea.motivo_bloqueo}",
            tarea=tarea, enlace=f'/equipo?colaborador={tarea.colaborador_id}', excepto=quien)
     tras_cambio(tarea, quien)
@@ -137,7 +137,7 @@ def al_bloquear(tarea, quien):
 
 def al_desbloquear(tarea, quien, nota=''):
     registrar(tarea, quien, 'DESBLOQUEADA', nota)
-    avisar([*revisores_de(tarea.colaborador), tarea.colaborador, *tarea.companeros.all()], 'BLOQUEADA',
+    avisar([*revisores_de_tarea(tarea), tarea.colaborador, *tarea.companeros.all()], 'BLOQUEADA',
            f"Se puede seguir: {tarea.titulo}", nota or f"{nombre(quien)} la desbloqueó.",
            tarea=tarea, enlace='/mis-tareas', excepto=quien)
     tras_cambio(tarea, quien)
@@ -156,7 +156,7 @@ def avisar_bloqueadas(ahora=None):
         if Notificacion.objects.filter(tarea=tarea, tipo='BLOQUEADA', fecha__gte=hoy0).exists():
             continue
         dias = (ahora - tarea.bloqueada_desde).days
-        avisar(revisores_de(tarea.colaborador), 'BLOQUEADA', f"Sigue bloqueada ({dias} días): {tarea.titulo}",
+        avisar(revisores_de_tarea(tarea), 'BLOQUEADA', f"Sigue bloqueada ({dias} días): {tarea.titulo}",
                f"{nombre(tarea.colaborador)}: {tarea.motivo_bloqueo}", tarea=tarea,
                enlace=f'/equipo?colaborador={tarea.colaborador_id}')
         n += 1

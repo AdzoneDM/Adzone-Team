@@ -23,8 +23,8 @@ from .models import (
     Tarea, TareaRecurrente,
 )
 from .permisos import (
-    EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar, puede_revisar,
-    puede_validar, puesto_de, subordinados,
+    EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar, puede_revisar, puede_revisar_tarea,
+    puede_validar, puesto_de, revisables, revisores_posibles, revisores_propias_ids, subordinados,
 )
 from .puntaje import calcular_ranking, filtrar_grupo, rango_del_mes, sin_evaluar
 from .serializers import (
@@ -79,8 +79,8 @@ class TareaViewSet(viewsets.ModelViewSet):
         elif ambito == 'equipo':
             queryset = queryset.filter(colaborador__in=equipo_gestionable(user)).exclude(colaborador=user)
         elif ambito == 'por_validar':
-            queryset = (queryset.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
-                        .exclude(colaborador=user).exclude(companeros=user))
+            queryset = revisables(queryset.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
+                                  .exclude(colaborador=user).exclude(companeros=user), user)
 
         if params.get('mes'):
             queryset = queryset.filter(fecha_limite__range=rango_del_mes(periodo_desde_mes(params['mes'])))
@@ -138,17 +138,32 @@ class TareaViewSet(viewsets.ModelViewSet):
     def _exigir_revision(self, tarea):
         if self.request.user.pk in tarea.participantes_ids():
             raise PermissionDenied("Nadie puede validar, devolver ni reabrir su propia tarea.")
-        if not puede_revisar(self.request.user, tarea.colaborador):
-            raise PermissionDenied("Solo el supervisor directo o un administrador puede revisar esta tarea.")
+        if not puede_revisar_tarea(self.request.user, tarea):
+            raise PermissionDenied(f"Esta tarea la revisa {_nombre(tarea.revisor)}." if tarea.revisor_id
+                                   else "Solo el supervisor directo o un administrador puede revisar esta tarea.")
+
+    def _revisor_de(self, colaborador, revisor):
+        """Una tarea que la persona se asigna a sí misma la valida quien ella elige entre los revisores configurados
+        (por defecto Dirección). Si la asigna otra persona, la valida su supervisor como siempre."""
+        if colaborador.pk != self.request.user.pk:
+            return None
+        if revisor is None:
+            raise serializers.ValidationError({"revisor": "Elige quién va a validar tu tarea."})
+        if revisor.pk == self.request.user.pk or revisor.pk not in revisores_propias_ids():
+            raise serializers.ValidationError({"revisor": "Esa persona no puede validar tareas propias. Elige a otra."})
+        return revisor
 
     def perform_create(self, serializer):
         self._exigir_gestion(serializer.validated_data['colaborador'])
         for companero in serializer.validated_data.get('companeros', []):
             self._exigir_gestion(companero)
+        revisor = self._revisor_de(serializer.validated_data['colaborador'], serializer.validated_data.get('revisor'))
+        serializer.validated_data['revisor'] = revisor
         tarea = serializer.save(asignada_por=self.request.user)
         servicios.al_asignar(tarea, self.request.user)
 
     def perform_update(self, serializer):
+        serializer.validated_data.pop('revisor', None)  # el revisor se elige al crear la tarea propia y no cambia
         self._exigir_gestion(serializer.instance.colaborador)
         nuevo = serializer.validated_data.get('colaborador')
         if nuevo:
@@ -400,6 +415,13 @@ class TareaViewSet(viewsets.ModelViewSet):
         servicios.registrar(tarea, request.user, 'CANCELADA', request.data.get('motivo', ''))
         servicios.tras_cambio(tarea, request.user)
         return self._respuesta(tarea)
+
+
+@api_view(['GET'])
+def mis_revisores_view(request):
+    """Quién puede validar las tareas que yo me asigno (para elegir al crear una tarea propia)."""
+    return Response([{'id': u.pk, 'nombre': _nombre(u), 'puesto': getattr(getattr(getattr(u, 'perfil', None), 'puesto_trabajo', None), 'nombre', '')}
+                     for u in revisores_posibles(request.user)])
 
 
 @api_view(['GET', 'DELETE'])
@@ -774,7 +796,7 @@ def mi_resumen_view(request):
             for k in KPIAsignado.objects.filter(puesto_trabajo=puesto, activo=True).select_related('plantilla_kpi')
         ] if puesto else [],
         'por_validar': (
-            Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar')).exclude(colaborador=user).exclude(companeros=user).count()
+            revisables(Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar')).exclude(colaborador=user).exclude(companeros=user), user).count()
             if puede_validar(user) else 0
         ),
     })
@@ -884,8 +906,8 @@ def notificaciones_view(request):
         'no_leidas': qs.filter(leida=False).count(),
         'avisos': NotificacionSerializer(qs[:30], many=True).data,
         # Para el número junto a «Por validar» en el menú (se consulta cada minuto)
-        'por_validar': (Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
-                        .exclude(colaborador=user).exclude(companeros=user).count() if puede_validar(user) else 0),
+        'por_validar': (revisables(Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
+                                   .exclude(colaborador=user).exclude(companeros=user), user).count() if puede_validar(user) else 0),
     })
 
 

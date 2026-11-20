@@ -28,7 +28,10 @@ class AlcanceTests(Base):
 
     def nueva(self, quien, para):
         self.como(quien)
-        return self.c.post(T, {'titulo': 'Reporte', 'colaborador': para.id, 'fecha_limite': str(timezone.localdate() + timedelta(days=2)), 'prioridad': 'MEDIA'}, format='json')
+        datos = {'titulo': 'Reporte', 'colaborador': para.id, 'fecha_limite': str(timezone.localdate() + timedelta(days=2)), 'prioridad': 'MEDIA'}
+        if para.pk == quien.pk:
+            datos['revisor'] = self.osiris.id  # una tarea propia la valida un revisor (Dirección)
+        return self.c.post(T, datos, format='json')
 
     def test_catalogo_incluye_los_permisos_nuevos(self):
         codigos = {p[0] for p in PERMISOS}
@@ -99,9 +102,13 @@ class SupervisoresSeAsignanTests(Base):
             quien.groups.add(Group.objects.get(name=perfil))
             quien.__dict__.pop('_permisos_acceso', None)
             self.como(quien)
-            r = self.c.post(T, {'titulo': 'Mi tarea', 'colaborador': quien.id, 'fecha_limite': str(timezone.localdate() + timedelta(days=2)), 'prioridad': 'MEDIA'}, format='json')
+            r = self.c.post(T, {'titulo': 'Mi tarea', 'colaborador': quien.id, 'revisor': self.osiris.id,
+                                'fecha_limite': str(timezone.localdate() + timedelta(days=2)), 'prioridad': 'MEDIA'}, format='json')
             self.assertEqual(r.status_code, 201, (perfil, r.content))
         # Dirección también (lo trae por ser Dirección, sin configurar nada)
+        otra_direccion = self._u('helen', None, 'Helen', 'Castillo')
+        otra_direccion.groups.add(Group.objects.get_or_create(name='Administrador')[0])
         self.como(self.osiris)
-        r = self.c.post(T, {'titulo': 'Mi tarea', 'colaborador': self.osiris.id, 'fecha_limite': str(timezone.localdate() + timedelta(days=2)), 'prioridad': 'MEDIA'}, format='json')
-        self.assertEqual(r.status_code, 201)
+        r = self.c.post(T, {'titulo': 'Mi tarea', 'colaborador': self.osiris.id, 'revisor': otra_direccion.id,
+                            'fecha_limite': str(timezone.localdate() + timedelta(days=2)), 'prioridad': 'MEDIA'}, format='json')
+        self.assertEqual(r.status_code, 201, r.content)

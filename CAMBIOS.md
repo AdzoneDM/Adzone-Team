@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.10 · 20/11/2026 · Tareas propias con revisor (Helen u Osiris)
+
+- **«Nueva tarea para mí»** en *Mis tareas*, para quien puede asignarse tareas (Dirección y quienes tienen ese permiso: Helen, Osiris, Enmanuel, José…). Pide título, fecha límite, prioridad, horas (opcional), referencias (opcional) y **quién la valida**.
+- **Revisor de la tarea propia**: se elige entre los revisores configurados (inicialmente **Helen Castillo y Osiris Cruz**; nunca uno mismo). Cuando la persona entrega, el aviso «Por validar» le llega **solo a ese revisor**, y solo él o el otro revisor configurado pueden validarla, devolverla o reabrirla (otras personas de Dirección, como Rebeca o José, no). Helen se la asigna a Osiris y viceversa.
+- **Configurable**: *Reglas del puntaje → Quién revisa las tareas propias* (casillas con las personas de Dirección). Sin marcar a nadie, puede revisar cualquiera de Dirección.
+- Si otra persona le asigna la tarea, todo sigue igual: la valida su supervisor.
+- El detalle de la tarea muestra «La valida». «Por validar» y su contador solo muestran lo que cada quien puede revisar.
+- `Tarea.revisor`, `ConfiguracionDesempeno.revisores_propias` (migración `0020`, que deja a Helen y Osiris como revisores si existen), `GET /mis-revisores/`, `puede_autoasignar` en la sesión. 9 pruebas nuevas (`tests_propias.py`).
+
 ## 12.9 · 20/11/2026 · Referencias en las tareas (bocetos e imágenes del supervisor)
 
 - **Al asignar**: en «Nueva tarea» hay un botón *Adjuntar boceto o imagen de referencia* (imágenes o PDF, hasta 6 por vez, 10 MB cada uno; las fotos se achican antes de subir). La persona recibe la alerta «Nueva tarea» con la nota «📎 Adjuntó N archivos de referencia».

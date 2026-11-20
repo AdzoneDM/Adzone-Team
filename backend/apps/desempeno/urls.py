@@ -14,6 +14,7 @@ router.register(r'colaboraciones', views_equipo.ColaboracionViewSet, basename='c
 urlpatterns = [
     path('', include(router.urls)),
     path('evidencias/<int:pk>/archivo/', views.evidencia_archivo_view, name='evidencia_archivo'),
+    path('mis-revisores/', views.mis_revisores_view),
     path('referencias/<int:pk>/archivo/', views.referencia_view, name='referencia_archivo'),
     path('ranking/', views.ranking_view, name='ranking_desempeno'),
     path('ranking/exportar/', views.ranking_exportar_view, name='ranking_exportar'),

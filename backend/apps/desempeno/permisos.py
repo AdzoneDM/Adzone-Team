@@ -195,3 +195,43 @@ class LecturaOAdministrador(permissions.BasePermission):
         if not (request.user and request.user.is_authenticated):
             return False
         return request.method in permissions.SAFE_METHODS or es_administrador(request.user)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Tareas que la persona se asigna a sí misma: las valida quien ella elige entre los revisores configurados
+# (Reglas del puntaje → «Quién revisa las tareas propias»; sin configurar, cualquiera de Dirección).
+# ---------------------------------------------------------------------------------------------------------------------
+def revisores_propias_ids():
+    from .models import ConfiguracionDesempeno
+    elegidos = set(ConfiguracionDesempeno.actual().revisores_propias.filter(is_active=True).values_list('pk', flat=True))
+    return elegidos or set(administradores().values_list('pk', flat=True))
+
+
+def revisores_posibles(user):
+    """Personas entre las que `user` puede elegir a quien valide sus tareas propias (nunca él mismo)."""
+    return User.objects.filter(pk__in=revisores_propias_ids(), is_active=True).exclude(pk=user.pk).select_related(
+        'perfil__puesto_trabajo').order_by('first_name', 'last_name', 'username')
+
+
+def puede_revisar_tarea(user, tarea):
+    """Validar, devolver o reabrir una tarea: nunca el trabajo propio. Si la tarea tiene revisor designado, solo él o los
+    demás revisores configurados; si no, quien la supervisa (o Dirección)."""
+    if user.pk in tarea.participantes_ids():
+        return False
+    if tarea.revisor_id:
+        return user.pk == tarea.revisor_id or user.pk in revisores_propias_ids()
+    return puede_revisar(user, tarea.colaborador)
+
+
+def revisables(queryset, user):
+    """Quita de «por validar» las tareas con revisor designado que `user` no puede revisar."""
+    if user.pk in revisores_propias_ids():
+        return queryset
+    return queryset.filter(Q(revisor__isnull=True) | Q(revisor=user))
+
+
+def revisores_de_tarea(tarea):
+    """A quién avisar de una entrega o un bloqueo: el revisor designado o, si no hay, la cadena de supervisión."""
+    if tarea.revisor_id and tarea.revisor.is_active:
+        return [tarea.revisor]
+    return revisores_de(tarea.colaborador)

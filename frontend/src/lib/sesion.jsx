@@ -74,6 +74,7 @@ export function SesionProvider({ children }) {
     configuraSistema: tiene("sistema.configurar"),
     veAsistenciaEquipo: !!usuario?.ve_asistencia_equipo,
     puedeAsignar: !!usuario?.puede_asignar,
+    puedeAutoasignar: !!usuario?.puede_autoasignar,
     cargando,
     login,
     verificarCodigo,

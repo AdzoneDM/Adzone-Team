@@ -22,6 +22,7 @@ export default function Configuracion() {
       const r = await guardarConfiguracion({
         peso_tareas: pesoTareas, peso_calidad: pesoCalidad, peso_jornada: pesoJornada, nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
         puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion), espera_recordatorio_min: Number(f.espera_recordatorio_min),
+        revisores_propias: f.revisores_propias || [],
         tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje), ...(t.proporcional ? { proporcional: true } : {}) })),
       });
       setF(r);
@@ -62,6 +63,22 @@ export default function Configuracion() {
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Puntualidad de una entrega tarde" ayuda="A tiempo vale 100; sin entregar y vencida, 0.">
               {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.nota_tarde} onChange={(e) => setF({ ...f, nota_tarde: e.target.value })} />}
+            </Campo>
+            <Campo etiqueta="Quién revisa las tareas propias" ayuda="Las tareas que alguien se asigna a sí mismo las valida quien elija entre estas personas (de Dirección). Sin marcar a nadie, cualquiera de Dirección." className="sm:col-span-2">
+              {() => (
+                <div className="flex flex-wrap gap-2">
+                  {(f.candidatos_revisor || []).map((c) => {
+                    const marcado = (f.revisores_propias || []).includes(c.id);
+                    return (
+                      <label key={c.id} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${marcado ? "border-azul bg-azul/5 font-medium text-azul" : "border-linea bg-white text-tinta"}`}>
+                        <input type="checkbox" className="accent-azul" checked={marcado}
+                          onChange={() => setF({ ...f, revisores_propias: marcado ? f.revisores_propias.filter((x) => x !== c.id) : [...(f.revisores_propias || []), c.id] })} />
+                        {c.nombre}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </Campo>
             <Campo etiqueta="Espera entre recordatorios (minutos)" ayuda="Tiempo mínimo para volver a enviarle a alguien el recordatorio de la misma tarea. Con 0 no hay espera.">
               {(id) => <input id={id} type="number" min={0} max={1440} className="campo" value={f.espera_recordatorio_min ?? 2} onChange={(e) => setF({ ...f, espera_recordatorio_min: e.target.value })} />}

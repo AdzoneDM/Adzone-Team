@@ -8,7 +8,7 @@ from .models import (
     ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
     PasoTarea, ResultadoKPI, Tarea, TareaRecurrente,
 )
-from .permisos import puede_gestionar, puede_revisar
+from .permisos import puede_gestionar, puede_revisar_tarea
 
 
 def _nombre(usuario):
@@ -89,6 +89,7 @@ class TareaSerializer(serializers.ModelSerializer):
     es_recurrente = serializers.SerializerMethodField()
     puedo_gestionar = serializers.SerializerMethodField()
     puedo_revisar = serializers.SerializerMethodField()
+    revisor_nombre = serializers.SerializerMethodField()
     soy_participante = serializers.SerializerMethodField()
     companeros = serializers.PrimaryKeyRelatedField(
         many=True, required=False, queryset=User.objects.filter(is_active=True))
@@ -120,7 +121,7 @@ class TareaSerializer(serializers.ModelSerializer):
             'id', 'titulo', 'descripcion', 'cliente',
             'colaborador', 'companeros', 'companeros_nombres', 'pasos', 'pasos_texto', 'progreso',
             'proyecto', 'proyecto_nombre', 'orden', 'orden_numero', 'oa', 'oa_info', 'fecha_inicio', 'horas_estimadas', 'colaborador_nombre', 'colaborador_puesto', 'colaborador_departamento',
-            'asignada_por', 'asignada_por_nombre',
+            'asignada_por', 'asignada_por_nombre', 'revisor', 'revisor_nombre',
             'kpi_asignado', 'kpi_nombre',
             'prioridad', 'estado', 'fecha_limite', 'fecha_completada', 'a_tiempo', 'a_la_primera',
             'evidencia_nota', 'evidencia_enlace', 'evidencias', 'referencias',
@@ -146,6 +147,9 @@ class TareaSerializer(serializers.ModelSerializer):
     def get_colaborador_nombre(self, obj):
         return _nombre(obj.colaborador)
 
+    def get_revisor_nombre(self, obj):
+        return _nombre(obj.revisor)
+
     def get_asignada_por_nombre(self, obj):
         return _nombre(obj.asignada_por)
 
@@ -161,7 +165,7 @@ class TareaSerializer(serializers.ModelSerializer):
 
     def get_puedo_revisar(self, obj):
         user = self._usuario()
-        return bool(user and user.pk not in obj.participantes_ids() and puede_revisar(user, obj.colaborador))
+        return bool(user and puede_revisar_tarea(user, obj))
 
     def get_soy_participante(self, obj):
         user = self._usuario()
@@ -412,11 +416,17 @@ class TareaRecurrenteSerializer(serializers.ModelSerializer):
 
 class ConfiguracionSerializer(serializers.ModelSerializer):
     peso_kpis = serializers.IntegerField(read_only=True)
+    revisores_propias = serializers.PrimaryKeyRelatedField(many=True, required=False, queryset=User.objects.filter(is_active=True))
+    candidatos_revisor = serializers.SerializerMethodField()
+
+    def get_candidatos_revisor(self, obj):
+        from .permisos import administradores
+        return [{'id': u.pk, 'nombre': _nombre(u)} for u in administradores().filter(is_active=True).order_by('first_name', 'username')]
 
     class Meta:
         model = ConfiguracionDesempeno
         fields = ['peso_tareas', 'peso_calidad', 'peso_jornada', 'peso_kpis', 'nota_tarde', 'minimo_tareas_empleado_mes', 'puntaje_minimo',
-                  'minimo_tareas_evaluacion', 'espera_recordatorio_min', 'tramos_bono', 'fecha_modificacion']
+                  'minimo_tareas_evaluacion', 'espera_recordatorio_min', 'revisores_propias', 'candidatos_revisor', 'tramos_bono', 'fecha_modificacion']
 
     def validate(self, data):
         tareas = data.get('peso_tareas', getattr(self.instance, 'peso_tareas', 40))

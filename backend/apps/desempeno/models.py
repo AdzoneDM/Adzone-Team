@@ -42,6 +42,9 @@ class Tarea(models.Model):
         verbose_name="Compañeros",
         help_text="Tarea compartida: también la ven, la trabajan y les cuenta cuando se valida."
     )
+    revisor = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="tareas_a_revisar",
+        help_text="Quien valida la tarea cuando la persona se la asignó a sí misma (Dirección). Vacío: la valida su supervisor.")
     asignada_por = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -448,6 +451,9 @@ class ConfiguracionDesempeno(models.Model):
     minimo_tareas_evaluacion = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas que ya cuentan en el mes para juzgar el mínimo. Con menos (y sin KPIs medidos), "
                              "la persona sale como «pocos datos» y no como incumplimiento.")
+    revisores_propias = models.ManyToManyField(
+        User, blank=True, related_name='+',
+        help_text="Quién puede validar las tareas que la gente se asigna a sí misma. Vacío: cualquiera de Dirección.")
     espera_recordatorio_min = models.PositiveSmallIntegerField(
         default=2, help_text="Minutos que deben pasar antes de volver a enviar un recordatorio de la misma tarea (0 = sin espera).")
     tramos_bono = models.JSONField(

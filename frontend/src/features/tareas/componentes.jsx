@@ -321,6 +321,7 @@ export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
           {tarea.horas_estimadas && <div><dt className="text-gris">Estimado</dt><dd className="font-medium">{Number(tarea.horas_estimadas)} h</dd></div>}
           <div><dt className="text-gris">Fecha límite</dt><dd className="font-medium">{fechaCorta(tarea.fecha_limite)}</dd></div>
           <div><dt className="text-gris">Asignada por</dt><dd className="font-medium">{tarea.asignada_por_nombre || "—"}</dd></div>
+          {tarea.revisor_nombre && <div><dt className="text-gris">La valida</dt><dd className="font-medium">{tarea.revisor_nombre}</dd></div>}
           {tarea.kpi_nombre && <div className="col-span-2 sm:col-span-3"><dt className="text-gris">Suma al KPI</dt><dd className="flex items-center gap-1.5 font-medium"><Target className="size-4 text-azul" />{tarea.kpi_nombre}</dd></div>}
         </dl>
         {tarea.descripcion && <p className="whitespace-pre-line text-[15px]">{tarea.descripcion}</p>}

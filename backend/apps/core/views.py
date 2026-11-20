@@ -67,6 +67,11 @@ def _puede_asignar(user):
     return equipo_gestionable(user, 'tareas.asignar').exists()
 
 
+def _tiene_permiso(user, codigo):
+    from apps.core.permisos import tiene
+    return tiene(user, codigo)
+
+
 def _es_tecnologia(user):
     from apps.core.permisos import tiene
     return tiene(user, 'monitoreo.configurar')
@@ -92,6 +97,7 @@ def datos_usuario(user):
         'permisos': sorted(_permisos(user)),
         've_monitoreo': 'monitoreo.ver' in _permisos(user),
         'puede_asignar': _puede_asignar(user),
+        'puede_autoasignar': _tiene_permiso(user, 'tareas.propias'),
         've_asistencia_equipo': _equipo_con(user, 'asistencia.ver'),
         'es_rrhh': _rrhh(user),
         'gestiona_activos': _activos(user),

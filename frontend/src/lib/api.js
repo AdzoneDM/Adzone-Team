@@ -138,6 +138,7 @@ export const subirReferencias = (id, archivos, { nota = "", momento = "ASIGNACIO
   f.append("momento", momento);
   return api(`${D}/tareas/${id}/referencias/`, { method: "POST", body: f });
 };
+export const misRevisores = () => api(`${D}/mis-revisores/`);
 export const quitarReferencia = (url) => api(url, { method: "DELETE" });
 export const reabrirTarea = (id, motivo) => api(`${D}/tareas/${id}/reabrir/`, { method: "POST", body: { motivo } });
 export const cancelarTarea = (id, motivo) => api(`${D}/tareas/${id}/cancelar/`, { method: "POST", body: { motivo } });
