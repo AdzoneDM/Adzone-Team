@@ -1,5 +1,16 @@
 # Cambios
 
+## 12.14 · 20/11/2026 · Organigrama empresarial
+
+- **Gráfico jerárquico de verdad**: la dirección arriba, sus áreas en fila unidas por conectores y los puestos de abajo en ramas verticales (para que no se haga eterno de ancho). Cada tarjeta lleva el departamento (con su color), el puesto, las personas con sus iniciales (o «Vacante»), y cuántos puestos y personas tiene a cargo, con botón para contraer o expandir esa rama.
+- **Color por departamento** con una paleta sobria y estable, y una **leyenda** con el total de personas de cada uno: al elegir un departamento, el resto se atenúa.
+- **Cifras arriba**: personas activas, puestos, departamentos y vacantes.
+- **Búsqueda** por persona, puesto o departamento: abre las ramas con coincidencias, resalta las tarjetas y atenúa el resto (con el conteo de coincidencias).
+- **Zoom** (−, +, porcentaje) y *Ajustar al ancho*; al abrir, el gráfico se ajusta solo para verse completo (nunca por debajo del 60 %, para que se lea). *Expandir todo* / *Contraer*.
+- **Vista de lista** (la predeterminada en el celular y útil para lectores de pantalla), con las mismas búsquedas y colores.
+- **Imprimir**: el botón prepara la hoja en horizontal, sin menús ni barras.
+- Quien administra puestos sigue pudiendo abrir cada puesto desde su título. Sin cambios en el servidor.
+
 ## 12.13 · 20/11/2026 · Alertas a la izquierda y pantalla de Personas reorganizada
 
 - **Alertas de tareas rediseñadas**: ya no ocupan el centro ni oscurecen la pantalla. Salen como **tarjetas abajo a la izquierda** (junto al contenido, sin tapar el menú), con barra de color e ícono según el tipo, quién la envió y cuándo, botón principal (*Ver tarea*, *Corregir ahora*…), *Entendido* y una X. Se apilan hasta tres y un contador «+N alertas más» indica las demás; en el celular se muestra solo la más reciente. Siguen sonando y los recordatorios, devoluciones y vencimientos insisten hasta atenderse. Se puede seguir trabajando mientras tanto.

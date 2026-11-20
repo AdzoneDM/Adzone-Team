@@ -96,3 +96,11 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Impresión (organigrama y reportes): sin menús ni barras, en horizontal */
+@media print {
+  @page { size: landscape; margin: 10mm; }
+  .no-imprimir, aside, header.sticky, nav[aria-label="Menú"] { display: none !important; }
+  body { background: #fff !important; }
+  .lg\:pl-64 { padding-left: 0 !important; }
+}
