@@ -225,6 +225,30 @@ def jornadas(usuario, desde, hasta, ahora=None):
             for d in dias_entre(desde, min(hasta, hoy))]
 
 
+def jornadas_del_dia(usuarios, dia, ahora=None):
+    """La jornada de `dia` de muchas personas a la vez: {id: jornada}. Seis consultas en total (no seis por persona)."""
+    from collections import defaultdict
+    from django.db.models import Min
+    ids = [u.pk for u in usuarios]
+    asignados = {a.usuario_id: a for a in AsignacionHorario.objects.filter(usuario_id__in=ids).select_related('horario')}
+    por_defecto = Horario.objects.filter(por_defecto=True, activo=True).first()
+    marcajes = defaultdict(list)
+    for m in Marcaje.objects.filter(usuario_id__in=ids, momento__range=rango(dia)).order_by('momento'):
+        marcajes[m.usuario_id].append(m)
+    ausencias = defaultdict(list)
+    for a in Ausencia.objects.filter(usuario_id__in=ids, estado='APROBADA', desde__lte=dia, hasta__gte=dia):
+        ausencias[a.usuario_id].append(a)
+    feriados = set(Feriado.objects.filter(fecha=dia).values_list('fecha', flat=True))
+    primeros = dict(Marcaje.objects.filter(usuario_id__in=ids).values('usuario_id').annotate(m=Min('momento')).values_list('usuario_id', 'm'))
+    salida = {}
+    for u in usuarios:
+        asignacion = asignados.get(u.pk)
+        horario, obligatoria = (asignacion.horario, asignacion.marca_obligatoria) if asignacion else (por_defecto, True)
+        control = timezone.localtime(primeros[u.pk]).date() if u.pk in primeros else None
+        salida[u.pk] = jornada(u, dia, ahora, horario, obligatoria, marcajes.get(u.pk, []), ausencias.get(u.pk, []), feriados, control)
+    return salida
+
+
 def resumen(usuario, desde, hasta, ahora=None):
     """Indicadores de asistencia del período (para la ficha, el reporte y los KPIs automáticos)."""
     dias = jornadas(usuario, desde, hasta, ahora)

@@ -114,8 +114,9 @@ def hoy_view(request):
     # lo que hace la computadora en este momento es monitoreo: solo Dirección y Tecnología
     contactos = ultimo_contacto_por_usuario([p.pk for p in personas]) if tiene(request.user, 'monitoreo.ver') else {}
     filas = []
+    jornadas_hoy = servicios.jornadas_del_dia(personas, hoy)  # en lote: no una consulta por persona
     for u in personas:
-        j = servicios.jornada(u, hoy)
+        j = jornadas_hoy[u.pk]
         filas.append({**_persona(u), **{k: j[k] for k in ('estado', 'llegada', 'entrada', 'salida', 'tardanza', 'trabajados', 'pausa', 'turno', 'ausencia',
                                                                  'trabajados_seg', 'pausa_seg', 'tardanza_seg')},
                       'pc': contactos.get(u.pk)})

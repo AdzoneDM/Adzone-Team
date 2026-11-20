@@ -1,5 +1,18 @@
 # Cambios
 
+## 12.18 · 20/11/2026 · Rendimiento: pantallas más rápidas
+
+Medido en producción con 38 personas (tiempos de servidor, ya "caliente"; la red no era el problema: ~70 ms y 0,25 s por solicitud):
+
+- **KPIs asignados**: 3,6 s, **1.985 consultas** y 3 MB → una consulta por KPI de cada puesto, repitiendo la ficha completa del puesto (personas, subordinados) en cada fila. Ahora el puesto va resumido (la pantalla solo usa la plantilla) y lo demás se precarga. Afecta *Departamentos y puestos → puesto*.
+- **Personas / usuarios** (lo usan Personas, Accesos y otras pantallas): 303 consultas, 0,7 s → se precargan puestos, personas por puesto y puestos adicionales. **Accesos y permisos**: 122 consultas → los permisos de cada persona se calculan en memoria con lo ya cargado.
+- **Asistencia de hoy**: 239 consultas, 0,45 s → la jornada de todo el equipo se calcula en lote (6 consultas en total en vez de 6 por persona).
+- **Compresión de la API**: el JSON grande (listas de personas, puestos, plantillas: 90–220 KB) se comprime (gzip), solo en `/api/` y nunca archivos.
+- **Conexión a la base reutilizada** (`CONN_MAX_AGE=60`, con verificación): se deja de abrir una conexión nueva por cada petición.
+- **Archivos de la app con huella** (`/assets/…`) se guardan un año en el navegador (antes, 1 hora): las visitas siguientes no vuelven a descargar la app.
+- Prueba nueva (`apps/core/tests_rendimiento.py`): ninguna de esas pantallas puede hacer consultas en proporción a la cantidad de personas (con el código anterior fallaba: 23 → 87 consultas al pasar de 4 a 12 personas).
+- Servidor (fuera del código): Gunicorn con hilos y reciclaje de procesos (`GUNICORN_CMD_ARGS`) y registro del tiempo de cada petición, para poder medir.
+
 ## 12.17 · 20/11/2026 · KPIs del mes rediseñado
 
 - **Una tarjeta por persona** (agrupadas por puesto) con sus indicadores en filas: nombre del KPI, peso y unidad a la izquierda; *Logrado* y *Meta* con la unidad dentro del campo (%); y el **cumplimiento** con su barra de color a la derecha. Antes era una tabla enorme con «Logrado/Meta» repetido en cada celda y desplazamiento horizontal.

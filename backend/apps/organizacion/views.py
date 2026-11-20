@@ -11,8 +11,17 @@ from .serializers import PuestoDeTrabajoSerializer, UserSerializer
 
 def _puestos():
     return PuestoDeTrabajo.objects.select_related('departamento', 'supervisor').prefetch_related(
-        Prefetch('perfiles_usuarios', queryset=PerfilUsuario.objects.select_related('user'))
+        Prefetch('perfiles_usuarios', queryset=PerfilUsuario.objects.select_related('user')), 'subordinados'
     ).order_by('departamento__nombre', 'nombre')
+
+
+def prefetch_puesto(prefijo):
+    """Todo lo que necesita PuestoDeTrabajoSerializer, precargado, para listas de cosas que cuelgan de un puesto (usuarios, KPIs…)."""
+    return [
+        f'{prefijo}__supervisor',
+        Prefetch(f'{prefijo}__perfiles_usuarios', queryset=PerfilUsuario.objects.select_related('user')),
+        f'{prefijo}__subordinados',
+    ]
 
 
 class PuestoDeTrabajoViewSet(viewsets.ModelViewSet):
@@ -34,8 +43,10 @@ class PuestoDeTrabajoViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(viewsets.ModelViewSet):
     """Usuarios: solo el administrador. Protecciones para no quedarse sin administradores."""
-    queryset = User.objects.select_related('perfil__puesto_trabajo__departamento').prefetch_related('groups').order_by(
-        'first_name', 'last_name', 'username')
+    queryset = User.objects.select_related('perfil__puesto_trabajo__departamento').prefetch_related(
+        'groups', *prefetch_puesto('perfil__puesto_trabajo'),
+        Prefetch('perfil__puestos_adicionales', queryset=PuestoDeTrabajo.objects.select_related('departamento')),
+    ).order_by('first_name', 'last_name', 'username')
     serializer_class = UserSerializer
     permission_classes = [TienePermiso.de('personal.usuarios')]
 

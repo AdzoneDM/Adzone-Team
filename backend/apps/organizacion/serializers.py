@@ -47,7 +47,7 @@ class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
         ]
 
     def get_subordinados(self, obj):
-        return obj.subordinados.count()
+        return len(obj.subordinados.all())  # con prefetch no hace otra consulta
 
     def validate_nombre(self, value):
         value = value.strip()
@@ -129,7 +129,7 @@ class UserSerializer(serializers.ModelSerializer):
         if perfil is None:
             return []
         return [{'id': p.id, 'nombre': p.nombre, 'departamento': p.departamento.nombre if p.departamento_id else None}
-                for p in perfil.puestos_adicionales.select_related('departamento')]
+                for p in perfil.puestos_adicionales.all()]  # con prefetch (ver UserViewSet) no hace otra consulta
 
     def validate_puestos_adicionales_ids(self, puestos):
         """Un puesto adicional da el equipo de ese puesto: solo la Dirección lo asigna o lo quita."""

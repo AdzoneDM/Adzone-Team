@@ -117,7 +117,7 @@ def _persona(u, jefes):
                          for x in u.equipo_extra.all()],
         'permisos': sorted(efectivos(u)),
         'superusuario': u.is_superuser,
-        'dos_pasos': hasattr(u, 'dos_pasos') and u.dos_pasos.activo,
+        'dos_pasos': bool(getattr(u, 'dos_pasos', None) and u.dos_pasos.activo),
     }
 
 
@@ -129,8 +129,23 @@ def _jefes():
 
 
 def _usuarios():
-    return (User.objects.filter(is_active=True).select_related('perfil__puesto_trabajo__departamento')
-            .prefetch_related('groups', 'excepciones_permiso', 'equipo_extra__colaborador').order_by('first_name', 'last_name', 'username'))
+    """Personas activas con todo lo que se muestra precargado; los permisos efectivos se calculan en memoria (no una consulta por persona)."""
+    usuarios = list(User.objects.filter(is_active=True).select_related('perfil__puesto_trabajo__departamento', 'dos_pasos')
+                    .prefetch_related('groups', 'excepciones_permiso', 'equipo_extra__colaborador').order_by('first_name', 'last_name', 'username'))
+    por_perfil = {p.grupo_id: p.permisos or [] for p in PermisosDePerfil.objects.all()}
+    for u in usuarios:  # misma regla que permisos._cache, con lo ya cargado
+        efectivos_u = set(CODIGOS)
+        if not u.is_superuser:
+            efectivos_u = set()
+            for g in u.groups.all():
+                efectivos_u.update(c for c in por_perfil.get(g.pk, []) if c in CODIGOS)
+            for e in u.excepciones_permiso.all():
+                if e.conceder:
+                    efectivos_u.add(e.permiso)
+                else:
+                    efectivos_u.discard(e.permiso)
+        u._permisos_acceso = efectivos_u
+    return usuarios
 
 
 @api_view(['GET'])

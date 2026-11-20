@@ -76,6 +76,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'apps.core.compresion.CompresionDeLaApi',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -120,12 +121,15 @@ if DB_ENGINE == 'mysql':
         'NAME': env('DB_NAME'), 'USER': env('DB_USER'), 'PASSWORD': env('DB_PASSWORD'),
         'HOST': env('DB_HOST', 'localhost'), 'PORT': env('DB_PORT', '3306'),
         'OPTIONS': {'charset': 'utf8mb4', 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
+        # Reutiliza la conexión entre peticiones (abrir una por cada una cuesta tiempo) y verifica que siga viva
+        'CONN_MAX_AGE': int(env('DB_CONN_MAX_AGE', '60')), 'CONN_HEALTH_CHECKS': True,
     }}
 elif DB_ENGINE == 'postgresql':
     DATABASES = {'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': env('DB_NAME'), 'USER': env('DB_USER'), 'PASSWORD': env('DB_PASSWORD'),
         'HOST': env('DB_HOST', 'localhost'), 'PORT': env('DB_PORT', '5432'),
+        'CONN_MAX_AGE': int(env('DB_CONN_MAX_AGE', '60')), 'CONN_HEALTH_CHECKS': True,
     }}
 else:
     DATABASES = {'default': {
@@ -214,6 +218,15 @@ FRONTEND_DIST = Path(env('FRONTEND_DIST', str(BASE_DIR.parent / 'frontend' / 'di
 WHITENOISE_ROOT = FRONTEND_DIST if FRONTEND_DIST.exists() else None
 WHITENOISE_INDEX_FILE = False
 WHITENOISE_MAX_AGE = 60 * 60
+
+
+# Los archivos compilados de la app llevan una huella en el nombre (index-DYi8N20Y.js): si cambian, cambia el nombre.
+# Por eso se guardan un año en el navegador y no se vuelven a pedir en cada visita (el index.html sigue sin caché).
+def _archivo_con_huella(ruta, url):
+    return url.startswith('/assets/')
+
+
+WHITENOISE_IMMUTABLE_FILE_TEST = _archivo_con_huella
 
 # Evidencias: NUNCA se publican en /media. Se descargan por la API, que revisa quién puede verlas.
 MEDIA_ROOT = Path(env('MEDIA_ROOT', str(BASE_DIR / 'media')))

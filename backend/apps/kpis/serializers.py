@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from apps.organizacion.serializers import PuestoDeTrabajoSerializer
 from .models import KPIAsignado, PlantillaKPI
 
 
@@ -23,7 +22,7 @@ class PlantillaKPISerializer(serializers.ModelSerializer):
 
 
 class KPIAsignadoSerializer(serializers.ModelSerializer):
-    puesto_trabajo_detalle = PuestoDeTrabajoSerializer(source='puesto_trabajo', read_only=True)
+    puesto_trabajo_detalle = serializers.SerializerMethodField()
     plantilla_kpi_detalle = PlantillaKPISerializer(source='plantilla_kpi', read_only=True)
     nombre = serializers.CharField(source='plantilla_kpi.nombre', read_only=True)
 
@@ -42,6 +41,12 @@ class KPIAsignadoSerializer(serializers.ModelSerializer):
             'plantilla_kpi': {'required': True},
             'objetivo_meta': {'required': False, 'allow_blank': True},
         }
+
+    def get_puesto_trabajo_detalle(self, obj):
+        """Resumen del puesto (no su ficha completa con personas y subordinados: repetirla en cada KPI pesaba megas)."""
+        p = obj.puesto_trabajo
+        return {'id': p.id, 'nombre': p.nombre, 'departamento': p.departamento_id, 'departamento_nombre': p.departamento.nombre,
+                'supervisor': p.supervisor_id, 'supervisor_nombre': p.supervisor.nombre if p.supervisor_id else None}
 
     def validate_ponderacion(self, value):
         if not (0 <= value <= 100):

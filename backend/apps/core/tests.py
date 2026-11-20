@@ -77,3 +77,28 @@ class EntradaPorEquipoTests(TestCase):
         self.assertEqual(self.c.post("/api/auth/clave-equipo/", {"nueva": "nueva-clave-1"}, format="json").status_code, 200)
         otro = APIClient()
         self.assertEqual(otro.post("/api/auth/equipo/", {"clave": "nueva-clave-1"}, format="json").status_code, 200)
+
+
+class CompresionDeLaApiTests(TestCase):
+    """La API comprime el JSON grande, pero no toca archivos ni rutas que no son de /api/."""
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.u = User.objects.create_user('ana', password='x')
+
+    def test_comprime_json_grande_de_la_api(self):
+        from rest_framework.test import APIClient
+        c = APIClient()
+        c.force_authenticate(self.u)
+        from django.contrib.auth.models import User
+        for i in range(60):
+            User.objects.create_user(f'persona{i}', password='x', first_name='Persona', last_name=f'Número {i}')
+        r = c.get('/api/chat/personas/', HTTP_ACCEPT_ENCODING='gzip')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.get('Content-Encoding'), 'gzip')
+        self.assertEqual(c.get('/api/chat/personas/', HTTP_ACCEPT_ENCODING='identity').get('Content-Encoding'), None)
+
+    def test_no_comprime_lo_que_no_es_api(self):
+        from django.test import Client
+        r = Client().get('/entrar', HTTP_ACCEPT_ENCODING='gzip')
+        self.assertIsNone(r.get('Content-Encoding'))
