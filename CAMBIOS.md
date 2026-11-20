@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.17 · 20/11/2026 · KPIs del mes rediseñado
+
+- **Una tarjeta por persona** (agrupadas por puesto) con sus indicadores en filas: nombre del KPI, peso y unidad a la izquierda; *Logrado* y *Meta* con la unidad dentro del campo (%); y el **cumplimiento** con su barra de color a la derecha. Antes era una tabla enorme con «Logrado/Meta» repetido en cada celda y desplazamiento horizontal.
+- **Avance del mes** arriba: «5 de 32 resultados anotados · 6 personas» con su barra, y por puesto «6 de 20 anotados» y por persona «4/5».
+- **Búsqueda por persona**, filtro **Solo pendientes** (lo que falta por anotar) y atajos para saltar a cada puesto.
+- Lo editado se marca en ámbar con «Sin guardar»; la barra inferior de guardar es más compacta en el celular. Tu propia tarjeta aparece desactivada («No puedes anotar tus propios resultados»).
+- En el celular los campos se apilan con sus rótulos; en pantallas muy anchas, dos tarjetas por fila. Solo frontend, sin migraciones.
+
 ## 12.16 · 20/11/2026 · Al recargar o volver a entrar, te quedas donde estabas
 
 - **Volver a entrar te devuelve a la misma pantalla**: si la sesión vence (o abres un enlace sin sesión), después de entrar vas a esa pantalla (con sus filtros en la dirección), no siempre al Inicio. Había un cruce que mandaba a Inicio antes de que se aplicara el regreso.
