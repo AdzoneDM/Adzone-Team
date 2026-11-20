@@ -151,7 +151,7 @@ def _palabras(texto):
 def sugerir_asignacion(asignador, titulo='', descripcion='', permiso='tareas.asignar', limite=5):
     """Ordena a las personas que `asignador` puede asignar: menos carga, mejor cumplimiento y calidad, y experiencia en algo parecido."""
     from .permisos import equipo_gestionable
-    gente = list(equipo_gestionable(asignador, permiso).select_related('perfil__puesto_trabajo'))
+    gente = list(equipo_gestionable(asignador, permiso).exclude(pk=asignador.pk).select_related('perfil__puesto_trabajo'))  # se sugiere a su equipo, no a sí mismo
     if not gente:
         return []
     hoy = timezone.localdate()

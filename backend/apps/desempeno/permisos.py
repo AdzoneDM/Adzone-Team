@@ -147,7 +147,7 @@ def revisores_de(colaborador, permiso='tareas.validar'):
     hoy = timezone.localdate()
     from apps.core.permisos import con_permiso
     # «Supervisar a toda la empresa»: también le llegan los avisos de todos (salvo de Dirección)
-    todos = [] if tiene(colaborador, 'direccion') else [j for j in con_permiso('equipo.todos').exclude(pk=colaborador.pk) if tiene(j, permiso)]
+    todos = [] if tiene(colaborador, 'direccion') else [j for j in con_permiso('equipo.todos').exclude(pk=colaborador.pk) if tiene(j, permiso) and not tiene(j, 'direccion')]
     extra = todos + [e.jefe for e in EquipoExtra.objects.filter(colaborador=colaborador, jefe__is_active=True).filter(
         Q(hasta__isnull=True) | Q(hasta__gte=hoy)).select_related('jefe') if tiene(e.jefe, permiso)]
     puesto = puesto_de(colaborador)

@@ -206,7 +206,8 @@ class FlujoValidacionTests(BaseDesempeno):
             'titulo': 'x', 'colaborador': self.luis.id, 'fecha_limite': '2026-09-10'})
         self.assertEqual(crear.status_code, 403)
         equipo = self.client.get('/api/desempeno/equipo/').data
-        self.assertEqual([m['id'] for m in equipo], [self.ana.id])
+        # Su equipo (no el de otra persona) y ella misma: los supervisores pueden asignarse tareas
+        self.assertEqual(sorted(m['id'] for m in equipo), sorted([self.ana.id, self.jefa.id]))
 
     def test_kpi_automatico_se_llena_con_tareas_validadas(self):
         plantilla = PlantillaKPI.objects.create(nombre="Contenidos programados")
