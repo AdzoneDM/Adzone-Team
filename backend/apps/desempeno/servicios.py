@@ -262,11 +262,20 @@ def avisar_por_vencer(hoy=None):
 ESPERA_PEDIR_TRABAJO = timedelta(hours=2)
 
 
+def recordatorios_enviados(tarea):
+    """Cuántas veces se ha recordado esta tarea (un envío = un aviso a quien la trabaja)."""
+    return Notificacion.objects.filter(tarea=tarea, tipo='RECORDATORIO', destinatario=tarea.colaborador).count()
+
+
 def recordar(tarea, quien, mensaje=''):
-    """El supervisor le recuerda una tarea abierta al colaborador. La espera entre recordatorios de la misma tarea
-    se configura en Reglas del puntaje (por defecto 2 minutos: solo evita enviarlo dos veces sin querer)."""
+    """El supervisor le recuerda una tarea abierta al colaborador. Dos límites, ambos configurables en Reglas del puntaje:
+    una espera corta entre recordatorios (por defecto 2 min, solo evita enviarlo dos veces sin querer) y un máximo de
+    recordatorios por tarea (por defecto 15)."""
     from .models import ConfiguracionDesempeno
-    espera = timedelta(minutes=ConfiguracionDesempeno.actual().espera_recordatorio_min)
+    config = ConfiguracionDesempeno.actual()
+    if config.max_recordatorios and recordatorios_enviados(tarea) >= config.max_recordatorios:
+        return f"Ya se envió el máximo de {config.max_recordatorios} recordatorios de esta tarea. Habla con la persona o cámbiale la fecha."
+    espera = timedelta(minutes=config.espera_recordatorio_min)
     ultimo = Notificacion.objects.filter(tarea=tarea, tipo='RECORDATORIO', fecha__gte=timezone.now() - espera).order_by('-fecha').first() if espera else None
     if ultimo:
         faltan = max(1, int((ultimo.fecha + espera - timezone.now()).total_seconds()))

@@ -47,8 +47,9 @@ def _ver_persona(request, usuario):
 @api_view(['GET'])
 def estado_view(request):
     estado, ultimo = servicios.estado_actual(request.user)
-    horario, _ = servicios.horario_de(request.user)
+    horario, obligatoria = servicios.horario_de(request.user)
     return Response({
+        'marca_obligatoria': bool(obligatoria),  # si no la tiene, no se le pide marcar al entrar
         'estado': estado, 'siguientes': servicios.SIGUIENTES[estado],
         'ahora': timezone.now(),  # la hora oficial: la que se estampa al marcar. La pantalla se sincroniza con ella, no con el reloj de la PC
         'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento} if ultimo else None,

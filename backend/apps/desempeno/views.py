@@ -366,7 +366,10 @@ class TareaViewSet(viewsets.ModelViewSet):
         motivo = servicios.recordar(tarea, request.user, (request.data.get('mensaje') or '').strip()[:500])
         if motivo:
             return Response({"detail": motivo}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        return Response({"message": f"Le llegó el recordatorio a {_nombre(tarea.colaborador)}."})
+        maximo = ConfiguracionDesempeno.actual().max_recordatorios
+        enviados = servicios.recordatorios_enviados(tarea)
+        return Response({"message": f"Le llegó el recordatorio a {_nombre(tarea.colaborador)}. Van {enviados}{f' de {maximo}' if maximo else ''}.",
+                         "enviados": enviados, "maximo": maximo})
 
     @action(detail=True, methods=['post'])
     def bloquear(self, request, pk=None):

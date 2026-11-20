@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 from . import servicios
-from .models import Marcaje
+from .models import AsignacionHorario, Marcaje
 from .tests import LUNES, Base
 
 
@@ -62,3 +62,20 @@ class PrecisionTests(Base):
         r = servicios.resumen(self.ana, LUNES, LUNES, ahora=t('23:00:00', LUNES + timedelta(days=1)))
         self.assertEqual(r['segundos_trabajados'], 12718)
         self.assertEqual(r['minutos_trabajados'], 211)
+
+
+class EstadoParaPantallaDeEntradaTests(Base):
+    """La pantalla «Marcar entrada» al iniciar sesión necesita saber si hoy toca marcar y si es obligatorio."""
+
+    def estado(self):
+        from rest_framework.test import APIClient
+        c = APIClient()
+        c.force_authenticate(self.ana)
+        return c.get('/api/asistencia/estado/').json()
+
+    def test_expone_ahora_y_si_la_marca_es_obligatoria(self):
+        d = self.estado()
+        self.assertTrue(d['marca_obligatoria'])
+        self.assertIn('T', d['ahora'])
+        AsignacionHorario.objects.create(usuario=self.ana, horario=self.horario, marca_obligatoria=False)
+        self.assertFalse(self.estado()['marca_obligatoria'])

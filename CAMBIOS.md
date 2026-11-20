@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.11 · 20/11/2026 · Marcar entrada al iniciar sesión, sonido en notificaciones y recordatorios hasta 15 veces
+
+- **Pantalla «Marcar entrada» al iniciar sesión**: si es día de trabajo, la marca es obligatoria para la persona y todavía no marcó, aparece a pantalla completa con la hora oficial del servidor al segundo, el saludo y un botón grande *Marcar entrada* (con su ubicación si el sitio lo pide). «Más tarde» la oculta 30 minutos. También se la muestra a quien aún no ha usado el control de horario, para que empiece. No aparece si ya marcó, en feriados o fines de semana, con permiso aprobado, ni a quien no tiene marca obligatoria.
+- **Sonido en las notificaciones**: cada aviso nuevo en la campanita suena con dos tonos suaves (y una vibración corta en el celular); las alertas de tareas siguen con su sonido fuerte. El audio se desbloquea con el primer toque en la pantalla (regla de los navegadores).
+- **Recordatorios hasta 15 veces por tarea**: se puede recordar la misma tarea hasta 15 veces (configurable en *Reglas del puntaje → Máximo de recordatorios por tarea*; 0 = sin límite). El mensaje dice «Van 3 de 15». Al llegar al máximo avisa claramente. La espera entre recordatorios sigue en 2 minutos (configurable).
+- El estado de jornada ahora incluye `marca_obligatoria`. Migración `0021`. Pruebas nuevas en `tests_mejoras.py` y `tests_precision.py`.
+
 ## 12.10 · 20/11/2026 · Tareas propias con revisor (Helen u Osiris)
 
 - **«Nueva tarea para mí»** en *Mis tareas*, para quien puede asignarse tareas (Dirección y quienes tienen ese permiso: Helen, Osiris, Enmanuel, José…). Pide título, fecha límite, prioridad, horas (opcional), referencias (opcional) y **quién la valida**.

@@ -21,7 +21,7 @@ export default function Configuracion() {
     try {
       const r = await guardarConfiguracion({
         peso_tareas: pesoTareas, peso_calidad: pesoCalidad, peso_jornada: pesoJornada, nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
-        puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion), espera_recordatorio_min: Number(f.espera_recordatorio_min),
+        puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion), espera_recordatorio_min: Number(f.espera_recordatorio_min), max_recordatorios: Number(f.max_recordatorios),
         revisores_propias: f.revisores_propias || [],
         tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje), ...(t.proporcional ? { proporcional: true } : {}) })),
       });
@@ -63,6 +63,9 @@ export default function Configuracion() {
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Puntualidad de una entrega tarde" ayuda="A tiempo vale 100; sin entregar y vencida, 0.">
               {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.nota_tarde} onChange={(e) => setF({ ...f, nota_tarde: e.target.value })} />}
+            </Campo>
+            <Campo etiqueta="Máximo de recordatorios por tarea" ayuda="Cuántas veces se puede recordar una misma tarea. Con 0 no hay límite.">
+              {(id) => <input id={id} type="number" min={0} max={200} className="campo" value={f.max_recordatorios ?? 15} onChange={(e) => setF({ ...f, max_recordatorios: e.target.value })} />}
             </Campo>
             <Campo etiqueta="Quién revisa las tareas propias" ayuda="Las tareas que alguien se asigna a sí mismo las valida quien elija entre estas personas (de Dirección). Sin marcar a nadie, cualquiera de Dirección." className="sm:col-span-2">
               {() => (

@@ -410,6 +410,23 @@ class RecurrentesTests(Base):
 
 
 class RecordarYPedirTrabajoTests(Base):
+    def test_se_puede_recordar_hasta_15_veces_y_el_maximo_es_configurable(self):
+        t = self.tarea(self.erlin)
+        self.como(self.vladi)
+        from apps.desempeno.models import ConfiguracionDesempeno
+        ConfiguracionDesempeno.objects.filter(pk=ConfiguracionDesempeno.actual().pk).update(espera_recordatorio_min=0)
+        for i in range(1, 16):
+            r = self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/')
+            self.assertEqual(r.status_code, 200, (i, r.content))
+        self.assertIn('Van 15 de 15', r.json()['message'])
+        r = self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/')
+        self.assertEqual(r.status_code, 429)
+        self.assertIn('máximo de 15', r.json()['detail'])
+        ConfiguracionDesempeno.objects.filter(pk=ConfiguracionDesempeno.actual().pk).update(max_recordatorios=20)
+        self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/').status_code, 200)
+        ConfiguracionDesempeno.objects.filter(pk=ConfiguracionDesempeno.actual().pk).update(max_recordatorios=0)  # sin límite
+        self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/').status_code, 200)
+
     def test_supervisor_recuerda_sin_duplicar_el_mismo_instante(self):
         t = self.tarea(self.erlin)
         self.como(self.ashley)                                   # compañera: no puede

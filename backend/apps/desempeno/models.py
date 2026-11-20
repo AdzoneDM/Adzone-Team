@@ -451,6 +451,8 @@ class ConfiguracionDesempeno(models.Model):
     minimo_tareas_evaluacion = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas que ya cuentan en el mes para juzgar el mínimo. Con menos (y sin KPIs medidos), "
                              "la persona sale como «pocos datos» y no como incumplimiento.")
+    max_recordatorios = models.PositiveSmallIntegerField(
+        default=15, help_text="Cuántas veces se puede recordar una misma tarea (0 = sin límite).")
     revisores_propias = models.ManyToManyField(
         User, blank=True, related_name='+',
         help_text="Quién puede validar las tareas que la gente se asigna a sí misma. Vacío: cualquiera de Dirección.")

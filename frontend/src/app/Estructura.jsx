@@ -13,9 +13,11 @@ import { Avatar, cx } from "@/components/ui";
 import Buscador from "@/app/Buscador";
 import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/tiempo/cronometro";
 import { esAlertaTarea } from "@/lib/alertas";
+import { sonarAlerta, sonarNotificacion } from "@/lib/sonido";
 import { anunciarNovedades } from "@/lib/novedades";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
+import PantallaEntrada from "@/features/asistencia/PantallaEntrada";
 import AlertaTarea from "@/app/AlertaTarea";
 import AlertaClaveBase from "@/features/cuenta/AlertaClaveBase";
 import ChatFlotante from "@/features/chat/ChatFlotante";
@@ -111,31 +113,19 @@ function SugerenciaDosPasos({ usuario, enCuenta }) {
   );
 }
 
-function sonarAviso() {
-  try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    const ctx = new Ctx();
-    [[880, 0], [1175, 0.18], [1480, 0.36]].forEach(([hz, t]) => {
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.frequency.value = hz; o.type = "sine";
-      g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
-      g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.16);
-      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.2);
-    });
-    setTimeout(() => ctx.close(), 1000);
-  } catch { /* el navegador no deja sonar sin tocar la pantalla primero */ }
-  try { navigator.vibrate?.([200, 100, 200, 100, 200]); } catch { /* sin vibración */ }
-}
-
 function useAvisos() {
   const [datos, setDatos] = useState({ no_leidas: 0, avisos: [], por_validar: 0 });
   const vistos = useRef(null);
   const firma = useRef(null);
   const refrescar = useCallback(() => cargarAvisos().then((d) => {
-    const recordatorios = d.avisos.filter(esAlertaTarea).map((a) => a.id);
-    if (vistos.current && recordatorios.some((id) => !vistos.current.has(id))) sonarAviso();
-    vistos.current = new Set(recordatorios);
+    const alertas = d.avisos.filter(esAlertaTarea).map((a) => a.id);
+    const sinLeer = d.avisos.filter((a) => !a.leida).map((a) => a.id);
+    if (vistos.current) {
+      // Alerta de tarea nueva: sonido fuerte. Cualquier otro aviso nuevo: sonido suave.
+      if (alertas.some((id) => !vistos.current.alertas.has(id))) sonarAlerta();
+      else if (sinLeer.some((id) => !vistos.current.todos.has(id))) sonarNotificacion();
+    }
+    vistos.current = { alertas: new Set(alertas), todos: new Set(sinLeer) };
     // Aviso nuevo o cambio en «por validar»: las pantallas abiertas se recargan solas.
     const nueva = `${Math.max(0, ...d.avisos.map((a) => a.id))}-${d.no_leidas}-${d.por_validar}`;
     if (firma.current !== null && firma.current !== nueva) anunciarNovedades();
@@ -393,7 +383,8 @@ function EstructuraInterna() {
       </header>
       <Buscador abierto={buscando} onCerrar={() => setBuscando(false)} />
 
-      <AlertaTarea avisos={datos.avisos} refrescar={refrescar} sonar={sonarAviso} />
+      <PantallaEntrada />
+      <AlertaTarea avisos={datos.avisos} refrescar={refrescar} sonar={sonarAlerta} />
 
       {usuario?.politicas_pendientes > 0 && !location.pathname.startsWith("/politicas") && (
         <div className="border-b border-amarillo-600/30 bg-amarillo-50 px-4 py-2 text-center text-sm text-[#7a5000]">
