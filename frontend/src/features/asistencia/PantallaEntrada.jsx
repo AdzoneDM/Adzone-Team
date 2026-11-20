@@ -1,6 +1,6 @@
 // Al entrar a la plataforma, si hoy todavía no marcaste tu entrada, aparece esta pantalla para hacerlo con un toque.
 import { useCallback, useEffect, useState } from "react";
-import { LogIn } from "lucide-react";
+import { Play } from "lucide-react";
 import { estadoJornada, marcarJornada } from "@/lib/api";
 import { ZONA, horaExacta, primerNombre } from "@/lib/formato";
 import { datosDeLugar } from "@/lib/ubicacion";
@@ -8,7 +8,7 @@ import { useSesion } from "@/lib/sesion";
 import { Boton, useAviso } from "@/components/ui";
 
 const LLAVE = "adzone:entrada-despues";
-const ESPERA_MS = 30 * 60 * 1000; // «Más tarde» la oculta media hora
+const ESPERA_MS = 30 * 60 * 1000; // si no se pudo iniciar, «Cerrar por ahora» la oculta media hora
 
 const leerPosposicion = (uid) => {
   try { const v = JSON.parse(sessionStorage.getItem(LLAVE) || "null"); return v && v.uid === uid && v.hasta > Date.now(); } catch { return false; }
@@ -20,6 +20,7 @@ export default function PantallaEntrada() {
   const [estado, setEstado] = useState(null);
   const [oculta, setOculta] = useState(() => leerPosposicion(usuario?.id));
   const [enviando, setEnviando] = useState(false);
+  const [fallo, setFallo] = useState(""); // por qué no se pudo iniciar (p. ej. ubicación): solo entonces se ofrece cerrar la pantalla
   const [, setLatido] = useState(0);
 
   const cargar = useCallback(async () => {
@@ -48,14 +49,16 @@ export default function PantallaEntrada() {
     return () => clearInterval(t);
   }, [visible]);
 
+  // «Comenzar» inicia la jornada: marca la entrada y arranca el contador de tiempo
   const marcar = async () => {
     setEnviando(true);
+    setFallo("");
     try {
       const lugar = await datosDeLugar(estado.donde_marca);
       const r = await marcarJornada("ENTRADA", { movil: window.matchMedia("(max-width: 767px)").matches, ...lugar });
-      avisar(`Entrada marcada a las ${horaExacta(r?.momento)}. ¡Buen día!`);
+      avisar(`Jornada iniciada a las ${horaExacta(r?.momento)}. ¡Buen día!`);
       window.dispatchEvent(new Event("adzone:jornada"));
-    } catch (e) { avisar(e.message, "rojo"); }
+    } catch (e) { setFallo(e.message); }
     setEnviando(false);
   };
 
@@ -80,11 +83,12 @@ export default function PantallaEntrada() {
           <h2 id="entrada-titulo" className="mt-5 text-2xl font-semibold text-tinta">{saludo}, {primerNombre(usuario?.nombre || "")}</h2>
           <p className="mt-2 text-[15px] text-gris">
             {tarde
-              ? "Ya pasó tu hora de entrada y todavía no la has marcado. Márcala ahora para que quede registrada."
-              : `Tu turno empieza a las ${estado.hoy.turno?.[0] || "—"}. Marca tu entrada para empezar tu jornada.`}
+              ? "Ya pasó tu hora de entrada. Toca Comenzar para iniciar tu jornada y tu contador de tiempo ahora."
+              : `Tu turno empieza a las ${estado.hoy.turno?.[0] || "—"}. Toca Comenzar para iniciar tu jornada y tu contador de tiempo.`}
           </p>
-          <Boton icono={LogIn} onClick={marcar} cargando={enviando} className="mt-6 !h-14 w-full !text-base" autoFocus>Marcar entrada</Boton>
-          <button type="button" onClick={despues} className="mt-3 rounded-lg px-3 py-2 text-sm font-medium text-gris hover:bg-fondo hover:text-tinta">Más tarde</button>
+          {fallo && <p role="alert" className="mt-4 rounded-lg bg-rojo-50 px-3 py-2 text-sm text-rojo">{fallo}</p>}
+          <Boton icono={Play} onClick={marcar} cargando={enviando} className="mt-6 !h-14 w-full !text-base" autoFocus>Comenzar</Boton>
+          {fallo && <button type="button" onClick={despues} className="mt-3 rounded-lg px-3 py-2 text-sm font-medium text-gris hover:bg-fondo hover:text-tinta">Cerrar por ahora</button>}
         </div>
       </div>
     </div>

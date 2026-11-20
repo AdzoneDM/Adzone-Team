@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.15.1 · 20/11/2026 · «Comenzar» al entrar a la plataforma
+
+- La pantalla que aparece al entrar en el día ahora tiene **un solo botón: «Comenzar»**. Al tocarlo se inicia la jornada (se marca la entrada y arranca el contador de tiempo) y la pantalla desaparece; el aviso dice «Jornada iniciada a las 8:40:12 a. m.». Se quitó «Más tarde».
+- Si no se pudo iniciar (por ejemplo, la ubicación está bloqueada), se muestra el motivo y entonces sí aparece «Cerrar por ahora» para no dejar a la persona atrapada.
+
 ## 12.15 · 20/11/2026 · Sonido en los mensajes del chat
 
 - **Cada mensaje nuevo suena**: un «pop» corto y suave (distinto al de las notificaciones), con una vibración leve en el celular. Suena en tres situaciones: con el **chat cerrado** (se revisa cada 15 s y el botón sube su contador), con la **conversación abierta** (cada 3 s) y con la **pestaña oculta o en otra ventana** (cada 30 s; además sale un aviso del sistema con el nombre y el texto, si diste permiso de notificaciones).
