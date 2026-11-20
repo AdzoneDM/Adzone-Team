@@ -6,10 +6,12 @@ export function getCookie(name) {
 }
 
 /** Convierte las respuestas de error de Django REST en un mensaje legible. */
-function mensajeDeError(data, status) {
+function mensajeDeError(data, status, espera) {
   if (status === 403) return data?.detail || "No tienes permiso para hacer esto.";
   if (status === 404) return "No se encontró. Puede que ya no exista o no tengas acceso.";
-  if (status === 429) return "Demasiados intentos. Espera un minuto y vuelve a probar.";
+  // Límite de intentos del servidor (trae «Retry-After»): aviso corto con la espera real, en segundos.
+  // Si el 429 lo explica la propia pantalla (recordatorio reciente, escribiendo muy rápido…), se muestra esa explicación.
+  if (status === 429) return espera || !data?.detail ? `Demasiados intentos seguidos. Espera ${espera ? `${espera} s` : "unos segundos"} y vuelve a probar.` : data.detail;
   if (status >= 500) return "El servidor tuvo un problema. Inténtalo de nuevo en un momento.";
   if (data && typeof data === "object") {
     const partes = Object.entries(data).map(([clave, valor]) => {
@@ -72,7 +74,7 @@ export async function api(url, { method = "GET", body, signal } = {}) {
     if ((response.status === 401 && data?.detail) || data?.activar_dos_pasos) {
       window.dispatchEvent(new CustomEvent(EVENTO_SESION, { detail: { estado: response.status, ...data } }));
     }
-    throw new ApiError(mensajeDeError(data, response.status), response.status, data);
+    throw new ApiError(mensajeDeError(data, response.status, Number(response.headers.get("Retry-After")) || 0), response.status, data);
   }
   return data;
 }

@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.core import seguridad as seg
+from apps.core.views import LoginThrottle, LoginUsuarioThrottle
 from apps.core.models import Departamento, DosPasos
 from apps.desempeno.models import Notificacion
 from apps.organizacion.models import PuestoDeTrabajo
@@ -327,3 +328,28 @@ class ClaveBaseTests(TestCase):
 
     def test_sin_alerta_con_otra_clave(self):
         self.assertFalse(self.entrar('otro', 'Otra-clave-9')[1]['debe_cambiar_clave'])
+
+
+class LimiteDeEntradaTests(TestCase):
+    """El límite de intentos frena adivinar una cuenta, pero no traba a la oficina entera (todos salen por la misma IP)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        for u in ('a', 'b', 'c', 'd'):
+            User.objects.create_user(u, password='Clave-buena-1')
+
+    def entrar(self, usuario, clave='Clave-buena-1'):
+        return APIClient().post('/api/auth/login/', {'username': usuario, 'password': clave}, format='json')
+
+    @mock.patch.object(LoginUsuarioThrottle, 'THROTTLE_RATES', {'login_usuario': '12/min'})
+    @mock.patch.object(LoginThrottle, 'THROTTLE_RATES', {'login': '240/min'})
+    def test_varias_personas_entran_a_la_vez_y_una_cuenta_no_se_adivina_a_ritmo_de_maquina(self):
+        # Una cuenta: 12 intentos por minuto y después espera
+        for _ in range(12):
+            self.assertEqual(self.entrar('a', 'mala').status_code, 400)
+        self.assertEqual(self.entrar('a', 'mala').status_code, 429)
+        self.assertEqual(self.entrar('a').status_code, 429)           # ni siquiera con la clave correcta, hasta que pase la espera
+        # Las demás cuentas, desde la misma conexión, entran sin problema (antes: 10 por minuto entre todas)
+        for u in ('b', 'c', 'd'):
+            self.assertEqual(self.entrar(u).status_code, 200)

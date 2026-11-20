@@ -44,8 +44,18 @@ def _aware(dia, hora):
     return timezone.make_aware(datetime.combine(dia, hora))
 
 
-def _minutos(delta):
-    return max(0, int(delta.total_seconds() // 60))
+def _segundos(delta):
+    """Segundos exactos (con fracción) de un intervalo. Todo el cálculo de la jornada se hace en segundos: se redondea una
+    sola vez, al final y sobre el total, nunca tramo por tramo (si no, se pierden hasta 59 s en cada entrada y salida)."""
+    return max(0.0, delta.total_seconds())
+
+
+def _enteros(segundos):
+    return int(segundos)  # al segundo, hacia abajo, solo sobre totales
+
+
+def _min(segundos):
+    return int(segundos // 60)
 
 
 def estado_actual(usuario, ahora=None):
@@ -107,7 +117,9 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         'fecha': dia.isoformat(), 'laborable': laborable, 'feriado': dia in feriados,
         'turno': list(turno) if laborable else None, 'programados': programados,
         'entrada': None, 'salida': None, 'trabajados': 0, 'pausa': 0, 'tardanza': 0, 'salida_temprana': 0,
-        'extra': 0, 'segundos_en_curso': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
+        'extra': 0, 'segundos_en_curso': 0,
+        # Lo mismo en segundos exactos: de ahí sale el pago, los minutos son solo para mostrar
+        'programados_seg': programados * 60, 'trabajados_seg': 0, 'pausa_seg': 0, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
         'ausencia': ausencia.get_tipo_display() if ausencia else None,
         'marcajes': [{'id': m.id, 'tipo': m.tipo, 'momento': m.momento.isoformat(), 'origen': m.origen,
                       'motivo': m.motivo_pausa, 'corregido': bool(m.corregido_por_id)} for m in marcajes],
@@ -129,16 +141,16 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
                 fila['estado'] = 'PROGRAMADO'
         return fila
 
-    trabajados = pausa = 0
+    trabajados = pausa = 0.0  # segundos
     inicio = inicio_pausa = None
     for m in marcajes:
         if m.tipo in (Marcaje.ENTRADA, Marcaje.REGRESO):
             if inicio_pausa:
-                pausa += _minutos(m.momento - inicio_pausa)
+                pausa += _segundos(m.momento - inicio_pausa)
                 inicio_pausa = None
             inicio = inicio or m.momento
         elif m.tipo in (Marcaje.PAUSA, Marcaje.SALIDA) and inicio:
-            trabajados += _minutos(m.momento - inicio)
+            trabajados += _segundos(m.momento - inicio)
             inicio = None
             if m.tipo == Marcaje.PAUSA:
                 inicio_pausa = m.momento
@@ -146,39 +158,42 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         siguiente = Marcaje.objects.filter(usuario=usuario, momento__gt=inicio, momento__lte=inicio + TURNO_MAXIMO,
                                            tipo__in=(Marcaje.PAUSA, Marcaje.SALIDA)).order_by('momento').first()
         if siguiente and siguiente.momento <= ahora:
-            trabajados += _minutos(siguiente.momento - inicio)  # turno que cruza la medianoche
+            trabajados += _segundos(siguiente.momento - inicio)  # turno que cruza la medianoche
             inicio = None
         elif ahora - inicio < TURNO_MAXIMO:
-            trabajados += _minutos(ahora - inicio)  # en curso
-            fila['segundos_en_curso'] = int((ahora - inicio).total_seconds()) % 60  # para el contador en vivo
+            trabajados += _segundos(ahora - inicio)  # en curso
+            fila['segundos_en_curso'] = int(_segundos(ahora - inicio)) % 60  # (compatibilidad) segundos del minuto en curso
         else:
             cierre = _aware(dia, _hora(turno[1])) if turno else inicio
-            trabajados += _minutos(max(cierre, inicio) - inicio)
+            trabajados += _segundos(max(cierre, inicio) - inicio)
             fila['sin_salida'] = True
             inicio = None
     if inicio_pausa:
         if ahora - inicio_pausa < TURNO_MAXIMO and not any(m.momento > inicio_pausa for m in marcajes):
-            pausa += _minutos(ahora - inicio_pausa)
+            pausa += _segundos(ahora - inicio_pausa)
         else:
             fila['sin_salida'] = True  # se fue a pausa y no volvió a marcar
     almuerzo = horario.almuerzo_minutos if horario else 0
-    if trabajados > DIA_LARGO and pausa < almuerzo:
-        trabajados -= almuerzo - pausa
+    if trabajados > DIA_LARGO * 60 and pausa < almuerzo * 60:
+        trabajados -= almuerzo * 60 - pausa
 
     primera = next((m for m in marcajes if m.tipo == Marcaje.ENTRADA), None)
     ultima_salida = next((m for m in reversed(marcajes) if m.tipo == Marcaje.SALIDA), None)
-    fila.update(trabajados=trabajados, pausa=pausa,
+    fila.update(trabajados=_min(trabajados), pausa=_min(pausa), trabajados_seg=_enteros(trabajados), pausa_seg=_enteros(pausa),
                 entrada=primera.momento.isoformat() if primera else None,
                 salida=ultima_salida.momento.isoformat() if ultima_salida else None)
     if laborable and primera:
-        tarde = _minutos(primera.momento - _aware(dia, _hora(turno[0])))
-        fila['tardanza'] = tarde if tarde > tolerancia else 0
-        fila['llegada'] = 'TARDE' if fila['tardanza'] else 'A_TIEMPO'
+        tarde = _segundos(primera.momento - _aware(dia, _hora(turno[0])))
+        if tarde > tolerancia * 60:  # pasada la tolerancia, cuenta desde la hora de entrada, al segundo
+            fila['tardanza'], fila['tardanza_seg'] = _min(tarde), _enteros(tarde)
+        fila['llegada'] = 'TARDE' if fila['tardanza_seg'] else 'A_TIEMPO'
         if ultima_salida and not inicio:
-            temprano = _minutos(_aware(dia, _hora(turno[1])) - ultima_salida.momento)
-            fila['salida_temprana'] = temprano if temprano > tolerancia else 0
-    extra = trabajados - programados
-    fila['extra'] = extra if extra >= EXTRA_MINIMO else 0
+            temprano = _segundos(_aware(dia, _hora(turno[1])) - ultima_salida.momento)
+            if temprano > tolerancia * 60:
+                fila['salida_temprana'], fila['salida_temprana_seg'] = _min(temprano), _enteros(temprano)
+    extra = trabajados - programados * 60
+    if extra >= EXTRA_MINIMO * 60:
+        fila['extra'], fila['extra_seg'] = _min(extra), _enteros(extra)
     if inicio:
         fila['estado'] = 'TRABAJANDO'
     elif inicio_pausa and not fila['sin_salida']:
@@ -221,18 +236,21 @@ def resumen(usuario, desde, hasta, ahora=None):
     ausentes = [d for d in laborables if d['estado'] == 'AUSENTE']
     esperados = len(laborables) - len(con_permiso)
     programados = sum(d['programados'] for d in laborables if d['estado'] != 'PERMISO')
-    trabajados = sum(d['trabajados'] for d in dias)
+    trabajados_seg = sum(d['trabajados_seg'] for d in dias)  # se suma en segundos y se convierte una sola vez
+    tarde_seg, salida_seg = sum(d['tardanza_seg'] for d in dias), sum(d['salida_temprana_seg'] for d in dias)
+    extra_seg, pausa_seg = sum(d['extra_seg'] for d in dias), sum(d['pausa_seg'] for d in dias)
     return {
         'dias_laborables': len(laborables), 'dias_presentes': len(presentes), 'dias_a_tiempo': len(a_tiempo),
-        'tardanzas': len(presentes_laborables) - len(a_tiempo), 'minutos_tarde': sum(d['tardanza'] for d in dias),
+        'tardanzas': len(presentes_laborables) - len(a_tiempo), 'minutos_tarde': tarde_seg // 60, 'segundos_tarde': tarde_seg,
         'ausencias': len(ausentes), 'permisos': len(con_permiso),
-        'salidas_tempranas': sum(1 for d in dias if d['salida_temprana']), 'minutos_salida_temprana': sum(d['salida_temprana'] for d in dias),
+        'salidas_tempranas': sum(1 for d in dias if d['salida_temprana']), 'minutos_salida_temprana': salida_seg // 60, 'segundos_salida_temprana': salida_seg,
         'sin_salida': sum(1 for d in dias if d['sin_salida']),
-        'minutos_programados': programados, 'minutos_trabajados': trabajados, 'minutos_extra': sum(d['extra'] for d in dias),
-        'minutos_pausa': sum(d['pausa'] for d in dias),
+        'minutos_programados': programados, 'minutos_trabajados': trabajados_seg // 60, 'segundos_trabajados': trabajados_seg,
+        'minutos_extra': extra_seg // 60, 'segundos_extra': extra_seg,
+        'minutos_pausa': pausa_seg // 60, 'segundos_pausa': pausa_seg,
         'puntualidad': round(len(a_tiempo) / len(presentes_laborables) * 100, 1) if presentes_laborables else None,
         'asistencia': round(len(presentes_laborables) / esperados * 100, 1) if esperados > 0 else None,
-        'cumplimiento_horas': round(min(trabajados / programados, 1.5) * 100, 1) if programados else None,
+        'cumplimiento_horas': round(min(trabajados_seg / (programados * 60), 1.5) * 100, 1) if programados else None,
     }
 
 

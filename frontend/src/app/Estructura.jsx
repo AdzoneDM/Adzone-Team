@@ -12,14 +12,16 @@ import Marca from "@/components/Marca";
 import { Avatar, cx } from "@/components/ui";
 import Buscador from "@/app/Buscador";
 import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/tiempo/cronometro";
+import { esAlertaTarea } from "@/lib/alertas";
 import { anunciarNovedades } from "@/lib/novedades";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
+import AlertaTarea from "@/app/AlertaTarea";
 import AlertaClaveBase from "@/features/cuenta/AlertaClaveBase";
 import ChatFlotante from "@/features/chat/ChatFlotante";
 import { SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
-function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
+function secciones({ esAdmin, puedeValidar, puedeAsignar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
   veMonitoreo, gestionaPersonas, configuraSistema, esRRHH, tablerosDeptos = [] }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
@@ -54,6 +56,8 @@ function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmace
   if (gestionaCallCenter) s[1].items.push({ a: "/call-center", texto: "Call Center", icono: Headset });
   if (gestionaActivos) s[1].items.push({ a: "/activos", texto: "Activos y equipos", icono: Laptop });
   if (esAdmin || esCoordinacion) s[1].items.push({ a: "/produccion/ajustes", texto: "Áreas y tiempos", icono: SlidersHorizontal });
+  // Quien solo se asigna tareas a sí mismo (sin supervisar a nadie) tiene la pantalla de tareas, sin «Por validar»
+  if (!puedeValidar && puedeAsignar) s.push({ titulo: "Mis asignaciones", items: [{ a: "/equipo", texto: "Asignar tareas", icono: Users }] });
   if (puedeValidar) {
     s.push({ titulo: "Mi equipo", items: [
       { a: "/validar", texto: "Por validar", icono: CircleCheckBig, cuenta: "por_validar" },
@@ -129,7 +133,7 @@ function useAvisos() {
   const vistos = useRef(null);
   const firma = useRef(null);
   const refrescar = useCallback(() => cargarAvisos().then((d) => {
-    const recordatorios = d.avisos.filter((a) => a.tipo === "RECORDATORIO" && !a.leida).map((a) => a.id);
+    const recordatorios = d.avisos.filter(esAlertaTarea).map((a) => a.id);
     if (vistos.current && recordatorios.some((id) => !vistos.current.has(id))) sonarAviso();
     vistos.current = new Set(recordatorios);
     // Aviso nuevo o cambio en «por validar»: las pantallas abiertas se recargan solas.
@@ -151,51 +155,6 @@ function useAvisos() {
 
 /** Llamar después de validar, entregar, etc., para actualizar contadores del menú al momento. */
 export const refrescarAvisos = () => window.dispatchEvent(new Event("adzone:refrescar-avisos"));
-
-/** Franja fija con el último «Recordar» sin leer. No se pierde entre los demás avisos. */
-function Recordatorio({ datos, refrescar }) {
-  const navigate = useNavigate();
-  const pendientes = datos.avisos.filter((a) => a.tipo === "RECORDATORIO" && !a.leida);
-  const hay = pendientes.length > 0;
-  // Un poco insistente a propósito: suena cada 30 s y parpadea el título de la pestaña hasta que se atiende.
-  useEffect(() => {
-    if (!hay) return undefined;
-    const original = document.title;
-    let alterno = false;
-    const titulo = setInterval(() => { alterno = !alterno; document.title = alterno ? "🔔 Recordatorio" : original; }, 1200);
-    const sonido = setInterval(sonarAviso, 30000);
-    return () => { clearInterval(titulo); clearInterval(sonido); document.title = original; };
-  }, [hay]);
-  if (!hay) return null;
-  const a = pendientes[0];
-  const entendido = async (ir) => {
-    try { await leerAvisos(pendientes.map((x) => x.id)); } catch { /* se reintenta en el próximo refresco */ }
-    refrescar();
-    if (ir && a.enlace) navigate(a.tarea && !a.enlace.includes("tarea=") ? `${a.enlace}?tarea=${a.tarea}` : a.enlace);
-  };
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-noche/50 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-labelledby="recordatorio-titulo">
-      <div key={a.id} className="w-full max-w-lg animate-[sacudir_0.6s_ease-in-out_2] overflow-hidden motion-reduce:animate-none rounded-2xl border-t-8 border-amarillo bg-white shadow-2xl">
-        <div className="flex flex-col items-center px-6 pb-6 pt-8 text-center sm:px-8">
-          <span className="relative flex size-20 items-center justify-center">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-amarillo/40 motion-reduce:animate-none" />
-            <span className="relative flex size-20 items-center justify-center rounded-full bg-amarillo-50 ring-4 ring-amarillo">
-              <BellRing className="size-10 text-[#a86a00]" aria-hidden />
-            </span>
-          </span>
-          <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#a86a00]">Recordatorio</p>
-          <h2 id="recordatorio-titulo" className="mt-1 text-2xl font-semibold leading-snug sm:text-[28px]">{a.titulo}</h2>
-          {a.mensaje && <p className="mt-3 whitespace-pre-line text-lg text-tinta">{a.mensaje}</p>}
-          {pendientes.length > 1 && <p className="mt-3 text-sm text-gris">Tienes {pendientes.length - 1} recordatorio(s) más.</p>}
-        </div>
-        <div className="grid gap-2 border-t border-linea-suave bg-fondo p-4 sm:grid-cols-2">
-          {a.enlace && <button type="button" onClick={() => entendido(true)} className="h-12 rounded-xl bg-noche px-4 text-base font-semibold text-white hover:bg-noche-900 sm:order-2" autoFocus>Ver tarea</button>}
-          <button type="button" onClick={() => entendido(false)} className={cx("h-12 rounded-xl border border-linea bg-white px-4 text-base font-semibold text-tinta hover:bg-linea-suave sm:order-1", !a.enlace && "sm:col-span-2")}>Entendido</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function Campanita({ datos, refrescar, alto = false }) {
   const [abierto, setAbierto] = useState(false);
@@ -314,7 +273,7 @@ function Crear({ sesion }) {
   }, [abierto]);
   const opciones = [
     { texto: "Orden de trabajo (F-01)", sub: "Se entrega a Coordinación para el G0", a: "/ordenes?nueva=1", icono: ClipboardList },
-    sesion.puedeValidar && { texto: "Tarea para mi equipo", sub: "Con pasos, fecha y responsable", a: "/equipo?ver=tareas&nueva=1", icono: ListChecks },
+    (sesion.puedeValidar || sesion.puedeAsignar) && { texto: sesion.puedeValidar ? "Tarea para mi equipo" : "Tarea para mí", sub: "Con pasos, fecha y responsable", a: "/equipo?ver=tareas&nueva=1", icono: ListChecks },
     (sesion.gestiona || sesion.esFinanzas) && { texto: "Proyecto", sub: "Agrupa tareas y órdenes", a: "/proyectos?nuevo=1", icono: FolderKanban },
     { texto: "Cliente", sub: "Datos de contacto", a: "/clientes?nuevo=1", icono: Building },
     sesion.esFinanzas && { texto: "Cotización", sub: "Con ITBIS calculado", a: "/finanzas?ver=cotizaciones&nueva=1", icono: Wallet },
@@ -424,7 +383,7 @@ function EstructuraInterna() {
           <CronometroBarra />
           <button type="button" onClick={() => setBuscando(true)} data-guia="buscar-movil" className="flex size-10 items-center justify-center rounded-lg text-gris hover:bg-white lg:hidden" aria-label="Buscar"><Search className="size-5" /></button>
           {/* El botón «Crear» es para quien dirige o gestiona; el empleado solo trabaja lo que le asignan */}
-          {!sesion.esAgente && (sesion.esAdmin || sesion.puedeValidar || sesion.gestiona || sesion.esFinanzas || sesion.esCoordinacion || sesion.gestionaCallCenter) && <Crear sesion={sesion} />}
+          {!sesion.esAgente && (sesion.esAdmin || sesion.puedeValidar || sesion.puedeAsignar || sesion.gestiona || sesion.esFinanzas || sesion.esCoordinacion || sesion.gestionaCallCenter) && <Crear sesion={sesion} />}
           <Campanita datos={datos} refrescar={refrescar} />
           <button type="button" onClick={guia.abrirAyuda} data-guia="ayuda" aria-label="Ayuda: guía paso a paso" title="Ayuda"
             className="flex size-10 items-center justify-center rounded-lg text-gris hover:bg-white hover:text-azul">
@@ -434,7 +393,7 @@ function EstructuraInterna() {
       </header>
       <Buscador abierto={buscando} onCerrar={() => setBuscando(false)} />
 
-      <Recordatorio datos={datos} refrescar={refrescar} />
+      <AlertaTarea avisos={datos.avisos} refrescar={refrescar} sonar={sonarAviso} />
 
       {usuario?.politicas_pendientes > 0 && !location.pathname.startsWith("/politicas") && (
         <div className="border-b border-amarillo-600/30 bg-amarillo-50 px-4 py-2 text-center text-sm text-[#7a5000]">

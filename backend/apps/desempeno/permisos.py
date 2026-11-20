@@ -9,6 +9,7 @@ ORGANIGRAMA dice sobre quién (más su equipo adicional).
 - Nadie valida, devuelve ni reabre sus propias tareas, aunque sea administrador.
 """
 from django.contrib.auth.models import User
+from django.db.models import Q
 from rest_framework import permissions
 
 
@@ -89,8 +90,11 @@ def subordinados_directos(user):
 
 
 def equipo_base(user):
-    """Su equipo: quienes dependen de su puesto en el organigrama, más su equipo adicional vigente."""
+    """Su equipo: quienes dependen de su puesto en el organigrama, más su equipo adicional vigente.
+    Con el permiso «Supervisar a toda la empresa»: todo el personal activo, salvo Dirección."""
     from apps.core.permisos import extras
+    if tiene(user, 'equipo.todos'):
+        return User.objects.filter(is_active=True).exclude(pk=user.pk).exclude(pk__in=administradores().values('pk'))
     ids = set(subordinados(user).values_list('pk', flat=True)) | set(extras(user))
     ids.discard(user.pk)
     return User.objects.filter(is_active=True, pk__in=ids)
@@ -102,15 +106,19 @@ def equipo_gestionable(user, permiso='equipo.ver'):
         return User.objects.none()
     if es_administrador(user):
         return User.objects.filter(is_active=True)
-    if not tiene(user, permiso):
-        return User.objects.none()
-    return equipo_base(user)
+    base = equipo_base(user) if tiene(user, permiso) else User.objects.none()
+    if permiso == 'tareas.asignar' and tiene(user, 'tareas.propias'):
+        base = User.objects.filter(Q(pk__in=base.values('pk')) | Q(pk=user.pk), is_active=True)
+    return base
 
 
 def puede_gestionar(user, colaborador, permiso='equipo.ver'):
     """¿Puede `user` ejercer `permiso` sobre `colaborador`? (Por defecto: ver su trabajo.)"""
     if es_administrador(user):
         return True
+    if colaborador.pk == user.pk:
+        # A sí mismo solo se asigna con «Asignarse tareas a sí mismo»; lo demás sobre uno mismo no aplica
+        return permiso == 'tareas.asignar' and tiene(user, 'tareas.propias')
     return tiene(user, permiso) and equipo_base(user).filter(pk=colaborador.pk).exists()
 
 
@@ -137,7 +145,10 @@ def revisores_de(colaborador, permiso='tareas.validar'):
     from django.db.models import Q
     from django.utils import timezone
     hoy = timezone.localdate()
-    extra = [e.jefe for e in EquipoExtra.objects.filter(colaborador=colaborador, jefe__is_active=True).filter(
+    from apps.core.permisos import con_permiso
+    # «Supervisar a toda la empresa»: también le llegan los avisos de todos (salvo de Dirección)
+    todos = [] if tiene(colaborador, 'direccion') else [j for j in con_permiso('equipo.todos').exclude(pk=colaborador.pk) if tiene(j, permiso)]
+    extra = todos + [e.jefe for e in EquipoExtra.objects.filter(colaborador=colaborador, jefe__is_active=True).filter(
         Q(hasta__isnull=True) | Q(hasta__gte=hoy)).select_related('jefe') if tiene(e.jefe, permiso)]
     puesto = puesto_de(colaborador)
     vistos = set()

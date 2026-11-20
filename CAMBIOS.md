@@ -1,5 +1,24 @@
 # Cambios
 
+## 12.8 · 20/11/2026 · Alcance configurable: toda la empresa y tareas propias
+
+Dos permisos nuevos, configurables desde *Accesos y permisos* (por perfil o como excepción de una persona):
+
+- **Supervisar a toda la empresa** (`equipo.todos`): el «equipo» de quien lo tiene pasa a ser todo el personal activo, en todos los departamentos y sin depender del organigrama. Los permisos de equipo que tenga (asignar y validar tareas, ver ficha y asistencia, evaluar, expediente…) se ejercen sobre todos. También recibe los avisos de entregas y tardanzas de todos. Dirección queda fuera de su alcance, y nadie se valida a sí mismo.
+- **Asignarse tareas a sí mismo** (`tareas.propias`): crear y programar tareas para uno mismo, sin necesidad de supervisar a nadie. La tarea la valida otra persona, nunca quien la hace. Aparece la opción «Asignar tareas» para quien no supervisa.
+- La búsqueda de tareas en órdenes también respeta el nuevo alcance. 6 pruebas nuevas (`apps/desempeno/tests_alcance.py`).
+
+**Tiempo marcado al segundo** (de ahí sale el pago):
+- Antes cada tramo (entrada→pausa, regreso→salida) se redondeaba a minutos hacia abajo *antes* de sumar, y se podían perder hasta 59 s por tramo; la tardanza, la salida temprana y el tiempo extra también se truncaban. Ahora todo se calcula en **segundos exactos** y se convierte una sola vez, sobre el total. La jornada devuelve `trabajados_seg`, `pausa_seg`, `tardanza_seg`, `salida_temprana_seg`, `extra_seg` (y el resumen, `segundos_*`); los minutos siguen ahí, derivados del total.
+- La tolerancia es estricta: pasada la tolerancia, la tardanza cuenta completa desde la hora de entrada, al segundo.
+- **Hora oficial**: las pantallas se sincronizan con la hora del servidor (la que se estampa al marcar), no con el reloj de la computadora, y todas las horas se muestran en hora de República Dominicana aunque el equipo esté en otra zona. El panel de jornada muestra la «Hora oficial» al segundo; al marcar, el aviso dice la hora exacta guardada.
+- Asistencia (tablas y tarjetas) muestra tiempos en `H:MM:SS` y las horas de marcaje con segundos. El CSV del reporte trae tiempo trabajado exacto (`H:MM:SS`, segundos y horas con 4 decimales) en vez de horas redondeadas a una décima.
+- 6 pruebas nuevas (`apps/asistencia/tests_precision.py`).
+
+**Recordatorios**: la espera para volver a enviar el recordatorio de una misma tarea bajó de **1 hora a 2 minutos** (solo evita enviarlo dos veces sin querer) y se configura en *Reglas del puntaje → Espera entre recordatorios* (0 = sin espera). Si aún no se puede, el mensaje dice cuánto falta. Y el recordatorio ahora sale en **rojo**.
+
+**Alertas de tareas emergentes**: las alertas de tareas (recordatorio del supervisor, tarea nueva, devuelta, reabierta, modificada, bloqueada y por vencer) salen en una ventana grande a pantalla completa, con fondo desenfocado, ícono y color según el tipo, quién la envió y cuándo, botón principal grande (Ver tarea / Corregir ahora) y «Entendido». Con varias, se atienden una por una. Recordatorios, devoluciones y vencimientos insisten con sonido cada 30 s y el título de la pestaña parpadea hasta atenderlas.
+
 ## 12.7 · 20/11/2026 · Chats privados
 
 - **Chat personal con cualquier compañero, ventana tipo Instagram**: en PC, tus chats a la izquierda (la sala de toda la empresa fijada arriba, con vista previa, hora y mensajes sin leer) y la conversación a la derecha: cambias de chat con un clic, sin salir de la ventana. El buscador de arriba encuentra compañeros por nombre, usuario, cargo o departamento y abre su chat al instante. Arriba de cada chat privado se ve el cargo y el departamento de la otra persona. En el celular, al tocar el icono se abre directo la conversación con una tira de tus chats arriba (Todos, y cada compañero con su contador) para cambiar de chat con un toque; «Buscar» o la flecha abren la lista completa con el buscador de compañeros.

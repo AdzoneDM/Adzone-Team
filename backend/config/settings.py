@@ -157,7 +157,10 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     # Límite de intentos de entrada: solo en el servidor. En desarrollo (y por el túnel de Cloudflare)
     # todos llegan desde el mismo proxy local y compartirían el límite, así que se desactiva.
-    'DEFAULT_THROTTLE_RATES': {'login': None if DEBUG else env('LOGIN_LIMITE', '10/min')},
+    # «login»: tope por conexión (red de la oficina: todo el equipo sale por la misma IP, así que es amplio).
+    # «login_usuario»: intentos por conexión y por cuenta, uno cada ~5 s: frena adivinar una contraseña sin trabar a los demás.
+    'DEFAULT_THROTTLE_RATES': {'login': None if DEBUG else env('LOGIN_LIMITE', '240/min'),
+                               'login_usuario': None if DEBUG else env('LOGIN_USUARIO_LIMITE', '12/min')},
     # Detrás del proxy de Plesk (nginx) hay 1 salto: la IP real es la que agrega el proxy, no la que manda el navegador
     'NUM_PROXIES': None if DEBUG else int(env('NUM_PROXIES', '1')),
 }

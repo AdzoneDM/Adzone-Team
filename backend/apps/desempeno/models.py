@@ -412,6 +412,8 @@ class ConfiguracionDesempeno(models.Model):
     minimo_tareas_evaluacion = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas que ya cuentan en el mes para juzgar el mínimo. Con menos (y sin KPIs medidos), "
                              "la persona sale como «pocos datos» y no como incumplimiento.")
+    espera_recordatorio_min = models.PositiveSmallIntegerField(
+        default=2, help_text="Minutos que deben pasar antes de volver a enviar un recordatorio de la misma tarea (0 = sin espera).")
     tramos_bono = models.JSONField(
         default=list, blank=True,
         help_text='Bono sugerido según el puntaje, p. ej. [{"desde": 100, "porcentaje": 10}, '

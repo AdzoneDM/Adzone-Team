@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, QrCode } from "lucide-react";
 import { estadoJornada, marcarJornada } from "@/lib/api";
 import { Alerta, Boton, Cargando } from "@/components/ui";
+import { horaExacta } from "@/lib/formato";
 
 const TEXTO = { ENTRADA: "Marcar entrada", PAUSA: "Iniciar pausa", REGRESO: "Volver de la pausa", SALIDA: "Marcar salida" };
 
@@ -19,7 +20,7 @@ export default function MarcarQR() {
     setEnviando(tipo); setError("");
     try {
       const r = await marcarJornada(tipo, { qr, movil: true, motivo: tipo === "PAUSA" ? "Almuerzo" : "" });
-      setHecho({ tipo, sitio: r.sitio });
+      setHecho({ tipo, sitio: r.sitio, momento: r.momento });
       window.dispatchEvent(new Event("adzone:jornada"));
     } catch (e) { setError(e.message); }
     setEnviando("");
@@ -30,7 +31,7 @@ export default function MarcarQR() {
         <>
           <CheckCircle2 className="mx-auto size-16 text-verde" />
           <h1 className="text-2xl font-semibold">{{ ENTRADA: "¡Entrada marcada!", PAUSA: "Pausa marcada", REGRESO: "De vuelta", SALIDA: "¡Salida marcada!" }[hecho.tipo]}</h1>
-          <p className="text-gris">{hecho.sitio ? `En ${hecho.sitio}, ` : ""}{new Date().toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" })}</p>
+          <p className="text-gris">{hecho.sitio ? `En ${hecho.sitio}, ` : ""}{horaExacta(hecho.momento || new Date())}</p>
           <Link to="/" className="inline-block text-azul hover:underline">Ir al inicio</Link>
         </>
       ) : (

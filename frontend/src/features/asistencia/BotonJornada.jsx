@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Coffee, LogIn, LogOut, Play } from "lucide-react";
 import { estadoJornada, marcarJornada } from "@/lib/api";
-import { reloj, relojSeg } from "@/lib/formato";
+import { horaExacta, relojSeg } from "@/lib/formato";
 import { datosDeLugar } from "@/lib/ubicacion";
 import { Boton, Modal, cx, useAviso } from "@/components/ui";
 
@@ -12,7 +12,16 @@ const MOTIVOS = ["Almuerzo", "Diligencia personal", "Reunión fuera", "Otro"];
 
 export function useJornada() {
   const [estado, setEstado] = useState(null);
-  const cargar = useCallback(() => estadoJornada().then((d) => setEstado({ ...d, cargadoEn: Date.now() })).catch(() => {}), []);
+  // Se sincroniza con la hora oficial del servidor (la que se estampa al marcar), no con el reloj de la computadora.
+  // El punto de referencia es el momento medio de la consulta (compensa la demora de la red) medido con un reloj que no se puede mover.
+  const cargar = useCallback(async () => {
+    try {
+      const antes = performance.now();
+      const d = await estadoJornada();
+      const despues = performance.now();
+      setEstado({ ...d, medio: (antes + despues) / 2, servidorMs: Date.parse(d.ahora) });
+    } catch { /* se reintenta en el siguiente ciclo */ }
+  }, []);
   useEffect(() => {
     cargar();
     const t = setInterval(() => document.visibilityState === "visible" && cargar(), 60000);
@@ -31,11 +40,11 @@ export default function BotonJornada() {
   const caja = useRef(null);
   const [, setLatido] = useState(0);
   const corriendo = estado?.estado === "TRABAJANDO";
-  useEffect(() => {  // el contador avanza cada segundo mientras se trabaja
-    if (!corriendo) return undefined;
+  useEffect(() => {  // el contador y la hora oficial avanzan cada segundo (mientras se trabaja o el panel está abierto)
+    if (!corriendo && !abierto) return undefined;
     const t = setInterval(() => setLatido((n) => n + 1), 1000);
     return () => clearInterval(t);
-  }, [corriendo]);
+  }, [corriendo, abierto]);
   useEffect(() => {
     if (!abierto) return undefined;
     const fuera = (e) => caja.current && !caja.current.contains(e.target) && setAbierto(false);
@@ -48,8 +57,9 @@ export default function BotonJornada() {
     setEnviando(true);
     try {
       const lugar = await datosDeLugar(estado.donde_marca);
-      await marcarJornada(tipo, { motivo, movil: window.matchMedia("(max-width: 767px)").matches, ...lugar });
-      avisar({ ENTRADA: "Entrada marcada. ¡Buen día!", PAUSA: "Pausa marcada.", REGRESO: "De vuelta.", SALIDA: "Salida marcada. ¡Hasta mañana!" }[tipo]);
+      const r = await marcarJornada(tipo, { motivo, movil: window.matchMedia("(max-width: 767px)").matches, ...lugar });
+      // La hora que se muestra es la que quedó guardada en el servidor, al segundo
+      avisar(`${{ ENTRADA: "Entrada marcada", PAUSA: "Pausa marcada", REGRESO: "Regreso marcado", SALIDA: "Salida marcada" }[tipo]} a las ${horaExacta(r?.momento)}`);
       setAbierto(false);
       setPidiendoMotivo(false);
       await cargar();
@@ -61,8 +71,10 @@ export default function BotonJornada() {
   const { estado: e, hoy } = estado;
   const color = e === "TRABAJANDO" ? "border-verde/40 bg-verde/10 text-verde" : e === "EN_PAUSA" ? "border-amarillo bg-amarillo-50 text-[#8a5a00]" : "border-linea bg-white text-tinta";
   const punto = e === "TRABAJANDO" ? "bg-verde" : e === "EN_PAUSA" ? "bg-amarillo-600" : "bg-gris";
-  // Minutos del servidor + segundos transcurridos desde que se consultó (así sube de a segundo)
-  const segundosHoy = hoy.trabajados * 60 + (hoy.segundos_en_curso || 0) + (e === "TRABAJANDO" ? Math.floor((Date.now() - estado.cargadoEn) / 1000) : 0);
+  // Segundos exactos del servidor + lo transcurrido desde que respondió (así sube de a segundo sin depender del reloj de la PC)
+  const transcurrido = (performance.now() - estado.medio) / 1000;
+  const segundosHoy = (hoy.trabajados_seg ?? hoy.trabajados * 60) + (e === "TRABAJANDO" ? transcurrido : 0);
+  const horaOficial = estado.servidorMs + transcurrido * 1000;
   const etiqueta = e === "TRABAJANDO" ? relojSeg(segundosHoy) : e === "EN_PAUSA" ? "En pausa" : hoy.salida ? "Salida marcada" : "Marcar entrada";
 
   if (e === "FUERA") {
@@ -82,9 +94,10 @@ export default function BotonJornada() {
       </button>
       {abierto && (
         <div className="fixed inset-x-4 top-16 z-40 rounded-xl border border-linea bg-white p-3 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-64">
-          <p className="text-sm text-gris">Hoy {hoy.entrada ? `entraste a las ${new Date(hoy.entrada).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" })}` : ""}
-            {hoy.llegada === "TARDE" && <span className="text-rojo"> ({hoy.tardanza} min tarde)</span>}</p>
-          <p className="mt-1 text-sm">Trabajado: <strong className="num">{e === "TRABAJANDO" ? relojSeg(segundosHoy) : reloj(hoy.trabajados)}</strong>{hoy.pausa ? <> · pausa {reloj(hoy.pausa)}</> : null}</p>
+          <p className="text-sm text-gris">Hoy {hoy.entrada ? `entraste a las ${horaExacta(hoy.entrada)}` : ""}
+            {hoy.llegada === "TARDE" && <span className="text-rojo"> ({relojSeg(hoy.tardanza_seg)} tarde)</span>}</p>
+          <p className="mt-1 text-sm">Trabajado: <strong className="num">{relojSeg(segundosHoy)}</strong>{hoy.pausa_seg ? <> · pausa {relojSeg(hoy.pausa_seg)}</> : null}</p>
+          <p className="mt-1 text-xs text-gris">Hora oficial: <span className="num font-medium text-tinta">{horaExacta(horaOficial)}</span></p>
           <div className="mt-3 grid gap-2">
             {estado.siguientes.map((t) => {
               const Icono = ICONO[t];

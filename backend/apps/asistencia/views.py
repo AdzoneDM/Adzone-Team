@@ -50,6 +50,7 @@ def estado_view(request):
     horario, _ = servicios.horario_de(request.user)
     return Response({
         'estado': estado, 'siguientes': servicios.SIGUIENTES[estado],
+        'ahora': timezone.now(),  # la hora oficial: la que se estampa al marcar. La pantalla se sincroniza con ella, no con el reloj de la PC
         'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento} if ultimo else None,
         'hoy': servicios.jornada(request.user, timezone.localdate()),
         'horario': {'id': horario.id, 'nombre': horario.nombre} if horario else None,
@@ -114,7 +115,8 @@ def hoy_view(request):
     filas = []
     for u in personas:
         j = servicios.jornada(u, hoy)
-        filas.append({**_persona(u), **{k: j[k] for k in ('estado', 'llegada', 'entrada', 'salida', 'tardanza', 'trabajados', 'pausa', 'turno', 'ausencia')},
+        filas.append({**_persona(u), **{k: j[k] for k in ('estado', 'llegada', 'entrada', 'salida', 'tardanza', 'trabajados', 'pausa', 'turno', 'ausencia',
+                                                                 'trabajados_seg', 'pausa_seg', 'tardanza_seg')},
                       'pc': contactos.get(u.pk)})
     orden = {'TARDE_SIN_MARCAR': 0, 'AUSENTE': 1, 'EN_PAUSA': 2, 'TRABAJANDO': 3, 'PRESENTE': 4, 'PENDIENTE': 5, 'PERMISO': 6}
     filas.sort(key=lambda f: (orden.get(f['estado'], 9), f['nombre']))
@@ -122,6 +124,12 @@ def hoy_view(request):
     for f in filas:
         conteo[f['estado']] = conteo.get(f['estado'], 0) + 1
     return Response({'fecha': hoy, 'conteo': conteo, 'tardes': sum(1 for f in filas if f['llegada'] == 'TARDE'), 'personas': filas})
+
+
+def _hms(segundos):
+    """3725 → '1:02:05' (tiempo exacto, sin redondear a minutos ni a décimas de hora)."""
+    s = int(segundos or 0)
+    return f'{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}'
 
 
 def _reporte(request):
@@ -142,12 +150,14 @@ def reporte_view(request):
         resp.write('﻿')
         w = csv.writer(resp)
         w.writerow(['Colaborador', 'Puesto', 'Departamento', 'Días laborables', 'Días presentes', 'A tiempo', 'Tardanzas',
-                    'Minutos tarde', 'Ausencias', 'Permisos', 'Salidas tempranas', 'Días sin marcar salida',
-                    'Horas programadas', 'Horas trabajadas', 'Horas extra', 'Puntualidad %', 'Asistencia %', 'Adherencia %'])
+                    'Tiempo tarde (H:MM:SS)', 'Ausencias', 'Permisos', 'Salidas tempranas', 'Días sin marcar salida',
+                    'Horas programadas', 'Tiempo trabajado (H:MM:SS)', 'Segundos trabajados', 'Horas trabajadas (decimal)',
+                    'Tiempo extra (H:MM:SS)', 'Puntualidad %', 'Asistencia %', 'Adherencia %'])
         for f in filas:
             w.writerow([f['nombre'], f['puesto'] or '', f['departamento'] or '', f['dias_laborables'], f['dias_presentes'], f['dias_a_tiempo'],
-                        f['tardanzas'], f['minutos_tarde'], f['ausencias'], f['permisos'], f['salidas_tempranas'], f['sin_salida'],
-                        round(f['minutos_programados'] / 60, 1), round(f['minutos_trabajados'] / 60, 1), round(f['minutos_extra'] / 60, 1),
+                        f['tardanzas'], _hms(f['segundos_tarde']), f['ausencias'], f['permisos'], f['salidas_tempranas'], f['sin_salida'],
+                        round(f['minutos_programados'] / 60, 2), _hms(f['segundos_trabajados']), f['segundos_trabajados'],
+                        round(f['segundos_trabajados'] / 3600, 4), _hms(f['segundos_extra']),
                         f['puntualidad'] if f['puntualidad'] is not None else '', f['asistencia'] if f['asistencia'] is not None else '',
                         f['adherencia'] if f['adherencia'] is not None else ''])
         return resp

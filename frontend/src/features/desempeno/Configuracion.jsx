@@ -21,7 +21,7 @@ export default function Configuracion() {
     try {
       const r = await guardarConfiguracion({
         peso_tareas: pesoTareas, peso_calidad: pesoCalidad, peso_jornada: pesoJornada, nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
-        puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion),
+        puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion), espera_recordatorio_min: Number(f.espera_recordatorio_min),
         tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje), ...(t.proporcional ? { proporcional: true } : {}) })),
       });
       setF(r);
@@ -62,6 +62,9 @@ export default function Configuracion() {
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Puntualidad de una entrega tarde" ayuda="A tiempo vale 100; sin entregar y vencida, 0.">
               {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.nota_tarde} onChange={(e) => setF({ ...f, nota_tarde: e.target.value })} />}
+            </Campo>
+            <Campo etiqueta="Espera entre recordatorios (minutos)" ayuda="Tiempo mínimo para volver a enviarle a alguien el recordatorio de la misma tarea. Con 0 no hay espera.">
+              {(id) => <input id={id} type="number" min={0} max={1440} className="campo" value={f.espera_recordatorio_min ?? 2} onChange={(e) => setF({ ...f, espera_recordatorio_min: e.target.value })} />}
             </Campo>
             <Campo etiqueta="Tareas validadas para ser candidato" ayuda="Mínimo en el mes para optar a Empleado del Mes.">
               {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.minimo_tareas_empleado_mes} onChange={(e) => setF({ ...f, minimo_tareas_empleado_mes: e.target.value })} />}

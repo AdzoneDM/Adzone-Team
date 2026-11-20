@@ -233,15 +233,18 @@ def avisar_por_vencer(hoy=None):
 # ---------------------------------------------------------------------------
 # Recordar y pedir trabajo (ideas traídas de Adzone Team)
 # ---------------------------------------------------------------------------
-ESPERA_RECORDATORIO = timedelta(hours=1)
 ESPERA_PEDIR_TRABAJO = timedelta(hours=2)
 
 
 def recordar(tarea, quien, mensaje=''):
-    """El supervisor le recuerda una tarea abierta al colaborador. Como mucho una vez por hora por tarea."""
-    hace_poco = timezone.now() - ESPERA_RECORDATORIO
-    if Notificacion.objects.filter(tarea=tarea, tipo='RECORDATORIO', fecha__gte=hace_poco).exists():
-        return "Ya se le recordó esta tarea hace menos de una hora."
+    """El supervisor le recuerda una tarea abierta al colaborador. La espera entre recordatorios de la misma tarea
+    se configura en Reglas del puntaje (por defecto 2 minutos: solo evita enviarlo dos veces sin querer)."""
+    from .models import ConfiguracionDesempeno
+    espera = timedelta(minutes=ConfiguracionDesempeno.actual().espera_recordatorio_min)
+    ultimo = Notificacion.objects.filter(tarea=tarea, tipo='RECORDATORIO', fecha__gte=timezone.now() - espera).order_by('-fecha').first() if espera else None
+    if ultimo:
+        faltan = max(1, int((ultimo.fecha + espera - timezone.now()).total_seconds()))
+        return f"Ya se le recordó esta tarea. Podrás volver a recordársela en {faltan // 60} min {faltan % 60:02d} s." if faltan >= 60 else f"Ya se le recordó esta tarea. Podrás volver a recordársela en {faltan} s."
     avisar([tarea.colaborador, *tarea.companeros.all()], 'RECORDATORIO', f"{nombre(quien)} te pide avanzar: {tarea.titulo}",
            mensaje or f"Entrega: {tarea.fecha_limite:%d/%m/%Y}.", tarea=tarea, enlace=f'/mis-tareas?tarea={tarea.id}',
            excepto=quien)

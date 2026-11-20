@@ -54,12 +54,12 @@ const Activos = lazy(() => import("@/features/activos/Activos"));
 const Constancia = lazy(() => import("@/features/talento/Politicas").then((m) => ({ default: m.Constancia })));
 const PanelGerencial = lazy(() => import("@/features/desempeno/PanelGerencial"));
 
-function Protegida({ children, admin, supervisor, finanzas, permiso }) {
-  const { usuario, esAdmin, puedeValidar, esFinanzas, tiene } = useSesion();
+function Protegida({ children, admin, supervisor, asignar, finanzas, permiso }) {
+  const { usuario, esAdmin, puedeValidar, puedeAsignar, esFinanzas, tiene } = useSesion();
   const location = useLocation();
   if (!usuario) return <Navigate to="/entrar" replace state={{ desde: location.pathname + location.search }} />;
   if (usuario.debe_activar_dos_pasos) return <DosPasosObligatoria />;
-  if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (finanzas && !esFinanzas) || (permiso && !tiene(permiso))) return <Navigate to="/" replace />;
+  if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (asignar && !puedeValidar && !puedeAsignar) || (finanzas && !esFinanzas) || (permiso && !tiene(permiso))) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -114,7 +114,7 @@ export default function App() {
           <Route path="finanzas" element={<Protegida finanzas><Finanzas /></Protegida>} />
           <Route path="automatizaciones" element={<Protegida permiso="sistema.configurar"><Automatizaciones /></Protegida>} />
           <Route path="validar" element={<Protegida supervisor><Validar /></Protegida>} />
-          <Route path="equipo" element={<Protegida supervisor><Equipo /></Protegida>} />
+          <Route path="equipo" element={<Protegida asignar><Equipo /></Protegida>} />
           <Route path="desempeno" element={<Protegida admin><Desempeno /></Protegida>} />
           <Route path="kpis-del-mes" element={<Protegida admin><KpisDelMes /></Protegida>} />
           <Route path="puestos" element={<Protegida admin><Puestos /></Protegida>} />

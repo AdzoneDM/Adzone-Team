@@ -7,12 +7,13 @@ import {
   borrarMarcaje, corregirMarcaje, feriados, guardarFeriado, guardarHorario, horarios, pedirAusencia, retirarAusencia, revisarAusencia,
   urlAsistenciaCsv,
 } from "@/lib/api";
-import { diaSemana, fechaCorta, mesActual, reloj } from "@/lib/formato";
+import { diaSemana, fechaCorta, horaExacta, mesActual, relojSeg } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import Lugares from "./Lugares";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Puntaje, SelectorMes, cx, useAviso, useConfirmar } from "@/components/ui";
 
-const hora = (iso) => (iso ? new Date(iso).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" }) : "—");
+const hora = horaExacta; // horas al segundo, en la zona de la empresa
+const dur = (seg) => relojSeg(seg); // tiempos exactos, H:MM:SS
 const ESTADO = {
   TRABAJANDO: ["Trabajando", "verde"], EN_PAUSA: ["En pausa", "amarillo"], PRESENTE: ["Presente", "azul"], AUSENTE: ["Ausente", "rojo"],
   TARDE_SIN_MARCAR: ["No ha marcado", "rojo"], PENDIENTE: ["Aún no entra", "neutro"], PERMISO: ["Permiso", "azul"], LIBRE: ["Libre", "neutro"],
@@ -37,8 +38,8 @@ export function ResumenAsistencia({ r, adherencia }) {
       <Dato titulo="Adherencia al horario" valor={<Puntaje valor={adherencia} />} detalle="Puntualidad, asistencia y horas" />
       <Dato titulo="Puntualidad" valor={pct(r.puntualidad)} detalle={`${r.tardanzas} tarde · ${r.minutos_tarde} min`} alerta={r.tardanzas >= 3} />
       <Dato titulo="Asistencia" valor={pct(r.asistencia)} detalle={`${r.dias_presentes} de ${r.dias_laborables} días · ${r.ausencias} ausencia(s)`} alerta={r.ausencias > 0} />
-      <Dato titulo="Horas trabajadas" valor={reloj(r.minutos_trabajados)} detalle={`de ${reloj(r.minutos_programados)} programadas`} />
-      <Dato titulo="Horas extra" valor={reloj(r.minutos_extra)} detalle={r.minutos_extra >= 600 ? "Riesgo de agotamiento" : "Sobre lo programado"} alerta={r.minutos_extra >= 600} />
+      <Dato titulo="Horas trabajadas" valor={dur(r.segundos_trabajados)} detalle={`de ${dur(r.minutos_programados * 60)} programadas`} />
+      <Dato titulo="Horas extra" valor={dur(r.segundos_extra)} detalle={r.minutos_extra >= 600 ? "Riesgo de agotamiento" : "Sobre lo programado"} alerta={r.minutos_extra >= 600} />
       <Dato titulo="Salidas tempranas" valor={r.salidas_tempranas} detalle={`${r.sin_salida} día(s) sin marcar salida`} alerta={r.sin_salida > 0} />
     </div>
   );
@@ -75,9 +76,9 @@ export function MesPersona({ usuario, puedeCorregir }) {
                       <td><Estado e={j.estado} />{j.ausencia && <span className="ml-1 text-xs text-gris">{j.ausencia}</span>}{j.sin_salida && <Insignia tono="amarillo" className="ml-1">Sin salida</Insignia>}</td>
                       <td className="num">{hora(j.entrada)}</td>
                       <td className="num">{hora(j.salida)}</td>
-                      <td className="text-right num">{j.trabajados ? reloj(j.trabajados) : "—"}</td>
+                      <td className="text-right num">{j.trabajados_seg ? dur(j.trabajados_seg) : "—"}</td>
                       <td className={cx("text-right num", j.tardanza && "text-rojo")}>{j.tardanza ? `${j.tardanza} min` : "—"}</td>
-                      <td className="text-right num">{j.extra ? reloj(j.extra) : "—"}</td>
+                      <td className="text-right num">{j.extra_seg ? dur(j.extra_seg) : "—"}</td>
                       <td>
                         <div className="flex flex-wrap items-center gap-1">
                           {j.marcajes.map((m) => (
@@ -153,7 +154,7 @@ function Hoy({ onVer }) {
                   <td><p className="font-medium">{p.nombre}</p><p className="text-xs text-gris">{p.puesto || "Sin puesto"}</p></td>
                   <td><Estado e={p.estado} />{p.llegada === "TARDE" && <span className="ml-1 text-xs text-rojo">{p.tardanza} min tarde</span>}</td>
                   <td className="num">{hora(p.entrada)}{p.turno && <span className="block text-xs text-gris">turno {p.turno[0]}</span>}</td>
-                  <td className="text-right num">{p.trabajados ? reloj(p.trabajados) : "—"}</td>
+                  <td className="text-right num">{p.trabajados_seg ? dur(p.trabajados_seg) : "—"}</td>
                   <td>{p.pc ? (
                     <span className="text-sm"><span className={cx("mr-1.5 inline-block size-2 rounded-full", p.pc.en_vivo ? (p.pc.activo ? "bg-verde" : "bg-amarillo-600") : "bg-gris")} />
                       {p.pc.en_vivo ? (p.pc.activo ? p.pc.app || "Activo" : "Inactivo") : `Visto ${hora(p.pc.minuto)}`}</span>
@@ -194,8 +195,8 @@ function MesEquipo({ onVer }) {
                     <td className="text-right num">{pct(p.asistencia)}</td>
                     <td className={cx("text-right num", p.tardanzas >= 3 && "text-rojo")}>{p.tardanzas} <span className="text-xs text-gris">({p.minutos_tarde} min)</span></td>
                     <td className={cx("text-right num", p.ausencias && "text-rojo")}>{p.ausencias}</td>
-                    <td className="text-right num">{reloj(p.minutos_trabajados)}</td>
-                    <td className={cx("text-right num", p.minutos_extra >= 600 && "text-[#a86a00]")}>{reloj(p.minutos_extra)}</td>
+                    <td className="text-right num">{dur(p.segundos_trabajados)}</td>
+                    <td className={cx("text-right num", p.minutos_extra >= 600 && "text-[#a86a00]")}>{dur(p.segundos_extra)}</td>
                     <td className="text-right num">{p.sin_salida}</td>
                   </tr>
                 ))}

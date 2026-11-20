@@ -410,14 +410,24 @@ class RecurrentesTests(Base):
 
 
 class RecordarYPedirTrabajoTests(Base):
-    def test_supervisor_recuerda_una_vez_por_hora(self):
+    def test_supervisor_recuerda_sin_duplicar_el_mismo_instante(self):
         t = self.tarea(self.erlin)
         self.como(self.ashley)                                   # compañera: no puede
         self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/').status_code, 404)
         self.como(self.vladi)
         self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/', {'mensaje': 'El cliente la espera hoy'}).status_code, 200)
         self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/').status_code, 429)
-        aviso = Notificacion.objects.get(destinatario=self.erlin, tipo='RECORDATORIO')
+        r = self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/')
+        self.assertIn('min', r.json()['detail'])                  # dice cuánto falta para poder volver a enviarlo
+        # Pasada la espera (2 min por defecto) se puede volver a enviar
+        Notificacion.objects.filter(tarea=t, tipo='RECORDATORIO').update(fecha=timezone.now() - timedelta(minutes=3))
+        self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/').status_code, 200)
+        # La espera se configura: con 0 se puede enviar seguido
+        from apps.desempeno.models import ConfiguracionDesempeno
+        ConfiguracionDesempeno.objects.filter(pk=ConfiguracionDesempeno.actual().pk).update(espera_recordatorio_min=0)
+        self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/').status_code, 200)
+        self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/recordar/').status_code, 200)
+        aviso = Notificacion.objects.filter(destinatario=self.erlin, tipo='RECORDATORIO').order_by('fecha').first()
         self.assertEqual(aviso.remitente, self.vladi)
         self.assertEqual(aviso.mensaje, 'El cliente la espera hoy')
         validada = self.tarea(self.erlin, estado='COMPLETADA', fecha_completada=timezone.localdate())

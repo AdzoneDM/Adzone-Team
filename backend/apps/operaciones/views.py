@@ -1030,8 +1030,8 @@ def buscar_view(request):
         res.append({'tipo': 'cliente', 'id': c.pk, 'titulo': c.nombre, 'sub': c.contacto or c.get_tipo_display(), 'enlace': f"/clientes/{c.pk}"})
     tareas = Tarea.objects.filter(titulo__icontains=q)
     if not es_administrador(user):
-        from apps.desempeno.permisos import subordinados
-        tareas = tareas.filter(Q(colaborador=user) | Q(companeros=user) | Q(colaborador__in=subordinados(user))).distinct()
+        from apps.desempeno.permisos import equipo_gestionable
+        tareas = tareas.filter(Q(colaborador=user) | Q(companeros=user) | Q(colaborador__in=equipo_gestionable(user))).distinct()
     for t in tareas.select_related('colaborador').order_by('-fecha_limite')[:5]:
         res.append({'tipo': 'tarea', 'id': t.pk, 'titulo': t.titulo, 'sub': f"{t.colaborador.get_full_name() or t.colaborador.username} · {t.get_estado_display()}",
                     'enlace': f"/mis-tareas?tarea={t.pk}" if user.pk in t.participantes_ids() else f"/equipo?ver=tareas&tarea={t.pk}"})

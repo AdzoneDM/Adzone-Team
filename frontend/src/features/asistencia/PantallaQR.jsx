@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Marca from "@/components/Marca";
 import { pantallaQR } from "@/lib/api";
+import { horaExacta } from "@/lib/formato";
 
 export default function PantallaQR() {
   const { clave } = useParams();
@@ -22,7 +23,7 @@ export default function PantallaQR() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-noche p-6 text-center text-white">
       <Marca className="text-2xl" />
-      <p className="font-display text-5xl font-semibold tabular-nums">{hora.toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit", second: "2-digit" })}</p>
+      <p className="font-display text-5xl font-semibold tabular-nums">{horaExacta(hora)}</p>
       {error ? <p className="text-xl text-amarillo">{error}</p> : d && (
         <>
           <div className="size-[min(70vw,60vh)] rounded-2xl bg-white p-4 [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: d.qr }} />

@@ -18,8 +18,10 @@ PERMISOS = [
     ('equipo.ver', 'Ver a su equipo', 'Su equipo', 'equipo', 'Ver las tareas, la ficha, los KPIs y la carga de trabajo de su equipo.'),
     ('equipo.evaluar', 'Evaluar a su equipo', 'Su equipo', 'equipo', 'Hacer la evaluación 360° de su equipo como supervisor y ver sus resultados.'),
     ('equipo.expediente', 'Expediente y planes de mejora', 'Su equipo', 'equipo', 'Registrar reconocimientos, observaciones e incidencias y abrir planes de mejora a su equipo.'),
+    ('tareas.propias', 'Asignarse tareas a sí mismo', 'Su equipo', 'equipo', 'Crear y programar tareas para sí mismo (las valida otra persona, nunca quien las hace).'),
     ('asistencia.ver', 'Asistencia del equipo', 'Su equipo', 'equipo', 'Ver la asistencia de su equipo, recibir sus avisos de tardanza y aprobar permisos.'),
     ('asistencia.corregir', 'Corregir marcajes', 'Su equipo', 'equipo', 'Agregar o borrar marcajes de su equipo (con nota y auditoría).'),
+    ('equipo.todos', 'Supervisar a toda la empresa', 'Empresa', 'empresa', 'Su equipo pasa a ser todo el personal (menos Dirección): los permisos de equipo que tenga se ejercen sobre todos, y recibe sus avisos de entregas y tardanzas.'),
     ('direccion', 'Dirección', 'Empresa', 'empresa', 'Todo el negocio: todas las personas, panel gerencial, ranking, bonos, puestos, KPIs y reglas del puntaje.'),
     ('monitoreo.ver', 'Ver el monitoreo', 'Empresa', 'empresa', 'Actividad en la computadora de todas las personas, incidencias y justificaciones.'),
     ('monitoreo.capturas', 'Ver capturas de pantalla', 'Empresa', 'empresa', 'Capturas y pantallas en vivo.'),
@@ -33,7 +35,7 @@ PERMISOS = [
 CODIGOS = {p[0] for p in PERMISOS}
 DE_EQUIPO = {p[0] for p in PERMISOS if p[3] == 'equipo'}
 
-SUPERVISOR = ['tareas.asignar', 'tareas.validar', 'equipo.ver', 'equipo.evaluar', 'asistencia.ver']
+SUPERVISOR = ['tareas.asignar', 'tareas.propias', 'tareas.validar', 'equipo.ver', 'equipo.evaluar', 'asistencia.ver']
 # perfil: (descripción, permisos, orden). «Administrador» es el nombre histórico del grupo de Dirección.
 PERFILES = {
     'Colaborador': ('Cumple sus tareas y ve solo lo suyo.', [], 10),

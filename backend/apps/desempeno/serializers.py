@@ -368,7 +368,7 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracionDesempeno
         fields = ['peso_tareas', 'peso_calidad', 'peso_jornada', 'peso_kpis', 'nota_tarde', 'minimo_tareas_empleado_mes', 'puntaje_minimo',
-                  'minimo_tareas_evaluacion', 'tramos_bono', 'fecha_modificacion']
+                  'minimo_tareas_evaluacion', 'espera_recordatorio_min', 'tramos_bono', 'fecha_modificacion']
 
     def validate(self, data):
         tareas = data.get('peso_tareas', getattr(self.instance, 'peso_tareas', 40))
@@ -386,6 +386,11 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
     def validate_nota_tarde(self, value):
         if not 0 <= value <= 100:
             raise serializers.ValidationError("Debe estar entre 0 y 100.")
+        return value
+
+    def validate_espera_recordatorio_min(self, value):
+        if not 0 <= value <= 1440:
+            raise serializers.ValidationError("Debe estar entre 0 y 1440 minutos (24 horas).")
         return value
 
     def validate_puntaje_minimo(self, value):

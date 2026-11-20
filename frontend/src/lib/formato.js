@@ -1,10 +1,18 @@
 // Fechas, nombres y textos que se repiten en todas las pantallas.
 
-/** Fecha local de hoy como AAAA-MM-DD (sin desfase por zona horaria). */
-export const hoyISO = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+/** La empresa trabaja en hora de República Dominicana: todas las horas se muestran en esta zona, sin importar el reloj ni la zona de la computadora. */
+export const ZONA = "America/Santo_Domingo";
+
+/** Fecha de hoy en la zona de la empresa como AAAA-MM-DD (sin desfase por zona horaria). */
+export const hoyISO = () => new Intl.DateTimeFormat("en-CA", { timeZone: ZONA, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+
+/** Hora con segundos en la zona de la empresa: "8:40:12 a. m." (la hora exacta que quedó marcada). */
+export const horaExacta = (valor) => (valor == null || valor === "" ? "—"
+  : new Date(valor).toLocaleTimeString("es-DO", { timeZone: ZONA, hour: "numeric", minute: "2-digit", second: "2-digit" }));
+
+/** Hora sin segundos en la zona de la empresa: "8:40 a. m." */
+export const hora = (valor) => (valor == null || valor === "" ? "—"
+  : new Date(valor).toLocaleTimeString("es-DO", { timeZone: ZONA, hour: "numeric", minute: "2-digit" }));
 
 export const mesActual = () => hoyISO().slice(0, 7);
 
@@ -26,7 +34,7 @@ export const fechaCorta = (iso) => {
 };
 
 export const fechaHora = (iso) =>
-  iso ? new Date(iso).toLocaleString("es-DO", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
+  iso ? new Date(iso).toLocaleString("es-DO", { timeZone: ZONA, day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
 
 /** Días desde hoy hasta la fecha (negativo = ya pasó). */
 export const diasHasta = (iso) => Math.round((aFecha(iso) - aFecha(hoyISO())) / 86400000);

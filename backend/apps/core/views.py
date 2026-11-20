@@ -8,7 +8,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle
 
 from apps.callcenter.permisos import es_agente, gestiona_call_center
 from apps.desempeno.permisos import LecturaOAdministrador, es_administrador, puede_validar, puesto_de
@@ -105,6 +105,16 @@ def datos_usuario(user):
     }
 
 
+class LoginUsuarioThrottle(SimpleRateThrottle):
+    """Por conexión y por cuenta: un intento cada ~5 s (12 por minuto). Quien se equivoca puede reintentar enseguida y varias
+    personas de la misma oficina entran a la vez, pero nadie puede probar contraseñas de una cuenta a ritmo de máquina."""
+    scope = 'login_usuario'
+
+    def get_cache_key(self, request, view):
+        quien = str(request.data.get('username') or request.data.get('user_id') or '').strip().lower()[:150]
+        return self.cache_format % {'scope': self.scope, 'ident': f'{self.get_ident(request)}|{quien}'}
+
+
 class LoginThrottle(AnonRateThrottle):
     """Por conexión, haya o no sesión abierta (si no, alguien con cuenta propia se saltaría el límite)."""
     scope = 'login'
@@ -115,7 +125,7 @@ class LoginThrottle(AnonRateThrottle):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([LoginThrottle])
+@throttle_classes([LoginThrottle, LoginUsuarioThrottle])
 def login_view(request):
     """Entrar con usuario o correo, o con la persona elegida en el directorio (user_id) si el
     dispositivo ya pasó la clave general. Máximo 10 intentos por minuto desde una misma conexión."""
