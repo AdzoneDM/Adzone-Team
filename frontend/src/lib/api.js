@@ -504,9 +504,12 @@ export const guardarDocumentoArea = (deptoId, doc, archivo) => {
 export const borrarDocumentoArea = (id) => api(`${D}/documentos-area/${id}/`, { method: "DELETE" });
 export const urlDocumentoArea = (id) => `${D}/documentos-area/${id}/`;
 
-// Chat global
-export const chatMensajes = (params = {}, signal) => api(`/api/chat/mensajes/${q(params)}`, { signal });
-export const chatEnviar = (texto) => api("/api/chat/mensajes/", { method: "POST", body: { texto } });
+// Chat: sala de la empresa y chats privados
+export const chatConversaciones = (signal) => api("/api/chat/conversaciones/", { signal });
+export const chatAbrir = (persona) => api("/api/chat/conversaciones/", { method: "POST", body: { persona } });
+export const chatPersonas = (texto = "", signal) => api(`/api/chat/personas/${q({ q: texto })}`, { signal });
+export const chatMensajes = (conversacion, params = {}, signal) => api(`/api/chat/conversaciones/${conversacion}/mensajes/${q(params)}`, { signal });
+export const chatEnviar = (conversacion, texto) => api(`/api/chat/conversaciones/${conversacion}/mensajes/`, { method: "POST", body: { texto } });
 export const chatBorrar = (id) => api(`/api/chat/mensajes/${id}/`, { method: "DELETE" });
 export const chatResumen = () => api("/api/chat/resumen/");
-export const chatLeido = (hasta) => api("/api/chat/leido/", { method: "POST", body: { hasta } });
+export const chatLeido = (conversacion, hasta) => api(`/api/chat/conversaciones/${conversacion}/leido/`, { method: "POST", body: { hasta } });

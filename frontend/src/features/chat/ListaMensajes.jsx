@@ -24,16 +24,16 @@ function Texto({ texto }) {
     : <Fragment key={i}>{parte}</Fragment>));
 }
 
-function Burbuja({ m, mio, primero, onBorrar }) {
+function Burbuja({ m, mio, primero, privado, onBorrar }) {
   const [confirmar, setConfirmar] = useState(false);
   if (m.eliminado) {
-    return <p className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : "pl-10")}>Mensaje eliminado</p>;
+    return <p className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : privado ? "" : "pl-10")}>Mensaje eliminado</p>;
   }
   return (
     <div className={cx("group flex items-end gap-2", mio ? "flex-row-reverse" : "", primero ? "mt-3" : "mt-0.5")}>
-      {!mio && (primero ? <Avatar nombre={m.autor_nombre} tam="sm" /> : <span className="size-8 shrink-0" aria-hidden />)}
+      {!mio && !privado && (primero ? <Avatar nombre={m.autor_nombre} tam="sm" /> : <span className="size-8 shrink-0" aria-hidden />)}
       <div className={cx("flex max-w-[80%] flex-col", mio ? "items-end" : "items-start")}>
-        {primero && !mio && <span className="mb-0.5 px-1 text-xs font-medium text-gris">{m.autor_nombre}</span>}
+        {primero && !mio && !privado && <span className="mb-0.5 px-1 text-xs font-medium text-gris">{m.autor_nombre}</span>}
         <div className="flex items-center gap-1.5">
           {m.puede_borrar && (
             <button type="button" onClick={() => (confirmar ? onBorrar(m.id) : setConfirmar(true))} onBlur={() => setConfirmar(false)}
@@ -55,7 +55,7 @@ function Burbuja({ m, mio, primero, onBorrar }) {
 }
 
 /** Lista con desplazamiento inteligente: si estás al final sigue los mensajes nuevos; si lees arriba, no te mueve y te avisa. */
-export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, onMas, onBorrar }) {
+export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, privado = false, nombreOtro = "", onMas, onBorrar }) {
   const caja = useRef(null);
   const alFinal = useRef(true);
   const previo = useRef({ n: 0, primero: null, alto: 0 });
@@ -103,7 +103,7 @@ export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, o
         {!cargando && mensajes.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
             <p className="font-display text-base font-semibold text-tinta">Aún no hay mensajes</p>
-            <p className="mt-1 text-sm text-gris">Escribe el primero para saludar al equipo.</p>
+            <p className="mt-1 text-sm text-gris">{privado ? `Escribe el primero para saludar a ${nombreOtro}.` : "Escribe el primero para saludar al equipo."}</p>
           </div>
         )}
         {mensajes.map((m, i) => {
@@ -116,7 +116,7 @@ export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, o
           return (
             <Fragment key={m.id}>
               {nuevoDia && <p className="my-3 text-center text-xs font-medium capitalize text-gris">{dia}</p>}
-              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} onBorrar={onBorrar} />
+              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} />
             </Fragment>
           );
         })}

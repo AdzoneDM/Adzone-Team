@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.7 · 20/11/2026 · Chats privados
+
+- **Chat personal con cualquier compañero, ventana tipo Instagram**: en PC, tus chats a la izquierda (la sala de toda la empresa fijada arriba, con vista previa, hora y mensajes sin leer) y la conversación a la derecha: cambias de chat con un clic, sin salir de la ventana. El buscador de arriba encuentra compañeros por nombre, usuario, cargo o departamento y abre su chat al instante. Arriba de cada chat privado se ve el cargo y el departamento de la otra persona. En el celular, al tocar el icono se abre directo la conversación con una tira de tus chats arriba (Todos, y cada compañero con su contador) para cambiar de chat con un toque; «Buscar» o la flecha abren la lista completa con el buscador de compañeros.
+- **Privacidad**: un chat privado solo lo ven sus dos participantes. Ni Dirección ni nadie más puede abrirlo (para ellos no existe); Dirección sigue moderando únicamente la sala de la empresa.
+- El contador del botón suma los no leídos de todas las conversaciones. Los mensajes que ya había en la sala global se conservan (migraciones 0002–0004 de `apps/chat`).
+- API: `/api/chat/conversaciones/`, `/conversaciones/<id>/mensajes/`, `/conversaciones/<id>/leido/`, `/personas/`. 12 pruebas.
+
 ## 12.6 · 20/11/2026 · Chat global
 
 - **Chat de toda la plataforma**: botón flotante en la esquina inferior derecha (en el celular, sobre la barra de abajo) que abre una sala común. En PC es una ventana de 380 px; en el celular, pantalla completa.
