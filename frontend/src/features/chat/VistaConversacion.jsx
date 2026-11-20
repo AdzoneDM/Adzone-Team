@@ -4,7 +4,7 @@ import { useMensajes } from "./useChat";
 
 /** Una conversación abierta. Se monta con `key` = id para empezar limpia en cada una. */
 export default function VistaConversacion({ conversacion, usuarioId, alLeer }) {
-  const chat = useMensajes(conversacion.id, { alLeer });
+  const chat = useMensajes(conversacion.id, { alLeer, usuarioId });
   return (
     <>
       {chat.error && (

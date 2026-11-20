@@ -2,47 +2,81 @@
 // Con el chat cerrado hace una consulta mínima (el contador de no leídos).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chatBorrar, chatConversaciones, chatEnviar, chatLeido, chatMensajes, chatResumen } from "@/lib/api";
+import { mostrarAvisoLocal } from "@/lib/notificaciones";
+import { sonarMensaje } from "@/lib/sonido";
 
 const CADA_MENSAJES_MS = 3000;
 const CADA_LISTA_MS = 5000;
 const CADA_CERRADO_MS = 15000;
 
-/** Repite `tarea` cada `ms` mientras la pestaña esté visible, y al volver a ella. */
-function useLatido(tarea, ms, activo = true) {
+/** Repite `tarea` cada `ms` mientras la pestaña esté visible, y al volver a ella.
+ *  Con `ocultoCada` (n > 0) también sigue con la pestaña oculta, una de cada n veces: así un mensaje nuevo suena aunque estés en otra ventana. */
+function useLatido(tarea, ms, activo = true, ocultoCada = 0) {
   const ref = useRef(tarea);
   useEffect(() => { ref.current = tarea; });
   useEffect(() => {
     if (!activo) return undefined;
+    let ciclo = 0;
     const tic = () => { if (document.visibilityState === "visible") ref.current(); };
+    const latido = () => { ciclo += 1; if (document.visibilityState === "visible" || (ocultoCada && ciclo % ocultoCada === 0)) ref.current(); };
     tic();
-    const t = setInterval(tic, ms);
+    const t = setInterval(latido, ms);
     document.addEventListener("visibilitychange", tic);
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", tic); };
-  }, [ms, activo]);
+  }, [ms, activo, ocultoCada]);
 }
 
-/** Lista de conversaciones y total de no leídos (abierto: la lista completa; cerrado: solo el contador). */
-export function useConversaciones({ abierto, activo }) {
+/** Lista de conversaciones y total de no leídos (abierto: la lista completa; cerrado: solo el contador).
+ *  Cuando llega un mensaje nuevo de otra persona suena (y, con la pestaña oculta, sale un aviso del sistema). */
+export function useConversaciones({ abierto, activo, usuarioId, activaId }) {
   const [conversaciones, setConversaciones] = useState([]);
   const [noLeidos, setNoLeidos] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const previo = useRef(null);   // no leídos de la medición anterior (null = aún no hay)
+  const activa = useRef(activaId);
+  useEffect(() => { activa.current = activaId; });
+
+  /** Compara con la medición anterior: si subió, hay un mensaje nuevo. `lista` sirve para decir de quién es. */
+  const medir = useCallback((total, lista) => {
+    const antes = previo.current;
+    previo.current = total;
+    if (antes === null || total <= antes) return;
+    sonarMensaje();
+    if (document.visibilityState === "hidden" && lista) {
+      const c = lista.filter((x) => x.no_leidos > 0 && x.ultimo_autor !== usuarioId)
+        .sort((a, b) => String(b.ultima_actividad).localeCompare(String(a.ultima_actividad)))[0];
+      if (c) mostrarAvisoLocal({ id: `chat-${c.id}-${c.ultima_actividad}`, titulo: c.titulo, mensaje: c.ultimo_texto || "Nuevo mensaje", enlace: "/" }, false);
+    }
+  }, [usuarioId]);
 
   const refrescar = useCallback(async () => {
     try {
       const r = await chatConversaciones();
       setConversaciones(r.conversaciones);
       setNoLeidos(r.no_leidos);
+      // A la vista, la conversación abierta se lee en el acto (ya suena en su propia pantalla): no se cuenta aquí
+      const propios = document.visibilityState === "visible" ? r.conversaciones.filter((c) => c.id !== activa.current) : r.conversaciones;
+      medir(propios.reduce((n, c) => n + c.no_leidos, 0), r.conversaciones);
       setError("");
     } catch (e) {
       setError(e.message || "No se pudo cargar el chat.");
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [medir]);
 
-  useLatido(refrescar, CADA_LISTA_MS, activo && abierto);
-  useLatido(async () => { try { setNoLeidos((await chatResumen()).no_leidos); } catch { /* sin conexión: se reintenta */ } }, CADA_CERRADO_MS, activo && !abierto);
+  useEffect(() => { previo.current = null; }, [abierto]); // al abrir o cerrar se vuelve a medir desde cero
+
+  useLatido(refrescar, CADA_LISTA_MS, activo && abierto, 6);
+  useLatido(async () => {
+    try {
+      if (document.visibilityState === "hidden") { await refrescar(); return; } // oculta: se trae la lista para poder avisar de quién es
+      const total = (await chatResumen()).no_leidos;
+      setNoLeidos(total);
+      medir(total, null);
+    } catch { /* sin conexión: se reintenta */ }
+  }, CADA_CERRADO_MS, activo && !abierto, 2);
 
   return { conversaciones, noLeidos, cargando, error, refrescar };
 }
@@ -55,7 +89,7 @@ function mezclar(actuales, nuevos) {
 }
 
 /** Mensajes de una conversación. Se monta al abrirla y se desmonta al salir (con `key` por conversación). */
-export function useMensajes(conversacion, { alLeer } = {}) {
+export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
   const [mensajes, setMensajes] = useState([]);
   const [hayMas, setHayMas] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -91,6 +125,8 @@ export function useMensajes(conversacion, { alLeer } = {}) {
   useLatido(async () => {
     try {
       const r = await chatMensajes(conversacion, { despues: ultimoId.current });
+      // Mensaje nuevo de la otra persona en la conversación que tienes abierta: suena
+      if (r.mensajes.some((m) => m.autor !== usuarioId && !m.eliminado)) sonarMensaje();
       aplicar(r.mensajes);
       setError("");
     } catch { setError("Sin conexión. Reintentando…"); }

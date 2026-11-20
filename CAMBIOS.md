@@ -1,5 +1,11 @@
 # Cambios
 
+## 12.15 · 20/11/2026 · Sonido en los mensajes del chat
+
+- **Cada mensaje nuevo suena**: un «pop» corto y suave (distinto al de las notificaciones), con una vibración leve en el celular. Suena en tres situaciones: con el **chat cerrado** (se revisa cada 15 s y el botón sube su contador), con la **conversación abierta** (cada 3 s) y con la **pestaña oculta o en otra ventana** (cada 30 s; además sale un aviso del sistema con el nombre y el texto, si diste permiso de notificaciones).
+- **No molesta de más**: tus propios mensajes no suenan, ni los que ya estás viendo en otra conversación del mismo chat; un solo sonido por tanda de mensajes, aunque lleguen varios juntos.
+- Solo frontend (`lib/sonido.js`, `features/chat/useChat.js`): sin migraciones.
+
 ## 12.14.1 · 20/11/2026 · Organigrama: te lleva solo al departamento y la barra queda fija
 
 - Al elegir un departamento en la leyenda, el organigrama **se desplaza solo hasta él** (dentro del gráfico y en la página), centrándolo en pantalla, en lugar de dejarte buscar con el scroll mientras el resto se atenúa. Lo mismo al buscar: te lleva a la primera coincidencia (después de abrir las ramas que la contienen). Respeta «reducir movimiento» del sistema. Funciona también en la vista de lista.

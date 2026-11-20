@@ -45,7 +45,7 @@ export default function ChatFlotante() {
   const [conv, setConv] = useState(null); // conversación abierta a la derecha
   const [listaMovil, setListaMovil] = useState(false); // celular: lista completa con buscador (si no, la conversación con su tira)
   const [error, setError] = useState("");
-  const { conversaciones, noLeidos, cargando, error: errorLista, refrescar } = useConversaciones({ abierto, activo: !!usuario });
+  const { conversaciones, noLeidos, cargando, error: errorLista, refrescar } = useConversaciones({ abierto, activo: !!usuario, usuarioId: usuario?.id, activaId: conv?.id });
   const titulo = useId();
   const boton = useRef(null);
   const eligioAlgo = useRef(false);

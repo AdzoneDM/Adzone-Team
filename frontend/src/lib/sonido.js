@@ -46,3 +46,9 @@ export function sonarNotificacion() {
   tonos([[988, 0, 0.14], [1319, 0.13, 0.22]], 0.22);
   try { navigator.vibrate?.(80); } catch { /* sin vibración */ }
 }
+
+/** Mensaje nuevo del chat: un «pop» corto y suave, distinto del de las notificaciones. */
+export function sonarMensaje() {
+  tonos([[740, 0, 0.09], [988, 0.08, 0.15]], 0.18);
+  try { navigator.vibrate?.(40); } catch { /* sin vibración */ }
+}
