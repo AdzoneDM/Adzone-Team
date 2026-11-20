@@ -297,3 +297,33 @@ class PushRevisionTests(Base):
         with mock.patch.object(s._s, 'post') as p:
             s.post('https://fcm.googleapis.com/x', data=b'')
         self.assertFalse(p.call_args.kwargs['allow_redirects'])
+
+
+class ClaveBaseTests(TestCase):
+    """Quien entra con la contraseña base «usuarios» recibe la alerta hasta que la cambie."""
+
+    def setUp(self):
+        self.u = User.objects.create_user('nuevo', password='usuarios')
+        self.o = User.objects.create_user('otro', password='Otra-clave-9')
+
+    def entrar(self, usuario, clave):
+        c = APIClient()
+        r = c.post('/api/auth/login/', {'username': usuario, 'password': clave}, format='json')
+        self.assertEqual(r.status_code, 200, r.data)
+        return c, r.data['user']
+
+    def test_alerta_hasta_cambiarla(self):
+        c, u = self.entrar('nuevo', 'usuarios')
+        self.assertTrue(u['debe_cambiar_clave'])
+        self.assertTrue(c.get('/api/auth/session/').data['user']['debe_cambiar_clave'])
+        r = c.post('/api/auth/cambiar-clave/', {'actual': 'usuarios', 'nueva': 'usuarios'}, format='json')
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(c.get('/api/auth/session/').data['user']['debe_cambiar_clave'])
+        r = c.post('/api/auth/cambiar-clave/', {'actual': 'usuarios', 'nueva': 'Mi-clave-propia-7'}, format='json')
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(c.get('/api/auth/session/').data['user']['debe_cambiar_clave'])
+        _, u2 = self.entrar('nuevo', 'Mi-clave-propia-7')
+        self.assertFalse(u2['debe_cambiar_clave'])
+
+    def test_sin_alerta_con_otra_clave(self):
+        self.assertFalse(self.entrar('otro', 'Otra-clave-9')[1]['debe_cambiar_clave'])

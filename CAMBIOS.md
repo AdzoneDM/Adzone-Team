@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.6 · 20/11/2026 · Chat global
+
+- **Chat de toda la plataforma**: botón flotante en la esquina inferior derecha (en el celular, sobre la barra de abajo) que abre una sala común. En PC es una ventana de 380 px; en el celular, pantalla completa.
+- Contador de **no leídos** en el botón (consulta liviana cada 15 s con el chat cerrado; cada 3 s y solo con la pestaña visible cuando está abierto). Enlaces clicables, mensajes agrupados por persona y día, «Ver mensajes anteriores» y aviso de «Mensajes nuevos» si estás leyendo más arriba.
+- Cada persona borra sus mensajes; Dirección puede moderar cualquiera (queda «Mensaje eliminado», sin perder el registro). Máximo 2000 caracteres y 20 mensajes por minuto por persona.
+- **Contraseña base**: quien entra con la contraseña base («usuarios») ve primero una franja amarilla «Cambia tu contraseña base» con el formulario para cambiarla ahí mismo; desaparece al cambiarla. La contraseña base no se acepta como contraseña nueva. Se detecta al iniciar sesión (no se guarda nada extra).
+- Nueva app `apps/chat` (modelos `Mensaje` y `Lectura`, API en `/api/chat/`, 7 pruebas) y módulo `features/chat` en el frontend.
+
 ## 12.5.1 · 19/11/2026 · Contador de jornada en vivo
 
 - **Contador con segundos**: el tiempo trabajado del botón de jornada (arriba y en su panel) corre en vivo, `H:MM:SS`, mientras la persona está trabajando. En pausa o fuera de jornada se sigue mostrando en minutos. El servidor manda ahora `segundos_en_curso` para que el contador no pierda segundos entre consultas.

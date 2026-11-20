@@ -15,6 +15,8 @@ import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/ti
 import { anunciarNovedades } from "@/lib/novedades";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
+import AlertaClaveBase from "@/features/cuenta/AlertaClaveBase";
+import ChatFlotante from "@/features/chat/ChatFlotante";
 import { SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
 function secciones({ esAdmin, puedeValidar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
@@ -396,6 +398,7 @@ function EstructuraInterna() {
 
   return (
     <div className="min-h-dvh lg:pl-64">
+      <AlertaClaveBase />
       {/* PC (desde 1024 px): menú lateral fijo. En tablet no cabe junto al contenido: usa la barra inferior */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-noche lg:flex">
         <div className="flex h-16 items-center px-5"><Link to="/" aria-label="Inicio"><Marca /></Link></div>
@@ -444,6 +447,8 @@ function EstructuraInterna() {
         <SugerenciaApp />
         <Outlet context={{ refrescarAvisos: refrescar }} />
       </main>
+
+      <ChatFlotante />
 
       {/* Celular: barra inferior tipo app */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-linea bg-white lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Menú" data-guia="menu-movil">

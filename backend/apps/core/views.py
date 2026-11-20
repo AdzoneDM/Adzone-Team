@@ -141,6 +141,8 @@ def login_view(request):
 
     if request.user.is_authenticated and request.user.pk != user.pk:
         django_logout(request)  # otra cuenta en este navegador: se cierra antes de seguir
+    # Contraseña base de las cuentas nuevas: mientras la tenga, la app le pide cambiarla (se sabe al entrar, sin guardar nada más)
+    request.session[SESION_CLAVE_BASE] = password == CLAVE_BASE
     if seg.tiene_dos_pasos(user):
         # La contraseña estuvo bien: falta el código de la app. La sesión aún no se abre.
         request.session[PENDIENTE] = {'id': user.pk, 't': int(time.time()), 'recordar': remember_me, 'intentos': 0}
@@ -149,6 +151,8 @@ def login_view(request):
 
 
 PENDIENTE = 'dos_pasos_pendiente'
+SESION_CLAVE_BASE = 'clave_base'
+CLAVE_BASE = 'usuarios'
 
 
 def _abrir_sesion(request, user, remember_me, dos_pasos_ok):
@@ -169,6 +173,7 @@ def datos_sesion(request, user):
     d['dos_pasos'] = {'activo': activo, 'exige': exige, 'recomendada': not activo and seg.usa_dos_pasos(user)}
     d['debe_activar_dos_pasos'] = exige and not request.session.get(seg.SESION_OK)
     d['inactividad_min'] = seg.minutos_inactividad(user)
+    d['debe_cambiar_clave'] = bool(request.session.get(SESION_CLAVE_BASE))
     return d
 
 
@@ -299,6 +304,8 @@ def cambiar_clave_view(request):
     nueva = request.data.get('nueva') or ''
     if not request.user.check_password(actual):
         return Response({'actual': ['La contraseña actual no es correcta.']}, status=status.HTTP_400_BAD_REQUEST)
+    if nueva == CLAVE_BASE:
+        return Response({'nueva': ['Elige una contraseña distinta de la contraseña base.']}, status=status.HTTP_400_BAD_REQUEST)
     try:
         validate_password(nueva, request.user)
     except ValidationError as e:
@@ -306,4 +313,5 @@ def cambiar_clave_view(request):
     request.user.set_password(nueva)
     request.user.save()
     update_session_auth_hash(request, request.user)  # no lo saca de la sesión
+    request.session[SESION_CLAVE_BASE] = False
     return Response({'message': 'Contraseña cambiada.'})

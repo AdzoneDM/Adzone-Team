@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/monitoreo/', include('apps.monitoreo.urls')),
     path('api/talento/', include('apps.talento.urls')),
     path('api/activos/', include('apps.activos.urls')),
+    path('api/chat/', include('apps.chat.urls')),
     # Portal del cliente (sin sesión, con su enlace seguro)
     path('api/portal/<str:token>/', portal.portal_view),
     path('api/portal/<str:token>/archivos/<int:pk>/', portal.archivo_view),
