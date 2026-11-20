@@ -1,5 +1,9 @@
 # Cambios
 
+## 12.14.1 · 20/11/2026 · Organigrama: te lleva solo al departamento
+
+- Al elegir un departamento en la leyenda, el organigrama **se desplaza solo hasta él** (dentro del gráfico y en la página), centrándolo en pantalla, en lugar de dejarte buscar con el scroll mientras el resto se atenúa. Lo mismo al buscar: te lleva a la primera coincidencia (después de abrir las ramas que la contienen). Respeta «reducir movimiento» del sistema. Funciona también en la vista de lista.
+
 ## 12.14 · 20/11/2026 · Organigrama empresarial
 
 - **Gráfico jerárquico de verdad**: la dirección arriba, sus áreas en fila unidas por conectores y los puestos de abajo en ramas verticales (para que no se haga eterno de ancho). Cada tarjeta lleva el departamento (con su color), el puesto, las personas con sus iniciales (o «Vacante»), y cuántos puestos y personas tiene a cargo, con botón para contraer o expandir esa rama.

@@ -52,7 +52,8 @@ function Tarjeta({ nodo, admin, resumen, abierto, onAlternar, atenuado, destacad
   const color = colorDe(nodo.departamento_id);
   const titulo = admin ? <Link to={`/puestos/${nodo.id}`} className="hover:text-azul hover:underline">{nodo.nombre}</Link> : nodo.nombre;
   return (
-    <div className={cx("relative overflow-hidden rounded-xl border bg-white shadow-sm transition", ancho, atenuado && "opacity-35", destacado ? "border-azul ring-2 ring-azul/30" : "border-linea hover:shadow-md")}>
+    <div data-depto={nodo.departamento_id} data-coincide={destacado ? "1" : undefined}
+      className={cx("relative overflow-hidden rounded-xl border bg-white shadow-sm transition", ancho, atenuado && "opacity-35", destacado ? "border-azul ring-2 ring-azul/30" : "border-linea hover:shadow-md")}>
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: color.acento }} aria-hidden />
       <div className="py-3 pl-4 pr-3">
         <span className="inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ background: color.suave, color: color.acento }}>
@@ -154,7 +155,8 @@ function ItemLista({ nodo, nivel, ctx }) {
   const abierto = ctx.abierto(nodo);
   return (
     <li>
-      <div className={cx("flex items-start gap-3 rounded-lg border bg-white px-3 py-2.5", ctx.atenuado(nodo) && "opacity-35", ctx.destacado(nodo) ? "border-azul ring-2 ring-azul/30" : "border-linea")} style={{ borderLeftColor: color.acento, borderLeftWidth: 4 }}>
+      <div data-depto={nodo.departamento_id} data-coincide={ctx.destacado(nodo) ? "1" : undefined}
+        className={cx("flex items-start gap-3 rounded-lg border bg-white px-3 py-2.5", ctx.atenuado(nodo) && "opacity-35", ctx.destacado(nodo) ? "border-azul ring-2 ring-azul/30" : "border-linea")} style={{ borderLeftColor: color.acento, borderLeftWidth: 4 }}>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: color.acento }}>{nodo.departamento}</p>
           <p className="font-semibold leading-snug text-noche">{ctx.admin ? <Link to={`/puestos/${nodo.id}`} className="hover:underline">{nodo.nombre}</Link> : nodo.nombre}</p>
@@ -224,6 +226,22 @@ export default function Organigrama() {
     const t = setTimeout(() => ajustar(0.6), 80);
     return () => clearTimeout(t);
   }, [datos, vista, ajustar]);
+  // Al elegir un departamento o buscar, el organigrama te lleva solo hasta lo que pediste (dentro del gráfico y en la página)
+  const irA = useCallback((selector) => {
+    const el = contenedor.current?.parentElement?.querySelector(selector) || document.querySelector(selector);
+    el?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center", inline: "center" });
+  }, []);
+  useEffect(() => {
+    if (depto == null) return undefined;
+    const id = requestAnimationFrame(() => irA(`[data-depto="${depto}"]`));
+    return () => cancelAnimationFrame(id);
+  }, [depto, irA, vista]);
+  useEffect(() => {
+    if (!t) return undefined;
+    const id = setTimeout(() => irA('[data-coincide="1"]'), 350); // espera a que se abran las ramas con coincidencias
+    return () => clearTimeout(id);
+  }, [t, irA]);
+
   const expandirTodo = () => setCerrados(new Set());
 
   if (error) return <Alerta>{error}</Alerta>;
