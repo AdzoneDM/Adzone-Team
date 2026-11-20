@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.12 · 20/11/2026 · Avisos del sistema con sonido (Windows, Linux, Mac y celular)
+
+- **Notificaciones del sistema para todos**: al entrar, si la persona aún no las activó, sale una ventana *Activa las notificaciones* con un botón grande (el aviso chico que se podía cerrar ya no es la única vía). Si ya dio permiso en este navegador, este dispositivo se registra solo. Si las bloqueó, una ventana explica cómo permitirlas (candado → Notificaciones → Permitir). «Ahora no» vuelve a preguntar al día siguiente.
+- **Salen aunque la app esté minimizada o cerrada**: cada aviso de la campanita llega como notificación del sistema. Las alertas importantes (recordatorio, devuelta, nueva tarea, por vencer, bloqueada, reabierta, modificada) se **quedan en pantalla hasta atenderlas**, vibran en el celular y cada aviso es único (no se pisan ni se repiten).
+- **Sonido**: la notificación del sistema suena con el sonido de Windows/Linux/celular. Además, si hay una pestaña de Adzone abierta (aunque esté oculta o en otra ventana), la propia app reproduce su sonido: alerta fuerte para las importantes y dos tonos suaves para las demás.
+- **Sin duplicados**: con la app abierta y a la vista no sale la notificación del sistema (ya se ve la alerta y suena).
+- **Respaldo sin push**: si un dispositivo dio permiso pero no está registrado en el servidor, con la pestaña oculta la app muestra el aviso del sistema por sí sola (consultando cada 30 s).
+- El aviso push ahora lleva `tipo` e `id`. Service worker `adzone-team-v7`. Prueba nueva en `tests_seguridad.py`.
+
 ## 12.11 · 20/11/2026 · Marcar entrada al iniciar sesión, sonido en notificaciones y recordatorios hasta 15 veces
 
 - **Pantalla «Marcar entrada» al iniciar sesión**: si es día de trabajo, la marca es obligatoria para la persona y todavía no marcó, aparece a pantalla completa con la hora oficial del servidor al segundo, el saludo y un botón grande *Marcar entrada* (con su ubicación si el sitio lo pide). «Más tarde» la oculta 30 minutos. También se la muestra a quien aún no ha usado el control de horario, para que empiece. No aparece si ya marcó, en feriados o fines de semana, con permiso aprobado, ni a quien no tiene marca obligatoria.

@@ -74,14 +74,15 @@ def _enviar_a(suscripciones, datos, webpush, WebPushException):
             log.warning('Push no enviado a %s: %s', s.pk, e)
 
 
-def enviar(usuario_id, titulo, mensaje='', enlace=''):
+def enviar(usuario_id, titulo, mensaje='', enlace='', tipo='', aviso_id=None):
     if not configurado():
         return
     from .models import SuscripcionPush
     ids = list(SuscripcionPush.objects.filter(usuario_id=usuario_id).values_list('pk', flat=True))
     if not ids:
         return
-    datos = {'titulo': titulo[:120], 'mensaje': (mensaje or '')[:240], 'enlace': enlace or '/'}
+    # «tipo» e «id» permiten que el aviso del sistema se comporte según su importancia y no se repita
+    datos = {'titulo': titulo[:120], 'mensaje': (mensaje or '')[:240], 'enlace': enlace or '/', 'tipo': tipo or '', 'id': aviso_id}
     if getattr(settings, 'PUSH_SINCRONO', False):
         from pywebpush import WebPushException, webpush
         from .models import SuscripcionPush
@@ -98,4 +99,4 @@ def enviar(usuario_id, titulo, mensaje='', enlace=''):
 def aviso_al_celular(sender, instance, created, **kwargs):
     if created:
         from django.db import transaction
-        transaction.on_commit(lambda: enviar(instance.destinatario_id, instance.titulo, instance.mensaje, instance.enlace))
+        transaction.on_commit(lambda: enviar(instance.destinatario_id, instance.titulo, instance.mensaje, instance.enlace, instance.tipo, instance.pk))

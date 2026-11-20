@@ -292,6 +292,18 @@ class PushRevisionTests(Base):
         ca.post('/api/auth/logout/', {'push_endpoint': sus['endpoint']}, format='json')
         self.assertFalse(SuscripcionPush.objects.exists())
 
+    @override_settings(VAPID_PUBLICA='pub', VAPID_PRIVADA='priv', PUSH_SINCRONO=True)
+    def test_el_aviso_del_sistema_lleva_tipo_e_id_para_no_repetirse_y_priorizar(self):
+        """Cada aviso de la campanita sale también como notificación del sistema (Windows, Linux, celular), con su tipo y su id."""
+        import json
+        from apps.core.models import SuscripcionPush
+        from apps.desempeno.models import Notificacion
+        SuscripcionPush.objects.create(usuario=self.ana, endpoint='https://fcm.googleapis.com/fcm/send/abc', p256dh='k', auth='a')
+        with mock.patch('pywebpush.webpush') as envio, self.captureOnCommitCallbacks(execute=True):
+            n = Notificacion.objects.create(destinatario=self.ana, tipo='RECORDATORIO', titulo='Tu supervisor te pide avanzar', mensaje='Entrega hoy', enlace='/mis-tareas')
+        datos = json.loads(envio.call_args.kwargs['data'] if 'data' in envio.call_args.kwargs else envio.call_args.args[1])
+        self.assertEqual((datos['tipo'], datos['id'], datos['titulo']), ('RECORDATORIO', n.pk, 'Tu supervisor te pide avanzar'))
+
     def test_redirecciones_desactivadas(self):
         from apps.core.push import _SinRedirecciones
         s = _SinRedirecciones()

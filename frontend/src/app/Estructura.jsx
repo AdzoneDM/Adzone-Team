@@ -18,6 +18,8 @@ import { anunciarNovedades } from "@/lib/novedades";
 import { GuiaProvider, useGuia } from "@/app/Guia";
 import BotonJornada from "@/features/asistencia/BotonJornada";
 import PantallaEntrada from "@/features/asistencia/PantallaEntrada";
+import ActivarNotificaciones from "@/features/cuenta/ActivarNotificaciones";
+import { mostrarAvisoLocal, permisoNotificaciones, recibePush } from "@/lib/notificaciones";
 import AlertaTarea from "@/app/AlertaTarea";
 import AlertaClaveBase from "@/features/cuenta/AlertaClaveBase";
 import ChatFlotante from "@/features/chat/ChatFlotante";
@@ -117,15 +119,21 @@ function useAvisos() {
   const [datos, setDatos] = useState({ no_leidas: 0, avisos: [], por_validar: 0 });
   const vistos = useRef(null);
   const firma = useRef(null);
+  const conPush = useRef(false); // este dispositivo ya recibe los avisos del sistema por el servidor
   const refrescar = useCallback(() => cargarAvisos().then((d) => {
     const alertas = d.avisos.filter(esAlertaTarea).map((a) => a.id);
-    const sinLeer = d.avisos.filter((a) => !a.leida).map((a) => a.id);
+    const sinLeer = d.avisos.filter((a) => !a.leida);
     if (vistos.current) {
-      // Alerta de tarea nueva: sonido fuerte. Cualquier otro aviso nuevo: sonido suave.
-      if (alertas.some((id) => !vistos.current.alertas.has(id))) sonarAlerta();
-      else if (sinLeer.some((id) => !vistos.current.todos.has(id))) sonarNotificacion();
+      const nuevos = sinLeer.filter((a) => !vistos.current.todos.has(a.id));
+      const hayAlerta = alertas.some((id) => !vistos.current.alertas.has(id));
+      if (hayAlerta) sonarAlerta();
+      else if (nuevos.length) sonarNotificacion();
+      // Con la pestaña oculta y sin push en este dispositivo, la propia app muestra el aviso del sistema
+      if (document.visibilityState === "hidden" && !conPush.current && permisoNotificaciones() === "granted") {
+        nuevos.slice(0, 3).forEach((a) => mostrarAvisoLocal(a, esAlertaTarea(a)));
+      }
     }
-    vistos.current = { alertas: new Set(alertas), todos: new Set(sinLeer) };
+    vistos.current = { alertas: new Set(alertas), todos: new Set(sinLeer.map((a) => a.id)) };
     // Aviso nuevo o cambio en «por validar»: las pantallas abiertas se recargan solas.
     const nueva = `${Math.max(0, ...d.avisos.map((a) => a.id))}-${d.no_leidas}-${d.por_validar}`;
     if (firma.current !== null && firma.current !== nueva) anunciarNovedades();
@@ -134,11 +142,21 @@ function useAvisos() {
   }).catch(() => {}), []);
   useEffect(() => {
     refrescar();
-    const t = setInterval(() => { if (document.visibilityState === "visible") refrescar(); }, 10000);
+    recibePush().then((v) => { conPush.current = v; });
+    // A la vista cada 10 s; con la pestaña oculta cada 30 s (para que el aviso del sistema salga aunque estés en otra ventana)
+    let ciclo = 0;
+    const t = setInterval(() => { ciclo += 1; if (document.visibilityState === "visible" || ciclo % 3 === 0) refrescar(); }, 10000);
     const alVolver = () => document.visibilityState === "visible" && refrescar();
     document.addEventListener("visibilitychange", alVolver);
     window.addEventListener("adzone:refrescar-avisos", refrescar);
-    return () => { clearInterval(t); document.removeEventListener("visibilitychange", alVolver); window.removeEventListener("adzone:refrescar-avisos", refrescar); };
+    // El servidor avisa (push) que llegó algo: se actualiza al instante y, con la pestaña oculta, suena (no hay otro modo de oírlo)
+    const alMensaje = (e) => {
+      if (e.data?.tipo !== "aviso-nuevo") return;
+      if (document.visibilityState === "hidden") (e.data.importante ? sonarAlerta : sonarNotificacion)();
+      refrescar();
+    };
+    navigator.serviceWorker?.addEventListener("message", alMensaje);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", alVolver); window.removeEventListener("adzone:refrescar-avisos", refrescar); navigator.serviceWorker?.removeEventListener("message", alMensaje); };
   }, [refrescar]);
   return [datos, refrescar];
 }
@@ -384,6 +402,7 @@ function EstructuraInterna() {
       <Buscador abierto={buscando} onCerrar={() => setBuscando(false)} />
 
       <PantallaEntrada />
+      <ActivarNotificaciones />
       <AlertaTarea avisos={datos.avisos} refrescar={refrescar} sonar={sonarAlerta} />
 
       {usuario?.politicas_pendientes > 0 && !location.pathname.startsWith("/politicas") && (

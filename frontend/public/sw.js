@@ -1,7 +1,7 @@
 // Service worker de Adzone Team: permite instalar la app y abrirla aunque la señal sea mala.
 // Estrategia "red primero": siempre se intenta traer lo más reciente; la caché solo
 // se usa sin conexión. Los datos (/api) y las evidencias (/media) nunca se guardan.
-const CACHE = "adzone-team-v6";
+const CACHE = "adzone-team-v7";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
@@ -33,13 +33,26 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// Avisos en el celular: cada aviso de la campanita llega como notificación, aunque la app esté cerrada.
+// Avisos del sistema (Windows, Linux, Mac y celular): cada aviso de la campanita sale como notificación aunque la app
+// esté cerrada o minimizada. Las alertas importantes se quedan en pantalla hasta atenderlas.
+const IMPORTANTES = ["RECORDATORIO", "DEVUELTA", "VENCE", "ASIGNADA", "REABIERTA", "BLOQUEADA", "MODIFICADA"];
+
 self.addEventListener("push", (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch { d = { titulo: event.data && event.data.text() }; }
-  event.waitUntil(self.registration.showNotification(d.titulo || "Adzone Team", {
-    body: d.mensaje || "", icon: "/icono-192.png", badge: "/icono-192.png", data: { enlace: d.enlace || "/" }, tag: d.enlace || undefined,
-  }));
+  event.waitUntil((async () => {
+    const ventanas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const enPantalla = ventanas.some((v) => v.focused && v.visibilityState === "visible");
+    // La app abierta y a la vista ya muestra el aviso (campanita, alerta y sonido): no se duplica con uno del sistema.
+    ventanas.forEach((v) => v.postMessage({ tipo: "aviso-nuevo", importante: IMPORTANTES.includes(d.tipo) }));
+    if (enPantalla) return;
+    const importante = IMPORTANTES.includes(d.tipo);
+    await self.registration.showNotification(d.titulo || "Adzone Team", {
+      body: d.mensaje || "", icon: "/icono-192.png", badge: "/icono-192.png", data: { enlace: d.enlace || "/" },
+      tag: d.id ? `aviso-${d.id}` : undefined, renotify: true, silent: false, requireInteraction: importante,
+      vibrate: importante ? [200, 100, 200, 100, 200] : [120],
+    });
+  })());
 });
 
 self.addEventListener("notificationclick", (event) => {
