@@ -1,7 +1,8 @@
 // Asignar o editar una tarea (también recurrente). Se usa en Mi equipo y en los proyectos.
 import { useEffect, useState } from "react";
 import { Repeat, Sparkles } from "lucide-react";
-import { guardarRecurrente, guardarTarea, listarProyectos, sugerirAsignacion } from "@/lib/api";
+import { guardarRecurrente, guardarTarea, listarProyectos, subirReferencias, sugerirAsignacion } from "@/lib/api";
+import { SelectorArchivos } from "@/features/tareas/componentes";
 import { diasHasta, hoyISO, sumarDias } from "@/lib/formato";
 import { Alerta, Boton, Campo, Modal, cx } from "@/components/ui";
 
@@ -14,12 +15,14 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
   const [guardando, setGuardando] = useState(false);
   const [proyectos, setProyectos] = useState([]);
   const [sugeridos, setSugeridos] = useState([]);
+  const [referencias, setReferencias] = useState([]); // bocetos o imágenes para que la persona tenga de guía
   const editando = !!inicial?.id;
   const esRecurrente = inicial?.tipo === "recurrente";
 
   useEffect(() => {
     if (!abierto) return;
     setError("");
+    setReferencias([]);
     setF(inicial?.id ? {
       ...inicial, repetir: esRecurrente, companeros: inicial.companeros || [],
       pasosTexto: (inicial.pasos || []).map((p) => p.texto).join("\n"),
@@ -54,7 +57,7 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         });
         onGuardada(esRecurrente ? "Tarea recurrente actualizada." : "Tarea recurrente creada. Las próximas ya aparecen en la lista.");
       } else {
-        await guardarTarea({
+        const guardada = await guardarTarea({
           id: f.id, titulo: f.titulo.trim(), descripcion: f.descripcion || "", cliente: (f.cliente || "").trim(),
           colaborador: Number(f.colaborador), companeros: (f.companeros || []).map(Number).filter((c) => c !== Number(f.colaborador)),
           pasos_texto: (f.pasosTexto || "").split("\n").map((t) => t.trim()).filter(Boolean),
@@ -62,8 +65,12 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
           proyecto: f.proyecto ? Number(f.proyecto) : null, fecha_inicio: f.fecha_inicio || null,
           horas_estimadas: f.horas_estimadas === "" || f.horas_estimadas == null ? null : f.horas_estimadas,
         });
+        let sinReferencias = "";
+        if (referencias.length) {
+          try { await subirReferencias(guardada.id, referencias, { momento: guardada.rondas_revision > 0 ? "CORRECCION" : "ASIGNACION" }); } catch (err) { sinReferencias = ` Pero los archivos no se pudieron subir: ${err.message} Agrégalos desde la tarea.`; }
+        }
         const otros = (f.companeros || []).length;
-        onGuardada(editando ? "Cambios guardados." : `Tarea asignada a ${persona?.nombre}${otros ? ` y ${otros} más` : ""}. Les llegó el aviso.`);
+        onGuardada(sinReferencias ? (editando ? "Cambios guardados." : `Tarea asignada a ${persona?.nombre}.`) + sinReferencias : editando ? "Cambios guardados." : `Tarea asignada a ${persona?.nombre}${otros ? ` y ${otros} más` : ""}. Les llegó el aviso${referencias.length ? " con tus archivos de referencia" : ""}.`);
       }
     } catch (err) { setError(err.message); }
     setGuardando(false);
@@ -78,6 +85,9 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         {error && <Alerta>{error}</Alerta>}
         <Campo etiqueta="Qué hay que hacer">{(id) => <input id={id} className="campo" value={f.titulo || ""} onChange={cambiar("titulo")} maxLength={255} autoFocus />}</Campo>
         <Campo etiqueta="Detalles (opcional)">{(id) => <textarea id={id} className="campo" rows={3} value={f.descripcion || ""} onChange={cambiar("descripcion")} />}</Campo>
+        {!f.repetir && (
+          <SelectorArchivos archivos={referencias} onCambio={setReferencias} etiqueta="Adjuntar boceto o imagen de referencia" ayuda="Para que la persona tenga una guía visual. Imágenes o PDF." disabled={guardando} />
+        )}
         <Campo etiqueta="Cliente (opcional)">{(id) => <input id={id} className="campo" value={f.cliente || ""} onChange={cambiar("cliente")} maxLength={150} placeholder="Ej.: Plaza Bonao" />}</Campo>
         {!editando && !esRecurrente && <Sugerencias titulo={f.titulo} descripcion={f.descripcion} lista={sugeridos} setLista={setSugeridos}
           elegido={f.colaborador} onElegir={(id) => setF((x) => ({ ...x, colaborador: String(id), kpi_asignado: "" }))} />}

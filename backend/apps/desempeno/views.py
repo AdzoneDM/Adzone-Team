@@ -19,8 +19,8 @@ from apps.kpis.models import KPIAsignado
 from apps.tiempo import servicios as cronometro
 from . import servicios
 from .models import (
-    ConfiguracionDesempeno, EmpleadoDelMes, EsperaAsignacion, EvidenciaArchivo, Notificacion, ResultadoKPI, Tarea,
-    TareaRecurrente,
+    ConfiguracionDesempeno, EmpleadoDelMes, EsperaAsignacion, EvidenciaArchivo, Notificacion, ReferenciaArchivo, ResultadoKPI,
+    Tarea, TareaRecurrente,
 )
 from .permisos import (
     EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar, puede_revisar,
@@ -29,7 +29,8 @@ from .permisos import (
 from .puntaje import calcular_ranking, filtrar_grupo, rango_del_mes, sin_evaluar
 from .serializers import (
     ConfiguracionSerializer, EmpleadoDelMesSerializer, EntregaSerializer, HistorialSerializer, NotificacionSerializer,
-    ReaperturaSerializer, RechazoSerializer, ResultadoKPISerializer, TareaRecurrenteSerializer, TareaSerializer,
+    MAX_REFERENCIAS_POR_TAREA, ReaperturaSerializer, RechazoSerializer, ReferenciasSerializer, ResultadoKPISerializer,
+    validar_archivos_referencia, TareaRecurrenteSerializer, TareaSerializer,
     ValidacionSerializer,
 )
 
@@ -66,7 +67,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         queryset = Tarea.objects.select_related(
             'colaborador__perfil__puesto_trabajo__departamento', 'asignada_por', 'validada_por',
             'kpi_asignado__plantilla_kpi', 'proyecto', 'orden', 'oa',
-        ).prefetch_related('evidencias', 'pasos', 'companeros')
+        ).prefetch_related('evidencias', 'referencias', 'pasos', 'companeros')
         if not es_administrador(user):
             subs = equipo_gestionable(user, 'equipo.ver')
             queryset = queryset.filter(Q(colaborador=user) | Q(companeros=user) | Q(colaborador__in=subs)).distinct()
@@ -108,6 +109,31 @@ class TareaViewSet(viewsets.ModelViewSet):
     def _exigir_participante(self, tarea, que="trabajar"):
         if self.request.user.pk not in tarea.participantes_ids():
             raise PermissionDenied(f"Solo quien tiene asignada la tarea puede {que}la.")
+
+    def _guardar_referencias(self, tarea, archivos, momento, nota=''):
+        """Adjunta archivos de referencia a la tarea. Devuelve cuántos se guardaron."""
+        if tarea.referencias.count() + len(archivos) > MAX_REFERENCIAS_POR_TAREA:
+            raise serializers.ValidationError({"archivos": f"Una tarea admite hasta {MAX_REFERENCIAS_POR_TAREA} archivos de referencia."})
+        for archivo in archivos:
+            ReferenciaArchivo.objects.create(
+                tarea=tarea, archivo=archivo, nombre_original=archivo.name[:255], nota=nota[:200], momento=momento,
+                tipo=(getattr(archivo, 'content_type', '') or mimetypes.guess_type(archivo.name)[0] or '')[:100],
+                tamano=archivo.size, ronda=tarea.rondas_revision, subido_por=self.request.user)
+        return len(archivos)
+
+    @action(detail=True, methods=['post'])
+    def referencias(self, request, pk=None):
+        """Quien asigna o supervisa adjunta un boceto, una imagen o un PDF de referencia (al asignar o al corregir)."""
+        tarea = self.get_object()
+        self._exigir_gestion(tarea.colaborador)
+        if tarea.estado in ('COMPLETADA', 'CANCELADA'):
+            return Response({"detail": "Esta tarea ya terminó: no se le agregan referencias."}, status=status.HTTP_400_BAD_REQUEST)
+        datos = ReferenciasSerializer(data={'archivos': request.FILES.getlist('archivos'), 'nota': request.data.get('nota', ''),
+                                            'momento': request.data.get('momento') or 'ASIGNACION'})
+        datos.is_valid(raise_exception=True)
+        n = self._guardar_referencias(tarea, datos.validated_data['archivos'], datos.validated_data['momento'], datos.validated_data.get('nota', ''))
+        servicios.al_referenciar(tarea, request.user, n)
+        return self._respuesta(tarea)
 
     def _exigir_revision(self, tarea):
         if self.request.user.pk in tarea.participantes_ids():
@@ -255,16 +281,26 @@ class TareaViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         rechazo = RechazoSerializer(data=request.data)
         rechazo.is_valid(raise_exception=True)
+        # Al devolverla se pueden adjuntar bocetos o imágenes de referencia para la corrección
+        archivos = validar_archivos_referencia(request.FILES.getlist('archivos'))
         tarea.comentario_revision = rechazo.validated_data['comentario_revision']
-        if tarea.oa_id:
-            from apps.operaciones.servicios_ot import rechazar_g3
-            rechazar_g3(tarea.oa, request.user, request.data.get('g3') or {}, tarea.comentario_revision,
-                        request.data.get('causa_retrabajo') or None)
-        tarea.estado = 'EN_PROGRESO'
-        tarea.fecha_completada = None
-        tarea.rondas_revision += 1
-        tarea.save()
-        servicios.al_devolver(tarea, request.user)
+        g3 = request.data.get('g3') or {}
+        if isinstance(g3, str):  # con archivos la petición viaja como formulario: el G3 llega como texto JSON
+            import json
+            try:
+                g3 = json.loads(g3)
+            except ValueError:
+                g3 = {}
+        with transaction.atomic():
+            if tarea.oa_id:
+                from apps.operaciones.servicios_ot import rechazar_g3
+                rechazar_g3(tarea.oa, request.user, g3, tarea.comentario_revision, request.data.get('causa_retrabajo') or None)
+            tarea.estado = 'EN_PROGRESO'
+            tarea.fecha_completada = None
+            tarea.rondas_revision += 1
+            tarea.save()
+            n = self._guardar_referencias(tarea, archivos, 'CORRECCION') if archivos else 0
+        servicios.al_devolver(tarea, request.user, referencias=n)
         return self._respuesta(tarea)
 
     @action(detail=True, methods=['post'])
@@ -364,6 +400,35 @@ class TareaViewSet(viewsets.ModelViewSet):
         servicios.registrar(tarea, request.user, 'CANCELADA', request.data.get('motivo', ''))
         servicios.tras_cambio(tarea, request.user)
         return self._respuesta(tarea)
+
+
+@api_view(['GET', 'DELETE'])
+def referencia_view(request, pk):
+    """GET: entrega el archivo solo a quien trabaja la tarea o la supervisa. DELETE: lo quita quien lo subió o quien la asigna."""
+    try:
+        ref = ReferenciaArchivo.objects.select_related('tarea__colaborador').get(pk=pk)
+    except ReferenciaArchivo.DoesNotExist:
+        raise Http404
+    tarea = ref.tarea
+    es_participante = request.user.pk in tarea.participantes_ids()
+    gestiona = puede_gestionar(request.user, tarea.colaborador, 'tareas.asignar') or puede_gestionar(request.user, tarea.colaborador)
+    if not (es_participante or gestiona):
+        raise Http404
+    if request.method == 'DELETE':
+        if not (ref.subido_por_id == request.user.pk or puede_gestionar(request.user, tarea.colaborador, 'tareas.asignar')):
+            raise PermissionDenied("Solo quien la subió o quien asigna la tarea puede quitar esta referencia.")
+        ref.archivo.delete(save=False)
+        ref.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    try:
+        archivo = ref.archivo.open('rb')
+    except (FileNotFoundError, ValueError):
+        raise Http404
+    tipo = mimetypes.guess_type(ref.archivo.name)[0] or 'application/octet-stream'
+    from apps.core.archivos import entregar
+    respuesta = entregar(archivo, ref.nombre_original or os.path.basename(ref.archivo.name), tipo)
+    respuesta['Cache-Control'] = 'private, max-age=3600'
+    return respuesta
 
 
 @api_view(['GET'])

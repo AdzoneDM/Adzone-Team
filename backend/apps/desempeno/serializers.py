@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from .models import (
-    ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion,
+    ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
     PasoTarea, ResultadoKPI, Tarea, TareaRecurrente,
 )
 from .permisos import puede_gestionar, puede_revisar
@@ -26,6 +26,28 @@ class EvidenciaSerializer(serializers.ModelSerializer):
     def get_url(self, obj):
         # Siempre por la API: revisa permisos antes de entregar el archivo.
         return f"/api/desempeno/evidencias/{obj.id}/archivo/"
+
+
+class ReferenciaSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+    es_imagen = serializers.BooleanField(read_only=True)
+    subido_por_nombre = serializers.SerializerMethodField()
+    puede_borrar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReferenciaArchivo
+        fields = ['id', 'url', 'nombre_original', 'tipo', 'tamano', 'momento', 'ronda', 'nota', 'es_imagen', 'fecha',
+                  'subido_por_nombre', 'puede_borrar']
+
+    def get_url(self, obj):
+        return f"/api/desempeno/referencias/{obj.id}/archivo/"  # por la API: revisa permisos antes de entregar el archivo
+
+    def get_subido_por_nombre(self, obj):
+        return _nombre(obj.subido_por)
+
+    def get_puede_borrar(self, obj):
+        user = getattr(self.context.get('request'), 'user', None)
+        return bool(user and (obj.subido_por_id == user.pk or puede_gestionar(user, obj.tarea.colaborador, 'tareas.asignar')))
 
 
 class HistorialSerializer(serializers.ModelSerializer):
@@ -63,6 +85,7 @@ class TareaSerializer(serializers.ModelSerializer):
     a_tiempo = serializers.BooleanField(read_only=True)
     a_la_primera = serializers.BooleanField(read_only=True)
     evidencias = EvidenciaSerializer(many=True, read_only=True)
+    referencias = ReferenciaSerializer(many=True, read_only=True)
     es_recurrente = serializers.SerializerMethodField()
     puedo_gestionar = serializers.SerializerMethodField()
     puedo_revisar = serializers.SerializerMethodField()
@@ -100,7 +123,7 @@ class TareaSerializer(serializers.ModelSerializer):
             'asignada_por', 'asignada_por_nombre',
             'kpi_asignado', 'kpi_nombre',
             'prioridad', 'estado', 'fecha_limite', 'fecha_completada', 'a_tiempo', 'a_la_primera',
-            'evidencia_nota', 'evidencia_enlace', 'evidencias',
+            'evidencia_nota', 'evidencia_enlace', 'evidencias', 'referencias',
             'validada_por', 'validada_por_nombre', 'fecha_validacion', 'comentario_revision',
             'calificacion_calidad', 'comentario_evaluacion', 'rondas_revision', 'es_recurrente',
             'puedo_gestionar', 'puedo_revisar', 'soy_participante',
@@ -233,6 +256,31 @@ class EntregaSerializer(serializers.Serializer):
         if not (data.get('evidencia_nota', '').strip() or data.get('evidencia_enlace') or data.get('archivos')):
             raise serializers.ValidationError({"detail": "Agrega una nota, un enlace o una foto como evidencia."})
         return data
+
+
+class ReferenciasSerializer(serializers.Serializer):
+    """Archivos de referencia que adjunta quien supervisa. Solo fotos, bocetos o PDF."""
+    archivos = serializers.ListField(child=serializers.FileField(), allow_empty=False)
+    nota = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    momento = serializers.ChoiceField(choices=['ASIGNACION', 'CORRECCION'], required=False, default='ASIGNACION')
+
+    def validate_archivos(self, archivos):
+        return validar_archivos_referencia(archivos)
+
+
+MAX_REFERENCIAS_POR_TAREA = 30
+
+
+def validar_archivos_referencia(archivos):
+    maximo = settings.EVIDENCIA_MAX_ARCHIVOS
+    if len(archivos) > maximo:
+        raise serializers.ValidationError(f"Como máximo {maximo} archivos cada vez.")
+    for archivo in archivos:
+        if archivo.size > settings.EVIDENCIA_MAX_MB * 1024 * 1024:
+            raise serializers.ValidationError(f"«{archivo.name}» pesa más de {settings.EVIDENCIA_MAX_MB} MB.")
+        if os.path.splitext(archivo.name)[1].lower() not in EntregaSerializer.EXTENSIONES:
+            raise serializers.ValidationError(f"«{archivo.name}»: solo se aceptan imágenes o PDF.")
+    return archivos
 
 
 class ValidacionSerializer(serializers.Serializer):

@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.9 · 20/11/2026 · Referencias en las tareas (bocetos e imágenes del supervisor)
+
+- **Al asignar**: en «Nueva tarea» hay un botón *Adjuntar boceto o imagen de referencia* (imágenes o PDF, hasta 6 por vez, 10 MB cada uno; las fotos se achican antes de subir). La persona recibe la alerta «Nueva tarea» con la nota «📎 Adjuntó N archivos de referencia».
+- **Al devolver**: en *Por validar* hay *Adjuntar boceto o imagen para la corrección*; se envían junto con el comentario al pulsar *Devolver*, y la alerta «Tu entrega fue devuelta» lo dice.
+- **En cualquier momento**: desde el detalle de la tarea, quien la asigna puede agregar más referencias mientras siga abierta.
+- **Dónde se ven**: en el detalle de la tarea, sección *Referencias*, ordenadas: *Al asignar la tarea* y *Para corregir · devolución N*. Las imágenes abren en grande, los PDF se descargan, y en la lista se ve «📎 N referencias». Quien las subió, o quien asigna la tarea, puede quitarlas.
+- **Privacidad**: solo quien trabaja la tarea, su equipo y quien la supervisa ven los archivos (se entregan por la API con permisos). Si se adjunta justo después de asignar, se suma al mismo aviso: no salen dos alertas.
+- Nuevo modelo `ReferenciaArchivo` (migración `0019`), `POST /tareas/<id>/referencias/`, `GET|DELETE /referencias/<id>/archivo/`; `rechazar` acepta `archivos`. 7 pruebas nuevas (`tests_referencias.py`).
+
 ## 12.8 · 20/11/2026 · Alcance configurable: toda la empresa y tareas propias
 
 Dos permisos nuevos, configurables desde *Accesos y permisos* (por perfil o como excepción de una persona):

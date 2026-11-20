@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Ban, Hand, ListChecks, Play, Send, Target, Unlock } from "lucide-react";
+import { Ban, Hand, ListChecks, Paperclip, Play, Send, Target, Unlock } from "lucide-react";
 import { bloquearTarea, desbloquearTarea, iniciarTarea, listarTareas, miDisponibilidad, miResumen, pedirTrabajo } from "@/lib/api";
 import { mesActual } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
@@ -51,6 +51,7 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, onBloquear, onDesblo
             {tarea.kpi_nombre && <span className="flex min-w-0 items-center gap-1 text-sm text-gris"><Target className="size-3.5 shrink-0" /><span className="truncate">{tarea.kpi_nombre}</span></span>}
             {tarea.estado === "COMPLETADA" && <Estrellas valor={tarea.calificacion_calidad} />}
             <Progreso progreso={tarea.progreso} />
+            {tarea.referencias?.length > 0 && <span className="inline-flex items-center gap-1 text-sm font-medium text-azul"><Paperclip className="size-3.5" aria-hidden />{tarea.referencias.length} referencia{tarea.referencias.length > 1 ? "s" : ""}</span>}
           </div>
           <EquipoTarea tarea={tarea} className="mt-1.5" />
         </button>

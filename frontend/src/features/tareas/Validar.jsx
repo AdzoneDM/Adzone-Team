@@ -4,7 +4,7 @@ import { CircleCheckBig, Paperclip, RotateCcw } from "lucide-react";
 import { devolverTarea, listarTareas, validarTarea } from "@/lib/api";
 import { fechaCorta, hace } from "@/lib/formato";
 import { refrescarAvisos } from "@/app/Estructura";
-import { EquipoTarea, Evidencias, Historial, Pasos } from "@/features/tareas/componentes";
+import { EquipoTarea, Evidencias, Historial, Pasos, SelectorArchivos } from "@/features/tareas/componentes";
 import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, EntradaEstrellas, Insignia, Modal, PrioridadTarea, Vacio, cx, useAviso } from "@/components/ui";
 import { useRecurso } from "@/lib/recursos";
 import { Checklist } from "@/features/ordenes/piezas";
@@ -26,10 +26,11 @@ function Revision({ tarea, onListo }) {
   const [verHistorial, setVerHistorial] = useState(false);
   const [g3, setG3] = useState({});
   const [causa, setCausa] = useState("");
+  const [archivos, setArchivos] = useState([]); // bocetos o imágenes para la corrección, si la devuelve
   const [catalogo] = useRecurso("catalogo");
   const oa = tarea.oa_info;
 
-  useEffect(() => { setCalidad(0); setComentario(""); setError(""); setVerHistorial(false); setG3(tarea.oa_info?.g3_marcados || {}); setCausa(""); }, [tarea.id, tarea.oa_info]);
+  useEffect(() => { setCalidad(0); setComentario(""); setArchivos([]); setError(""); setVerHistorial(false); setG3(tarea.oa_info?.g3_marcados || {}); setCausa(""); }, [tarea.id, tarea.oa_info]);
 
   const validar = async () => {
     if (!calidad) { setError("Califica la calidad (1 a 5 estrellas) para validarla."); return; }
@@ -44,8 +45,8 @@ function Revision({ tarea, onListo }) {
     if (comentario.trim().length < 5) { setError("Para devolverla, escribe qué debe corregir."); return; }
     setEnviando("devolver");
     try {
-      await devolverTarea(tarea.id, comentario.trim(), oa ? { g3, causa_retrabajo: causa || null } : {});
-      avisar(`Devuelta a ${tarea.colaborador_nombre} con tu comentario.`);
+      await devolverTarea(tarea.id, comentario.trim(), oa ? { g3, causa_retrabajo: causa || null } : {}, archivos);
+      avisar(`Devuelta a ${tarea.colaborador_nombre} con tu comentario${archivos.length ? " y tus archivos de referencia" : ""}.`);
       onListo(tarea.id);
     } catch (e) { setError(e.message); setEnviando(null); }
   };
@@ -90,6 +91,7 @@ function Revision({ tarea, onListo }) {
         <Campo etiqueta="Comentario" ayuda="Opcional al validar. Si la devuelves, di exactamente qué corregir.">
           {(id) => <textarea id={id} className="campo bg-white" rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} />}
         </Campo>
+        <SelectorArchivos archivos={archivos} onCambio={setArchivos} etiqueta="Adjuntar boceto o imagen para la corrección" ayuda="Se envían solo si la devuelves." disabled={!!enviando} />
         <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
           <Boton variante="secundario" icono={RotateCcw} onClick={devolver} cargando={enviando === "devolver"} disabled={!!enviando}>Devolver</Boton>
           <Boton icono={CircleCheckBig} onClick={validar} cargando={enviando === "validar"} disabled={!!enviando}>Validar</Boton>

@@ -121,7 +121,24 @@ export const entregarTarea = (id, { nota, enlace, archivos = [] }) => {
 };
 export const validarTarea = (id, calificacion_calidad, comentario_evaluacion, extra = {}) =>
   api(`${D}/tareas/${id}/validar/`, { method: "POST", body: { calificacion_calidad, comentario_evaluacion, ...extra } });
-export const devolverTarea = (id, comentario_revision, extra = {}) => api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: { comentario_revision, ...extra } });
+// Devolver una tarea; con «archivos» (bocetos, imágenes, PDF) viaja como formulario y quedan de referencia para la corrección
+export const devolverTarea = (id, comentario_revision, extra = {}, archivos = []) => {
+  if (!archivos.length) return api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: { comentario_revision, ...extra } });
+  const f = new FormData();
+  f.append("comentario_revision", comentario_revision);
+  Object.entries(extra).forEach(([k, v]) => { if (v != null) f.append(k, typeof v === "object" ? JSON.stringify(v) : v); });
+  archivos.forEach((a) => f.append("archivos", a, a.name));
+  return api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: f });
+};
+// Referencias de una tarea: bocetos o imágenes que adjunta quien supervisa (al asignar o al corregir)
+export const subirReferencias = (id, archivos, { nota = "", momento = "ASIGNACION" } = {}) => {
+  const f = new FormData();
+  archivos.forEach((a) => f.append("archivos", a, a.name));
+  if (nota) f.append("nota", nota);
+  f.append("momento", momento);
+  return api(`${D}/tareas/${id}/referencias/`, { method: "POST", body: f });
+};
+export const quitarReferencia = (url) => api(url, { method: "DELETE" });
 export const reabrirTarea = (id, motivo) => api(`${D}/tareas/${id}/reabrir/`, { method: "POST", body: { motivo } });
 export const cancelarTarea = (id, motivo) => api(`${D}/tareas/${id}/cancelar/`, { method: "POST", body: { motivo } });
 export const recordarTarea = (id, mensaje) => api(`${D}/tareas/${id}/recordar/`, { method: "POST", body: { mensaje } });

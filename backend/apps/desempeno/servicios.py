@@ -78,11 +78,37 @@ def al_validar(tarea, quien):
     tras_cambio(tarea, quien, 'TAREA_VALIDADA')
 
 
-def al_devolver(tarea, quien):
-    registrar(tarea, quien, 'DEVUELTA', tarea.comentario_revision)
+def _archivos_texto(n):
+    return f"{n} archivo{'s' if n != 1 else ''} de referencia"
+
+
+def al_devolver(tarea, quien, referencias=0):
+    registrar(tarea, quien, 'DEVUELTA', tarea.comentario_revision + (f" (adjuntó {_archivos_texto(referencias)})" if referencias else ''))
+    mensaje = tarea.comentario_revision + (f"\n📎 Adjuntó {_archivos_texto(referencias)} para la corrección." if referencias else '')
     avisar([tarea.colaborador, *tarea.companeros.all()], 'DEVUELTA', f"Para corregir: {tarea.titulo}",
-           tarea.comentario_revision, tarea=tarea, enlace='/mis-tareas', excepto=quien)
+           mensaje, tarea=tarea, enlace='/mis-tareas', excepto=quien)
     tras_cambio(tarea, quien)
+
+
+def al_referenciar(tarea, quien, n):
+    """Se adjuntaron bocetos o imágenes de referencia a una tarea: queda en el historial y le llega a quien la trabaja.
+    Si justo se acaba de avisar de esa tarea (asignada o devuelta) y el aviso sigue sin leer, el archivo se suma a ese
+    mismo aviso: no le salen dos alertas por lo mismo."""
+    registrar(tarea, quien, 'EDITADA', f"Adjuntó {_archivos_texto(n)}")
+    destinatarios = [tarea.colaborador, *tarea.companeros.all()]
+    reciente = timezone.now() - timedelta(minutes=5)
+    pendientes = {x.destinatario_id: x for x in Notificacion.objects.filter(
+        tarea=tarea, remitente=quien, tipo__in=('ASIGNADA', 'DEVUELTA'), leida=False, fecha__gte=reciente)}
+    sin_aviso = []
+    for u in destinatarios:
+        previo = pendientes.get(u.pk)
+        if previo and u.pk != quien.pk:
+            previo.mensaje = f"{previo.mensaje}\n📎 Adjuntó {_archivos_texto(n)}.".strip()
+            previo.save(update_fields=['mensaje'])
+        else:
+            sin_aviso.append(u)
+    avisar(sin_aviso, 'MODIFICADA', f"Nueva referencia: {tarea.titulo}",
+           f"{nombre(quien)} adjuntó {_archivos_texto(n)} a tu tarea.", tarea=tarea, enlace='/mis-tareas', excepto=quien)
 
 
 CAMPOS_AVISO = {'titulo': 'el título', 'descripcion': 'la descripción', 'fecha_limite': 'la fecha de entrega',

@@ -295,6 +295,42 @@ class EvidenciaArchivo(models.Model):
         ordering = ['fecha', 'id']
 
 
+def _ruta_referencia(instancia, nombre):
+    """referencias/AAAA/MM/<uuid>.<ext>: el nombre original no queda en el disco ni en la URL."""
+    from django.utils import timezone
+    ext = os.path.splitext(nombre)[1].lower()[:8]
+    return f"referencias/{timezone.localdate():%Y/%m}/{uuid.uuid4().hex}{ext}"
+
+
+class ReferenciaArchivo(models.Model):
+    """Boceto, imagen o PDF que quien supervisa adjunta a una tarea para que la persona tenga referencia:
+    al asignarla o al devolverla con correcciones. Distinto de la evidencia, que es lo que entrega quien trabaja."""
+    ASIGNACION, CORRECCION = 'ASIGNACION', 'CORRECCION'
+    MOMENTOS = [(ASIGNACION, 'Al asignar'), (CORRECCION, 'Al devolver')]
+    tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name="referencias")
+    archivo = models.FileField(upload_to=_ruta_referencia)
+    nombre_original = models.CharField(max_length=255, blank=True)
+    tipo = models.CharField(max_length=100, blank=True)
+    tamano = models.PositiveIntegerField(default=0)
+    momento = models.CharField(max_length=10, choices=MOMENTOS, default=ASIGNACION)
+    ronda = models.PositiveSmallIntegerField(default=0, help_text="Ronda de revisión a la que corresponde (en una corrección, la que sigue a la devolución).")
+    nota = models.CharField(max_length=200, blank=True)
+    subido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def es_imagen(self):
+        return self.tipo.startswith('image/') or self.archivo.name.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic'))
+
+    def __str__(self):
+        return f"Referencia de {self.tarea_id}: {self.nombre_original}"
+
+    class Meta:
+        verbose_name = "Referencia"
+        verbose_name_plural = "Referencias"
+        ordering = ['fecha', 'id']
+
+
 class HistorialTarea(models.Model):
     """Quién hizo qué y cuándo: el resultado de cada tarea es verificable."""
     ACCIONES = [

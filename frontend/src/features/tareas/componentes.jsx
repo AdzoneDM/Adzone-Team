@@ -1,9 +1,9 @@
 // Piezas de tareas que comparten Mis tareas, Por validar y Tareas del equipo.
 import { useEffect, useRef, useState } from "react";
-import { Briefcase, Camera, Check, ExternalLink, FileText, ImagePlus, Link2, Repeat, Target, Users, X } from "lucide-react";
-import { entregarTarea, historialTarea, marcarPaso } from "@/lib/api";
+import { Briefcase, Camera, Check, ExternalLink, FileText, ImagePlus, Link2, Paperclip, Repeat, Target, Trash2, Users, X } from "lucide-react";
+import { entregarTarea, historialTarea, marcarPaso, obtenerTarea, quitarReferencia, subirReferencias } from "@/lib/api";
 import { fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
-import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx } from "@/components/ui";
+import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx, useAviso } from "@/components/ui";
 
 const MAX_LADO = 1600;
 const MAX_ARCHIVOS = 6;
@@ -30,6 +30,125 @@ export function achicarFoto(archivo) {
     img.onerror = () => { URL.revokeObjectURL(url); resolver(archivo); };
     img.src = url;
   });
+}
+
+/** Elegir bocetos, imágenes o PDF para adjuntar (las fotos se achican antes de subir). */
+export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boceto o referencia", ayuda, max = MAX_ARCHIVOS, disabled }) {
+  const entrada = useRef(null);
+  const [procesando, setProcesando] = useState(false);
+  const elegir = async (e) => {
+    const nuevos = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!nuevos.length) return;
+    setProcesando(true);
+    const listos = await Promise.all(nuevos.map(achicarFoto));
+    onCambio([...archivos, ...listos].slice(0, max));
+    setProcesando(false);
+  };
+  return (
+    <div>
+      <input ref={entrada} type="file" multiple accept="image/*,application/pdf" className="sr-only" onChange={elegir} tabIndex={-1} aria-hidden="true" />
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => entrada.current?.click()} disabled={disabled || procesando || archivos.length >= max}
+          className="inline-flex h-10 items-center gap-2 rounded-lg border border-dashed border-azul/50 bg-azul/5 px-3 text-sm font-medium text-azul hover:bg-azul/10 disabled:cursor-not-allowed disabled:opacity-50">
+          <Paperclip className="size-4" aria-hidden />{procesando ? "Preparando…" : etiqueta}
+        </button>
+        {ayuda && archivos.length === 0 && <span className="text-xs text-gris">{ayuda}</span>}
+      </div>
+      {archivos.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {archivos.map((a, i) => (
+            <li key={`${a.name}-${i}`} className="flex max-w-full items-center gap-2 rounded-lg border border-linea bg-white py-1 pl-2.5 pr-1 text-sm">
+              {a.type.startsWith("image/") ? <ImagePlus className="size-4 shrink-0 text-gris" aria-hidden /> : <FileText className="size-4 shrink-0 text-gris" aria-hidden />}
+              <span className="max-w-40 truncate">{a.name}</span>
+              <button type="button" onClick={() => onCambio(archivos.filter((_, j) => j !== i))} aria-label={`Quitar ${a.name}`} className="rounded p-1 text-gris hover:bg-rojo-50 hover:text-rojo"><X className="size-4" aria-hidden /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Bocetos e imágenes de referencia que dejó quien supervisa: al asignar y en cada corrección. */
+export function Referencias({ tarea, onCambio, avisar }) {
+  const [grande, setGrande] = useState(null);
+  const [nuevos, setNuevos] = useState([]);
+  const [subiendo, setSubiendo] = useState(false);
+  const lista = tarea.referencias || [];
+  const abierta = !["COMPLETADA", "CANCELADA"].includes(tarea.estado);
+  const puedeAgregar = tarea.puedo_gestionar && abierta;
+  if (!lista.length && !puedeAgregar) return null;
+
+  // Agrupadas: lo de la asignación primero, luego cada corrección
+  const grupos = [];
+  lista.forEach((r) => {
+    const clave = r.momento === "CORRECCION" ? `c${r.ronda}` : "a";
+    let g = grupos.find((x) => x.clave === clave);
+    if (!g) { g = { clave, titulo: r.momento === "CORRECCION" ? `Para corregir${r.ronda > 1 || tarea.rondas_revision > 1 ? ` · devolución ${r.ronda}` : ""}` : "Al asignar la tarea", items: [] }; grupos.push(g); }
+    g.items.push(r);
+  });
+  grupos.sort((a, b) => (a.clave === "a" ? -1 : b.clave === "a" ? 1 : a.clave.localeCompare(b.clave, undefined, { numeric: true })));
+
+  const subir = async () => {
+    setSubiendo(true);
+    try {
+      const actualizada = await subirReferencias(tarea.id, nuevos, { momento: tarea.rondas_revision > 0 ? "CORRECCION" : "ASIGNACION" });
+      setNuevos([]);
+      avisar?.("Referencia enviada. Le llegó el aviso.");
+      onCambio?.(actualizada);
+    } catch (e) { avisar?.(e.message, "rojo"); }
+    setSubiendo(false);
+  };
+  const quitar = async (r) => {
+    try { await quitarReferencia(r.url); onCambio?.(await obtenerTarea(tarea.id)); } catch (e) { avisar?.(e.message, "rojo"); }
+  };
+
+  return (
+    <section aria-label="Referencias">
+      <h3 className="mb-2 flex items-center gap-2 text-base font-semibold"><Paperclip className="size-4 text-azul" aria-hidden />Referencias</h3>
+      <div className="space-y-4">
+        {grupos.map((g) => (
+          <div key={g.clave}>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gris">{g.titulo}</p>
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-2">
+              {g.items.map((r) => (
+                <li key={r.id} className="group relative">
+                  {r.es_imagen ? (
+                    <button type="button" onClick={() => setGrande(r)} className="block w-full overflow-hidden rounded-lg border border-linea bg-fondo" aria-label={`Ver ${r.nombre_original || "imagen"} en grande`}>
+                      <img src={r.url} alt={r.nombre_original || "Referencia"} loading="lazy" className="aspect-square w-full object-cover" />
+                    </button>
+                  ) : (
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-linea bg-fondo p-2 text-center text-xs text-gris hover:text-azul">
+                      <FileText className="size-6" aria-hidden /><span className="line-clamp-2 break-all">{r.nombre_original}</span>
+                    </a>
+                  )}
+                  {r.puede_borrar && (
+                    <button type="button" onClick={() => quitar(r)} aria-label={`Quitar ${r.nombre_original || "referencia"}`}
+                      className="absolute right-1 top-1 rounded-md bg-white/90 p-1 text-gris shadow hover:text-rojo sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"><Trash2 className="size-3.5" aria-hidden /></button>
+                  )}
+                  {r.nota && <p className="mt-0.5 line-clamp-2 text-[11px] text-gris">{r.nota}</p>}
+                </li>
+              ))}
+            </ul>
+            {g.items[0]?.subido_por_nombre && <p className="mt-1 text-xs text-gris">De {g.items[0].subido_por_nombre} · {fechaHora(g.items[0].fecha)}</p>}
+          </div>
+        ))}
+        {puedeAgregar && (
+          <div className="space-y-2">
+            <SelectorArchivos archivos={nuevos} onCambio={setNuevos} etiqueta="Agregar boceto o imagen" disabled={subiendo} />
+            {nuevos.length > 0 && <Boton tam="sm" onClick={subir} cargando={subiendo}>Enviar {nuevos.length === 1 ? "el archivo" : `los ${nuevos.length} archivos`}</Boton>}
+          </div>
+        )}
+      </div>
+      {grande && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-noche-900/90 p-4" role="dialog" aria-modal="true" aria-label="Referencia" onClick={() => setGrande(null)}>
+          <button type="button" className="absolute right-4 top-4 rounded-lg bg-white/10 p-2 text-white" aria-label="Cerrar"><X className="size-6" /></button>
+          <img src={grande.url} alt={grande.nombre_original || "Referencia"} className="max-h-full max-w-full rounded-lg object-contain" />
+        </div>
+      )}
+    </section>
+  );
 }
 
 export function Vencimiento({ tarea }) {
@@ -182,6 +301,7 @@ export function Historial({ tareaId }) {
 
 /** Datos de una tarea; las acciones las pone cada pantalla en `pie`. */
 export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
+  const avisar = useAviso();
   if (!tarea) return null;
   return (
     <Modal abierto={abierto} onCerrar={onCerrar} titulo={tarea.titulo} ancho="md:max-w-2xl" pie={pie}>
@@ -210,6 +330,8 @@ export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
         {tarea.comentario_revision && tarea.estado !== "COMPLETADA" && (
           <Alerta tono="rojo"><p className="font-medium">Para corregir</p><p className="whitespace-pre-line">{tarea.comentario_revision}</p></Alerta>
         )}
+
+        <Referencias tarea={tarea} onCambio={onCambio} avisar={avisar} />
 
         {(tarea.evidencias?.length > 0 || tarea.evidencia_nota || tarea.evidencia_enlace) && (
           <section>
