@@ -1,5 +1,16 @@
 # Cambios
 
+## 12.13 · 20/11/2026 · Alertas a la izquierda y pantalla de Personas reorganizada
+
+- **Alertas de tareas rediseñadas**: ya no ocupan el centro ni oscurecen la pantalla. Salen como **tarjetas abajo a la izquierda** (junto al contenido, sin tapar el menú), con barra de color e ícono según el tipo, quién la envió y cuándo, botón principal (*Ver tarea*, *Corregir ahora*…), *Entendido* y una X. Se apilan hasta tres y un contador «+N alertas más» indica las demás; en el celular se muestra solo la más reciente. Siguen sonando y los recordatorios, devoluciones y vencimientos insisten hasta atenderse. Se puede seguir trabajando mientras tanto.
+- **Personas, reorganizada**:
+  - **Filtros con conteo** en una sola fila: Activas, *Aún no entran*, Sin puesto, Desactivadas y Todas (y la búsqueda con botón para borrar y el filtro por departamento).
+  - **Agrupada por departamento**, con el total de cada grupo y «Mostrando X de Y personas».
+  - **Perfil** como etiqueta (Dirección destacada, «+n» si tiene varios), **último acceso** en lenguaje natural con un punto de color («hace 2 h»; «Nunca ha entrado» en ámbar) y **«Tú»** marcado.
+  - En el celular, **tarjetas** en lugar de una tabla con columnas ocultas. La columna de salario solo aparece a quien puede verla.
+  - Estado vacío con botón para volver a ver a todas las personas.
+- Frontend: `PersonasLista.jsx` (lista, filtros y buscador) separado de `Personas.jsx` (formulario y datos).
+
 ## 12.12 · 20/11/2026 · Avisos del sistema con sonido (Windows, Linux, Mac y celular)
 
 - **Notificaciones del sistema para todos**: al entrar, si la persona aún no las activó, sale una ventana *Activa las notificaciones* con un botón grande (el aviso chico que se podía cerrar ya no es la única vía). Si ya dio permiso en este navegador, este dispositivo se registra solo. Si las bloqueó, una ventana explica cómo permitirlas (candado → Notificaciones → Permitir). «Ahora no» vuelve a preguntar al día siguiente.

@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Link } from "react-router-dom";
-import { KeyRound, Pencil, Plus, Search, UserRound } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { KeyRound, Plus } from "lucide-react";
 import { guardarUsuario, puestos as cargarPuestos, usuarios as cargarUsuarios } from "@/lib/api";
-import { fechaCorta } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
-import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Vacio, useAviso } from "@/components/ui";
+import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, useAviso } from "@/components/ui";
+import ListaPersonas, { BuscadorPersonas, FiltrosPersonas } from "@/features/organizacion/PersonasLista";
 
 // Los perfiles de acceso (qué puede hacer cada persona) se manejan en «Accesos y permisos».
 const perfilesDe = (roles = []) => roles.filter((r) => r !== "Colaborador").join(", ") || "Colaborador";
@@ -153,6 +152,7 @@ export default function Personas() {
     if (filtro === "activos" && !u.is_active) return false;
     if (filtro === "inactivos" && u.is_active) return false;
     if (filtro === "sin_puesto" && (u.puesto_id || !u.is_active)) return false;
+    if (filtro === "sin_acceso" && (u.last_login || !u.is_active)) return false;
     if (depto && u.departamento !== depto) return false;
     const t = buscar.toLowerCase();
     return !t || [u.nombre, u.username, u.email, u.puesto, u.departamento].some((x) => (x || "").toLowerCase().includes(t));
@@ -162,64 +162,24 @@ export default function Personas() {
   if (error) return <Alerta>{error}</Alerta>;
   if (!lista) return <Cargando />;
   const sinPuesto = lista.filter((u) => u.is_active && !u.puesto_id).length;
+  const conteos = { activos: lista.filter((u) => u.is_active).length, sin_acceso: lista.filter((u) => u.is_active && !u.last_login).length, sin_puesto: sinPuesto, inactivos: lista.filter((u) => !u.is_active).length, todos: lista.length };
 
   return (
     <div>
       <Cabecera titulo="Personas" descripcion="Cuentas del equipo, su puesto y su rol en la plataforma.">
         <Boton icono={Plus} onClick={() => setForm({})}>Nueva persona</Boton>
       </Cabecera>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-56 flex-1 md:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" />
-          <input className="campo h-11 pl-9" placeholder="Buscar por nombre, correo o puesto" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar persona" />
-        </div>
-        <select className="campo h-11 w-auto py-0" value={depto} onChange={(e) => setDepto(e.target.value)} aria-label="Departamento">
-          <option value="">Todos los departamentos</option>
-          {deptos.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select className="campo h-11 w-auto py-0" value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Mostrar">
-          <option value="activos">Activas ({lista.filter((u) => u.is_active).length})</option>
-          <option value="sin_puesto">Sin puesto ({sinPuesto})</option>
-          <option value="inactivos">Desactivadas</option>
-          <option value="todos">Todas</option>
-        </select>
+      <div className="mb-5 space-y-3">
+        <BuscadorPersonas valor={buscar} onCambio={setBuscar} depto={depto} onDepto={setDepto} deptos={deptos} />
+        <FiltrosPersonas filtro={filtro} onFiltro={setFiltro} conteos={conteos} />
       </div>
       {sinPuesto > 0 && filtro !== "sin_puesto" && (
         <Alerta tono="amarillo" className="mb-4">{sinPuesto} persona(s) activa(s) sin puesto: no tienen supervisor ni KPIs. <button type="button" className="font-medium underline" onClick={() => setFiltro("sin_puesto")}>Ver quiénes</button></Alerta>
       )}
 
-      {filtrada.length === 0 ? <Vacio icono={UserRound} titulo="Nadie coincide con la búsqueda" /> : (
-        <Panel cuerpo="p-0">
-          <div className="overflow-x-auto">
-            <table className="tabla">
-              <thead><tr><th>Persona</th><th className="hidden md:table-cell">Puesto</th><th className="hidden md:table-cell">Perfiles</th>{veSalarios && <th className="hidden text-right lg:table-cell">Salario</th>}<th className="hidden xl:table-cell">Último acceso</th><th className="w-16"><span className="sr-only">Acciones</span></th></tr></thead>
-              <tbody>
-                {filtrada.map((u) => (
-                  <tr key={u.id} className={u.is_active ? "" : "opacity-60"}>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <Avatar nombre={u.nombre} tam="sm" />
-                        <div className="min-w-0">
-                          <p className="font-medium">{u.nombre}{u.id === usuario.id && <span className="ml-1.5 text-xs text-gris">(tú)</span>}</p>
-                          <p className="truncate text-sm text-gris">{u.username}{u.email && ` · ${u.email}`}</p>
-                          {/* En el celular, el puesto va aquí porque sus columnas se ocultan */}
-                          <p className="text-xs text-gris md:hidden">{u.puesto || "Sin puesto"}{!u.is_active && " · Desactivada"}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="hidden md:table-cell">{u.puesto ? <><p className="text-sm">{u.puesto}</p><p className="text-xs text-gris">{u.departamento}</p>
-                      {u.puestos_adicionales?.length > 0 && <p className="text-xs text-azul">+ {u.puestos_adicionales.map((p) => p.nombre).join(", ")}</p>}</> : <Insignia tono="amarillo">Sin puesto</Insignia>}</td>
-                    <td className="hidden md:table-cell"><Insignia tono={u.roles.includes("Administrador") ? "noche" : "neutro"}>{perfilesDe(u.roles)}</Insignia>{!u.is_active && <Insignia className="ml-1">Desactivada</Insignia>}</td>
-                    {veSalarios && <td className="hidden whitespace-nowrap text-right lg:table-cell">{u.salario_mensual != null ? <><span className="num">{Number(u.salario_mensual).toLocaleString("es-DO", { maximumFractionDigits: 0 })}</span>{u.nomina && <span className="block text-xs text-gris">{u.nomina}</span>}</> : <span className="text-sm text-gris">—</span>}</td>}
-                    <td className="hidden whitespace-nowrap text-sm text-gris xl:table-cell">{u.last_login ? fechaCorta(u.last_login) : "Nunca"}</td>
-                    <td className="text-right"><Boton variante="fantasma" tam="sm" icono={Pencil} aria-label={`Editar a ${u.nombre}`} onClick={() => setForm(u)} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
-      )}
+      <p className="mb-3 text-sm text-gris" aria-live="polite">Mostrando <b className="num text-tinta">{filtrada.length}</b> de <span className="num">{lista.length}</span> personas</p>
+      <ListaPersonas personas={filtrada} yo={usuario.id} veSalarios={veSalarios} onEditar={setForm}
+        onLimpiar={() => { setBuscar(""); setDepto(""); setFiltro("todos"); }} />
 
       <FormPersona abierto={!!form} inicial={form} puestos={puestos} onCerrar={() => setForm(null)}
         onGuardado={(u, clave) => {
