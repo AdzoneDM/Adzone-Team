@@ -1,5 +1,11 @@
 # Cambios
 
+## 12.26 · 21/11/2026 · Organigrama: zoom más rápido y fluido
+
+- El acercamiento a un departamento y el desplazamiento ahora ocurren **a la vez**, en un solo movimiento continuo de 0,3 s que frena suave al llegar (antes primero hacía el zoom, esperaba y después se desplazaba: ~0,7 s en dos tiempos). Se anima directo, cuadro a cuadro, sin volver a dibujar todo el organigrama en cada cuadro.
+- «Ver todo el organigrama» y «Ajustar al ancho» usan el mismo movimiento, sin el parpadeo de antes (ya no se pone a 100 % para volver a calcular). Con «reducir movimiento» activado en el sistema, el cambio es instantáneo.
+
+
 ## 12.25 · 21/11/2026 · Ya no hace falta recargar para que una pantalla te deje entrar
 
 - **Causa:** los permisos de la sesión se cargaban al abrir la pestaña y no se actualizaban. Si después cambiaban tu perfil o tus permisos (o había una actualización), la pantalla te mandaba al Inicio hasta que recargabas con Ctrl+R.

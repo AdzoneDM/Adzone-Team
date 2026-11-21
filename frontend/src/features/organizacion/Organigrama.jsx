@@ -155,7 +155,7 @@ function Lienzo({ escala, children }) {
   }, [children]);
   return (
     <div className="mx-auto" style={{ width: medida.w * escala || undefined, height: medida.h * escala || undefined }}>
-      <div ref={interior} data-lienzo className="inline-block origin-top-left" style={{ transform: `scale(${escala})`, minWidth: "max-content", transition: "transform .5s cubic-bezier(.2,.7,.2,1)" }}>{children}</div>
+      <div ref={interior} data-lienzo className="inline-block origin-top-left transition-transform duration-200 ease-out motion-reduce:transition-none" style={{ transform: `scale(${escala})`, minWidth: "max-content" }}>{children}</div>
     </div>
   );
 }
@@ -226,17 +226,53 @@ export default function Organigrama() {
   }), [esAdmin, alternar, t, cerrados, depto]);
 
   // Ajusta el gráfico al ancho disponible (sin bajar de `minimo`, para que el texto siga leyéndose)
-  const ajustar = useCallback((minimo = 0.4) => {
+  // La «cámara» del organigrama: el zoom y el desplazamiento se animan JUNTOS, cuadro a cuadro (300 ms), en un solo movimiento
+  // continuo. Se escribe directo en el elemento (sin pasar por React en cada cuadro) y al final se confirma el valor.
+  const escalaRef = useRef(1);
+  escalaRef.current = escala;
+  const animacion = useRef(0);
+  const animar = useCallback((s1, izquierda, arriba) => {
+    const caja = contenedor.current;
+    const interior = caja?.querySelector("[data-lienzo]");
+    cancelAnimationFrame(animacion.current);
+    if (!caja || !interior || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setEscala(s1);
+      if (caja) { caja.scrollLeft = izquierda; window.scrollTo(0, arriba); }
+      return;
+    }
+    const fuera = interior.parentElement;
+    const w0 = interior.scrollWidth, h0 = interior.scrollHeight;
+    const s0 = escalaRef.current || 1, x0 = caja.scrollLeft, y0 = window.scrollY;
+    const inicio = performance.now(), duracion = 300;
+    interior.style.transition = "none";
+    interior.style.willChange = "transform";
+    const paso = (ahora) => {
+      const t = Math.min(1, (ahora - inicio) / duracion), e = 1 - (1 - t) ** 3; // frena suave al llegar
+      const s = s0 + (s1 - s0) * e;
+      interior.style.transform = `scale(${s})`;
+      fuera.style.width = `${w0 * s}px`;
+      fuera.style.height = `${h0 * s}px`;
+      caja.scrollLeft = x0 + (izquierda - x0) * e;
+      window.scrollTo(0, y0 + (arriba - y0) * e);
+      if (t < 1) animacion.current = requestAnimationFrame(paso);
+      else { interior.style.transition = ""; interior.style.willChange = ""; setEscala(s1); }
+    };
+    animacion.current = requestAnimationFrame(paso);
+  }, []);
+  useEffect(() => () => cancelAnimationFrame(animacion.current), []);
+
+  // Ajusta el gráfico al ancho disponible (sin bajar de `minimo`, para que el texto siga leyéndose)
+  const ajustar = useCallback((minimo = 0.4, animado = true, arriba = null) => {
     const caja = contenedor.current;
     const interior = caja?.querySelector("[data-lienzo]");
     if (!caja || !interior) return;
-    setEscala(1);
-    requestAnimationFrame(() => setEscala(Math.max(minimo, Math.min(1, (caja.clientWidth - 48) / interior.scrollWidth))));
-  }, []);
+    const s = +Math.max(minimo, Math.min(1, (caja.clientWidth - 48) / interior.scrollWidth)).toFixed(2);
+    if (animado) animar(s, 0, arriba ?? window.scrollY); else setEscala(s);
+  }, [animar]);
   // Al abrir, el gráfico entra completo en pantalla si se puede leer (mínimo 60 %)
   useEffect(() => {
     if (!datos || vista !== "grafico") return undefined;
-    const t = setTimeout(() => ajustar(0.6), 80);
+    const t = setTimeout(() => ajustar(0.6, false), 80);
     return () => clearTimeout(t);
   }, [datos, vista, ajustar]);
   // Al elegir un departamento o buscar, el organigrama te lleva solo hasta lo que pediste: encuadra TODAS sus tarjetas
@@ -260,8 +296,6 @@ export default function Organigrama() {
     window.scrollBy({ top: y, behavior: suave });
   }, []);
   // Zoom hacia lo elegido: se escala el MISMO organigrama hasta que las tarjetas del departamento llenen la pantalla y se centra en ellas
-  const escalaRef = useRef(1);
-  escalaRef.current = escala;
   const enfocar = useCallback((selector) => {
     const caja = contenedor.current;
     const interior = caja?.querySelector("[data-lienzo]");
@@ -269,20 +303,16 @@ export default function Organigrama() {
     if (!els.length) return;
     const base = interior.getBoundingClientRect(), k = escalaRef.current || 1;
     const r = els.map((e) => e.getBoundingClientRect());
-    const w = (Math.max(...r.map((x) => x.right)) - Math.min(...r.map((x) => x.left))) / k;
-    const h = (Math.max(...r.map((x) => x.bottom)) - Math.min(...r.map((x) => x.top))) / k;
-    const nueva = Math.max(0.4, Math.min(1.4, (caja.clientWidth - 64) / w, (window.innerHeight - 260) / h));
-    const centro = { x: ((Math.min(...r.map((x) => x.left)) + Math.max(...r.map((x) => x.right))) / 2 - base.left) / k, y: ((Math.min(...r.map((x) => x.top)) + Math.max(...r.map((x) => x.bottom))) / 2 - base.top) / k };
-    setEscala(+nueva.toFixed(2));
-    const instantaneo = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setTimeout(() => { // cuando el zoom ya cambió el tamaño: se centra el grupo en la caja y en la página
-      const c = caja.getBoundingClientRect();
-      caja.scrollTo({ left: Math.max(0, centro.x * nueva + 24 - caja.clientWidth / 2), behavior: instantaneo ? "auto" : "smooth" });
-      const y = c.top + window.scrollY + 24 + centro.y * nueva - (190 + (window.innerHeight - 190) / 2);
-      window.scrollTo({ top: Math.max(0, y), behavior: instantaneo ? "auto" : "smooth" });
-    }, instantaneo ? 0 : 520);
-  }, []);
-  const verTodo = () => { setDepto(null); setTimeout(() => { ajustar(0.6); window.scrollTo({ top: 0, behavior: "smooth" }); }, 50); };
+    const izq = Math.min(...r.map((x) => x.left)), der = Math.max(...r.map((x) => x.right));
+    const sup = Math.min(...r.map((x) => x.top)), inf = Math.max(...r.map((x) => x.bottom));
+    const nueva = +Math.max(0.4, Math.min(1.4, (caja.clientWidth - 64) / ((der - izq) / k), (window.innerHeight - 260) / ((inf - sup) / k))).toFixed(2);
+    const centro = { x: ((izq + der) / 2 - base.left) / k, y: ((sup + inf) / 2 - base.top) / k };
+    const c = caja.getBoundingClientRect();
+    const izquierda = Math.max(0, centro.x * nueva + 24 - caja.clientWidth / 2);
+    const arriba = Math.max(0, c.top + window.scrollY + 24 + centro.y * nueva - (190 + (window.innerHeight - 190) / 2));
+    animar(nueva, izquierda, arriba); // zoom y desplazamiento a la vez, no uno después del otro
+  }, [animar]);
+  const verTodo = () => { setDepto(null); setTimeout(() => ajustar(0.6, true, 0), 30); };
   useEffect(() => {
     if (depto == null) return undefined;
     // Se abren las ramas que llevan hasta ese departamento (por si se habían contraído)
@@ -293,7 +323,7 @@ export default function Organigrama() {
       const nuevo = new Set([...cs].filter((id) => !abrir.has(id)));
       return nuevo.size === cs.size ? cs : nuevo;
     });
-    const id = setTimeout(() => (vista === "grafico" ? enfocar(`[data-depto="${depto}"]`) : irA(`[data-depto="${depto}"]`)), 120);
+    const id = setTimeout(() => (vista === "grafico" ? enfocar(`[data-depto="${depto}"]`) : irA(`[data-depto="${depto}"]`)), 40);
     return () => clearTimeout(id);
   }, [depto, irA, enfocar, vista]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
