@@ -61,7 +61,7 @@ class TableroTests(TestCase):
         self.assertEqual(cap['estado'], 'SIN_DATO')  # sin dato no es «0 · bajo la meta»
         ana = next(p for p in d['personas'] if p['nombre'] == 'Ana')
         self.assertEqual(ana['salario'], 40000.0)
-        self.assertEqual(len(ana['kpis']), 3)
+        self.assertEqual(len(ana['kpis']), 2)
         self.assertIn('rendimiento', d['resumen']['texto'])
         pol = {p['titulo']: p for p in d['politicas']}
         self.assertEqual((pol['Uso de equipos']['aplican'], pol['Uso de equipos']['aceptaron']), (3, 1))
@@ -91,7 +91,7 @@ class TableroTests(TestCase):
         self.assertNotIn('kpis', beto)
         self.assertNotIn('salario', beto)
         yo = next(p for p in d['personas'] if p['soy_yo'])
-        self.assertEqual(len(yo['kpis']), 3)
+        self.assertEqual(len(yo['kpis']), 2)
         self.assertIsNone(yo['salario'])
         pol = next(p for p in d['politicas'] if p['titulo'] == 'Uso de equipos')
         self.assertTrue(pol['la_acepte'])

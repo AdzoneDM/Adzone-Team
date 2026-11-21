@@ -14,14 +14,14 @@ export default defineConfig({
     proxy: {
       // Proxy para las solicitudes /api al backend Django
       '/api': {
-        target: 'http://localhost:8000', // Tu servidor Django
+        target: process.env.API_URL || 'http://localhost:8000', // Tu servidor Django (API_URL lo cambia si el 8000 está ocupado)
         changeOrigin: true, // Necesario para hosts virtuales
         // secure: false, // Descomentar si tu backend Django corre en HTTPS con certificado autofirmado
         // rewrite: (path) => path.replace(/^\/api/, '/api') // Usualmente no es necesario si el prefijo es el mismo
       },
       // Fotos y PDF de evidencia de las tareas
       '/media': {
-        target: 'http://localhost:8000',
+        target: process.env.API_URL || 'http://localhost:8000',
         changeOrigin: true,
       }
     }

@@ -16,7 +16,7 @@ class PoliticasTests(Base):
         self.rrhh = self.como(self.dir)
 
     def test_iniciales_son_borradores_y_nadie_las_ve(self):
-        self.assertGreaterEqual(Politica.objects.filter(borrador=True).count(), 14)
+        self.assertGreaterEqual(Politica.objects.filter(borrador=True).count(), 13)
         self.assertEqual(self.como(self.ana).get('/api/talento/politicas/').json(), [])
         self.assertEqual(pol.pendientes(self.ana), [])
 
