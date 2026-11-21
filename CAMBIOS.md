@@ -22,8 +22,7 @@
 - **No incluido**: los turnos del Call Center. Los agentes siguen con el horario general hasta que se definan sus turnos y se les asigne (Asistencia → Horarios).
 
 **Organigrama**
-- Nueva vista **Por áreas** (la de entrada): cada departamento es una tarjeta con su color, su responsable y sus cifras, unidas por líneas según de quién dependen. Al tocar un área la pantalla **se acerca (zoom)** a su tarjeta y muestra el **organigrama interno**: responsable, de quién depende, cargos con sus funciones, equipo y vacantes. «Organigrama general» regresa; el área abierta queda en la dirección (recargar o volver atrás no te saca de ahí). En el celular las áreas son tarjetas y el interior una lista. «Completo» y «Lista» siguen disponibles.
-
+- El organigrama es el de siempre, sin tarjetas ni paneles nuevos: al elegir un departamento (en la barra de colores o tocando su etiqueta en cualquier tarjeta) **el mismo gráfico se acerca con zoom** hasta esa parte y la centra; el resto se atenúa. «Ver todo el organigrama» regresa a la vista completa.
 
 ## 12.20 · 20/11/2026 · Ya no hay que recargar a mano después de una actualización
 
