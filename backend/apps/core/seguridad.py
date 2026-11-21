@@ -23,7 +23,7 @@ PASO = 30
 EMISOR = 'Adzone Team'
 SESION_OK = 'dos_pasos_ok'
 SESION_ACTIVIDAD = 'ultima_actividad'
-EXIGEN = {'direccion', 'personal.usuarios', 'talento.rrhh', 'personal.salarios', 'sistema.configurar'}
+EXIGEN = {'direccion', 'personal.usuarios', 'personal.directorio', 'talento.rrhh', 'personal.salarios', 'sistema.configurar'}
 # Áreas que usan la verificación en dos pasos (nombre del departamento, sin tildes ni mayúsculas)
 AREAS_DOS_PASOS = {'gerencia', 'administracion', 'tecnologia'}
 

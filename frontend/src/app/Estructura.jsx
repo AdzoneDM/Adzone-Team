@@ -28,7 +28,7 @@ import ChatFlotante from "@/features/chat/ChatFlotante";
 import { SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
 function secciones({ esAdmin, puedeValidar, puedeAsignar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
-  veMonitoreo, gestionaPersonas, configuraSistema, esRRHH, tablerosDeptos = [] }) {
+  veMonitoreo, gestionaPersonas, veDirectorio, configuraSistema, esRRHH, tablerosDeptos = [] }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
     { a: "/call-center", texto: "Call Center", icono: Headset },
@@ -84,7 +84,7 @@ function secciones({ esAdmin, puedeValidar, puedeAsignar, esFinanzas, esCoordina
   // Administración: cada opción aparece solo con su permiso (mínimo privilegio)
   const admin = [
     esAdmin && { a: "/puestos", texto: "Departamentos y puestos", icono: Building2 },
-    gestionaPersonas && { a: "/personas", texto: "Personas", icono: Users },
+    veDirectorio && { a: "/personas", texto: "Personas", icono: Users },
     gestionaPersonas && { a: "/accesos", texto: "Accesos y permisos", icono: ShieldCheck },
     esAdmin && { a: "/plantillas-kpi", texto: "Plantillas de KPI", icono: Target },
     esAdmin && { a: "/configuracion", texto: "Reglas del puntaje", icono: Settings2 },

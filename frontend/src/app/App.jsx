@@ -61,7 +61,7 @@ function Protegida({ children, admin, supervisor, asignar, finanzas, permiso }) 
   const location = useLocation();
   if (!usuario) return <Navigate to="/entrar" replace state={{ desde: location.pathname + location.search }} />;
   if (usuario.debe_activar_dos_pasos) return <DosPasosObligatoria />;
-  if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (asignar && !puedeValidar && !puedeAsignar) || (finanzas && !esFinanzas) || (permiso && !tiene(permiso))) return <Navigate to="/" replace />;
+  if ((admin && !esAdmin) || (supervisor && !puedeValidar) || (asignar && !puedeValidar && !puedeAsignar) || (finanzas && !esFinanzas) || (permiso && ![].concat(permiso).some(tiene))) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -129,7 +129,7 @@ export default function App() {
           <Route path="kpis-del-mes" element={<Protegida admin><KpisDelMes /></Protegida>} />
           <Route path="puestos" element={<Protegida admin><Puestos /></Protegida>} />
           <Route path="puestos/:id" element={<Protegida admin><PuestoDetalle /></Protegida>} />
-          <Route path="personas" element={<Protegida permiso="personal.usuarios"><Personas /></Protegida>} />
+          <Route path="personas" element={<Protegida permiso={["personal.usuarios", "personal.directorio"]}><Personas /></Protegida>} />
           <Route path="marcar" element={<MarcarQR />} />
           <Route path="departamentos/:id" element={<TableroDepartamento />} />
           <Route path="resumen-semanal" element={<Protegida admin><ResumenSemanal /></Protegida>} />

@@ -26,6 +26,7 @@ PERMISOS = [
     ('monitoreo.ver', 'Ver el monitoreo', 'Empresa', 'empresa', 'Actividad en la computadora de todas las personas, incidencias y justificaciones.'),
     ('monitoreo.capturas', 'Ver capturas de pantalla', 'Empresa', 'empresa', 'Capturas y pantallas en vivo.'),
     ('monitoreo.configurar', 'Configurar el monitoreo', 'Empresa', 'empresa', 'Reglas, perfiles de monitoreo y computadoras (encender o apagar).'),
+    ('personal.directorio', 'Personas', 'Empresa', 'empresa', 'Ver a todas las personas, crear usuarios nuevos y desactivar cuentas, sin poder modificar correos ni cambiar contraseñas.'),
     ('personal.usuarios', 'Personas y accesos', 'Empresa', 'empresa', 'Crear y desactivar personas, cambiar contraseñas, perfiles de acceso y excepciones.'),
     ('personal.salarios', 'Salarios y costo por hora', 'Empresa', 'empresa', 'Ver y editar salarios, costo por hora e historial salarial.'),
     ('talento.rrhh', 'Gestión del Talento', 'Empresa', 'empresa', 'Políticas, documentos laborales, ciclos de evaluación y expedientes de toda la empresa.'),

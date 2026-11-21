@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.22 · 21/11/2026 · Nuevo permiso «Personas» (directorio, mínimo privilegio)
+
+- Nuevo permiso independiente **Personas** en Accesos y permisos → Sobre toda la empresa: «Ver a todas las personas, crear usuarios nuevos y desactivar cuentas, sin poder modificar correos ni cambiar contraseñas». El permiso **Personas y accesos** no cambia.
+- Con «Personas» (y sin «Personas y accesos»): ve el directorio completo, **crea cuentas nuevas** (entran como Colaborador, con su contraseña inicial) y **desactiva o reactiva** cuentas. En la API se bloquea (403) cambiar correos, contraseñas, usuario de entrada, perfiles de acceso, puesto y puestos adicionales, y borrar cuentas. En la interfaz la ficha de una persona existente solo muestra sus datos y el interruptor «Cuenta activa»; no aparecen correo, contraseña ni perfiles, y el menú no muestra «Accesos y permisos».
+- Protección propia: no puede desactivar su cuenta ni cambiar sus propios perfiles. Sigue valiendo la regla de siempre: no toca cuentas con permisos que él no tiene.
+- Quien tiene los dos permisos (y Dirección) conserva todo. Dirección recibe el permiso nuevo en el perfil Administrador. Como los demás permisos sensibles, exige verificación en dos pasos.
+- El perfil que usa este permiso lo crea o ajusta la Dirección en Accesos y permisos.
+
+
 ## 12.21 · 21/11/2026 · Ponches de almuerzo y pausas con alerta, horarios por departamento y organigrama con zoom
 
 **Control de asistencia**

@@ -69,6 +69,8 @@ export function SesionProvider({ children }) {
     veCapturas: tiene("monitoreo.capturas"),
     configuraMonitoreo: tiene("monitoreo.configurar"),
     gestionaPersonas: tiene("personal.usuarios"),
+    veDirectorio: tiene("personal.usuarios") || tiene("personal.directorio"), // ver, crear y desactivar (sin correos, claves ni accesos si solo tiene «Personas»)
+    soloDirectorio: tiene("personal.directorio") && !tiene("personal.usuarios"),
     veSalarios: tiene("personal.salarios"),
     veAuditoria: tiene("auditoria.ver"),
     configuraSistema: tiene("sistema.configurar"),

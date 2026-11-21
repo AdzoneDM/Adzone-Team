@@ -17,11 +17,14 @@ function generarClave() {
 }
 
 function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
-  const { veSalarios, esAdmin, usuario: yo } = useSesion();
+  const { veSalarios, esAdmin, usuario: yo, soloDirectorio } = useSesion();
   const [f, setF] = useState({});
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const nuevo = !inicial?.id;
+  // Con el permiso «Personas» (sin «Personas y accesos») de una cuenta existente solo se ve su ficha y se activa o desactiva
+  const soloVer = soloDirectorio && !nuevo;
+  const esMia = !nuevo && inicial?.id === yo?.id;
   useEffect(() => {
     if (!abierto) return;
     setError("");
@@ -34,6 +37,12 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
   const guardar = async (e) => {
     e.preventDefault();
     setError("");
+    if (soloVer) {
+      setGuardando(true);
+      try { const u = await guardarUsuario({ id: f.id, is_active: !!f.is_active }); onGuardado(u, ""); } catch (err) { setError(err.message); }
+      setGuardando(false);
+      return;
+    }
     if (!f.first_name?.trim() || !f.username?.trim()) return setError("Nombre y usuario son obligatorios.");
     setGuardando(true);
     try {
@@ -57,10 +66,23 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
   };
 
   return (
-    <Modal abierto={abierto} onCerrar={onCerrar} titulo={nuevo ? "Nueva persona" : `Editar a ${inicial?.nombre}`} ancho="md:max-w-2xl"
-      pie={<><Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton><Boton type="submit" form="form-persona" cargando={guardando}>{nuevo ? "Crear cuenta" : "Guardar cambios"}</Boton></>}>
+    <Modal abierto={abierto} onCerrar={onCerrar} titulo={nuevo ? "Nueva persona" : soloVer ? inicial?.nombre : `Editar a ${inicial?.nombre}`} ancho="md:max-w-2xl"
+      pie={<><Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton><Boton type="submit" form="form-persona" cargando={guardando} disabled={soloVer && esMia}>{nuevo ? "Crear cuenta" : "Guardar cambios"}</Boton></>}>
       <form id="form-persona" onSubmit={guardar} className="space-y-4" autoComplete="off">
         {error && <Alerta>{error}</Alerta>}
+        {soloVer ? (
+          <>
+            <dl className="grid gap-x-6 gap-y-3 rounded-lg border border-linea bg-fondo p-4 text-sm sm:grid-cols-2">
+              {[["Nombre", `${inicial.first_name || ""} ${inicial.last_name || ""}`.trim() || inicial.nombre], ["Usuario", inicial.username],
+                ["Puesto", inicial.puesto || "Sin puesto"], ["Departamento", inicial.departamento || "—"], ["Perfiles", perfilesDe(inicial.roles)]].map(([k, v]) => (
+                <div key={k}><dt className="text-xs font-medium text-gris">{k}</dt><dd className="mt-0.5 text-tinta">{v}</dd></div>
+              ))}
+            </dl>
+            <p className="rounded-lg border border-linea bg-niebla/60 p-3 text-sm text-gris">Con tu permiso puedes ver a las personas, crear cuentas nuevas y desactivar o reactivar cuentas. Los correos, las contraseñas y los accesos los cambia quien tiene «Personas y accesos».</p>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!f.is_active} onChange={cambiar("is_active")} className="accent-azul" disabled={esMia} />
+              Cuenta activa (si la desactivas no puede entrar y sale del ranking){esMia && <span className="text-gris"> · No puedes desactivar tu propia cuenta</span>}</label>
+          </>
+        ) : (<>
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo etiqueta="Nombre">{(id) => <input id={id} className="campo" value={f.first_name || ""} onChange={cambiar("first_name")} autoFocus />}</Campo>
           <Campo etiqueta="Apellidos">{(id) => <input id={id} className="campo" value={f.last_name || ""} onChange={cambiar("last_name")} />}</Campo>
@@ -97,7 +119,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
         <p className="rounded-lg border border-linea bg-niebla/60 p-3 text-sm text-gris">
           {nuevo ? "Entra como Colaborador (solo ve y entrega lo suyo). Si su puesto supervisa a otros, recibe el perfil Supervisor."
             : <>Perfiles: <span className="font-medium text-noche">{perfilesDe(inicial?.roles)}</span>.</>}{" "}
-          Los perfiles, las excepciones y el equipo adicional se cambian en <Link to="/accesos" className="font-medium text-azul hover:underline">Accesos y permisos</Link>.
+          {soloDirectorio ? "Los perfiles y los accesos los cambia quien tiene «Personas y accesos»." : <>Los perfiles, las excepciones y el equipo adicional se cambian en <Link to="/accesos" className="font-medium text-azul hover:underline">Accesos y permisos</Link>.</>}
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo etiqueta="Horas por semana" ayuda="Su capacidad, para medir la carga.">
@@ -125,7 +147,8 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
             </div>
           )}
         </Campo>
-        {!nuevo && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!f.is_active} onChange={cambiar("is_active")} className="accent-azul" />Cuenta activa (si la desactivas no puede entrar y sale del ranking)</label>}
+        {!nuevo && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!f.is_active} onChange={cambiar("is_active")} className="accent-azul" disabled={esMia} />Cuenta activa (si la desactivas no puede entrar y sale del ranking)</label>}
+        </>)}
       </form>
     </Modal>
   );

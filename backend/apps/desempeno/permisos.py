@@ -179,6 +179,13 @@ class TienePermiso(permissions.BasePermission):
     def de(cls, permiso):
         return type(f'Permiso_{permiso}', (cls,), {'permiso': permiso})
 
+    @classmethod
+    def de_alguno(cls, *permisos):
+        """Basta con tener cualquiera de estos permisos."""
+        def tiene_alguno(self, request, view):
+            return bool(request.user and request.user.is_authenticated and any(tiene(request.user, p) for p in permisos))
+        return type('Permiso_' + '_o_'.join(permisos), (cls,), {'has_permission': tiene_alguno})
+
 
 class EsAdministrador(permissions.BasePermission):
     message = "Solo un administrador puede hacer esto."

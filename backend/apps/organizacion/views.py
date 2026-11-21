@@ -48,7 +48,8 @@ class UserViewSet(viewsets.ModelViewSet):
         Prefetch('perfil__puestos_adicionales', queryset=PuestoDeTrabajo.objects.select_related('departamento')),
     ).order_by('first_name', 'last_name', 'username')
     serializer_class = UserSerializer
-    permission_classes = [TienePermiso.de('personal.usuarios')]
+    # «Personas y accesos» lo maneja todo; «Personas» (directorio) solo ve, crea y desactiva: ver _limitado y _bloqueo_limitado
+    permission_classes = [TienePermiso.de_alguno('personal.usuarios', 'personal.directorio')]
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
@@ -83,8 +84,47 @@ class UserViewSet(viewsets.ModelViewSet):
             return "Debe quedar al menos un administrador activo."
         return None
 
+    def _limitado(self):
+        """Tiene «Personas» (directorio) pero no «Personas y accesos»: ve, crea y desactiva, nada de correos, claves ni accesos."""
+        from apps.core.permisos import tiene
+        yo = self.request.user
+        return not yo.is_superuser and tiene(yo, 'personal.directorio') and not tiene(yo, 'personal.usuarios')
+
+    MENSAJE_LIMITADO = ("Con el permiso «Personas» no puedes cambiar correos, contraseñas, perfiles de acceso ni permisos: "
+                        "eso lo hace quien tiene «Personas y accesos».")
+
+    def _bloqueo_limitado(self, usuario, datos):
+        """Qué cambios de una persona existente no se permiten con «Personas» (se ignoran los valores que no cambian)."""
+        if datos.get('password'):
+            return self.MENSAJE_LIMITADO
+        if 'email' in datos and (datos.get('email') or '').strip().lower() != (usuario.email or '').strip().lower():
+            return self.MENSAJE_LIMITADO
+        if 'username' in datos and (datos.get('username') or '').strip().lower() != usuario.username:
+            return self.MENSAJE_LIMITADO
+        if datos.get('roles_asignados') is not None and set(datos.get('roles_asignados')) != set(usuario.groups.values_list('name', flat=True)):
+            return self.MENSAJE_LIMITADO
+        puesto = getattr(getattr(usuario, 'perfil', None), 'puesto_trabajo_id', None)
+        if 'puesto_trabajo_id' in datos and str(datos.get('puesto_trabajo_id') or '') != str(puesto or ''):
+            return "Con el permiso «Personas» no puedes cambiar el puesto: define el equipo y los permisos de la persona."
+        if datos.get('puestos_adicionales_ids') is not None:
+            actuales = {str(i) for i in usuario.perfil.puestos_adicionales.values_list('pk', flat=True)} if hasattr(usuario, 'perfil') else set()
+            if {str(i) for i in datos.get('puestos_adicionales_ids')} != actuales:
+                return "Con el permiso «Personas» no puedes cambiar los puestos adicionales."
+        return None
+
+    def create(self, request, *args, **kwargs):
+        if self._limitado():
+            if set(request.data.get('roles_asignados') or ['Colaborador']) != {'Colaborador'} or request.data.get('puestos_adicionales_ids'):
+                return Response({"detail": "Con el permiso «Personas» las cuentas nuevas entran como Colaborador y sin puestos adicionales."},
+                                status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
     def update(self, request, *args, **kwargs):
         usuario = self.get_object()
+        if self._limitado():
+            bloqueo = self._bloqueo_limitado(usuario, request.data)
+            if bloqueo:
+                return Response({"detail": bloqueo}, status=status.HTTP_403_FORBIDDEN)
         motivo = self._proteger(usuario, request.data.get('roles_asignados'), request.data.get('is_active'))
         puesto_actual = getattr(getattr(usuario, 'perfil', None), 'puesto_trabajo_id', None)
         if (not motivo and usuario.pk == request.user.pk and 'puesto_trabajo_id' in request.data
@@ -98,6 +138,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         usuario = self.get_object()
+        if self._limitado():
+            return Response({"detail": "Con el permiso «Personas» solo puedes desactivar cuentas, no borrarlas."}, status=status.HTTP_403_FORBIDDEN)
         if usuario.pk == request.user.pk:
             return Response({"detail": "No puedes borrar tu propia cuenta."}, status=status.HTTP_400_BAD_REQUEST)
         motivo = self._proteger(usuario, activo=False)
