@@ -66,44 +66,57 @@ export function MesPersona({ usuario, puedeCorregir }) {
         <>
           <ResumenAsistencia r={d.resumen} adherencia={d.adherencia} />
           <Panel titulo="Día por día" cuerpo="p-0">
-            <div className="overflow-x-auto">
-              <table className="tabla">
-                <thead><tr><th>Día</th><th>Estado</th><th>Entrada</th><th>Salida</th><th className="text-right">Trabajado</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th><th className="text-right">Tarde</th><th className="text-right">Extra</th><th>Marcajes</th></tr></thead>
-                <tbody>
-                  {[...d.dias].reverse().map((j) => (
-                    <tr key={j.fecha} className={!j.laborable && !j.entrada ? "text-gris" : ""}>
-                      <td className="whitespace-nowrap"><span className="capitalize">{diaSemana(j.fecha)}</span> {fechaCorta(j.fecha)}{j.feriado && <Insignia className="ml-1">Feriado</Insignia>}</td>
-                      <td><Estado e={j.estado} />{j.ausencia && <span className="ml-1 text-xs text-gris">{j.ausencia}</span>}{j.sin_salida && <Insignia tono="amarillo" className="ml-1">Sin salida</Insignia>}</td>
-                      <td className="num">{hora(j.entrada)}</td>
-                      <td className="num">{hora(j.salida)}</td>
-                      <td className="text-right num">{j.trabajados_seg ? dur(j.trabajados_seg) : "—"}</td>
-                      <td className={cx("text-right num", j.pausas.some((p) => p.almuerzo && p.excedida) && "text-rojo")}
-                        title={j.almuerzo_programado ? `Almuerzo programado a las ${j.almuerzo_programado}` : undefined}>{j.almuerzo_seg ? dur(j.almuerzo_seg) : "—"}</td>
-                      <td className={cx("text-right num", j.pausas.some((p) => !p.almuerzo && p.excedida) && "text-rojo")}>{j.pausas_seg ? dur(j.pausas_seg) : "—"}
-                        {j.excesos > 0 && <span className="block text-xs">+{dur(j.exceso_seg)} sobre el límite</span>}</td>
-                      <td className={cx("text-right num", j.tardanza && "text-rojo")}>{j.tardanza ? `${j.tardanza} min` : "—"}</td>
-                      <td className="text-right num">{j.extra_seg ? dur(j.extra_seg) : "—"}</td>
-                      <td>
-                        <div className="flex flex-wrap items-center gap-1">
-                          {j.marcajes.map((m) => (
-                            <span key={m.id} className={cx("inline-flex items-center gap-1 rounded border px-1.5 text-xs num", m.corregido ? "border-amarillo bg-amarillo-50" : "border-linea")}
-                              title={`${m.tipo}${m.motivo ? ` · ${m.motivo}` : ""}${m.corregido ? " · corregido" : ""} · ${m.origen}`}>
-                              {etiquetaMarcaje(m, j.marcajes)} {hora(m.momento)}
-                              {puedeCorregir && <button type="button" aria-label="Borrar marcaje" className="text-gris hover:text-rojo" onClick={async () => {
-                                if (await confirmar({ titulo: "¿Borrar este marcaje?", boton: "Borrar", peligro: true })) {
-                                  try { await borrarMarcaje(m.id); cargar(); } catch (e) { avisar(e.message, "rojo"); }
-                                }
-                              }}><X className="size-3" /></button>}
-                            </span>
-                          ))}
-                          {puedeCorregir && <button type="button" className="rounded px-1 text-xs text-azul hover:underline" onClick={() => setCorrigiendo({ fecha: j.fecha, tipo: "ENTRADA", hora: "08:00", nota: "" })}>+ marcaje</button>}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* Cada día se lee de izquierda a derecha como pasó: entrada → almuerzo → pausas → salida, y al final los totales. Sin tabla ancha que se corte. */}
+            <ul className="divide-y divide-linea-suave">
+              {[...d.dias].reverse().map((j) => {
+                const sinMovimiento = !j.laborable && !j.entrada;
+                return (
+                  <li key={j.fecha} className={cx("grid gap-x-6 gap-y-3 px-5 py-4 lg:grid-cols-[11rem_minmax(0,1fr)_17rem]", sinMovimiento && "text-gris")}>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-noche"><span className="capitalize">{diaSemana(j.fecha)}</span> {fechaCorta(j.fecha)}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        <Estado e={j.estado} />
+                        {j.feriado && <Insignia>Feriado</Insignia>}
+                        {j.sin_salida && <Insignia tono="amarillo">Sin salida</Insignia>}
+                      </div>
+                      {j.ausencia && <p className="mt-1 text-xs text-gris">{j.ausencia}</p>}
+                    </div>
+
+                    <div className="min-w-0">
+                      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <Hito etiqueta="Entrada" valor={hora(j.entrada)} nota={j.turno ? `turno ${hhmm(j.turno[0])}` : null} />
+                        <Hito etiqueta="Almuerzo" valor={j.almuerzo_seg ? dur(j.almuerzo_seg) : "—"} alerta={j.pausas.some((p) => p.almuerzo && p.excedida)}
+                          nota={j.almuerzo_inicio ? `desde ${hhmm(j.almuerzo_inicio)}` : j.almuerzo_programado ? `programado ${hhmm(j.almuerzo_programado)}` : null} />
+                        <Hito etiqueta="Pausas" valor={j.pausas_seg ? dur(j.pausas_seg) : "—"} alerta={j.pausas.some((p) => !p.almuerzo && p.excedida)}
+                          nota={j.excesos > 0 ? `+${dur(j.exceso_seg)} sobre el límite` : null} />
+                        <Hito etiqueta="Salida" valor={hora(j.salida)} nota={j.turno ? `${j.salida ? "turno" : "programada"} ${hhmm(j.turno[1])}` : null}
+                          alerta={j.salida_temprana > 0} aviso={j.salida_temprana > 0 ? `${j.salida_temprana} min antes` : null} />
+                      </dl>
+                      <div className="mt-3 flex flex-wrap items-center gap-1">
+                        {j.marcajes.map((m) => (
+                          <span key={m.id} className={cx("inline-flex items-center gap-1 rounded border px-1.5 text-xs num", m.corregido ? "border-amarillo bg-amarillo-50" : "border-linea")}
+                            title={`${m.tipo}${m.motivo ? ` · ${m.motivo}` : ""}${m.corregido ? " · corregido" : ""} · ${m.origen}`}>
+                            {etiquetaMarcaje(m, j.marcajes)} {hora(m.momento)}
+                            {puedeCorregir && <button type="button" aria-label="Borrar marcaje" className="text-gris hover:text-rojo" onClick={async () => {
+                              if (await confirmar({ titulo: "¿Borrar este marcaje?", boton: "Borrar", peligro: true })) {
+                                try { await borrarMarcaje(m.id); cargar(); } catch (e) { avisar(e.message, "rojo"); }
+                              }
+                            }}><X className="size-3" /></button>}
+                          </span>
+                        ))}
+                        {puedeCorregir && <button type="button" className="rounded px-1 text-xs text-azul hover:underline" onClick={() => setCorrigiendo({ fecha: j.fecha, tipo: "ENTRADA", hora: "08:00", nota: "" })}>+ marcaje</button>}
+                      </div>
+                    </div>
+
+                    <dl className="grid grid-cols-3 gap-3 rounded-lg bg-fondo px-3 py-2.5 lg:self-start">
+                      <Hito etiqueta="Trabajado" valor={j.trabajados_seg ? dur(j.trabajados_seg) : "—"} fuerte />
+                      <Hito etiqueta="Tarde" valor={j.tardanza ? `${j.tardanza} min` : "—"} alerta={!!j.tardanza} />
+                      <Hito etiqueta="Extra" valor={j.extra_seg ? dur(j.extra_seg) : "—"} />
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
           </Panel>
         </>
       )}
@@ -124,6 +137,17 @@ export function MesPersona({ usuario, puedeCorregir }) {
           </div>
         )}
       </Modal>
+    </div>
+  );
+}
+
+/** Un dato del día: su nombre pequeño, el valor y una nota (turno, límite…). */
+function Hito({ etiqueta, valor, nota, alerta, aviso, fuerte }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs font-medium text-gris">{etiqueta}</dt>
+      <dd className={cx("num whitespace-nowrap", fuerte ? "text-[15px] font-semibold text-noche" : "text-[15px]", alerta && "font-semibold text-rojo")}>{valor}</dd>
+      {(nota || aviso) && <p className={cx("text-xs", aviso ? "text-rojo" : "text-gris")}>{aviso || nota}</p>}
     </div>
   );
 }
@@ -165,7 +189,7 @@ function Hoy({ onVer }) {
       <Panel titulo="Equipo hoy" cuerpo="p-0">
         <div className="overflow-x-auto">
           <table className="tabla">
-            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th>Salida</th><th className="text-right">Trabajado</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th><th>Salida</th><th className="text-right">Trabajado</th></tr></thead>
             <tbody>
               {d.personas.map((p) => (
                 <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
@@ -174,11 +198,11 @@ function Hoy({ onVer }) {
                     {p.pausa_abierta && <span className={cx("mt-0.5 block text-xs", p.pausa_abierta.excedida ? "font-semibold text-rojo" : "text-gris")}>
                       {p.pausa_abierta.almuerzo ? "Almuerzo" : "Pausa"} desde las {hora(p.pausa_abierta.inicio)} · {dur(p.pausa_abierta.segundos)}{p.pausa_abierta.excedida ? " (pasó el límite)" : ""}</span>}</td>
                   <td className="num whitespace-nowrap">{hora(p.entrada)}{p.turno && <span className="block text-xs text-gris">turno {hhmm(p.turno[0])}</span>}</td>
+                  <td className="text-right num">{p.almuerzo_seg ? dur(p.almuerzo_seg) : "—"}</td>
+                  <td className={cx("text-right num", p.excesos > 0 && "text-rojo")}>{p.pausas_seg ? dur(p.pausas_seg) : "—"}</td>
                   <td className="num whitespace-nowrap">{p.salida ? hora(p.salida) : <span className="text-gris">—</span>}{p.turno && <span className={cx("block text-xs whitespace-nowrap", p.salida ? "text-gris" : p.estado === "TRABAJANDO" || p.estado === "EN_PAUSA" ? "text-azul" : "text-gris")}>
                     {p.salida ? "marcada" : "programada"} {hhmm(p.turno[1])}</span>}</td>
                   <td className="text-right num">{p.trabajados_seg ? dur(p.trabajados_seg) : "—"}</td>
-                  <td className="text-right num">{p.almuerzo_seg ? dur(p.almuerzo_seg) : "—"}</td>
-                  <td className={cx("text-right num", p.excesos > 0 && "text-rojo")}>{p.pausas_seg ? dur(p.pausas_seg) : "—"}</td>
                 </tr>
               ))}
             </tbody>

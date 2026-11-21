@@ -383,7 +383,7 @@ function EstructuraInterna() {
 
       {/* Barra superior: campanita (PC) y marca + campanita (celular) */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-linea bg-fondo/90 px-4 backdrop-blur lg:h-16 lg:px-8">
-        <Link to="/" className="lg:hidden" aria-label="Inicio"><Marca oscuro={false} className="text-[15px]" /></Link>
+        <Link to="/" className="lg:hidden" aria-label="Inicio"><Marca oscuro={false} className="text-[15px] max-[430px]:[&>span:last-child]:hidden" /></Link>
         <button type="button" onClick={() => setBuscando(true)} data-guia="buscar" className="hidden h-10 w-full max-w-sm items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm text-gris hover:border-azul/40 lg:flex">
           <Search className="size-4" /> <span className="truncate">Buscar órdenes, clientes, tareas…</span><kbd className="ml-auto hidden shrink-0 whitespace-nowrap rounded border border-linea px-1.5 text-xs xl:inline">Ctrl K</kbd>
         </button>

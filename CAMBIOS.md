@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.24 · 21/11/2026 · Asistencia sin tablas que se cortan; salida visible; guía más clara
+
+- **Día por día** (Mi asistencia): ya no es una tabla ancha que se corta. Cada día es una fila que se lee **en el orden en que pasa**: Entrada → Almuerzo → Pausas → **Salida**, y al final los totales (Trabajado, Tarde, Extra) y los marcajes. Muestra el turno junto a cada hora («turno 8:00 a. m.», «programada 5:00 p. m.») y avisa en rojo la salida anticipada o la pausa que pasó el límite. En el celular se apila sin desbordar.
+- **Hoy** (equipo): columnas en el mismo orden lógico (Entrada, Almuerzo, Pausas, **Salida**, Trabajado). El panel del botón de jornada muestra la salida programada y la marcada.
+- Celular: la barra de arriba ya no se sale de la pantalla (se oculta la palabra «Team» y el botón de la jornada es más compacto).
+- Guía paso a paso rediseñada (progreso, iconos, pasos numerados, etiquetas y marco con pulso).
+
+
 ## 12.23 · 21/11/2026 · Se elimina el módulo de Monitoreo; Auditoría más legible
 
 **Monitoreo eliminado** (sin tocar los demás módulos)

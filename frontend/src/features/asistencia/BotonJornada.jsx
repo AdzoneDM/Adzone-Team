@@ -84,7 +84,7 @@ export default function BotonJornada() {
   const pasada = e === "EN_PAUSA" && limitePausa > 0 && segundosPausa >= limitePausa;
   const color = e === "TRABAJANDO" ? "border-verde/40 bg-verde/10 text-verde" : e === "EN_PAUSA" ? (pasada ? "border-rojo/50 bg-rojo/10 text-rojo" : "border-amarillo bg-amarillo-50 text-[#8a5a00]") : "border-linea bg-white text-tinta";
   const punto = e === "TRABAJANDO" ? "bg-verde" : e === "EN_PAUSA" ? (pasada ? "bg-rojo animate-pulse" : "bg-amarillo-600") : "bg-gris";
-  const etiqueta = e === "TRABAJANDO" ? relojSeg(segundosHoy) : e === "EN_PAUSA" ? `${enAlmuerzo ? "Almuerzo" : "Pausa"} ${relojSeg(segundosPausa)}` : hoy.salida ? "Salida marcada" : "Marcar entrada";
+  const etiqueta = e === "TRABAJANDO" ? relojSeg(segundosHoy) : e === "EN_PAUSA" ? relojSeg(segundosPausa) : hoy.salida ? "Salida marcada" : "Marcar entrada";
 
   if (e === "FUERA") {
     return (
@@ -97,9 +97,9 @@ export default function BotonJornada() {
   return (
     <div className="relative" ref={caja}>
       <button type="button" onClick={() => setAbierto((a) => !a)} aria-expanded={abierto} aria-label={`Jornada: ${etiqueta}`}
-        className={cx("flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-semibold", color)}>
+        className={cx("flex h-10 items-center gap-1.5 rounded-lg border px-2.5 text-sm font-semibold sm:gap-2 sm:px-3", color)}>
         <span className={cx("size-2 rounded-full", punto)} />
-        <span className="num">{etiqueta}</span>
+        <span className="num">{e === "EN_PAUSA" && <span className="hidden font-sans sm:inline">{enAlmuerzo ? "Almuerzo " : "Pausa "}</span>}{etiqueta}</span>
       </button>
       {abierto && (
         <div className="fixed inset-x-4 top-16 z-40 rounded-xl border border-linea bg-white p-3 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-64">
