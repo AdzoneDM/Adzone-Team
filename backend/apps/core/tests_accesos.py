@@ -54,23 +54,19 @@ class PerfilesYOrganigramaTests(Base):
 
     def test_colaborador_solo_cumple_sus_tareas(self):
         self.assertEqual(self.tarea(self.ana, self.beto).status_code, 403)
-        self.assertEqual(self.como(self.ana).get('/api/monitoreo/equipo/').status_code, 403)
         self.assertEqual(self.como(self.ana).get('/api/asistencia/hoy/').status_code, 403)
         self.assertEqual(self.como(self.ana).get('/api/accesos/').status_code, 403)
         s = self.como(self.ana).get('/api/auth/session/').json()['user']
         self.assertEqual(s['permisos'], [])
         self.assertFalse(s['puede_asignar'])
 
-    def test_supervisor_asigna_y_valida_solo_a_su_equipo_y_no_ve_monitoreo(self):
+    def test_supervisor_asigna_y_valida_solo_a_su_equipo(self):
         self.assertEqual(self.tarea(self.jefe, self.ana).status_code, 201)
         self.assertEqual(self.tarea(self.jefe, self.beto).status_code, 403)  # no depende de él
-        self.assertEqual(self.como(self.jefe).get('/api/monitoreo/equipo/').status_code, 403)
-        self.assertEqual(self.como(self.jefe).get('/api/monitoreo/pantallas/').status_code, 403)
         self.assertEqual(self.como(self.jefe).get('/api/asistencia/hoy/').status_code, 200)
         self.assertEqual(self.como(self.jefe).get('/api/talento/salarios/').status_code, 403)
         s = self.como(self.jefe).get('/api/auth/session/').json()['user']
         self.assertTrue(s['puede_asignar'])
-        self.assertFalse(s['ve_monitoreo'])
         self.assertFalse(s['es_administrador'])
 
     def test_equipo_adicional_y_vencido(self):
@@ -100,7 +96,6 @@ class AdministradorDelSistemaTests(Base):
         self.assertIsNone(fila['salario_mensual'])
         self.assertEqual(c.get('/api/talento/salarios/').status_code, 403)
         self.assertEqual(c.get(f'/api/talento/documentos/?usuario={self.ana.pk}').json(), [])
-        self.assertEqual(c.get('/api/monitoreo/equipo/').status_code, 200)
         self.assertEqual(c.get('/api/talento/auditoria/').status_code, 200)
         self.assertFalse(c.get('/api/auth/session/').json()['user']['es_administrador'])
 
@@ -126,9 +121,9 @@ class AdministradorDelSistemaTests(Base):
 
     def test_excepciones_y_equipo_adicional_por_la_api(self):
         c = self.como(self.sis)
-        r = c.post('/api/accesos/excepciones/', {'usuario': self.ana.pk, 'permiso': 'monitoreo.ver', 'motivo': 'Apoyo a TI'}, format='json')
+        r = c.post('/api/accesos/excepciones/', {'usuario': self.ana.pk, 'permiso': 'activos.gestionar', 'motivo': 'Apoyo a TI'}, format='json')
         self.assertEqual(r.status_code, 201, r.content)
-        self.assertTrue(tiene(User.objects.get(pk=self.ana.pk), 'monitoreo.ver'))
+        self.assertTrue(tiene(User.objects.get(pk=self.ana.pk), 'activos.gestionar'))
         self.assertEqual(c.delete(f"/api/accesos/excepciones/{r.json()['id']}/").status_code, 204)
         datos = {'jefe': self.jefe.pk, 'colaborador': self.beto.pk, 'motivo': 'Proyecto'}
         self.assertEqual(c.post('/api/accesos/equipo-extra/', datos, format='json').status_code, 403)  # delegaría permisos de equipo que no tiene

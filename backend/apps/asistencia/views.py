@@ -115,20 +115,15 @@ def _equipo(request):
 @api_view(['GET'])
 def hoy_view(request):
     """Quién llegó, quién está tarde, en pausa o ausente hoy."""
-    from apps.monitoreo.servicios import ultimo_contacto_por_usuario
     hoy = timezone.localdate()
     personas = list(_equipo(request))
-    from apps.desempeno.permisos import tiene
-    # lo que hace la computadora en este momento es monitoreo: solo Dirección y Tecnología
-    contactos = ultimo_contacto_por_usuario([p.pk for p in personas]) if tiene(request.user, 'monitoreo.ver') else {}
     filas = []
     jornadas_hoy = servicios.jornadas_del_dia(personas, hoy)  # en lote: no una consulta por persona
     for u in personas:
         j = jornadas_hoy[u.pk]
         filas.append({**_persona(u), **{k: j[k] for k in ('estado', 'llegada', 'entrada', 'salida', 'tardanza', 'trabajados', 'pausa', 'turno', 'ausencia',
                                                                  'trabajados_seg', 'pausa_seg', 'tardanza_seg', 'almuerzo_seg', 'pausas_seg', 'excesos')},
-                      'pausa_abierta': next((p for p in reversed(j['pausas']) if p['fin'] is None), None),
-                      'pc': contactos.get(u.pk)})
+                      'pausa_abierta': next((p for p in reversed(j['pausas']) if p['fin'] is None), None)})
     orden = {'TARDE_SIN_MARCAR': 0, 'AUSENTE': 1, 'EN_PAUSA': 2, 'TRABAJANDO': 3, 'PRESENTE': 4, 'PENDIENTE': 5, 'PERMISO': 6}
     filas.sort(key=lambda f: (orden.get(f['estado'], 9), f['nombre']))
     conteo = {}

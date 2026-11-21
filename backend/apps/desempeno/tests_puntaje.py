@@ -54,13 +54,6 @@ class CuatroPartesTests(BaseDesempeno):
         self.assertIsNone(fila['puntaje_kpis'])
         self.assertEqual(fila['kpis_registrados'], 0)
 
-    def test_la_computadora_no_da_puntos(self):
-        self._tarea(self.ana, date(2026, 9, 10), estado='COMPLETADA', fecha_completada=date(2026, 9, 10), calificacion_calidad=5)
-        sin = calcular_ranking(PERIODO, hoy=DESPUES_DEL_MES)[0]['puntaje_total']
-        from apps.monitoreo.models import Actividad
-        Actividad.objects.create(usuario=self.ana, minuto=timezone.make_aware(datetime(2026, 9, 10, 10)), activos=0, categoria='I')
-        self.assertEqual(calcular_ranking(PERIODO, hoy=DESPUES_DEL_MES)[0]['puntaje_total'], sin)
-
     def test_asistencia_cuenta_si_usa_el_control(self):
         self._tarea(self.ana, date(2026, 9, 10), estado='COMPLETADA', fecha_completada=date(2026, 9, 10), calificacion_calidad=5)
         Marcaje.objects.create(usuario=self.ana, tipo='ENTRADA', momento=timezone.make_aware(datetime(2026, 9, 10, 8)))

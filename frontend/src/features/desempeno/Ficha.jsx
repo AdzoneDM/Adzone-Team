@@ -1,4 +1,4 @@
-// Ficha integral del mes: puntaje (4 partes), KPIs con su ficha técnica, horario, computadora (informativa), tareas,
+// Ficha integral del mes: puntaje (4 partes), KPIs con su ficha técnica, horario, tareas,
 // evaluación 360°, planes de mejora, expediente y tendencia de 6 o 12 meses.
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -13,7 +13,7 @@ const pct = (v) => (v == null ? "—" : `${Number(v).toLocaleString("es-DO", { m
 const FUENTE = {
   ENTREGAS_A_TIEMPO: "Tareas a tiempo", PRIMERA: "Tareas a la primera", RONDAS: "Rondas de las tareas", CALIDAD: "Calidad de las tareas",
   PUNTUALIDAD: "Control de horario", ASISTENCIA: "Control de horario", HORAS: "Control de horario", ADHERENCIA: "Control de horario",
-  ACTIVIDAD_PC: "Computadora", PRODUCTIVIDAD_PC: "Computadora", TAREAS_COMPLETADAS: "Tareas validadas", RETRABAJO: "Correcciones",
+  TAREAS_COMPLETADAS: "Tareas validadas", RETRABAJO: "Correcciones",
   HORAS_POR_TAREA: "Cronómetro", DENTRO_ESTIMADO: "Cronómetro", UTILIZACION: "Cronómetro", HORAS_EXTRA: "Control de horario", "": "Tareas vinculadas",
 };
 const num = (v) => (v == null ? "—" : Number(v).toLocaleString("es-DO", { maximumFractionDigits: 2 }));
@@ -50,7 +50,6 @@ export default function Ficha() {
   if (error) return <Alerta>{error}</Alerta>;
   if (!d) return <Cargando />;
   const p = d.puntaje;
-  const pc = d.computadora;
   const ev = p ? EVALUACION[p.evaluacion] : null;
   const seguimiento = d.kpis.filter((k) => k.seguimiento);
   const kpis = verSeguimiento ? d.kpis : d.kpis.filter((k) => !k.seguimiento);
@@ -106,7 +105,7 @@ export default function Ficha() {
                     <td>{k.automatico ? <Insignia tono="azul"><Bot className="mr-1 inline size-3" />{FUENTE[k.fuente] || "Automático"}</Insignia> : <Insignia>Anotado</Insignia>}</td>
                     <td className="text-right num">{k.meta == null ? "—" : Number(k.meta).toLocaleString("es-DO")} <span className="text-xs text-gris">{k.unidad_medida}</span></td>
                     <td className="text-right num">{k.valor == null ? "—" : Number(k.valor).toLocaleString("es-DO")}</td>
-                    <td>{k.oculto ? <span className="text-sm text-gris" title="Sale de la actividad en la computadora: solo la ven Dirección y Tecnología">Reservado</span> : k.cumplimiento == null ? <span className="text-sm text-gris">Sin medir</span> : (
+                    <td>{k.cumplimiento == null ? <span className="text-sm text-gris">Sin medir</span> : (
                       <div className="flex items-center gap-2"><Barra valor={k.cumplimiento} /><span className="w-12 text-right text-sm num">{Math.round(k.cumplimiento)} %</span>
                         {k.bajo_umbral && <Insignia tono="rojo" className="ml-1">Bajo {num(k.umbral)} %</Insignia>}</div>)}</td>
                     <td className="text-right num">{k.seguimiento ? <Insignia>Seguimiento</Insignia> : `${k.ponderacion} %`}</td>
@@ -124,17 +123,6 @@ export default function Ficha() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Panel titulo="Computadora · informativo, no da puntos">
-          {!pc ? <p className="text-sm text-gris">La actividad en la computadora de otra persona solo la ven Dirección y Tecnología.</p> : pc.minutos_registrados ? <>
-            <Fila etiqueta="Tiempo activo" valor={pct(pc.actividad)} nota={`${reloj(pc.minutos_activos)} de ${reloj(pc.minutos_registrados)} registrados`} />
-            <Fila etiqueta="Productivo" valor={pct(pc.productividad)} nota={`${reloj(pc.minutos_productivos)} productivo · ${reloj(pc.minutos_improductivos)} improductivo`} />
-            <Fila etiqueta="Tiempo de foco" valor={reloj(pc.minutos_foco)} nota={`${pc.sesiones_foco} bloque(s) de 25+ minutos`} />
-            <Fila etiqueta="Nivel de actividad" valor={pct(pc.intensidad)} />
-            <Fila etiqueta="Cambios de ventana" valor={pc.cambios_por_hora ?? "—"} nota="por hora" />
-            <Fila etiqueta="Cobertura de la jornada" valor={pct(pc.cobertura)} nota="Jornada con la computadora reportando" />
-            <Fila etiqueta="Días con actividad" valor={pc.dias_con_actividad} />
-          </> : <p className="text-sm text-gris">Sin actividad de computadora este mes (sin agente vinculado o sin aceptar la política).</p>}
-        </Panel>
         <Panel titulo="Tareas">
           <Fila etiqueta="Validadas en el mes" valor={d.tareas.validadas} />
           <Fila etiqueta="Entregadas a tiempo" valor={pct(d.tareas.a_tiempo_pct)} />
@@ -143,12 +131,6 @@ export default function Ficha() {
           <Fila etiqueta="Calidad" valor={pct(d.tareas.calidad_pct)} />
           <Fila etiqueta="Tiempo registrado en tareas" valor={reloj(d.tiempo.minutos_en_tareas)} nota={d.tiempo.utilizacion != null ? `${pct(d.tiempo.utilizacion)} de la jornada` : null} />
         </Panel>
-        <Panel titulo="Aplicaciones más usadas" cuerpo="p-0">
-          {pc?.apps?.length ? <ul className="divide-y divide-linea-suave">{pc.apps.slice(0, 8).map((a) => (
-            <li key={a.nombre} className="flex items-center gap-3 px-5 py-2"><span className="min-w-0 flex-1 truncate">{a.nombre}</span>
-              <span className={cx("size-2 rounded-full", a.categoria === "P" ? "bg-verde" : a.categoria === "I" ? "bg-rojo" : "bg-[#9aa7bd]")} /><span className="w-14 text-right text-sm num">{reloj(a.minutos)}</span></li>
-          ))}</ul> : <p className="p-5 text-sm text-gris">Sin datos.</p>}
-        </Panel>
       </div>
 
       <Talento t={t} usuario={d.persona.id} esAdmin={veSalarios} />
@@ -156,13 +138,12 @@ export default function Ficha() {
       <Panel titulo={`Tendencia de ${meses} meses`} cuerpo="p-0" accion={<Pestanas className="!flex" opciones={[{ valor: "6", etiqueta: "6 meses" }, { valor: "12", etiqueta: "12 meses" }]} valor={meses} onCambio={setMeses} />}>
         <div className="overflow-x-auto">
           <table className="tabla">
-            <thead><tr><th>Mes</th><th className="text-right">Puntaje</th><th className="text-right">Adherencia al horario</th><th className="text-right">Productividad en PC</th><th className="text-right">Tareas a tiempo</th><th className="text-right">Calidad</th></tr></thead>
+            <thead><tr><th>Mes</th><th className="text-right">Puntaje</th><th className="text-right">Adherencia al horario</th><th className="text-right">Tareas a tiempo</th><th className="text-right">Calidad</th></tr></thead>
             <tbody>
               {d.tendencia.map((x) => (
                 <tr key={x.mes}><td className="first-letter:uppercase">{nombreMes(x.mes)}</td>
                   <td className="text-right"><Puntaje valor={x.puntaje} /></td>
-                  <td className="text-right"><Puntaje valor={x.adherencia} /></td><td className="text-right"><Puntaje valor={x.productividad} /></td>
-                  <td className="text-right"><Puntaje valor={x.a_tiempo} /></td><td className="text-right"><Puntaje valor={x.calidad} /></td></tr>
+                  <td className="text-right"><Puntaje valor={x.adherencia} /></td>                  <td className="text-right"><Puntaje valor={x.a_tiempo} /></td><td className="text-right"><Puntaje valor={x.calidad} /></td></tr>
               ))}
             </tbody>
           </table>

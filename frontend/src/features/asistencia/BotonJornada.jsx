@@ -125,7 +125,6 @@ export default function BotonJornada() {
                 onClick={() => marcar(t === "REGRESO" && enAlmuerzo ? "FIN_ALMUERZO" : t)}>{texto}</Boton>;
             })}
           </div>
-          <p className="mt-3 text-xs text-gris">En pausa o fuera de jornada el agente de la computadora no registra nada.</p>
         </div>
       )}
       <Modal abierto={pidiendoMotivo} onCerrar={() => setPidiendoMotivo(false)} titulo="¿Por qué la pausa?" descripcion={`Si pasa de ${estado.limites?.pausa_min ?? 60} minutos sin que marques el regreso, se avisa a tu supervisor.`} ancho="max-w-sm">

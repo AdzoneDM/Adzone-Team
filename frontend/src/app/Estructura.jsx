@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  Award, CalendarClock, Gauge, HeartHandshake, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, MonitorSmartphone, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, Gauge, HeartHandshake, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos, tablerosDepartamentos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -28,12 +28,11 @@ import ChatFlotante from "@/features/chat/ChatFlotante";
 import { SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
 function secciones({ esAdmin, puedeValidar, puedeAsignar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
-  veMonitoreo, gestionaPersonas, veDirectorio, configuraSistema, esRRHH, tablerosDeptos = [] }) {
+  gestionaPersonas, veDirectorio, configuraSistema, esRRHH, tablerosDeptos = [] }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
     { a: "/call-center", texto: "Call Center", icono: Headset },
     { a: "/asistencia", texto: "Asistencia", icono: CalendarClock },
-    { a: "/monitoreo", texto: "Mi actividad", icono: MonitorSmartphone },
     { a: "/ficha", texto: "Mi ficha", icono: Gauge },
     { a: "/talento", texto: "Evaluaciones", icono: Award },
     { a: "/politicas", texto: "Políticas", icono: ScrollText },
@@ -46,7 +45,6 @@ function secciones({ esAdmin, puedeValidar, puedeAsignar, esFinanzas, esCoordina
       { a: "/colaboracion", texto: "Colaboración", icono: HeartHandshake },
       { a: "/tiempo", texto: "Tiempo", icono: Clock },
       { a: "/asistencia", texto: "Asistencia", icono: CalendarClock },
-      { a: "/monitoreo", texto: veMonitoreo ? "Monitoreo" : "Mi actividad", icono: MonitorSmartphone },
       { a: "/ficha", texto: "Mi ficha", icono: Gauge },
       { a: "/talento", texto: puedeValidar || esAdmin || esRRHH ? "Talento" : "Evaluaciones", icono: Award },
       { a: "/politicas", texto: "Políticas", icono: ScrollText },

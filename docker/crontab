@@ -4,7 +4,7 @@
 
 # Recurrentes, avisos de lo que vence mañana, automatizaciones de vencidas y pagos de Cashflow
 0 7 * * *       cd /app/backend && python manage.py tareas_diarias
-# Tardanzas, sin marcar, inactividad, PC sin reportar, improductivo
+# Tardanzas, entradas sin marcar y pausas que pasaron su límite
 */10 7-20 * * * cd /app/backend && python manage.py revisar_jornadas
 # Documentos por vencer y políticas pendientes
 30 7 * * *      cd /app/backend && python manage.py revisar_talento
@@ -12,7 +12,5 @@
 35 7 * * *      cd /app/backend && python manage.py revisar_activos
 # KPIs del mes anterior por debajo del umbral
 0 7 1-5 * *     cd /app/backend && python manage.py revisar_kpis
-# Borra actividad de más de 90 días y capturas de más de 30
-0 3 * * *       cd /app/backend && python manage.py limpiar_monitoreo
 # Respaldo cifrado: base + archivos privados (queda en el volumen «respaldos»)
 30 2 * * *      bash /app/servidor/respaldo.sh

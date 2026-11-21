@@ -122,6 +122,19 @@ class SuscripcionPush(models.Model):
         verbose_name = 'Suscripción a notificaciones'
 
 
+class AlertaEnviada(models.Model):
+    """Para no repetir el mismo aviso: una clave por persona y situación (p. ej. «tarde-20261102»)."""
+    usuario = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='+')
+    clave = models.CharField(max_length=80)
+    tipo = models.CharField(max_length=20)
+    detalle = models.CharField(max_length=255, blank=True)
+    creada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('usuario', 'clave')
+        ordering = ['-creada']
+
+
 def _ruta_documento_area(instancia, nombre):
     import os
     import uuid

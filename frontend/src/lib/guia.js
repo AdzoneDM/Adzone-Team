@@ -143,15 +143,6 @@ export const GUIAS_PANTALLA = [
     { titulo: "Permisos y vacaciones", texto: "En «Permisos» los pides con fechas y motivo; tu supervisor los aprueba. Los días aprobados no cuentan como ausencia." },
     { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Para supervisores", texto: "«Hoy» muestra quién llegó, quién está tarde o no ha marcado. Toca a una persona para ver su mes y corregir un marcaje olvidado (con una nota: queda registrado)." },
   ] },
-  { id: "monitoreo", ruta: /^\/monitoreo$/, nombre: "Monitoreo", pasos: [
-    { objetivo: PESTANAS, titulo: "Tu actividad", texto: "Lo que el agente de tu computadora midió en tu jornada: tiempo activo, productivo y de foco, aplicaciones y sitios. Lo mismo que ve tu supervisor. Nunca registra teclas, contraseñas ni mensajes." },
-    { titulo: "Vincular tu computadora", texto: "En «Mis equipos y política» acepta la política y toca «Vincular computadora». Pega el código en el agente de Adzone Team. Solo mide cuando marcaste entrada; en pausa, nada." },
-    { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Equipo en vivo", texto: "Quién está activo y en qué aplicación, y cómo va su día. Toca a alguien para ver su línea de tiempo." },
-    { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Resumen e incidencias", texto: "El resumen muestra el período con lo que hay que mirar, sitios y apps, uso de IA y riesgo. Las incidencias salen de las reglas de comportamiento: revísalas o descártalas." },
-    { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Cada computadora", texto: "Desde el día de una persona o desde «Computadoras», abre un equipo para ver su actividad por día, el mapa de teclado y ratón por hora, sus tareas, el registro de cada ventana, alertas, capturas e IP." },
-    { titulo: "Justificar un tramo", texto: "Si usaste YouTube o WhatsApp para trabajar, en «Mi actividad» toca «Justificar un tramo». Si tu supervisor lo aprueba, esos minutos pasan a productivos." },
-    { para: (s) => s.puedeValidar || s.esAdmin, titulo: "Por proyecto y OT", texto: "Horas del cronómetro, minutos de computadora en ese trabajo, tareas a la primera, correcciones y estimado contra real de cada OT. Finanzas ve además el costo de la mano de obra." },
-  ] },
   { id: "ficha", ruta: /^\/ficha$/, nombre: "Ficha de productividad", pasos: [
     { titulo: "Todo en un lugar", texto: "Tu puntaje del mes y sus partes (tareas 40 %, KPIs 35 %, calidad 15 %, asistencia 10 %), lo que hay que atender, tus KPIs con su fórmula, horario, computadora (solo informativa), evaluación 360°, planes de mejora, expediente y tu tendencia de 6 o 12 meses." },
   ] },

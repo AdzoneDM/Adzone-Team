@@ -13,7 +13,7 @@ import { SelectorPersona } from "@/components/Selectores";
 
 const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-DO", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const CATEGORIAS = [["REGLAMENTO", "Reglamento interno"], ["ASISTENCIA", "Asistencia y puntualidad"], ["PERMISOS", "Permisos y vacaciones"],
-  ["TECNOLOGIA", "Uso de computadoras e internet"], ["MONITOREO", "Monitoreo y privacidad"], ["DATOS", "Protección de datos"],
+  ["TECNOLOGIA", "Uso de computadoras e internet"], ["DATOS", "Protección de datos"],
   ["SEGURIDAD", "Seguridad informática"], ["EQUIPOS", "Equipos de la empresa"], ["REMOTO", "Trabajo remoto"], ["IA", "Inteligencia artificial"],
   ["REDES", "Redes sociales"], ["VEHICULOS", "Vehículos y herramientas"], ["CALIDAD", "Calidad y entregas"], ["DISCIPLINA", "Disciplina"], ["OTRA", "Otra"]];
 const TIPOS_DOC = [["CONTRATO", "Contrato de trabajo"], ["IDENTIFICACION", "Copia de identificación"], ["CONFIDENCIALIDAD", "Acuerdo de confidencialidad"],

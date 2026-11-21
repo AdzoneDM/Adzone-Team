@@ -28,10 +28,8 @@ class TableroTests(TestCase):
         self.ana.perfil.save()
         inc = PlantillaKPI.objects.create(nombre='Incidentes resueltos', unidad_medida='%')
         cap = PlantillaKPI.objects.create(nombre='Capacitación', unidad_medida='horas')
-        pc = PlantillaKPI.objects.create(nombre='Productividad en PC', unidad_medida='%', fuente='PRODUCTIVIDAD_PC')
         self.k1 = KPIAsignado.objects.create(puesto_trabajo=p_tec, plantilla_kpi=inc, ponderacion=50, es_entrada_manual=True)
         KPIAsignado.objects.create(puesto_trabajo=p_tec, plantilla_kpi=cap, ponderacion=50, es_entrada_manual=True)
-        KPIAsignado.objects.create(puesto_trabajo=p_tec, plantilla_kpi=pc, ponderacion=0, es_entrada_manual=False, meta_numerica=80)
         self.mes = timezone.localdate().replace(day=1)
         ResultadoKPI.objects.create(kpi_asignado=self.k1, colaborador=self.ana, periodo=self.mes, valor_meta=100, valor_real=100)
         ResultadoKPI.objects.create(kpi_asignado=self.k1, colaborador=self.beto, periodo=self.mes, valor_meta=100, valor_real=50)
@@ -70,7 +68,7 @@ class TableroTests(TestCase):
         self.assertIn('Beto', pol['Uso de equipos']['pendientes'])
         self.assertEqual(pol['Código de conducta']['alcance'], 'Toda la empresa')
 
-    def test_supervisor_solo_su_equipo_sin_salario_ni_pc(self):
+    def test_supervisor_solo_su_equipo_sin_salario(self):
         lista = self.get(self.jefe, '/api/desempeno/departamentos/').json()
         self.assertEqual([d['nombre'] for d in lista], ['Software & Hardware'])
         self.assertEqual(self.get(self.jefe, f'/api/desempeno/departamentos/{self.mkt.pk}/').status_code, 404)
@@ -81,7 +79,6 @@ class TableroTests(TestCase):
         ana = next(p for p in d['personas'] if p['nombre'] == 'Ana')
         self.assertEqual(ana['supervisor'], 'Jefe')
         self.assertIsNone(ana['salario'])
-        self.assertEqual(next(k for k in ana['kpis'] if k['nombre'] == 'Productividad en PC')['estado'], 'RESERVADO')
         self.assertFalse(d['puede']['ingresar'])
 
     def test_colaborador_ve_su_departamento_y_solo_lo_suyo(self):

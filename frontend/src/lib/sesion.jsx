@@ -65,9 +65,6 @@ export function SesionProvider({ children }) {
   const valor = {
     usuario,
     tiene,
-    veMonitoreo: tiene("monitoreo.ver"),
-    veCapturas: tiene("monitoreo.capturas"),
-    configuraMonitoreo: tiene("monitoreo.configurar"),
     gestionaPersonas: tiene("personal.usuarios"),
     veDirectorio: tiene("personal.usuarios") || tiene("personal.directorio"), // ver, crear y desactivar (sin correos, claves ni accesos si solo tiene «Personas»)
     soloDirectorio: tiene("personal.directorio") && !tiene("personal.usuarios"),

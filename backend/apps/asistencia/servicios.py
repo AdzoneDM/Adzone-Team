@@ -375,3 +375,33 @@ def revisar_pausas(ahora=None):
         avisar([m.usuario], 'ASISTENCIA', f'Llevas {tiempo} en {"almuerzo" if m.es_almuerzo else "pausa"}', 'Marca tu regreso en cuanto vuelvas.', enlace='/')
         avisadas += 1
     return avisadas
+
+
+def _una_vez(usuario, clave, tipo, detalle=''):
+    from apps.core.models import AlertaEnviada
+    _, nueva = AlertaEnviada.objects.get_or_create(usuario=usuario, clave=clave[:80], defaults={'tipo': tipo, 'detalle': detalle[:255]})
+    return nueva
+
+
+def revisar_asistencia(ahora=None):
+    """Avisa a los supervisores de las tardanzas y de quien no ha marcado entrada, y de las pausas largas.
+    Pensado para correr cada 10 minutos en horario laboral (`python manage.py revisar_jornadas`)."""
+    from apps.desempeno.permisos import revisores_de
+    from apps.desempeno.servicios import avisar
+    ahora = ahora or timezone.now()
+    hoy = timezone.localtime(ahora).date()
+    enviados = revisar_pausas(ahora)
+    # Solo a quien ya usa el control de horario o tiene horario asignado
+    usan = set(Marcaje.objects.values_list('usuario_id', flat=True).distinct()) | set(
+        AsignacionHorario.objects.filter(marca_obligatoria=True).values_list('usuario_id', flat=True))
+    for u in User.objects.filter(is_active=True, pk__in=usan):
+        j = jornada(u, hoy, ahora)
+        nombre = u.get_full_name() or u.username
+        if j['llegada'] == 'TARDE' and j['tardanza'] >= 15 and _una_vez(u, f'tarde-{hoy:%Y%m%d}', 'TARDE', f"{j['tardanza']} min"):
+            avisar(revisores_de(u, 'asistencia.ver'), 'ASISTENCIA', f"{nombre} llegó {j['tardanza']} minutos tarde", enlace='/asistencia')
+            enviados += 1
+        if j['estado'] == 'TARDE_SIN_MARCAR' and _una_vez(u, f'sinmarcar-{hoy:%Y%m%d}', 'SIN_MARCAR'):
+            avisar([u], 'ASISTENCIA', 'No has marcado tu entrada', 'Márcala en Adzone Team en cuanto llegues.', enlace='/')
+            avisar(revisores_de(u, 'asistencia.ver'), 'ASISTENCIA', f'{nombre} no ha marcado entrada', f"Entraba a las {j['turno'][0]}.", enlace='/asistencia')
+            enviados += 1
+    return enviados

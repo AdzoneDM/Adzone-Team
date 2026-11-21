@@ -7,7 +7,7 @@ Quién ve qué (mínimo privilegio), por departamento:
 - EQUIPO: quien tiene gente a cargo en el área → su gente con KPIs y seguimiento.
 - MIEMBRO: quien trabaja en el área (puesto principal o adicional) → la información del área, sus compañeros
   (cargo, funciones, supervisor), políticas, procedimientos y documentos; de KPIs y seguimiento, solo lo suyo.
-Los salarios solo con «Salarios»; los KPIs que salen de la computadora solo con «Ver el monitoreo».
+Los salarios solo con «Salarios».
 """
 from calendar import monthrange
 from collections import defaultdict
@@ -29,7 +29,6 @@ from .models import ResultadoKPI, Tarea
 from .permisos import equipo_gestionable
 from .puntaje import calcular_ranking, kpis_del_mes
 
-PC_FUENTES = ('ACTIVIDAD_PC', 'PRODUCTIVIDAD_PC')
 MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 COMPLETO, EQUIPO, MIEMBRO = 'completo', 'equipo', 'miembro'
 EXTENSIONES = ('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.png', '.jpg', '.jpeg', '.txt', '.csv', '.zip')
@@ -117,7 +116,7 @@ def _estado(cumpl, umbral=80):
     return 'SIN_DATO' if cumpl is None else ('CUMPLE' if cumpl >= 100 else ('CERCA' if cumpl >= umbral else 'BAJO'))
 
 
-def _kpis_persona(u, meses, ve_pc):
+def _kpis_persona(u, meses):
     """Todos los KPIs del puesto (también los que aún no tienen dato), con el promedio de los meses del periodo."""
     asignados = list(KPIAsignado.objects.filter(puesto_trabajo=u.perfil.puesto_trabajo, activo=True)
                      .select_related('plantilla_kpi').order_by('plantilla_kpi__nombre'))
@@ -131,7 +130,6 @@ def _kpis_persona(u, meses, ve_pc):
     for k in asignados:
         p = k.plantilla_kpi
         datos = por_kpi.get(k.pk, [])
-        oculto = (p.fuente in PC_FUENTES and not k.es_entrada_manual) and not ve_pc
         con_valor = [d for d in datos if d.get('valor') is not None]
         cumplimientos = [d['cumplimiento'] for d in datos if d.get('cumplimiento') is not None]
         valor = round(sum(d['valor'] for d in con_valor) / len(con_valor), 2) if con_valor else None
@@ -141,8 +139,8 @@ def _kpis_persona(u, meses, ve_pc):
         cumpl = round(sum(cumplimientos) / len(cumplimientos), 1) if cumplimientos else None
         salida.append({
             'id': k.pk, 'plantilla': p.pk, 'nombre': p.nombre, 'unidad': p.unidad_medida, 'menor_es_mejor': p.menor_es_mejor,
-            'meta': meta, 'valor': None if oculto else valor, 'cumplimiento': None if oculto else cumpl,
-            'estado': 'RESERVADO' if oculto else _estado(cumpl, float(k.umbral_alerta)), 'manual': k.es_entrada_manual,
+            'meta': meta, 'valor': valor, 'cumplimiento': cumpl,
+            'estado': _estado(cumpl, float(k.umbral_alerta)), 'manual': k.es_entrada_manual,
             'ponderacion': float(k.ponderacion), 'formula': p.formula, 'fuente_datos': p.fuente_datos,
         })
     return salida
@@ -288,7 +286,7 @@ def departamento_view(request, pk):
         raise exceptions.ValidationError('Periodo no válido.')
     vista = 'trimestral' if request.query_params.get('vista') == 'trimestral' else 'mensual'
     meses = _periodos(anio, mes, vista)
-    ve_pc, ve_salario = tiene(yo, 'monitoreo.ver'), tiene(yo, 'personal.salarios')
+    ve_salario = tiene(yo, 'personal.salarios')
 
     gente = list(_gente(depto))
     if acceso == COMPLETO:
@@ -318,7 +316,7 @@ def departamento_view(request, pk):
         }
         if u.pk in con_detalle:
             pts = puntajes.get(u.pk)
-            fila.update(puntaje=round(sum(pts) / len(pts), 1) if pts else None, kpis=_kpis_persona(u, meses, ve_pc or u.pk == yo.pk),
+            fila.update(puntaje=round(sum(pts) / len(pts), 1) if pts else None, kpis=_kpis_persona(u, meses),
                         seguimiento=_seguimiento(u, meses),
                         salario=float(per.salario_mensual) if ve_salario and per.salario_mensual else None)
         personas.append(fila)

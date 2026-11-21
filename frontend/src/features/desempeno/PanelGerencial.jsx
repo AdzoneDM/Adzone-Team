@@ -69,7 +69,7 @@ export default function PanelGerencial() {
           <Panel titulo="Indicadores por área" cuerpo="p-0">
             <div className="overflow-x-auto"><table className="tabla">
               <thead><tr><th>Área</th><th className="text-right">Personas</th><th className="text-right">Puntaje</th><th>Tendencia 6 meses</th><th className="text-right">KPIs</th><th className="text-right">Calidad</th>
-                <th className="text-right">Asistencia</th><th className="text-right">Productivo PC</th><th className="text-right">Tareas validadas</th><th className="text-right">Vencidas</th><th className="text-right">Horas</th></tr></thead>
+                <th className="text-right">Asistencia</th><th className="text-right">Tareas validadas</th><th className="text-right">Vencidas</th><th className="text-right">Horas</th></tr></thead>
               <tbody>{d.departamentos.map((x) => (
                 <tr key={x.nombre}>
                   <td className="font-medium">{x.nombre}{x.bajo_minimo ? <Insignia tono="rojo" className="ml-2">{x.bajo_minimo} bajo el mínimo</Insignia> : null}</td>
@@ -79,7 +79,6 @@ export default function PanelGerencial() {
                   <td className="text-right"><Puntaje valor={x.kpis} /></td>
                   <td className="text-right"><Puntaje valor={x.calidad} /></td>
                   <td className="text-right"><Puntaje valor={x.asistencia} /></td>
-                  <td className="text-right"><Puntaje valor={x.productividad_pc} /></td>
                   <td className="text-right num">{x.tareas_validadas}</td>
                   <td className={cx("text-right num", x.tareas_vencidas >= x.personas * 2 && x.tareas_vencidas >= 3 && "font-semibold text-rojo")}>{x.tareas_vencidas}</td>
                   <td className="text-right num">{x.horas}</td>

@@ -4,7 +4,7 @@ Mínimo privilegio: cada persona tiene uno o más PERFILES (grupos) y cada perfi
 - QUÉ puede hacer alguien lo dicen sus perfiles (más las excepciones de su persona).
 - SOBRE QUIÉN lo dice el organigrama: los permisos «de equipo» se aplican a quienes dependen de su puesto,
   más su equipo adicional (EquipoExtra). Dirección los tiene sobre toda la empresa.
-- Los permisos «de empresa» (monitoreo, salarios, usuarios, configuración…) no dependen del organigrama.
+- Los permisos «de empresa» (salarios, usuarios, configuración…) no dependen del organigrama.
 - Nadie valida su propio trabajo, tenga el permiso que tenga.
 """
 from django.contrib.auth.models import Group, User
@@ -23,9 +23,7 @@ PERMISOS = [
     ('asistencia.corregir', 'Corregir marcajes', 'Su equipo', 'equipo', 'Agregar o borrar marcajes de su equipo (con nota y auditoría).'),
     ('equipo.todos', 'Supervisar a toda la empresa', 'Empresa', 'empresa', 'Su equipo pasa a ser todo el personal (menos Dirección): los permisos de equipo que tenga se ejercen sobre todos, y recibe sus avisos de entregas y tardanzas.'),
     ('direccion', 'Dirección', 'Empresa', 'empresa', 'Todo el negocio: todas las personas, panel gerencial, ranking, bonos, puestos, KPIs y reglas del puntaje.'),
-    ('monitoreo.ver', 'Ver el monitoreo', 'Empresa', 'empresa', 'Actividad en la computadora de todas las personas, incidencias y justificaciones.'),
-    ('monitoreo.capturas', 'Ver capturas de pantalla', 'Empresa', 'empresa', 'Capturas y pantallas en vivo.'),
-    ('monitoreo.configurar', 'Configurar el monitoreo', 'Empresa', 'empresa', 'Reglas, perfiles de monitoreo y computadoras (encender o apagar).'),
+    ('activos.gestionar', 'Equipos y activos', 'Empresa', 'empresa', 'Registrar, asignar y dar mantenimiento a los equipos y activos de la empresa.'),
     ('personal.directorio', 'Personas', 'Empresa', 'empresa', 'Ver a todas las personas, crear usuarios nuevos y desactivar cuentas, sin poder modificar correos ni cambiar contraseñas.'),
     ('personal.usuarios', 'Personas y accesos', 'Empresa', 'empresa', 'Crear y desactivar personas, cambiar contraseñas, perfiles de acceso y excepciones.'),
     ('personal.salarios', 'Salarios y costo por hora', 'Empresa', 'empresa', 'Ver y editar salarios, costo por hora e historial salarial.'),
@@ -44,9 +42,9 @@ PERFILES = {
     'Gerente de Departamento': ('Como supervisor, más expediente, planes de mejora y corrección de marcajes.',
                                 SUPERVISOR + ['equipo.expediente', 'asistencia.corregir'], 30),
     'Administrador': ('Dirección: todo el negocio y toda la empresa.', sorted(CODIGOS), 90),
-    'Administrador del sistema': ('Configura personas, accesos, monitoreo e integraciones. No ve salarios, expedientes ni documentos.',
-                                  ['personal.usuarios', 'monitoreo.ver', 'monitoreo.capturas', 'monitoreo.configurar', 'sistema.configurar', 'auditoria.ver'], 80),
-    'Tecnología': ('Monitoreo, capturas, computadoras y equipos.', ['monitoreo.ver', 'monitoreo.capturas', 'monitoreo.configurar'], 60),
+    'Administrador del sistema': ('Configura personas, accesos, equipos e integraciones. No ve salarios, expedientes ni documentos.',
+                                  ['personal.usuarios', 'activos.gestionar', 'sistema.configurar', 'auditoria.ver'], 80),
+    'Tecnología': ('Equipos y activos de la empresa.', ['activos.gestionar'], 60),
     'Gestión del Talento': ('Políticas, documentos, evaluaciones, expedientes, personas y salarios.',
                             ['talento.rrhh', 'personal.usuarios', 'personal.salarios'], 70),
     'Finanzas': ('Facturación, gastos, rentabilidad y costo por hora.', ['personal.salarios'], 65),

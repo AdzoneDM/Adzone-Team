@@ -64,7 +64,7 @@ INSTALLED_APPS = [
     'apps.integraciones',
     'apps.callcenter',
     'apps.asistencia',
-    'apps.monitoreo',
+    'apps.monitoreo',  # retirado: solo conserva sus migraciones (otras apps dependen de ellas)
     'apps.talento',
     'apps.activos',
     'apps.chat',

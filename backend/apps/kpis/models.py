@@ -34,8 +34,6 @@ class PlantillaKPI(models.Model):
         ('ASISTENCIA', '% de días laborables presentes'),
         ('HORAS', '% de horas trabajadas contra las programadas'),
         ('ADHERENCIA', 'Adherencia al horario (puntualidad, asistencia y horas)'),
-        ('ACTIVIDAD_PC', '% del tiempo en jornada con actividad en la computadora'),
-        ('PRODUCTIVIDAD_PC', '% del tiempo activo en apps y sitios productivos'),
         ('TAREAS_COMPLETADAS', 'Tareas (piezas, trabajos) validadas en el mes'),
         ('RETRABAJO', '% de tareas con correcciones (devueltas al menos una vez)'),
         ('HORAS_POR_TAREA', 'Horas registradas por tarea validada'),

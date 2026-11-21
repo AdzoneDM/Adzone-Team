@@ -34,7 +34,6 @@ urlpatterns = [
     path('api/integraciones/', include('apps.integraciones.urls')),
     path('api/callcenter/', include('apps.callcenter.urls')),
     path('api/asistencia/', include('apps.asistencia.urls')),
-    path('api/monitoreo/', include('apps.monitoreo.urls')),
     path('api/talento/', include('apps.talento.urls')),
     path('api/activos/', include('apps.activos.urls')),
     path('api/chat/', include('apps.chat.urls')),

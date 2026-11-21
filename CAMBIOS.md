@@ -1,5 +1,19 @@
 # Cambios
 
+## 12.23 · 21/11/2026 · Se elimina el módulo de Monitoreo; Auditoría más legible
+
+**Monitoreo eliminado** (sin tocar los demás módulos)
+- Se quitan la pantalla Monitoreo / Mi actividad, su API, el agente de escritorio (`agente/`), las reglas, perfiles, capturas, computadoras, incidencias, justificaciones y la tarea programada `limpiar_monitoreo`. Los permisos «Ver el monitoreo», «Ver capturas de pantalla» y «Configurar el monitoreo» desaparecen. `/monitoreo` redirige al Inicio.
+- **Lo que no se pierde porque no era monitoreo:** las alertas de tardanza y de entrada sin marcar (y ahora las de pausa larga) pasan a Asistencia (`revisar_jornadas`); los avisos ya enviados se copian a una tabla propia del sistema (`core.AlertaEnviada`) para no repetirlos; Activos sigue igual, sin el vínculo a «computadora monitoreada».
+- **Permisos:** nuevo permiso **Equipos y activos** (`activos.gestionar`). Quien tenía «Configurar el monitoreo» (Tecnología, Administrador del sistema, excepciones personales) lo recibe automáticamente; los demás permisos de monitoreo se retiran de todos los perfiles.
+- **KPIs:** los KPIs que salían de la actividad en la computadora (`ACTIVIDAD_PC`, `PRODUCTIVIDAD_PC`) pasan a **entrada manual**. La ficha, el panel gerencial, la evaluación y el CSV ya no traen columnas de computadora/productividad en PC. «Hoy» de Asistencia sin la columna Computadora.
+- **Políticas:** la política de monitoreo queda inactiva y sin pedir aceptación (sigue en el historial).
+- **Base de datos:** la migración `monitoreo.0008` **borra las tablas** de actividad, capturas, computadoras y reglas. **Haz un respaldo antes de desplegar.** La carpeta `apps/monitoreo` queda solo con sus migraciones (otras apps dependen de ellas) y se podrá quitar con un «squash» futuro.
+
+**Auditoría**
+- Cada cambio se muestra como lista, no como tabla de texto cortado: fecha y quién, qué se cambió y el detalle. En permisos y perfiles se ven **chips «+ agregado» (verde) y «− quitado» (rojo)** en vez de la lista completa pegada; en los demás campos, «antes → después». Solo aparece lo que cambió. En el celular se apila.
+
+
 ## 12.22 · 21/11/2026 · Nuevo permiso «Personas» (directorio, mínimo privilegio)
 
 - Nuevo permiso independiente **Personas** en Accesos y permisos → Sobre toda la empresa: «Ver a todas las personas, crear usuarios nuevos y desactivar cuentas, sin poder modificar correos ni cambiar contraseñas». El permiso **Personas y accesos** no cambia.

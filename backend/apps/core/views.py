@@ -74,7 +74,7 @@ def _tiene_permiso(user, codigo):
 
 def _es_tecnologia(user):
     from apps.core.permisos import tiene
-    return tiene(user, 'monitoreo.configurar')
+    return tiene(user, 'activos.gestionar')
 
 
 def datos_usuario(user):
@@ -95,7 +95,6 @@ def datos_usuario(user):
         'es_finanzas': es_finanzas(user),
         'es_tecnologia': _es_tecnologia(user),
         'permisos': sorted(_permisos(user)),
-        've_monitoreo': 'monitoreo.ver' in _permisos(user),
         'puede_asignar': _puede_asignar(user),
         'puede_autoasignar': _tiene_permiso(user, 'tareas.propias'),
         've_asistencia_equipo': _equipo_con(user, 'asistencia.ver'),

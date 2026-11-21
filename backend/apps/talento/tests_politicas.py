@@ -5,7 +5,6 @@ from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.desempeno.models import Notificacion
-from apps.monitoreo.models import Consentimiento
 from . import politicas as pol
 from .models import AceptacionPolitica, DocumentoEmpleado, Politica
 from .tests import Base
@@ -54,12 +53,8 @@ class PoliticasTests(Base):
         self.assertIn('Política', self.rrhh.get('/api/talento/politicas/cumplimiento/?formato=csv').content.decode('utf-8-sig'))
         self.assertEqual(self.como(self.jefe).get('/api/talento/politicas/cumplimiento/').status_code, 403)
 
-    def test_aceptar_la_de_monitoreo_es_el_consentimiento(self):
-        p = Politica.objects.get(clave='monitoreo-privacidad')
-        p.borrador = False
-        p.save()
-        self.como(self.ana).post(f'/api/talento/politicas/{p.pk}/aceptar/')
-        self.assertTrue(Consentimiento.objects.filter(usuario=self.ana).exists())
+    def test_ya_no_hay_politica_de_monitoreo(self):
+        self.assertFalse(Politica.objects.filter(clave='monitoreo-privacidad').exists())
 
     def test_borrador_no_se_acepta_y_solo_rrhh_crea(self):
         p = Politica.objects.get(clave='disciplina')

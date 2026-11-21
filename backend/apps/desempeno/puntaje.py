@@ -134,7 +134,7 @@ class Mediciones:
 
     def __init__(self, usuario, inicio, fin):
         self.usuario, self.inicio, self.fin = usuario, inicio, fin
-        self._asistencia = self._pc = self._tareas = None
+        self._asistencia = self._tareas = None
 
     @property
     def asistencia(self):
@@ -144,13 +144,6 @@ class Mediciones:
             r['adherencia'] = adherencia(r)
             self._asistencia = r
         return self._asistencia
-
-    @property
-    def pc(self):
-        if self._pc is None:
-            from apps.monitoreo.servicios import indicadores_pc
-            self._pc = indicadores_pc([self.usuario.pk], self.inicio, self.fin).get(self.usuario.pk, {})
-        return self._pc
 
     def minutos_por_tarea(self, todas=False):
         """Minutos del cronómetro por tarea en el mes (`todas`: incluye las que no se validaron)."""
@@ -241,18 +234,13 @@ class Mediciones:
             return min(a['cumplimiento_horas'], 100) if a['cumplimiento_horas'] is not None else None
         if fuente == 'ADHERENCIA':
             return a['adherencia']
-        if fuente == 'ACTIVIDAD_PC':
-            return self.pc.get('actividad')
-        if fuente == 'PRODUCTIVIDAD_PC':
-            return self.pc.get('productividad')
         return None
 
     def asistencia_puntaje(self):
-        """Adherencia al horario 0-100 y su detalle (con la actividad en PC solo como información)."""
+        """Adherencia al horario 0-100 y su detalle."""
         a = self.asistencia
         detalle = {k: a[k] for k in ('puntualidad', 'asistencia', 'cumplimiento_horas', 'adherencia', 'tardanzas',
                                      'minutos_tarde', 'ausencias', 'minutos_trabajados', 'minutos_extra', 'dias_laborables')}
-        detalle.update({k: self.pc.get(k) for k in ('actividad', 'productividad', 'minutos_activos', 'minutos_registrados')})
         valor = a['adherencia'] if a['adherencia'] is not None and a['dias_laborables'] else None
         return valor, detalle
 

@@ -62,7 +62,7 @@ def panel(periodo, hoy=None):
     ranking = actual['ranking']
 
     personal = User.objects.filter(is_active=True, perfil__puesto_trabajo__isnull=False)
-    por_depto = defaultdict(lambda: {'personas': 0, 'puntajes': [], 'asistencia': [], 'calidad': [], 'kpis': [], 'pc': [],
+    por_depto = defaultdict(lambda: {'personas': 0, 'puntajes': [], 'asistencia': [], 'calidad': [], 'kpis': [],
                                      'validadas': 0, 'vencidas': 0, 'horas': 0, 'bajo_minimo': 0})
     for nombre, n in personal.values_list('perfil__puesto_trabajo__departamento__nombre').annotate(n=Count('id')):
         por_depto[nombre or 'Sin departamento']['personas'] = n
@@ -72,7 +72,6 @@ def panel(periodo, hoy=None):
         d['asistencia'].append(f.get('puntaje_asistencia'))
         d['calidad'].append(f.get('puntaje_calidad'))
         d['kpis'].append(f.get('puntaje_kpis'))
-        d['pc'].append((f.get('jornada_detalle') or {}).get('productividad'))
         d['bajo_minimo'] += f['evaluacion'] == 'BAJO_MINIMO'
     for nombre, n in (Tarea.objects.filter(estado='COMPLETADA', fecha_completada__range=(inicio, fin))
                       .values_list('colaborador__perfil__puesto_trabajo__departamento__nombre').annotate(n=Count('id'))):
@@ -168,11 +167,6 @@ def panel(periodo, hoy=None):
         alertas.append({'tipo': 'DOCUMENTOS', 'nivel': 'alta' if vencidos else 'media',
                         'titulo': f"{len(docs['vencen'])} documento(s) por vencer" + (f' ({vencidos} vencido(s))' if vencidos else ''),
                         'detalle': '; '.join(f"{d['persona']}: {d['titulo']} ({d['vence']:%d/%m})" for d in docs['vencen'][:4]), 'enlace': '/politicas?ver=documentos'})
-    from apps.monitoreo.comportamiento import riesgo as riesgo_pc
-    riesgos = [v for v in riesgo_pc(list(personal.values_list('pk', flat=True)), inicio, fin).values() if v['nivel'] in ('ALTO', 'CRITICO')]
-    if riesgos:
-        alertas.append({'tipo': 'RIESGO', 'nivel': 'alta', 'titulo': f'{len(riesgos)} persona(s) con riesgo alto en la computadora',
-                        'detalle': 'Reglas de comportamiento: apuestas, acceso remoto, descargas, IA no aprobada…', 'enlace': '/monitoreo?ver=resumen'})
     from apps.activos.servicios import resumen as resumen_activos
     act = resumen_activos()
     if act['danados'] or act['mantenimiento_vencido']:
@@ -184,7 +178,7 @@ def panel(periodo, hoy=None):
     departamentos = sorted(({
         'nombre': n, 'personas': d['personas'], 'evaluados': len(d['puntajes']), 'puntaje': _prom(d['puntajes']),
         'asistencia': _prom(d['asistencia']), 'calidad': _prom(d['calidad']), 'kpis': _prom(d['kpis']),
-        'productividad_pc': _prom(d['pc']), 'tareas_validadas': d['validadas'], 'tareas_vencidas': d['vencidas'],
+        'tareas_validadas': d['validadas'], 'tareas_vencidas': d['vencidas'],
         'horas': d['horas'], 'bajo_minimo': d['bajo_minimo'], 'tendencia': tendencia_depto.get(n, []),
     } for n, d in por_depto.items() if d['personas'] or d['puntajes']), key=lambda x: x['nombre'])
 

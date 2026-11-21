@@ -181,7 +181,6 @@ Puesta en marcha:
 
 ```bash
 python manage.py migrate
-python manage.py reglas_productividad          # reglas de productividad por departamento (si faltan)
 python manage.py puestos_oficiales --aplicar   # deja activos los KPIs automáticos
 ```
 
@@ -190,7 +189,6 @@ Tareas programadas en Plesk:
 | Cada | Comando | Para qué |
 |---|---|---|
 | 10 minutos, de 7:00 a 20:00 | `python manage.py revisar_jornadas` | Avisos de tardanza, sin marcar, inactividad, PC sin reportar, improductivo |
-| 1 vez al día (madrugada) | `python manage.py limpiar_monitoreo` | Borra actividad de más de 90 días y capturas de más de 30 |
 
 Puesta en marcha recomendada:
 1. **Asistencia → Horarios**: revisa el horario de oficina, crea los del call center y asigna a cada persona. Desmarca «marca obligatoria» a la dirección si no marcará. Carga los feriados del año.
@@ -267,3 +265,8 @@ python manage.py departamentos_oficiales --aplicar  # lo hace
 ```
 
 Pasa los puestos a los departamentos oficiales y borra los departamentos viejos que queden vacíos (los que tengan Empleados del Mes guardados se conservan). Haz un respaldo de la base antes.
+
+
+### Retiro del monitoreo (versión 12.23)
+
+Se eliminó el módulo de monitoreo (agente, actividad, capturas, computadoras, reglas y su pantalla). La migración borra sus tablas: **haz un respaldo antes de desplegar**. Quien tenía permisos de monitoreo pasa a «Equipos y activos». Los KPIs que salían de la computadora pasan a entrada manual y la política de monitoreo queda inactiva. Quita del servidor la tarea `limpiar_monitoreo` si la tenías programada.

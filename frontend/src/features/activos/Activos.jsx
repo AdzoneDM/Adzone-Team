@@ -2,8 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, ArrowRightLeft, Boxes, Pencil, Plus, Search, Undo2, UserPlus, Wrench } from "lucide-react";
-import { activos, dispositivos, guardarActivo, historialActivo, listarProyectos, moverActivo, reportarActivo, resumenActivos } from "@/lib/api";
-import { dinero, hace } from "@/lib/formato";
+import { activos, guardarActivo, historialActivo, listarProyectos, moverActivo, reportarActivo, resumenActivos } from "@/lib/api";
+import { dinero } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 import { SelectorPersona } from "@/components/Selectores";
@@ -115,10 +115,8 @@ function FormActivo({ inicial, onCerrar, onListo }) {
   const avisar = useAviso();
   const [f, setF] = useState(inicial);
   const [error, setError] = useState("");
-  const [pcs, setPcs] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   useEffect(() => {
-    dispositivos().then(setPcs).catch(() => {});
     listarProyectos({ estado: "EN_CURSO" }).then((r) => setProyectos(r.results || r)).catch(() => {});
   }, []);
   const v = (k) => (f[k] ?? "");
@@ -146,7 +144,6 @@ function FormActivo({ inicial, onCerrar, onListo }) {
         <Campo etiqueta="Mantenimiento cada (meses)">{(id) => <input id={id} type="number" min={1} className="campo" value={v("mantenimiento_cada_meses")} onChange={poner("mantenimiento_cada_meses")} />}</Campo>
         <Campo etiqueta="Próximo mantenimiento">{(id) => <input id={id} type="date" className="campo" value={v("proximo_mantenimiento")} onChange={poner("proximo_mantenimiento")} />}</Campo>
         <Campo etiqueta="Proyecto (opcional)">{(id) => <select id={id} className="campo" value={v("proyecto")} onChange={poner("proyecto")}><option value="">—</option>{proyectos.map((p) => <option key={p.id} value={p.id}>{p.codigo} · {p.nombre}</option>)}</select>}</Campo>
-        <Campo etiqueta="Computadora monitoreada" ayuda="Si este equipo tiene el agente instalado." className="sm:col-span-2">{(id) => <select id={id} className="campo" value={v("dispositivo")} onChange={poner("dispositivo")}><option value="">—</option>{pcs.filter((d) => d.activo).map((d) => <option key={d.id} value={d.id}>{d.nombre} · {d.persona || d.usuario}</option>)}</select>}</Campo>
         <Campo etiqueta="Notas" className="sm:col-span-3">{(id) => <textarea id={id} rows={2} className="campo" value={v("notas")} onChange={poner("notas")} />}</Campo>
       </div>
     </Modal>
@@ -177,7 +174,6 @@ function Detalle({ id, lista, onCerrar, onEditar, onCambio }) {
       {error && <Alerta className="mb-3">{error}</Alerta>}
       <div className="flex flex-wrap items-center gap-2"><Insignia tono={TONO[a.estado]}>{a.estado_nombre}</Insignia>
         {a.asignado_nombre && <span className="text-sm">Asignado a <strong>{a.asignado_nombre}</strong></span>}
-        {a.dispositivo_nombre && <span className="text-sm text-gris">· PC monitoreada: {a.dispositivo_nombre} ({a.dispositivo_contacto ? hace(a.dispositivo_contacto) : "sin contacto"})</span>}
         <Boton tam="sm" variante="fantasma" icono={Pencil} className="ml-auto" onClick={() => onEditar(a)}>Editar</Boton></div>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[["Costo", a.costo != null ? dinero(a.costo) : "—"], ["Valor actual", a.valor_actual != null ? dinero(a.valor_actual) : "—"], ["Compra", fecha(a.fecha_compra)], ["Garantía", fecha(a.garantia_hasta)]].map(([t, v]) => (

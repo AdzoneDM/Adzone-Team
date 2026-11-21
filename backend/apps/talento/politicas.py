@@ -55,10 +55,6 @@ def pendientes(usuario):
 def aceptar(politica, usuario, ip=None, navegador=''):
     a, _ = AceptacionPolitica.objects.get_or_create(politica=politica, usuario=usuario, version=politica.version,
                                                     defaults={'ip': ip, 'navegador': (navegador or '')[:200]})
-    if politica.categoria == 'MONITOREO':
-        # Aceptar la política de monitoreo es también el consentimiento que pide el agente.
-        from apps.monitoreo.models import ConfiguracionMonitoreo, Consentimiento
-        Consentimiento.objects.get_or_create(usuario=usuario, version=ConfiguracionMonitoreo.actual().version_politica, defaults={'ip': ip})
     return a
 
 
@@ -123,7 +119,7 @@ def estado_documentos(hoy=None, dias=30):
 def revisar(hoy=None):
     """Para el cron diario: avisa a RR. HH. de documentos por vencer y recuerda las políticas pendientes cada semana."""
     from apps.desempeno.servicios import avisar
-    from apps.monitoreo.models import AlertaEnviada
+    from apps.core.models import AlertaEnviada
     hoy = hoy or timezone.localdate()
     enviados = 0
     rrhh = gente_rrhh()

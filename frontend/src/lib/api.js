@@ -364,33 +364,8 @@ export const pedirAusencia = (a) => api(`${AS}/ausencias/`, { method: "POST", bo
 export const retirarAusencia = (id) => api(`${AS}/ausencias/${id}/`, { method: "DELETE" });
 export const revisarAusencia = (id, aprobar, comentario) => api(`${AS}/ausencias/${id}/revisar/`, { method: "POST", body: { aprobar, comentario } });
 
-// Monitoreo de actividad
-const MO = "/api/monitoreo";
-export const monitoreoDia = (params) => api(`${MO}/dia/${q(params)}`);
-export const monitoreoPeriodo = (params) => api(`${MO}/periodo/${q(params)}`);
-export const monitoreoEquipo = (fecha) => api(`${MO}/equipo/${q({ fecha })}`);
-export const politicaMonitoreo = () => api(`${MO}/politica/`);
-export const aceptarPolitica = () => api(`${MO}/politica/`, { method: "POST" });
-export const dispositivos = () => api(`${MO}/dispositivos/`);
-export const vincularDispositivo = (datos) => api(`${MO}/dispositivos/`, { method: "POST", body: datos });
-export const editarDispositivo = (id, datos) => api(`${MO}/dispositivos/${id}/`, { method: "PATCH", body: datos });
-export const quitarDispositivo = (id) => api(`${MO}/dispositivos/${id}/`, { method: "DELETE" });
-export const reglasProductividad = () => api(`${MO}/reglas/`);
-export const guardarReglaProductividad = (r) => (r.id ? api(`${MO}/reglas/${r.id}/`, { method: "PATCH", body: r }) : api(`${MO}/reglas/`, { method: "POST", body: r }));
-export const borrarReglaProductividad = (id) => api(`${MO}/reglas/${id}/`, { method: "DELETE" });
-export const configMonitoreo = () => api(`${MO}/configuracion/`);
-export const guardarConfigMonitoreo = (d) => api(`${MO}/configuracion/`, { method: "PATCH", body: d });
-export const reclasificar = () => api(`${MO}/reclasificar/`, { method: "POST", body: { dias: 30 } });
-export const urlCaptura = (id) => `${MO}/capturas/${id}/`;
-
 // Ficha de productividad
 export const fichaProductividad = (params) => api(`${D}/ficha/${q(params)}`);
-
-// Productividad por proyecto y OT, y justificaciones de la computadora
-export const productividadProyectos = (mes) => api(`${MO}/proyectos/${q({ mes })}`);
-export const justificaciones = (params) => api(`${MO}/justificaciones/${q(params)}`);
-export const justificar = (d) => api(`${MO}/justificaciones/`, { method: "POST", body: d });
-export const revisarJustificacion = (id, aprobar, nota) => api(`${MO}/justificaciones/${id}/revisar/`, { method: "POST", body: { aprobar, nota } });
 
 // Panel gerencial
 export const panelGerencial = (mes) => api(`${D}/panel/${q({ mes })}`);
@@ -414,20 +389,6 @@ export const guardarEvento = (e) => (e.id ? api(`${TA}/expediente/${e.id}/`, { m
 export const borrarEvento = (id) => api(`${TA}/expediente/${id}/`, { method: "DELETE" });
 export const historialSalarios = (usuario) => api(`${TA}/salarios/${q({ usuario })}`);
 export const auditoria = (params) => api(`${TA}/auditoria/${q(params)}`);
-
-// Monitoreo v10: resumen, incidencias, reglas de comportamiento, perfiles, pantallas y computadoras
-export const resumenMonitoreo = (params) => api(`${MO}/resumen/${q(params)}`);
-export const incidencias = (params) => api(`${MO}/incidencias/${q(params)}`);
-export const revisarIncidencia = (id, d) => api(`${MO}/incidencias/${id}/`, { method: "PATCH", body: d });
-export const reglasComportamiento = () => api(`${MO}/reglas-comportamiento/`);
-export const guardarReglaComportamiento = (r) => (r.id ? api(`${MO}/reglas-comportamiento/${r.id}/`, { method: "PATCH", body: r }) : api(`${MO}/reglas-comportamiento/`, { method: "POST", body: r }));
-export const borrarReglaComportamiento = (id) => api(`${MO}/reglas-comportamiento/${id}/`, { method: "DELETE" });
-export const perfilesMonitoreo = () => api(`${MO}/perfiles/`);
-export const guardarPerfilMonitoreo = (p) => (p.id ? api(`${MO}/perfiles/${p.id}/`, { method: "PATCH", body: p }) : api(`${MO}/perfiles/`, { method: "POST", body: p }));
-export const borrarPerfilMonitoreo = (id) => api(`${MO}/perfiles/${id}/`, { method: "DELETE" });
-export const pantallasEnVivo = () => api(`${MO}/pantallas/`);
-export const computadoras = () => api(`${MO}/computadoras/`);
-export const reaplicarReglas = () => api(`${MO}/reglas-comportamiento/reaplicar/`, { method: "POST" });
 
 // Políticas y documentos del expediente
 export const politicas = () => api(`${TA}/politicas/`);
@@ -481,10 +442,6 @@ export const crearExcepcion = (e) => api("/api/accesos/excepciones/", { method: 
 export const borrarExcepcion = (id) => api(`/api/accesos/excepciones/${id}/`, { method: "DELETE" });
 export const crearEquipoExtra = (x) => api("/api/accesos/equipo-extra/", { method: "POST", body: x });
 export const borrarEquipoExtra = (id) => api(`/api/accesos/equipo-extra/${id}/`, { method: "DELETE" });
-
-// Calibración del piloto: lo que ninguna regla de productividad clasifica
-export const calibracion = (dias = 7) => api(`/api/monitoreo/calibracion/?dias=${dias}`);
-export const clasificar = (r) => api("/api/monitoreo/calibracion/", { method: "POST", body: r });
 
 // Lugares de marcaje (oficina con pantalla de QR) y pantalla pública del QR
 export const sitiosMarcaje = () => api(`${AS}/sitios/`);

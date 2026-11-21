@@ -118,7 +118,7 @@ class CambioSalarial(models.Model):
 
 
 class AuditoriaCambio(models.Model):
-    """Quién cambió qué y cuándo: metas y pesos de KPIs, reglas del puntaje, salarios, marcajes, monitoreo, evaluaciones."""
+    """Quién cambió qué y cuándo: metas y pesos de KPIs, reglas del puntaje, salarios, marcajes, evaluaciones."""
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
     accion = models.CharField(max_length=60)
     objeto = models.CharField(max_length=200)

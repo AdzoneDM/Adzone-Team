@@ -132,7 +132,7 @@ def revisar_kpis(periodo=None):
     from apps.desempeno.puntaje import Mediciones, kpis_del_mes, rango_del_mes
     from apps.desempeno.models import ResultadoKPI
     from apps.desempeno.servicios import avisar
-    from apps.monitoreo.models import AlertaEnviada
+    from apps.core.models import AlertaEnviada
     hoy = timezone.localdate()
     periodo = periodo or (hoy.replace(day=1) - timedelta(days=1)).replace(day=1)
     inicio, fin = rango_del_mes(periodo)
@@ -145,9 +145,6 @@ def revisar_kpis(periodo=None):
             _, nueva = AlertaEnviada.objects.get_or_create(usuario=u, clave=clave, defaults={'tipo': 'KPI', 'detalle': k['nombre'][:255]})
             if nueva:
                 gente = revisores_de(u, 'equipo.ver')
-                if k.get('fuente') in ('ACTIVIDAD_PC', 'PRODUCTIVIDAD_PC'):  # sale del monitoreo: solo Dirección y Tecnología
-                    from apps.core.permisos import tiene
-                    gente = [x for x in gente if tiene(x, 'monitoreo.ver')]
                 avisar(gente, 'TALENTO', f"{_nombre(u)}: «{k['nombre']}» al {round(k['cumplimiento'])} % en {inicio:%m/%Y}",
                        f"Su umbral es {k['umbral']:g} %. Revisa su ficha y, si hace falta, abre un plan de mejora.",
                        enlace=f'/ficha?usuario={u.pk}&mes={inicio:%Y-%m}')

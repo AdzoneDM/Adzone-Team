@@ -41,14 +41,12 @@ class ActivoSerializer(serializers.ModelSerializer):
     estado_nombre = serializers.CharField(source='get_estado_display', read_only=True)
     asignado_nombre = serializers.SerializerMethodField()
     proyecto_nombre = serializers.SerializerMethodField()
-    dispositivo_nombre = serializers.CharField(source='dispositivo.nombre', read_only=True, default=None)
-    dispositivo_contacto = serializers.DateTimeField(source='dispositivo.ultimo_contacto', read_only=True, default=None)
     valor_actual = serializers.SerializerMethodField()
 
     class Meta:
         model = Activo
         fields = ['id', 'codigo', 'nombre', 'categoria', 'categoria_nombre', 'marca', 'modelo', 'serie', 'estado', 'estado_nombre', 'ubicacion',
-                  'asignado_a', 'asignado_nombre', 'proyecto', 'proyecto_nombre', 'dispositivo', 'dispositivo_nombre', 'dispositivo_contacto',
+                  'asignado_a', 'asignado_nombre', 'proyecto', 'proyecto_nombre',
                   'fecha_compra', 'costo', 'proveedor', 'garantia_hasta', 'vida_util_meses', 'valor_residual', 'mantenimiento_cada_meses',
                   'proximo_mantenimiento', 'notas', 'valor_actual', 'creado']
         read_only_fields = ['codigo', 'estado', 'asignado_a']
@@ -89,7 +87,7 @@ class ActivoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         u = self.request.user
-        qs = Activo.objects.select_related('asignado_a', 'proyecto', 'dispositivo')
+        qs = Activo.objects.select_related('asignado_a', 'proyecto')
         if not servicios.gestiona_activos(u):
             return qs.filter(asignado_a=u)
         p = self.request.query_params

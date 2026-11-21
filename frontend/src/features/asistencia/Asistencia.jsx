@@ -162,7 +162,7 @@ function Hoy({ onVer }) {
       <Panel titulo="Equipo hoy" cuerpo="p-0">
         <div className="overflow-x-auto">
           <table className="tabla">
-            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th className="text-right">Trabajado</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th><th>Computadora</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th className="text-right">Trabajado</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th></tr></thead>
             <tbody>
               {d.personas.map((p) => (
                 <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
@@ -174,10 +174,6 @@ function Hoy({ onVer }) {
                   <td className="text-right num">{p.trabajados_seg ? dur(p.trabajados_seg) : "—"}</td>
                   <td className="text-right num">{p.almuerzo_seg ? dur(p.almuerzo_seg) : "—"}</td>
                   <td className={cx("text-right num", p.excesos > 0 && "text-rojo")}>{p.pausas_seg ? dur(p.pausas_seg) : "—"}</td>
-                  <td>{p.pc ? (
-                    <span className="text-sm"><span className={cx("mr-1.5 inline-block size-2 rounded-full", p.pc.en_vivo ? (p.pc.activo ? "bg-verde" : "bg-amarillo-600") : "bg-gris")} />
-                      {p.pc.en_vivo ? (p.pc.activo ? p.pc.app || "Activo" : "Inactivo") : `Visto ${hora(p.pc.minuto)}`}</span>
-                  ) : <span className="text-sm text-gris">—</span>}</td>
                 </tr>
               ))}
             </tbody>

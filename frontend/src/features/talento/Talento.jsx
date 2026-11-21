@@ -461,24 +461,68 @@ function Expediente({ usuarioInicial, supervisa, esAdmin, veSalarios }) {
 }
 
 // ---------------------------------------------------------------- Auditoría
+const NOMBRE_CAMPO = { permisos: "Permisos", perfiles: "Perfiles", roles: "Perfiles", is_active: "Cuenta activa", activo: "Activo", email: "Correo", nombre: "Nombre" };
+const texto = (v) => (v === true ? "Sí" : v === false ? "No" : v == null || v === "" ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v));
+
+/** Lo que cambió: en las listas (permisos, perfiles) lo que se agregó y lo que se quitó; en lo demás, el valor de antes y el de después. */
+function Cambio({ antes, despues }) {
+  // Solo lo que cambió: un valor igual antes y después es ruido
+  const claves = [...new Set([...Object.keys(antes || {}), ...Object.keys(despues || {})])].filter((k) => JSON.stringify(antes?.[k]) !== JSON.stringify(despues?.[k]));
+  if (!claves.length) return <span className="text-sm text-gris">Sin detalle</span>;
+  return (
+    <dl className="space-y-2">
+      {claves.map((k) => {
+        const a = antes?.[k], d = despues?.[k];
+        const lista = Array.isArray(a) || Array.isArray(d);
+        const antesL = Array.isArray(a) ? a : [], despuesL = Array.isArray(d) ? d : [];
+        const agregados = despuesL.filter((x) => !antesL.includes(x)), quitados = antesL.filter((x) => !despuesL.includes(x));
+        return (
+          <div key={k} className="min-w-0">
+            <dt className="text-xs font-medium text-gris">{NOMBRE_CAMPO[k] || k}</dt>
+            <dd className="mt-0.5 min-w-0 text-sm [overflow-wrap:anywhere]">
+              {lista ? (
+                agregados.length || quitados.length ? (
+                  <span className="flex flex-wrap gap-1">
+                    {agregados.map((x) => <span key={`+${x}`} className="rounded-md bg-verde-50 px-1.5 py-0.5 text-xs font-medium text-verde">+ {x}</span>)}
+                    {quitados.map((x) => <span key={`-${x}`} className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-medium text-rojo line-through decoration-rojo/50">− {x}</span>)}
+                  </span>
+                ) : <span className="text-gris">Sin cambios en la lista ({despuesL.length})</span>
+              ) : (
+                <span><span className="text-gris line-through decoration-gris/50">{texto(a)}</span> <span aria-hidden>→</span><span className="sr-only"> cambió a </span> <span className="font-medium text-tinta">{texto(d)}</span></span>
+              )}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
 function Auditoria() {
-  const [texto, setTexto] = useState("");
+  const [buscar, setBuscar] = useState("");
   const [lista, setLista] = useState(null);
   const [error, setError] = useState("");
-  useEffect(() => { const t = setTimeout(() => auditoria({ q: texto }).then(setLista).catch((e) => setError(e.message)), 300); return () => clearTimeout(t); }, [texto]);
-  const fmt = (o) => (o ? Object.entries(o).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(" · ") : "");
+  useEffect(() => { const t = setTimeout(() => auditoria({ q: buscar }).then(setLista).catch((e) => setError(e.message)), 300); return () => clearTimeout(t); }, [buscar]);
   return (
-    <Panel titulo="Auditoría de cambios" cuerpo="p-0" accion={<input className="campo !h-9 w-56" placeholder="Buscar…" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Buscar en la auditoría" />}>
-      <p className="px-5 pt-4 text-sm text-gris">Quién cambió KPIs, pesos, metas, reglas del puntaje, marcajes, horarios, puestos y salarios, con el valor de antes y el de después.</p>
+    <Panel titulo="Auditoría de cambios" cuerpo="p-0" accion={<input className="campo !h-9 w-full sm:w-56" placeholder="Buscar…" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar en la auditoría" />}>
+      <p className="px-5 pt-4 text-sm text-gris">Quién cambió KPIs, pesos, metas, reglas del puntaje, marcajes, horarios, puestos, permisos y salarios, con lo que se agregó, se quitó o cambió.</p>
       {error && <Alerta className="m-4">{error}</Alerta>}
       {!lista ? <Cargando /> : !lista.length ? <p className="p-5 text-sm text-gris">Sin cambios registrados.</p> : (
-        <div className="overflow-x-auto"><table className="tabla">
-          <thead><tr><th>Fecha</th><th>Quién</th><th>Qué</th><th>Antes</th><th>Después</th></tr></thead>
-          <tbody>{lista.map((a) => (
-            <tr key={a.id}><td className="whitespace-nowrap text-sm">{new Date(a.fecha).toLocaleString("es-DO", { dateStyle: "short", timeStyle: "short" })}</td>
-              <td className="text-sm">{a.usuario || "Sistema"}</td><td className="text-sm"><span className="font-medium">{a.accion}</span><span className="block text-xs text-gris">{a.objeto}</span></td>
-              <td className="max-w-xs text-xs text-gris">{fmt(a.antes)}</td><td className="max-w-xs text-xs">{fmt(a.despues)}</td></tr>))}</tbody>
-        </table></div>
+        <ul className="mt-3 divide-y divide-linea-suave border-t border-linea-suave">
+          {lista.map((a) => (
+            <li key={a.id} className="grid gap-x-6 gap-y-2 px-5 py-4 md:grid-cols-[9.5rem_minmax(0,13rem)_minmax(0,1fr)]">
+              <div className="text-sm">
+                <p className="num whitespace-nowrap font-medium text-tinta">{new Date(a.fecha).toLocaleString("es-DO", { dateStyle: "short", timeStyle: "short" })}</p>
+                <p className="text-gris [overflow-wrap:anywhere]">{a.usuario || "Sistema"}</p>
+              </div>
+              <div className="min-w-0 text-sm">
+                <p className="font-medium text-noche [overflow-wrap:anywhere]">{a.accion}</p>
+                <p className="mt-0.5 text-xs text-gris [overflow-wrap:anywhere]">{a.objeto}</p>
+              </div>
+              <Cambio antes={a.antes} despues={a.despues} />
+            </li>
+          ))}
+        </ul>
       )}
     </Panel>
   );

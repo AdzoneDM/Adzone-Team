@@ -7,7 +7,6 @@ const FUENTES = [
   ["", "Tareas validadas vinculadas al KPI"], ["ENTREGAS_A_TIEMPO", "% de tareas entregadas a tiempo"], ["PRIMERA", "% de tareas aprobadas a la primera"],
   ["RONDAS", "Rondas de revisión promedio"], ["CALIDAD", "Calidad promedio de las tareas"], ["PUNTUALIDAD", "Puntualidad (control de horario)"],
   ["ASISTENCIA", "Asistencia (control de horario)"], ["HORAS", "Horas cumplidas (control de horario)"], ["ADHERENCIA", "Adherencia al horario"],
-  ["ACTIVIDAD_PC", "Tiempo activo en la computadora"], ["PRODUCTIVIDAD_PC", "Productividad en la computadora"],
   ["TAREAS_COMPLETADAS", "Tareas (piezas) validadas en el mes"], ["RETRABAJO", "% de tareas con correcciones"],
   ["HORAS_POR_TAREA", "Horas por tarea validada"], ["DENTRO_ESTIMADO", "% de tareas dentro de lo estimado"],
   ["UTILIZACION", "% de la jornada en tareas (cronómetro)"], ["HORAS_EXTRA", "Horas extra del mes"],

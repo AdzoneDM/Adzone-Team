@@ -22,8 +22,6 @@ class Activo(models.Model):
     ubicacion = models.CharField(max_length=100, blank=True, help_text="Oficina, estudio, taller, segundo nivel…")
     asignado_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='activos')
     proyecto = models.ForeignKey('operaciones.Proyecto', on_delete=models.SET_NULL, null=True, blank=True, related_name='activos')
-    dispositivo = models.OneToOneField('monitoreo.Dispositivo', on_delete=models.SET_NULL, null=True, blank=True, related_name='activo_fijo',
-                                       help_text="La computadora vinculada al monitoreo, si aplica.")
     fecha_compra = models.DateField(null=True, blank=True)
     costo = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     proveedor = models.CharField(max_length=120, blank=True)

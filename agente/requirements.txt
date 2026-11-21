@@ -1,3 +1,0 @@
-# Opcionales: sin ellos el agente funciona en modo consola (sin ícono ni capturas).
-pystray>=0.19
-Pillow>=10.0

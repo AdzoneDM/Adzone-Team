@@ -12,9 +12,7 @@ La plataforma de trabajo de ADZONE: **tareas, KPIs y reconocimiento en un solo l
 - **Finanzas operativas:** cotizaciones, facturas con ITBIS, cobros, gastos con comprobante, cuentas por cobrar por antigüedad, órdenes sin facturar y rentabilidad por proyecto o cliente.
 - **Automatizaciones:** reglas «cuando pase X, haz Y» que avisan, crean tareas o envían datos a **n8n** por webhook firmado.
 - **Control de horario:** marcar entrada, pausas y salida desde PC o celular; horarios por persona, tardanzas, ausencias, horas extra, permisos y vacaciones con aprobación, feriados y Excel del mes.
-- **Monitoreo de actividad:** agente de escritorio (Windows/Mac) que mide solo en jornada aplicaciones, sitios, tiempo activo, productivo y de foco; reglas de productividad por departamento, equipo en vivo, capturas opcionales y avisos. Transparente y conforme a la Ley 172-13 (ver `docs/POLITICA_MONITOREO.md`). Minutos unidos al cronómetro de cada OT o proyecto, justificaciones y desconexiones.
 - **Talento:** evaluación 360° por ciclos con validación de la dirección para las evaluaciones bajas, planes de mejora, expediente (reconocimientos, observaciones, capacitaciones, bonos) y auditoría de cambios.
-- **Monitoreo avanzado:** resumen con insights, reglas de comportamiento e incidencias, riesgo interno, uso de IA, perfiles de monitoreo, pantallas en vivo y estado de cada computadora.
 - **Políticas y documentos:** políticas versionadas con aceptación digital y constancia, cumplimiento y documentos del expediente con vencimientos.
 - **Rentabilidad y activos:** rentabilidad real por OT, cliente y departamento (mano de obra, materiales, gastos, US$→RD$) e inventario de equipos con asignación, mantenimiento y depreciación.
 - **Panel gerencial:** la empresa del mes por área, con alertas de OT sobre horas o costo, áreas acumulando trabajo, puntajes bajando y necesidades de capacitación.
@@ -40,7 +38,6 @@ adzone-team/
 │   │   ├── finanzas/            cotizaciones, facturas, pagos, gastos y rentabilidad
 │   │   ├── automatizaciones/    reglas y webhooks a n8n
 │   │   ├── asistencia/          horarios, marcajes, jornada diaria, permisos y feriados
-│   │   ├── monitoreo/           agente: equipos, actividad por minuto, reglas, capturas, avisos y productividad por OT
 │   │   ├── talento/             evaluación 360°, planes de mejora, expediente, políticas, documentos y auditoría
 │   │   └── activos/             inventario de equipos, asignación, mantenimiento y depreciación
 │   ├── datos_iniciales/         organigrama oficial y ejemplo de equipo (sin datos personales)
@@ -52,7 +49,7 @@ adzone-team/
 │       ├── features/            una carpeta por área: ordenes, proyectos, clientes, tiempo, finanzas, automatizaciones, tareas, equipo…
 │       └── lib/                 API, sesión y formatos
 ├── agente/                      agente de escritorio de Adzone Team (Windows/Mac) y cómo construir el .exe
-├── docs/                        guía de operación, despliegue, arquitectura y política de monitoreo
+├── docs/                        guía de operación, despliegue y arquitectura
 └── .github/workflows/ci.yml     revisión automática en cada cambio
 ```
 

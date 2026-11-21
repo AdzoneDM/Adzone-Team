@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.contrib.auth.models import User
 from django.utils import timezone
 
 from .models import Activo, MovimientoActivo
@@ -12,13 +13,12 @@ def gestiona_activos(user):
     if not (user and user.is_authenticated):
         return False
     from apps.core.permisos import tiene
-    return es_administrador(user) or es_almacen(user) or tiene(user, 'monitoreo.configurar')
+    return es_administrador(user) or es_almacen(user) or tiene(user, 'activos.gestionar')
 
 
 def responsables():
     from apps.desempeno.permisos import administradores
-    from apps.monitoreo.servicios import tecnologia
-    gente = {u.pk: u for u in tecnologia()}
+    gente = {u.pk: u for u in User.objects.filter(is_active=True, groups__name__in=('Tecnología', 'Administrador del sistema')).distinct()}
     if not gente:
         gente = {u.pk: u for u in administradores()}
     return list(gente.values())
@@ -51,7 +51,7 @@ def mover(activo, tipo, por, persona=None, costo=None, nota='', fecha=None):
 def revisar(hoy=None):
     """Diario: mantenimientos vencidos o en los próximos 7 días y garantías que vencen en 30, una vez cada uno."""
     from apps.desempeno.servicios import avisar
-    from apps.monitoreo.models import AlertaEnviada
+    from apps.core.models import AlertaEnviada
     hoy = hoy or timezone.localdate()
     gente = responsables()
     enviados = 0

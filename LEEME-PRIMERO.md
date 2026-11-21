@@ -8,8 +8,7 @@ adzone-team/
 ├── backend/        Django (API). Aquí va el .env del servidor (nunca en GitHub)
 ├── frontend/       React: src/ (código) y dist/ (compilada, lista para el servidor)
 ├── servidor/       instalar.sh · respaldo.sh (cifrado) · tareas-programadas.txt
-├── agente/         agente de monitoreo para Windows y Mac
-├── docs/           DESPLIEGUE · PLAN_PILOTO · ARQUITECTURA · GUIA_OPERACION · POLITICA_MONITOREO
+├── docs/           DESPLIEGUE  · ARQUITECTURA · GUIA_OPERACION
 ├── .vscode/        configuración y extensiones recomendadas
 └── CAMBIOS.md      qué trae cada versión
 ```
@@ -98,4 +97,4 @@ Para trabajar después: haces cambios → `git add -A` → `git commit -m "qué 
 `bash servidor/instalar.sh --actualizar`.
 
 Lo demás (lugares de marcaje con QR y red de la oficina, avisos en el celular, portal del cliente, IA, respaldos)
-está paso a paso en **`docs/DESPLIEGUE.md`**. El piloto del monitoreo, en **`docs/PLAN_PILOTO.md`**.
+está paso a paso en **`docs/DESPLIEGUE.md`**.

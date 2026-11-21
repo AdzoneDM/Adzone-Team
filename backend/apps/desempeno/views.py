@@ -1080,11 +1080,11 @@ def panel_exportar_view(request):
                             ('Planes de mejora abiertos', 'planes_abiertos')):
         w.writerow([etiqueta, v(d[clave])])
     w.writerow([])
-    w.writerow(['Departamento', 'Personas', 'Evaluados', 'Puntaje', 'Asistencia', 'Calidad', 'KPIs', 'Productividad PC (%)',
+    w.writerow(['Departamento', 'Personas', 'Evaluados', 'Puntaje', 'Asistencia', 'Calidad', 'KPIs',
                 'Tareas validadas', 'Tareas vencidas', 'Horas registradas', 'Bajo el mínimo'])
     for x in d['departamentos']:
         w.writerow([x['nombre'], x['personas'], x['evaluados'], v(x['puntaje']), v(x['asistencia']), v(x['calidad']), v(x['kpis']),
-                    v(x['productividad_pc']), x['tareas_validadas'], x['tareas_vencidas'], x['horas'], x['bajo_minimo']])
+                    x['tareas_validadas'], x['tareas_vencidas'], x['horas'], x['bajo_minimo']])
     w.writerow([])
     w.writerow(['Alerta', 'Nivel', 'Detalle'])
     for a in d['alertas']:

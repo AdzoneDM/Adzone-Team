@@ -33,11 +33,7 @@ POLITICAS = [
      """1. Uso laboral. Las computadoras, el internet y el correo de ADZONE se usan para el trabajo. El uso personal breve se hace en pausa.
 2. Software. Solo se instala software con licencia y aprobado por Tecnología. No se usan programas de descarga P2P ni de acceso remoto sin autorización.
 3. Sitios. No se accede a contenido para adultos, apuestas o sitios que pongan en riesgo los equipos.
-4. Correo. El correo corporativo no se usa para registrarse en servicios personales.
-5. Reglas de comportamiento. La plataforma registra el uso de ciertos sitios y aplicaciones definidos en sus reglas; la lista está disponible para todos."""),
-    ('monitoreo-privacidad', 'Política de monitoreo de actividad y privacidad', 'MONITOREO',
-     "Qué mide el agente de Adzone Team, cuándo, quién lo ve y qué nunca se registra.",
-     None),  # el texto sale de la configuración del monitoreo
+4. Correo. El correo corporativo no se usa para registrarse en servicios personales."""),
     ('proteccion-datos', 'Política de protección de datos y confidencialidad', 'DATOS',
      "Cómo se cuida la información de clientes, colaboradores y de la empresa (Ley 172-13).",
      """1. Confidencialidad. La información de clientes, campañas, precios, contraseñas y datos personales es confidencial, durante y después de la relación laboral.
@@ -96,17 +92,16 @@ POLITICAS = [
      """1. Principios. Las medidas son proporcionales, se documentan y se aplican igual para todos.
 2. Escala. Llamado de atención verbal, amonestación escrita, plan de mejora y, en faltas graves, las medidas previstas en el Código de Trabajo.
 3. Descargo. Toda observación o amonestación registrada en el expediente permite al colaborador escribir su descargo.
-4. Alertas. Una alerta automática de la plataforma (monitoreo, asistencia, KPIs) nunca es por sí sola una sanción: la revisa una persona.
+4. Alertas. Una alerta automática de la plataforma (asistencia, KPIs) nunca es por sí sola una sanción: la revisa una persona.
 5. Registro. Cada medida queda en el expediente con fecha, responsable y evidencia."""),
 ]
 
 
 def sembrar_politicas(autor=None):
-    from apps.monitoreo.models import POLITICA
     from .models import Politica, VersionPolitica
     creadas = 0
     for clave, titulo, cat, resumen, contenido in POLITICAS:
-        texto = (contenido or POLITICA) + NOTA
+        texto = contenido + NOTA
         p, nueva = Politica.objects.get_or_create(clave=clave, defaults={
             'titulo': titulo, 'categoria': cat, 'resumen': resumen, 'contenido': texto, 'borrador': True, 'creada_por': autor})
         if nueva:

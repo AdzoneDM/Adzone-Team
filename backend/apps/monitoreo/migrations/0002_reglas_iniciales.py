@@ -2,8 +2,7 @@ from django.db import migrations
 
 
 def crear(apps, schema_editor):
-    from apps.monitoreo.reglas_iniciales import sembrar
-    sembrar(apps.get_model('monitoreo', 'ReglaProductividad'), apps.get_model('core', 'Departamento'))
+    """(Módulo retirado) Sembraba reglas que la migración final borra: ya no hace nada."""
 
 
 class Migration(migrations.Migration):

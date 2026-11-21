@@ -59,7 +59,7 @@ export default function Configuracion() {
           <Campo etiqueta={`Asistencia y puntualidad: ${pesoJornada} %`} className="mt-4" ayuda="Adherencia al horario: puntualidad, días asistidos y horas cumplidas. Solo cuenta para quien marca su jornada.">
             {(id) => <input id={id} type="range" min={0} max={100 - pesoTareas - pesoCalidad} step={1} value={pesoJornada} onChange={(e) => mover("peso_jornada", e.target.value)} className="w-full accent-azul" />}
           </Campo>
-          <p className="mt-4 text-sm text-gris">Los KPIs del puesto se quedan con el resto ({pesoKpis} %). La actividad de la computadora no da puntos: se muestra en la ficha y genera alertas.</p>
+          <p className="mt-4 text-sm text-gris">Los KPIs del puesto se quedan con el resto ({pesoKpis} %).</p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Puntualidad de una entrega tarde" ayuda="A tiempo vale 100; sin entregar y vencida, 0.">
               {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.nota_tarde} onChange={(e) => setF({ ...f, nota_tarde: e.target.value })} />}

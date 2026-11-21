@@ -200,11 +200,10 @@ SISTEMA_EVALUACION = (
 
 
 def _datos_evaluacion(evaluacion):
-    from .ficha import _sin_monitoreo, ficha
+    from .ficha import ficha
     u = evaluacion.evaluado
     hoy = timezone.localdate()
-    # A la API nunca va la actividad en la computadora, aunque quien evalúa pueda verla
-    f = _sin_monitoreo(ficha(u, hoy.replace(day=1), visor=evaluacion.evaluador, meses=6))
+    f = ficha(u, hoy.replace(day=1), visor=evaluacion.evaluador, meses=6)
     t = f.get('tareas') or {}
     return {
         'nombre': u.first_name or _nombre(u), 'puesto': (f.get('persona') or {}).get('puesto'), 'tipo': evaluacion.get_tipo_display(),

@@ -1,7 +1,7 @@
 """
 Ficha de productividad: todo lo que la plataforma mide de una persona en un mes, en un solo lugar.
 
-Junta el puntaje (tareas, KPIs y jornada), el control de horario, la actividad en la computadora, el tiempo
+Junta el puntaje (tareas, KPIs y jornada), el control de horario, el tiempo
 registrado en tareas y señales de riesgo (sobrecarga, baja actividad, tendencia a la baja).
 """
 from datetime import timedelta
@@ -11,7 +11,6 @@ from django.db.models import Count
 from django.utils import timezone
 
 from apps.asistencia import servicios as asistencia
-from apps.monitoreo import servicios as monitoreo
 from apps.tiempo.servicios import minutos_por_usuario
 from .models import ConfiguracionDesempeno
 from .puntaje import Mediciones, _puntaje_tareas, calcular_ranking, kpis_del_mes, rango_del_mes
@@ -29,7 +28,6 @@ def ficha(usuario, periodo, visor=None, meses=6):
     fila = next(iter(calcular_ranking(periodo, config=config, solo=usuario.pk)), None)
     med = Mediciones(usuario, inicio, fin)
     a = med.asistencia
-    pc = monitoreo.resumen_periodo(usuario, inicio, fin)
     minutos_tareas = minutos_por_usuario(inicio, fin, [usuario]).get(usuario.pk, 0)
     t = med.tareas
     tareas = {
@@ -47,12 +45,6 @@ def ficha(usuario, periodo, visor=None, meses=6):
         alertas.append({'tipo': 'asistencia', 'texto': f"{a['ausencias']} ausencia(s) sin permiso."})
     if a['sin_salida']:
         alertas.append({'tipo': 'marcaje', 'texto': f"{a['sin_salida']} día(s) sin marcar salida."})
-    if pc['actividad'] is not None and pc['actividad'] < 60:
-        alertas.append({'tipo': 'actividad', 'texto': f"Solo {pc['actividad']} % del tiempo en jornada con actividad en la computadora."})
-    if pc['improductividad'] is not None and pc['improductividad'] >= 20:
-        alertas.append({'tipo': 'improductivo', 'texto': f"{pc['improductividad']} % del tiempo activo en apps o sitios improductivos."})
-    if pc['cambios_por_hora'] is not None and pc['cambios_por_hora'] > 60:
-        alertas.append({'tipo': 'foco', 'texto': f"{pc['cambios_por_hora']} cambios de ventana por hora: mucha interrupción."})
     if utilizacion is not None and a['minutos_trabajados'] >= 20 * 60 and utilizacion < 30:
         alertas.append({'tipo': 'registro', 'texto': f"Solo {utilizacion} % de la jornada registrado en tareas con el cronómetro."})
 
@@ -63,7 +55,7 @@ def ficha(usuario, periodo, visor=None, meses=6):
         m = Mediciones(usuario, i, f)
         fila_mes = fila if n == 0 else next(iter(calcular_ranking(p, config=config, solo=usuario.pk)), None)
         tendencia.append({'mes': f'{p:%Y-%m}', 'puntaje': fila_mes['puntaje_total'] if fila_mes else None,
-                          'adherencia': m.asistencia['adherencia'], 'productividad': m.pc.get('productividad'),
+                          'adherencia': m.asistencia['adherencia'],
                           'a_tiempo': m.medir('ENTREGAS_A_TIEMPO'), 'calidad': m.medir('CALIDAD')})
     con_datos = [x['puntaje'] for x in tendencia if x['puntaje'] is not None]
     if len(con_datos) >= 3 and con_datos[-1] < con_datos[-2] < con_datos[-3]:
@@ -79,37 +71,11 @@ def ficha(usuario, periodo, visor=None, meses=6):
         'kpis': fila['kpis'] if fila else kpis_del_mes(usuario, inicio, fin, mediciones=med),
         'tareas': tareas,
         'horario': {**a, 'adherencia': a['adherencia']},
-        'computadora': {k: pc[k] for k in pc if k not in ()},
         'tiempo': {'minutos_en_tareas': minutos_tareas, 'utilizacion': utilizacion},
         'alertas': alertas,
         'tendencia': tendencia,
         'talento': _talento(usuario, visor or usuario),
     }
-    return _sin_monitoreo(datos) if _oculta_pc(usuario, visor) else datos
-
-
-PC_FUENTES = ('ACTIVIDAD_PC', 'PRODUCTIVIDAD_PC')
-PC_ALERTAS = ('actividad', 'improductivo', 'foco')
-
-
-def _oculta_pc(usuario, visor):
-    """La actividad en la computadora de otra persona solo la ven Dirección y Tecnología (permiso «monitoreo.ver»)."""
-    from .permisos import tiene
-    return visor is not None and visor.pk != usuario.pk and not tiene(visor, 'monitoreo.ver')
-
-
-def _sin_monitoreo(datos):
-    datos['computadora'] = None
-    if datos.get('puntaje'):
-        datos['puntaje']['motivos'] = [m for m in (datos['puntaje'].get('motivos') or []) if 'computadora' not in str(m).lower()]
-    datos['alertas'] = [a for a in datos['alertas'] if a['tipo'] not in PC_ALERTAS]
-    for t in datos['tendencia']:
-        t['productividad'] = None
-    for k in datos['kpis']:
-        if k.get('fuente') in PC_FUENTES:
-            k['valor'] = k['cumplimiento'] = None
-            k['bajo_umbral'] = False
-            k['oculto'] = True
     return datos
 
 
