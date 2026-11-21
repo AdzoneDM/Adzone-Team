@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.25 · 21/11/2026 · Ya no hace falta recargar para que una pantalla te deje entrar
+
+- **Causa:** los permisos de la sesión se cargaban al abrir la pestaña y no se actualizaban. Si después cambiaban tu perfil o tus permisos (o había una actualización), la pantalla te mandaba al Inicio hasta que recargabas con Ctrl+R.
+- **Corrección:** antes de decir «no tienes acceso», la app **pregunta al servidor una vez** si sigue siendo así, y si ya tienes el permiso te deja entrar. Además la sesión y el menú se actualizan solos al volver a la pestaña, al recuperar internet y cada 3 minutos. Un corte de internet breve ya no cierra tu sesión.
+- (Desde 12.20 las pantallas que no cargaban por una versión nueva ya se recargan solas una vez.)
+
+
 ## 12.24 · 21/11/2026 · Asistencia sin tablas que se cortan; salida visible; guía más clara
 
 - **Día por día** (Mi asistencia): ya no es una tabla ancha que se corta. Cada día es una fila que se lee **en el orden en que pasa**: Entrada → Almuerzo → Pausas → **Salida**, y al final los totales (Trabajado, Tarde, Extra) y los marcajes. Muestra el turno junto a cada hora («turno 8:00 a. m.», «programada 5:00 p. m.») y avisa en rojo la salida anticipada o la pausa que pasó el límite. En el celular se apila sin desbordar.

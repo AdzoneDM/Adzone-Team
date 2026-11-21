@@ -14,7 +14,7 @@ export function SesionProvider({ children }) {
       const datos = await sesion();
       setUsuario(datos?.isAuthenticated ? datos.user : null);
     } catch {
-      setUsuario(null);
+      // Sin internet un momento no es lo mismo que sesión cerrada: se conserva a la persona y se vuelve a preguntar después
     } finally {
       setCargando(false);
     }
@@ -27,6 +27,16 @@ export function SesionProvider({ children }) {
     const alVolver = () => { if (document.visibilityState === "visible" && usuario) recargar(); };
     document.addEventListener("visibilitychange", alVolver);
     return () => document.removeEventListener("visibilitychange", alVolver);
+  }, [usuario, recargar]);
+
+  // Los permisos y el menú se mantienen al día sin recargar: al volver a la pestaña, al volver a tener internet y cada pocos minutos
+  useEffect(() => {
+    if (!usuario) return undefined;
+    const alertar = () => recargar();
+    const t = setInterval(() => document.visibilityState === "visible" && recargar(), 180000);
+    window.addEventListener("focus", alertar);
+    window.addEventListener("online", alertar);
+    return () => { clearInterval(t); window.removeEventListener("focus", alertar); window.removeEventListener("online", alertar); };
   }, [usuario, recargar]);
 
   // Si la sesión se cierra en el servidor (inactividad) o falta activar los dos pasos, la app vuelve a preguntar
