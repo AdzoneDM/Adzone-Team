@@ -10,6 +10,9 @@ const TEXTO = { ENTRADA: "Marcar entrada", PAUSA: "Iniciar pausa", REGRESO: "Ter
 const ICONO = { ENTRADA: LogIn, PAUSA: Coffee, REGRESO: Play, SALIDA: LogOut };
 const MOTIVOS = ["Diligencia personal", "Reunión fuera", "Descanso", "Otro"]; // el almuerzo tiene su propio botón
 
+/** «17:00» → «5:00 p. m.» */
+const hhmm = (t) => { const [h, m] = String(t).split(":").map(Number); return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "a. m." : "p. m."}`; };
+
 export function useJornada() {
   const [estado, setEstado] = useState(null);
   // Se sincroniza con la hora oficial del servidor (la que se estampa al marcar), no con el reloj de la computadora.
@@ -103,6 +106,7 @@ export default function BotonJornada() {
           <p className="text-sm text-gris">Hoy {hoy.entrada ? `entraste a las ${horaExacta(hoy.entrada)}` : ""}
             {hoy.llegada === "TARDE" && <span className="text-rojo"> ({relojSeg(hoy.tardanza_seg)} tarde)</span>}</p>
           <p className="mt-1 text-sm">Trabajado: <strong className="num">{relojSeg(segundosHoy)}</strong>{hoy.almuerzo_seg ? <> · almuerzo {relojSeg(hoy.almuerzo_seg)}</> : null}{hoy.pausas_seg ? <> · pausas {relojSeg(hoy.pausas_seg)}</> : null}</p>
+          {hoy.turno && <p className="mt-1 text-sm">Salida programada: <strong className="num">{hhmm(hoy.turno[1])}</strong>{hoy.salida ? <span className="text-gris"> · ya marcaste a las {horaExacta(hoy.salida)}</span> : null}</p>}
           <p className="mt-1 text-xs text-gris">Hora oficial: <span className="num font-medium text-tinta">{horaExacta(horaOficial)}</span></p>
           {e === "EN_PAUSA" && limitePausa > 0 && (
             <p className={cx("mt-2 rounded-md px-2 py-1 text-sm", pasada ? "bg-rojo/10 font-semibold text-rojo" : "bg-amarillo-50 text-[#8a5a00]")}>

@@ -128,6 +128,9 @@ export function MesPersona({ usuario, puedeCorregir }) {
   );
 }
 
+/** «17:00» → «5:00 p. m.» */
+const hhmm = (t) => { const [h, m] = String(t).split(":").map(Number); return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "a. m." : "p. m."}`; };
+
 /** E entrada · P pausa · R regreso de pausa · A almuerzo · FA fin de almuerzo · S salida */
 function etiquetaMarcaje(m, todos) {
   if (m.tipo === "PAUSA") return m.almuerzo ? "A" : "P";
@@ -162,7 +165,7 @@ function Hoy({ onVer }) {
       <Panel titulo="Equipo hoy" cuerpo="p-0">
         <div className="overflow-x-auto">
           <table className="tabla">
-            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th className="text-right">Trabajado</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th>Salida</th><th className="text-right">Trabajado</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th></tr></thead>
             <tbody>
               {d.personas.map((p) => (
                 <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
@@ -170,7 +173,9 @@ function Hoy({ onVer }) {
                   <td><Estado e={p.estado} />{p.llegada === "TARDE" && <span className="ml-1 text-xs text-rojo">{p.tardanza} min tarde</span>}
                     {p.pausa_abierta && <span className={cx("mt-0.5 block text-xs", p.pausa_abierta.excedida ? "font-semibold text-rojo" : "text-gris")}>
                       {p.pausa_abierta.almuerzo ? "Almuerzo" : "Pausa"} desde las {hora(p.pausa_abierta.inicio)} · {dur(p.pausa_abierta.segundos)}{p.pausa_abierta.excedida ? " (pasó el límite)" : ""}</span>}</td>
-                  <td className="num">{hora(p.entrada)}{p.turno && <span className="block text-xs text-gris">turno {p.turno[0]}</span>}</td>
+                  <td className="num whitespace-nowrap">{hora(p.entrada)}{p.turno && <span className="block text-xs text-gris">turno {hhmm(p.turno[0])}</span>}</td>
+                  <td className="num whitespace-nowrap">{p.salida ? hora(p.salida) : <span className="text-gris">—</span>}{p.turno && <span className={cx("block text-xs whitespace-nowrap", p.salida ? "text-gris" : p.estado === "TRABAJANDO" || p.estado === "EN_PAUSA" ? "text-azul" : "text-gris")}>
+                    {p.salida ? "marcada" : "programada"} {hhmm(p.turno[1])}</span>}</td>
                   <td className="text-right num">{p.trabajados_seg ? dur(p.trabajados_seg) : "—"}</td>
                   <td className="text-right num">{p.almuerzo_seg ? dur(p.almuerzo_seg) : "—"}</td>
                   <td className={cx("text-right num", p.excesos > 0 && "text-rojo")}>{p.pausas_seg ? dur(p.pausas_seg) : "—"}</td>
