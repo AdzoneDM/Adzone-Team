@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.28 · 21/11/2026 · Mi asistencia: cada día con su línea de tiempo
+
+- «Día por día» rediseñado: cada día tiene su **fecha** en un recuadro, una frase clara («Entró 8:00 a. m. → Salió 5:00 p. m.», con el turno al lado), avisos en rojo solo si hubo tardanza o salida anticipada, y una **línea de tiempo** del día: el turno como franja punteada y encima el trabajo (verde), las pausas (amarillo) y la «Pausa - Almuerzo» (azul), con las horas debajo. A la derecha, los totales (Trabajado, Pausa - Almuerzo, Pausas, Extra), con lo que pasó el límite en rojo.
+- Los marcajes (E, P, R, A…) quedan plegados en «Ver N marcaje(s)»; corregirlos (+ marcaje y borrar) sigue igual para quien tiene permiso. Los días sin marcajes se muestran en una sola línea. En el celular se apila sin desbordar.
+
 ## 12.27 · 21/11/2026 · «Pausa - Almuerzo»
 
 - El almuerzo se nombra como un tipo de pausa: el botón dice **«Pausa - Almuerzo»** (y **«Pausa - Otro motivo»** para las demás, que muestran su motivo: «Pausa - Reunión fuera»). El contador, los avisos y la vista Hoy usan el mismo nombre.

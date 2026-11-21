@@ -1,13 +1,14 @@
 // Control de horario: mi asistencia, el equipo hoy y en el mes, permisos y vacaciones, horarios y feriados.
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import DiaDeAsistencia from "@/features/asistencia/DiaDeAsistencia";
 import { CalendarClock, Check, Download, Plus, Trash2, X } from "lucide-react";
 import {
   asignacionesHorario, asignarHorario, asistenciaHoy, asistenciaMes, asistenciaReporte, ausencias, borrarFeriado, borrarHorario,
   borrarMarcaje, corregirMarcaje, feriados, guardarFeriado, guardarHorario, horarios, pedirAusencia, retirarAusencia, revisarAusencia,
   departamentos, urlAsistenciaCsv,
 } from "@/lib/api";
-import { diaSemana, fechaCorta, horaExacta, mesActual, relojSeg } from "@/lib/formato";
+import { fechaCorta, horaExacta, mesActual, relojSeg } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import Lugares from "./Lugares";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Puntaje, SelectorMes, cx, useAviso, useConfirmar } from "@/components/ui";
@@ -66,33 +67,17 @@ export function MesPersona({ usuario, puedeCorregir }) {
         <>
           <ResumenAsistencia r={d.resumen} adherencia={d.adherencia} />
           <Panel titulo="Día por día" cuerpo="p-0">
-            {/* Cada día se lee de izquierda a derecha como pasó: entrada → almuerzo → pausas → salida, y al final los totales. Sin tabla ancha que se corte. */}
             <ul className="divide-y divide-linea-suave">
-              {[...d.dias].reverse().map((j) => {
-                const sinMovimiento = !j.laborable && !j.entrada;
-                return (
-                  <li key={j.fecha} className={cx("grid gap-x-6 gap-y-3 px-5 py-4 lg:grid-cols-[11rem_minmax(0,1fr)_17rem]", sinMovimiento && "text-gris")}>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-noche"><span className="capitalize">{diaSemana(j.fecha)}</span> {fechaCorta(j.fecha)}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        <Estado e={j.estado} />
-                        {j.feriado && <Insignia>Feriado</Insignia>}
-                        {j.sin_salida && <Insignia tono="amarillo">Sin salida</Insignia>}
-                      </div>
-                      {j.ausencia && <p className="mt-1 text-xs text-gris">{j.ausencia}</p>}
-                    </div>
-
-                    <div className="min-w-0">
-                      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <Hito etiqueta="Entrada" valor={hora(j.entrada)} nota={j.turno ? `turno ${hhmm(j.turno[0])}` : null} />
-                        <Hito etiqueta="Almuerzo" valor={j.almuerzo_seg ? dur(j.almuerzo_seg) : "—"} alerta={j.pausas.some((p) => p.almuerzo && p.excedida)}
-                          nota={j.almuerzo_inicio ? `desde ${hhmm(j.almuerzo_inicio)}` : j.almuerzo_programado ? `programado ${hhmm(j.almuerzo_programado)}` : null} />
-                        <Hito etiqueta="Pausas" valor={j.pausas_seg ? dur(j.pausas_seg) : "—"} alerta={j.pausas.some((p) => !p.almuerzo && p.excedida)}
-                          nota={j.excesos > 0 ? `+${dur(j.exceso_seg)} sobre el límite` : null} />
-                        <Hito etiqueta="Salida" valor={hora(j.salida)} nota={j.turno ? `${j.salida ? "turno" : "programada"} ${hhmm(j.turno[1])}` : null}
-                          alerta={j.salida_temprana > 0} aviso={j.salida_temprana > 0 ? `${j.salida_temprana} min antes` : null} />
-                      </dl>
-                      <div className="mt-3 flex flex-wrap items-center gap-1">
+              {[...d.dias].reverse().map((j) => (
+                <DiaDeAsistencia key={j.fecha} j={j}
+                  estado={<><Estado e={j.estado} />{j.feriado && <Insignia>Feriado</Insignia>}{j.sin_salida && <Insignia tono="amarillo">Sin salida</Insignia>}</>}
+                  marcajes={(j.marcajes.length > 0 || puedeCorregir) && (
+                    <details className="group">
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 text-xs text-azul marker:hidden hover:underline [&::-webkit-details-marker]:hidden">
+                        {j.marcajes.length > 0 && <span>Ver {j.marcajes.length} marcaje(s)</span>}
+                        {puedeCorregir && <button type="button" className="rounded px-1 text-azul hover:underline" onClick={(e) => { e.preventDefault(); setCorrigiendo({ fecha: j.fecha, tipo: "ENTRADA", hora: "08:00", nota: "" }); }}>+ marcaje</button>}
+                      </summary>
+                      <div className="mt-2 flex flex-wrap items-center gap-1">
                         {j.marcajes.map((m) => (
                           <span key={m.id} className={cx("inline-flex items-center gap-1 rounded border px-1.5 text-xs num", m.corregido ? "border-amarillo bg-amarillo-50" : "border-linea")}
                             title={`${m.tipo}${m.motivo ? ` · ${m.motivo}` : ""}${m.corregido ? " · corregido" : ""} · ${m.origen}`}>
@@ -104,18 +89,11 @@ export function MesPersona({ usuario, puedeCorregir }) {
                             }}><X className="size-3" /></button>}
                           </span>
                         ))}
-                        {puedeCorregir && <button type="button" className="rounded px-1 text-xs text-azul hover:underline" onClick={() => setCorrigiendo({ fecha: j.fecha, tipo: "ENTRADA", hora: "08:00", nota: "" })}>+ marcaje</button>}
+                        <span className="w-full text-[11px] text-gris">E entrada · P pausa · R regreso · A pausa - almuerzo · FA fin del almuerzo · S salida</span>
                       </div>
-                    </div>
-
-                    <dl className="grid grid-cols-3 gap-3 rounded-lg bg-fondo px-3 py-2.5 lg:self-start">
-                      <Hito etiqueta="Trabajado" valor={j.trabajados_seg ? dur(j.trabajados_seg) : "—"} fuerte />
-                      <Hito etiqueta="Tarde" valor={j.tardanza ? `${j.tardanza} min` : "—"} alerta={!!j.tardanza} />
-                      <Hito etiqueta="Extra" valor={j.extra_seg ? dur(j.extra_seg) : "—"} />
-                    </dl>
-                  </li>
-                );
-              })}
+                    </details>
+                  )} />
+              ))}
             </ul>
           </Panel>
         </>
@@ -137,17 +115,6 @@ export function MesPersona({ usuario, puedeCorregir }) {
           </div>
         )}
       </Modal>
-    </div>
-  );
-}
-
-/** Un dato del día: su nombre pequeño, el valor y una nota (turno, límite…). */
-function Hito({ etiqueta, valor, nota, alerta, aviso, fuerte }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs font-medium text-gris">{etiqueta}</dt>
-      <dd className={cx("num whitespace-nowrap", fuerte ? "text-[15px] font-semibold text-noche" : "text-[15px]", alerta && "font-semibold text-rojo")}>{valor}</dd>
-      {(nota || aviso) && <p className={cx("text-xs", aviso ? "text-rojo" : "text-gris")}>{aviso || nota}</p>}
     </div>
   );
 }
