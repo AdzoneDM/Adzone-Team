@@ -52,7 +52,7 @@ def estado_view(request):
         'marca_obligatoria': bool(obligatoria),  # si no la tiene, no se le pide marcar al entrar
         'estado': estado, 'siguientes': servicios.SIGUIENTES[estado],
         'ahora': timezone.now(),  # la hora oficial: la que se estampa al marcar. La pantalla se sincroniza con ella, no con el reloj de la PC
-        'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento, 'almuerzo': ultimo.es_almuerzo} if ultimo else None,
+        'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento, 'almuerzo': ultimo.es_almuerzo, 'motivo': ultimo.motivo_pausa} if ultimo else None,
         'en_almuerzo': estado == 'EN_PAUSA' and bool(ultimo and ultimo.es_almuerzo),
         'limites': {'pausa_min': horario.pausa_max_minutos if horario else 60, 'almuerzo_min': horario.almuerzo_minutos if horario else 60,
                     'almuerzo_inicio': (horario.almuerzo_inicio or None) if horario else None},

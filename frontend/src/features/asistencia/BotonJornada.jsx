@@ -62,7 +62,7 @@ export default function BotonJornada() {
       const lugar = await datosDeLugar(estado.donde_marca);
       const r = await marcarJornada(tipo, { motivo, movil: window.matchMedia("(max-width: 767px)").matches, ...lugar });
       // La hora que se muestra es la que quedó guardada en el servidor, al segundo
-      const dicho = { ENTRADA: "Entrada marcada", PAUSA: "Pausa iniciada", ALMUERZO: "Almuerzo iniciado", REGRESO: estado.en_almuerzo ? "Almuerzo terminado" : "Pausa terminada", FIN_ALMUERZO: "Almuerzo terminado", SALIDA: "Salida marcada" }[tipo];
+      const dicho = { ENTRADA: "Entrada marcada", PAUSA: "Pausa iniciada", ALMUERZO: "Pausa - Almuerzo iniciada", REGRESO: estado.en_almuerzo ? "Pausa - Almuerzo terminada" : "Pausa terminada", FIN_ALMUERZO: "Pausa - Almuerzo terminada", SALIDA: "Salida marcada" }[tipo];
       avisar(`${dicho} a las ${horaExacta(r?.momento)}`);
       setAbierto(false);
       setPidiendoMotivo(false);
@@ -79,6 +79,8 @@ export default function BotonJornada() {
   const horaOficial = estado.servidorMs + transcurrido * 1000;
   // Contador de la pausa: desde que la inició (hora del servidor) y contra su límite (60 min por defecto; el almuerzo, el suyo)
   const enAlmuerzo = !!estado.en_almuerzo;
+  const motivoPausa = estado.ultimo?.motivo && estado.ultimo.motivo !== "Almuerzo" ? estado.ultimo.motivo : "";
+  const nombrePausa = enAlmuerzo ? "Pausa - Almuerzo" : motivoPausa ? `Pausa - ${motivoPausa}` : "Pausa";
   const segundosPausa = e === "EN_PAUSA" && estado.ultimo ? Math.max(0, (horaOficial - Date.parse(estado.ultimo.momento)) / 1000) : 0;
   const limitePausa = (enAlmuerzo ? estado.limites?.almuerzo_min : estado.limites?.pausa_min) * 60 || 0;
   const pasada = e === "EN_PAUSA" && limitePausa > 0 && segundosPausa >= limitePausa;
@@ -99,7 +101,7 @@ export default function BotonJornada() {
       <button type="button" onClick={() => setAbierto((a) => !a)} aria-expanded={abierto} aria-label={`Jornada: ${etiqueta}`}
         className={cx("flex h-10 items-center gap-1.5 rounded-lg border px-2.5 text-sm font-semibold sm:gap-2 sm:px-3", color)}>
         <span className={cx("size-2 rounded-full", punto)} />
-        <span className="num">{e === "EN_PAUSA" && <span className="hidden font-sans sm:inline">{enAlmuerzo ? "Almuerzo " : "Pausa "}</span>}{etiqueta}</span>
+        <span className="num">{e === "EN_PAUSA" && <span className="hidden font-sans sm:inline">{nombrePausa} </span>}{etiqueta}</span>
       </button>
       {abierto && (
         <div className="fixed inset-x-4 top-16 z-40 rounded-xl border border-linea bg-white p-3 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-64">
@@ -110,7 +112,7 @@ export default function BotonJornada() {
           <p className="mt-1 text-xs text-gris">Hora oficial: <span className="num font-medium text-tinta">{horaExacta(horaOficial)}</span></p>
           {e === "EN_PAUSA" && limitePausa > 0 && (
             <p className={cx("mt-2 rounded-md px-2 py-1 text-sm", pasada ? "bg-rojo/10 font-semibold text-rojo" : "bg-amarillo-50 text-[#8a5a00]")}>
-              {pasada ? `Pasaste el límite de ${Math.round(limitePausa / 60)} min: marca tu regreso.` : `${enAlmuerzo ? "Almuerzo" : "Pausa"}: límite ${Math.round(limitePausa / 60)} min.`}
+              {pasada ? `Pasaste el límite de ${Math.round(limitePausa / 60)} min: marca tu regreso.` : `${nombrePausa}: límite ${Math.round(limitePausa / 60)} min.`}
             </p>
           )}
           <div className="mt-3 grid gap-2">
@@ -118,13 +120,13 @@ export default function BotonJornada() {
               if (t === "PAUSA") {
                 return (
                   <div key={t} className="grid gap-2">
-                    <Boton variante="primario" icono={Utensils} cargando={enviando} onClick={() => marcar("ALMUERZO", "Almuerzo")}>Iniciar almuerzo</Boton>
-                    <Boton variante="secundario" icono={Coffee} cargando={enviando} onClick={() => setPidiendoMotivo(true)}>Iniciar pausa</Boton>
+                    <Boton variante="primario" icono={Utensils} cargando={enviando} onClick={() => marcar("ALMUERZO", "Almuerzo")}>Pausa - Almuerzo</Boton>
+                    <Boton variante="secundario" icono={Coffee} cargando={enviando} onClick={() => setPidiendoMotivo(true)}>Pausa - Otro motivo</Boton>
                   </div>
                 );
               }
               const Icono = ICONO[t];
-              const texto = t === "REGRESO" && enAlmuerzo ? "Terminar almuerzo" : TEXTO[t];
+              const texto = t === "REGRESO" && enAlmuerzo ? "Terminar pausa - almuerzo" : TEXTO[t];
               return <Boton key={t} variante={t === "SALIDA" ? "secundario" : "primario"} icono={Icono} cargando={enviando}
                 onClick={() => marcar(t === "REGRESO" && enAlmuerzo ? "FIN_ALMUERZO" : t)}>{texto}</Boton>;
             })}

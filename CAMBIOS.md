@@ -1,5 +1,9 @@
 # Cambios
 
+## 12.27 · 21/11/2026 · «Pausa - Almuerzo»
+
+- El almuerzo se nombra como un tipo de pausa: el botón dice **«Pausa - Almuerzo»** (y **«Pausa - Otro motivo»** para las demás, que muestran su motivo: «Pausa - Reunión fuera»). El contador, los avisos y la vista Hoy usan el mismo nombre.
+
 ## 12.26 · 21/11/2026 · Organigrama: zoom más rápido y fluido
 
 - El acercamiento a un departamento y el desplazamiento ahora ocurren **a la vez**, en un solo movimiento continuo de 0,3 s que frena suave al llegar (antes primero hacía el zoom, esperaba y después se desplazaba: ~0,7 s en dos tiempos). Se anima directo, cuadro a cuadro, sin volver a dibujar todo el organigrama en cada cuadro.

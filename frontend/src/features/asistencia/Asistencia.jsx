@@ -196,7 +196,7 @@ function Hoy({ onVer }) {
                   <td><p className="font-medium">{p.nombre}</p><p className="text-xs text-gris">{p.puesto || "Sin puesto"}</p></td>
                   <td><Estado e={p.estado} />{p.llegada === "TARDE" && <span className="ml-1 text-xs text-rojo">{p.tardanza} min tarde</span>}
                     {p.pausa_abierta && <span className={cx("mt-0.5 block text-xs", p.pausa_abierta.excedida ? "font-semibold text-rojo" : "text-gris")}>
-                      {p.pausa_abierta.almuerzo ? "Almuerzo" : "Pausa"} desde las {hora(p.pausa_abierta.inicio)} · {dur(p.pausa_abierta.segundos)}{p.pausa_abierta.excedida ? " (pasó el límite)" : ""}</span>}</td>
+                      {p.pausa_abierta.almuerzo ? "Pausa - Almuerzo" : "Pausa"} desde las {hora(p.pausa_abierta.inicio)} · {dur(p.pausa_abierta.segundos)}{p.pausa_abierta.excedida ? " (pasó el límite)" : ""}</span>}</td>
                   <td className="num whitespace-nowrap">{hora(p.entrada)}{p.turno && <span className="block text-xs text-gris">turno {hhmm(p.turno[0])}</span>}</td>
                   <td className="text-right num">{p.almuerzo_seg ? dur(p.almuerzo_seg) : "—"}</td>
                   <td className={cx("text-right num", p.excesos > 0 && "text-rojo")}>{p.pausas_seg ? dur(p.pausas_seg) : "—"}</td>
