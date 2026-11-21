@@ -156,7 +156,7 @@ function Hoy({ onVer }) {
       <Panel titulo="Equipo hoy" cuerpo="p-0">
         <div className="overflow-x-auto">
           <table className="tabla">
-            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th><th>Salida</th><th className="text-right">Trabajado</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th className="text-right">Pausas</th><th>Salida</th><th className="text-right">Trabajado</th></tr></thead>
             <tbody>
               {d.personas.map((p) => (
                 <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
@@ -165,8 +165,8 @@ function Hoy({ onVer }) {
                     {p.pausa_abierta && <span className={cx("mt-0.5 block text-xs", p.pausa_abierta.excedida ? "font-semibold text-rojo" : "text-gris")}>
                       {p.pausa_abierta.almuerzo ? "Pausa - Almuerzo" : "Pausa"} desde las {hora(p.pausa_abierta.inicio)} · {dur(p.pausa_abierta.segundos)}{p.pausa_abierta.excedida ? " (pasó el límite)" : ""}</span>}</td>
                   <td className="num whitespace-nowrap">{hora(p.entrada)}{p.turno && <span className="block text-xs text-gris">turno {hhmm(p.turno[0])}</span>}</td>
-                  <td className="text-right num">{p.almuerzo_seg ? dur(p.almuerzo_seg) : "—"}</td>
-                  <td className={cx("text-right num", p.excesos > 0 && "text-rojo")}>{p.pausas_seg ? dur(p.pausas_seg) : "—"}</td>
+                  <td className={cx("text-right num", p.excesos > 0 && "text-rojo")}>{p.pausa_seg ? dur(p.pausa_seg) : "—"}
+                    {p.almuerzo_seg > 0 && <span className="block text-xs font-normal text-gris">incluye almuerzo {dur(p.almuerzo_seg)}</span>}</td>
                   <td className="num whitespace-nowrap">{p.salida ? hora(p.salida) : <span className="text-gris">—</span>}{p.turno && <span className={cx("block text-xs whitespace-nowrap", p.salida ? "text-gris" : p.estado === "TRABAJANDO" || p.estado === "EN_PAUSA" ? "text-azul" : "text-gris")}>
                     {p.salida ? "marcada" : "programada"} {hhmm(p.turno[1])}</span>}</td>
                   <td className="text-right num">{p.trabajados_seg ? dur(p.trabajados_seg) : "—"}</td>
@@ -196,7 +196,7 @@ function MesEquipo({ onVer }) {
         <Panel cuerpo="p-0">
           <div className="overflow-x-auto">
             <table className="tabla">
-              <thead><tr><th>Persona</th><th className="text-right">Adherencia</th><th className="text-right">Puntualidad</th><th className="text-right">Asistencia</th><th className="text-right">Tardanzas</th><th className="text-right">Ausencias</th><th className="text-right">Trabajadas</th><th className="text-right">Extra</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th><th className="text-right">Sin salida</th></tr></thead>
+              <thead><tr><th>Persona</th><th className="text-right">Adherencia</th><th className="text-right">Puntualidad</th><th className="text-right">Asistencia</th><th className="text-right">Tardanzas</th><th className="text-right">Ausencias</th><th className="text-right">Trabajadas</th><th className="text-right">Extra</th><th className="text-right">Pausas</th><th className="text-right">Sin salida</th></tr></thead>
               <tbody>
                 {d.personas.map((p) => (
                   <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
@@ -208,8 +208,9 @@ function MesEquipo({ onVer }) {
                     <td className={cx("text-right num", p.ausencias && "text-rojo")}>{p.ausencias}</td>
                     <td className="text-right num">{dur(p.segundos_trabajados)}</td>
                     <td className={cx("text-right num", p.minutos_extra >= 600 && "text-[#a86a00]")}>{dur(p.segundos_extra)}</td>
-                    <td className="text-right num">{dur(p.segundos_almuerzo)}</td>
-                    <td className={cx("text-right num", p.pausas_excedidas > 0 && "text-rojo")}>{dur(p.segundos_pausas)}{p.pausas_excedidas > 0 && <span className="block text-xs">{p.pausas_excedidas} pasaron el límite</span>}</td>
+                    <td className={cx("text-right num", p.pausas_excedidas > 0 && "text-rojo")}>{dur(p.segundos_pausa)}
+                      {p.segundos_almuerzo > 0 && <span className="block text-xs font-normal text-gris">incluye almuerzo {dur(p.segundos_almuerzo)}</span>}
+                      {p.pausas_excedidas > 0 && <span className="block text-xs">{p.pausas_excedidas} pasaron el límite</span>}</td>
                     <td className="text-right num">{p.sin_salida}</td>
                   </tr>
                 ))}

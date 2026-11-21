@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.29 · 21/11/2026 · El almuerzo es una pausa: un solo total de Pausas
+
+- **Un solo total:** el almuerzo ya no se muestra como una cifra aparte que parece sumarse a las pausas. «Pausas» es **un total que incluye el almuerzo**, y debajo se detalla cada pausa (Pausa 10:00 a. m. 0:20:00 · Almuerzo 12:00 p. m. 1:05:00). Lo mismo en el día a día, en «Hoy» («incluye almuerzo …»), en el reporte del equipo, en el panel del botón de jornada y en el Excel (columnas «Pausas, incluido el almuerzo» y «De ellas, almuerzo»).
+- El tiempo trabajado no cambia: nunca descontó dos veces (las pausas, almuerzo incluido, son el tiempo entre marcajes).
+
 ## 12.28 · 21/11/2026 · Mi asistencia: cada día con su línea de tiempo
 
 - «Día por día» rediseñado: cada día tiene su **fecha** en un recuadro, una frase clara («Entró 8:00 a. m. → Salió 5:00 p. m.», con el turno al lado), avisos en rojo solo si hubo tardanza o salida anticipada, y una **línea de tiempo** del día: el turno como franja punteada y encima el trabajo (verde), las pausas (amarillo) y la «Pausa - Almuerzo» (azul), con las horas debajo. A la derecha, los totales (Trabajado, Pausa - Almuerzo, Pausas, Extra), con lo que pasó el límite en rojo.

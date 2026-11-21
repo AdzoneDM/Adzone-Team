@@ -158,13 +158,13 @@ def reporte_view(request):
         w.writerow(['Colaborador', 'Puesto', 'Departamento', 'Días laborables', 'Días presentes', 'A tiempo', 'Tardanzas',
                     'Tiempo tarde (H:MM:SS)', 'Ausencias', 'Permisos', 'Salidas tempranas', 'Días sin marcar salida',
                     'Horas programadas', 'Tiempo trabajado (H:MM:SS)', 'Segundos trabajados', 'Horas trabajadas (decimal)',
-                    'Tiempo extra (H:MM:SS)', 'Almuerzo (H:MM:SS)', 'Pausas (H:MM:SS)', 'Pausas que pasaron el límite', 'Exceso en pausas (H:MM:SS)', 'Puntualidad %', 'Asistencia %', 'Adherencia %'])
+                    'Tiempo extra (H:MM:SS)', 'Pausas, incluido el almuerzo (H:MM:SS)', 'De ellas, almuerzo (H:MM:SS)', 'Pausas que pasaron el límite', 'Exceso en pausas (H:MM:SS)', 'Puntualidad %', 'Asistencia %', 'Adherencia %'])
         for f in filas:
             w.writerow([f['nombre'], f['puesto'] or '', f['departamento'] or '', f['dias_laborables'], f['dias_presentes'], f['dias_a_tiempo'],
                         f['tardanzas'], _hms(f['segundos_tarde']), f['ausencias'], f['permisos'], f['salidas_tempranas'], f['sin_salida'],
                         round(f['minutos_programados'] / 60, 2), _hms(f['segundos_trabajados']), f['segundos_trabajados'],
                         round(f['segundos_trabajados'] / 3600, 4), _hms(f['segundos_extra']),
-                        _hms(f['segundos_almuerzo']), _hms(f['segundos_pausas']), f['pausas_excedidas'], _hms(f['segundos_exceso_pausa']),
+                        _hms(f['segundos_pausa']), _hms(f['segundos_almuerzo']), f['pausas_excedidas'], _hms(f['segundos_exceso_pausa']),
                         f['puntualidad'] if f['puntualidad'] is not None else '', f['asistencia'] if f['asistencia'] is not None else '',
                         f['adherencia'] if f['adherencia'] is not None else ''])
         return resp

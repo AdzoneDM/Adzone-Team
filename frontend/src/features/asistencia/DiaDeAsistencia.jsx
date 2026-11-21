@@ -70,7 +70,7 @@ export default function DiaDeAsistencia({ j, estado, marcajes }) {
   const conDatos = segs.length > 0;
   const almExceso = j.pausas.some((p) => p.almuerzo && p.excedida), pausaExceso = j.pausas.some((p) => !p.almuerzo && p.excedida);
   return (
-    <li className="grid gap-x-5 gap-y-3 px-4 py-4 sm:px-5 md:grid-cols-[5.5rem_minmax(0,1fr)_13rem]">
+    <li className="grid gap-x-5 gap-y-3 px-4 py-4 sm:px-5 md:grid-cols-[5.5rem_minmax(0,1fr)_14.5rem]">
       {/* Fecha y estado */}
       <div className="flex items-center gap-3 md:block">
         <div className="flex size-14 shrink-0 flex-col items-center justify-center rounded-xl bg-fondo md:mb-2">
@@ -115,8 +115,14 @@ export default function DiaDeAsistencia({ j, estado, marcajes }) {
             <dt className="text-sm font-medium text-noche">Trabajado</dt>
             <dd className="num text-lg font-semibold text-noche">{j.trabajados_seg ? dur(j.trabajados_seg) : "—"}</dd>
           </div>
-          <Cifra etiqueta="Pausa - Almuerzo" valor={j.almuerzo_seg ? dur(j.almuerzo_seg) : "—"} alerta={almExceso} />
-          <Cifra etiqueta="Pausas" valor={j.pausas_seg ? dur(j.pausas_seg) : "—"} alerta={pausaExceso} nota={j.excesos > 0 ? `+${dur(j.exceso_seg)} sobre el límite` : null} />
+          {/* El almuerzo es una pausa más: UN solo total de pausas, con el detalle de cada una debajo (no se cuenta dos veces) */}
+          <Cifra etiqueta="Pausas" valor={j.pausa_seg ? dur(j.pausa_seg) : "—"} alerta={almExceso || pausaExceso} nota={j.excesos > 0 ? `+${dur(j.exceso_seg)} sobre el límite` : null} />
+          {j.pausas.map((p, i) => (
+            <div key={i} className="flex items-baseline justify-between gap-3 pl-3 text-xs">
+              <dt className="flex items-center gap-1.5 whitespace-nowrap text-gris"><span className={cx("size-1.5 shrink-0 rounded-full", p.almuerzo ? COLOR.almuerzo : COLOR.pausa)} />{p.almuerzo ? "Almuerzo" : "Pausa"} <span className="num">{hora(p.inicio)}</span></dt>
+              <dd className={cx("num", p.excedida ? "font-semibold text-rojo" : "text-gris")}>{dur(p.segundos)}</dd>
+            </div>
+          ))}
           {j.extra_seg > 0 && <Cifra etiqueta="Extra" valor={dur(j.extra_seg)} />}
         </dl>
       )}

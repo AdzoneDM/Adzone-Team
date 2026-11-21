@@ -107,7 +107,7 @@ export default function BotonJornada() {
         <div className="fixed inset-x-4 top-16 z-40 rounded-xl border border-linea bg-white p-3 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-64">
           <p className="text-sm text-gris">Hoy {hoy.entrada ? `entraste a las ${horaExacta(hoy.entrada)}` : ""}
             {hoy.llegada === "TARDE" && <span className="text-rojo"> ({relojSeg(hoy.tardanza_seg)} tarde)</span>}</p>
-          <p className="mt-1 text-sm">Trabajado: <strong className="num">{relojSeg(segundosHoy)}</strong>{hoy.almuerzo_seg ? <> · almuerzo {relojSeg(hoy.almuerzo_seg)}</> : null}{hoy.pausas_seg ? <> · pausas {relojSeg(hoy.pausas_seg)}</> : null}</p>
+          <p className="mt-1 text-sm">Trabajado: <strong className="num">{relojSeg(segundosHoy)}</strong>{hoy.pausa_seg ? <> · pausas {relojSeg(hoy.pausa_seg)}{hoy.almuerzo_seg ? <span className="text-gris"> (incluye almuerzo {relojSeg(hoy.almuerzo_seg)})</span> : null}</> : null}</p>
           {hoy.turno && <p className="mt-1 text-sm">Salida programada: <strong className="num">{hhmm(hoy.turno[1])}</strong>{hoy.salida ? <span className="text-gris"> · ya marcaste a las {horaExacta(hoy.salida)}</span> : null}</p>}
           <p className="mt-1 text-xs text-gris">Hora oficial: <span className="num font-medium text-tinta">{horaExacta(horaOficial)}</span></p>
           {e === "EN_PAUSA" && limitePausa > 0 && (
