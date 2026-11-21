@@ -45,6 +45,16 @@
   100% { opacity: 1; transform: scale(1); }
 }
 
+/* Guía paso a paso: la tarjeta entra suave y el marco que resalta late para llamar la atención */
+@keyframes guia-entra {
+  0% { opacity: 0; transform: translateY(10px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes guia-pulso {
+  0%, 100% { box-shadow: 0 0 0 9999px rgb(15 37 80 / 0.6), 0 0 0 0 rgb(255 193 7 / 0.55); }
+  50% { box-shadow: 0 0 0 9999px rgb(15 37 80 / 0.6), 0 0 0 10px rgb(255 193 7 / 0); }
+}
+
 /* Recordatorio del supervisor: una sacudida corta para llamar la atención */
 @keyframes sacudir {
   0%, 100% { transform: translateX(0); }

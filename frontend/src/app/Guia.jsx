@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Compass, Lightbulb, MapPin, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, CircleCheck, CircleHelp, ClipboardList, Clock, Compass, Headphones, House, Lightbulb, ListChecks, MapPin, PartyPopper, Plus, Search, Sparkles, Users, X } from "lucide-react";
 import { Modal, cx } from "@/components/ui";
 import { useSesion } from "@/lib/sesion";
 import { RECETAS, guiaDePantalla, recorridoGeneral } from "@/lib/guia";
@@ -54,6 +54,58 @@ function ubicar(r, ancho, alto) {
   if (r.right + sep + ancho <= vw - m) return { left: r.right + sep, top: y };
   if (r.left - sep - ancho >= m) return { left: r.left - sep - ancho, top: y };
   return { left: (vw - ancho) / 2, top: vh - alto - m };
+}
+
+/** El icono del paso según la pantalla o lo que resalta, para que cada paso se reconozca de un vistazo. */
+function iconoDe(paso, primero, ultimo) {
+  if (primero) return Compass;
+  if (ultimo) return PartyPopper;
+  const o = [].concat(paso.objetivo || []).join(" ");
+  if (o.includes("buscar")) return Search;
+  if (o.includes("crear")) return Plus;
+  if (o.includes("avisos")) return Bell;
+  if (o.includes("ayuda")) return CircleHelp;
+  const r = paso.ruta || "";
+  if (r === "/") return House;
+  if (r.startsWith("/mis-tareas")) return ListChecks;
+  if (r.startsWith("/tiempo")) return Clock;
+  if (r.startsWith("/ordenes")) return ClipboardList;
+  if (r.startsWith("/validar")) return CircleCheck;
+  if (r.startsWith("/equipo")) return Users;
+  if (r.startsWith("/call-center")) return Headphones;
+  return Lightbulb;
+}
+
+/** Los nombres de botones y pestañas entre «comillas» se destacan como etiquetas, y «1. 2. 3.» se vuelve una lista numerada. */
+function Resaltado({ texto }) {
+  return texto.split(/(«[^»]+»)/g).map((t, i) => (/^«[^»]+»$/.test(t)
+    ? <span key={i} className="whitespace-nowrap rounded-md bg-azul/10 px-1.5 py-0.5 text-[0.92em] font-semibold text-azul">{t.slice(1, -1)}</span>
+    : <span key={i}>{t}</span>));
+}
+
+function TextoPaso({ texto }) {
+  const bloques = [];
+  for (const linea of String(texto).split("\n")) {
+    const m = linea.match(/^\s*(\d+)[.)]\s+(.*)$/);
+    if (m) {
+      const ult = bloques[bloques.length - 1];
+      if (ult?.tipo === "lista") ult.items.push(m[2]); else bloques.push({ tipo: "lista", items: [m[2]] });
+    } else if (linea.trim()) bloques.push({ tipo: "p", texto: linea });
+  }
+  return (
+    <div className="mt-3.5 space-y-2.5 text-[15px] leading-relaxed text-tinta">
+      {bloques.map((b, i) => (b.tipo === "lista" ? (
+        <ol key={i} className="space-y-2">
+          {b.items.map((it, j) => (
+            <li key={j} className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-azul text-xs font-bold text-white num" aria-hidden>{j + 1}</span>
+              <span className="min-w-0 flex-1"><Resaltado texto={it} /></span>
+            </li>
+          ))}
+        </ol>
+      ) : <p key={i}><Resaltado texto={b.texto} /></p>))}
+    </div>
+  );
 }
 
 function Recorrido({ pasos, indice, onIr, onCerrar }) {
@@ -126,36 +178,58 @@ function Recorrido({ pasos, indice, onIr, onCerrar }) {
       {/* Capa que oscurece todo menos lo resaltado; no deja tocar la pantalla mientras dura la guía */}
       {listo && rect ? (
         <div className="pointer-events-none absolute rounded-xl ring-4 ring-amarillo transition-all duration-300 motion-reduce:transition-none"
-          style={{ top: rect.top - 6, left: rect.left - 6, width: rect.width + 12, height: rect.height + 12, boxShadow: "0 0 0 9999px rgb(15 37 80 / 0.6)" }} />
+          style={{ top: rect.top - 6, left: rect.left - 6, width: rect.width + 12, height: rect.height + 12, boxShadow: "0 0 0 9999px rgb(15 37 80 / 0.6)", animation: "guia-pulso 1.8s ease-in-out infinite" }} />
       ) : <div className="absolute inset-0 bg-noche-900/60" />}
 
-      {listo && (
-        <div ref={tarjeta} style={pos ? { left: pos.left, top: pos.top } : { visibility: "hidden" }}
-          className="absolute w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border-t-4 border-amarillo bg-white shadow-2xl">
-          <div className="px-5 pb-4 pt-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-azul num">Paso {indice + 1} de {pasos.length}</p>
-              <button type="button" onClick={() => onCerrar()} className="-mr-2 rounded-lg p-1.5 text-gris hover:bg-fondo" aria-label="Cerrar la guía"><X className="size-4" /></button>
+      {listo && (() => {
+        const Icono = iconoDe(paso, indice === 0, ultimo && indice > 0);
+        const progreso = ((indice + 1) / pasos.length) * 100;
+        const portada = !rect; // sin nada que resaltar: el paso se presenta como una tarjeta de bienvenida
+        return (
+          <div ref={tarjeta} style={{ ...(pos ? { left: pos.left, top: pos.top } : { visibility: "hidden" }), animation: pos ? "guia-entra .28s ease-out" : undefined }}
+            className={cx("absolute overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5", portada ? "w-[min(26rem,calc(100vw-1.5rem))]" : "w-[min(23rem,calc(100vw-1.5rem))]")}>
+            {/* Progreso: una barra que avanza con cada paso */}
+            <div className="h-1.5 bg-linea-suave" role="progressbar" aria-valuemin={1} aria-valuemax={pasos.length} aria-valuenow={indice + 1} aria-label="Avance de la guía">
+              <div className="h-full rounded-r-full bg-amarillo transition-all duration-300 motion-reduce:transition-none" style={{ width: `${progreso}%` }} />
             </div>
-            <h2 id="guia-titulo" className="mt-1 text-lg font-semibold leading-snug">{paso.titulo}</h2>
-            <p className="mt-1.5 whitespace-pre-line text-[15px] leading-relaxed text-tinta">{paso.texto}</p>
-          </div>
-          <div className="flex items-center gap-2 border-t border-linea-suave bg-fondo px-4 py-3">
-            <div className="mr-auto flex gap-1" aria-hidden>
-              {pasos.length <= 8 && pasos.map((_, i) => <span key={i} className={cx("h-1.5 rounded-full transition-all", i === indice ? "w-4 bg-azul" : "w-1.5 bg-linea")} />)}
+            <div className={cx("px-5 pb-4", portada ? "pt-6" : "pt-4")}>
+              <div className="flex items-start gap-3">
+                <span className={cx("flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-azul to-noche text-white shadow-sm", portada ? "size-14" : "size-11")} aria-hidden>
+                  <Icono className={portada ? "size-7" : "size-5"} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-azul num">Paso {indice + 1} de {pasos.length}</p>
+                  <h2 id="guia-titulo" className={cx("mt-0.5 font-semibold leading-snug text-noche", portada ? "!text-xl" : "!text-[17px]")}>{paso.titulo}</h2>
+                </div>
+                <button type="button" onClick={() => onCerrar()} className="-mr-2 -mt-1 rounded-lg p-1.5 text-gris hover:bg-fondo" aria-label="Cerrar la guía"><X className="size-4" /></button>
+              </div>
+              <TextoPaso texto={paso.texto} />
             </div>
-            {indice > 0 && (
-              <button type="button" onClick={() => onIr(indice - 1)} className="flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-medium text-gris hover:bg-white hover:text-tinta">
-                <ArrowLeft className="size-4" />Atrás
-              </button>
-            )}
-            <button type="button" data-principal onClick={() => (ultimo ? onCerrar(true) : onIr(indice + 1))}
-              className="flex h-9 items-center gap-1 rounded-lg bg-noche px-3.5 text-sm font-semibold text-white hover:bg-noche-900">
-              {ultimo ? "Terminar" : <>Siguiente<ArrowRight className="size-4" /></>}
-            </button>
+            <div className="border-t border-linea-suave bg-fondo px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="mr-auto flex min-w-0 items-center gap-1" role="group" aria-label="Pasos de la guía">
+                  {pasos.length <= 20 ? pasos.map((_, i) => (
+                    <button key={i} type="button" onClick={() => onIr(i)} aria-label={`Ir al paso ${i + 1}`} aria-current={i === indice ? "step" : undefined}
+                      className="group flex h-5 items-center px-0.5">
+                      <span className={cx("h-1.5 rounded-full transition-all", i === indice ? "w-5 bg-azul" : i < indice ? "w-1.5 bg-azul/50 group-hover:bg-azul" : "w-1.5 bg-linea group-hover:bg-gris")} />
+                    </button>
+                  )) : <span className="text-xs text-gris num">{Math.round(progreso)} %</span>}
+                </div>
+                {indice > 0 && (
+                  <button type="button" onClick={() => onIr(indice - 1)} className="flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-medium text-gris hover:bg-white hover:text-tinta">
+                    <ArrowLeft className="size-4" />Atrás
+                  </button>
+                )}
+                <button type="button" data-principal onClick={() => (ultimo ? onCerrar(true) : onIr(indice + 1))}
+                  className="flex h-9 items-center gap-1.5 rounded-lg bg-noche px-4 text-sm font-semibold text-white shadow-sm hover:bg-noche-900">
+                  {ultimo ? <><CircleCheck className="size-4" />¡Listo!</> : indice === 0 ? <><Sparkles className="size-4" />Empezar</> : <>Siguiente<ArrowRight className="size-4" /></>}
+                </button>
+              </div>
+              <p className="mt-2 hidden text-center text-[11px] text-gris sm:block">Usa <kbd className="rounded border border-linea bg-white px-1">←</kbd> <kbd className="rounded border border-linea bg-white px-1">→</kbd> para moverte · <kbd className="rounded border border-linea bg-white px-1">Esc</kbd> para salir</p>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>,
     document.body
   );
@@ -163,9 +237,10 @@ function Recorrido({ pasos, indice, onIr, onCerrar }) {
 
 function Opcion({ icono: Icono, titulo, sub, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-xl border border-linea bg-white px-4 py-3 text-left hover:border-azul/40 hover:bg-fondo">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-azul/10 text-azul">{Icono && <Icono className="size-4" />}</span>
-      <span className="min-w-0"><span className="block font-medium">{titulo}</span>{sub && <span className="block text-sm text-gris">{sub}</span>}</span>
+    <button type="button" onClick={onClick} className="group flex w-full items-center gap-3.5 rounded-xl border border-linea bg-white px-4 py-3.5 text-left transition hover:-translate-y-0.5 hover:border-azul/40 hover:shadow-md">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-azul to-noche text-white shadow-sm">{Icono && <Icono className="size-5" />}</span>
+      <span className="min-w-0 flex-1"><span className="block font-semibold text-noche">{titulo}</span>{sub && <span className="block text-sm text-gris">{sub}</span>}</span>
+      <ArrowRight className="size-4 shrink-0 text-gris transition-transform group-hover:translate-x-0.5 group-hover:text-azul" aria-hidden />
     </button>
   );
 }
@@ -185,13 +260,13 @@ function Ayuda({ abierto, onCerrar, sesion, memoria, guardar, iniciar }) {
             onClick={() => iniciar(filtrar(pantalla.pasos, sesion), `pantalla:${pantalla.id}`)} />
         )}
       </div>
-      <p className="mb-2 mt-5 text-sm font-semibold text-gris">¿Cómo hago…?</p>
+      <p className="mb-2 mt-6 flex items-center gap-2 text-sm font-semibold text-noche"><Lightbulb className="size-4 text-[#a86a00]" aria-hidden />¿Cómo hago…? <span className="font-normal text-gris">Guías cortas para lo de todos los días</span></p>
       <ul className="grid gap-1.5 sm:grid-cols-2">
         {recetas.map((r) => (
           <li key={r.id}>
             <button type="button" onClick={() => iniciar(filtrar(r.pasos, sesion), `receta:${r.id}`)}
-              className="flex h-full w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[15px] hover:bg-fondo">
-              <Lightbulb className="size-4 shrink-0 text-[#a86a00]" aria-hidden />{r.titulo}
+              className="flex h-full w-full items-center gap-2.5 rounded-lg border border-transparent bg-fondo px-3 py-2.5 text-left text-[15px] transition hover:border-amarillo hover:bg-amarillo-50">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-[#a86a00] shadow-sm"><Lightbulb className="size-4" aria-hidden /></span>{r.titulo}
             </button>
           </li>
         ))}
@@ -208,8 +283,8 @@ function Ayuda({ abierto, onCerrar, sesion, memoria, guardar, iniciar }) {
 function Sugerencia({ guia, onVer, onDescartar }) {
   return (
     <div className="fixed inset-x-3 top-[4.25rem] z-30 flex items-center gap-3 rounded-xl border border-linea bg-white py-2.5 pl-4 pr-2 shadow-lg lg:inset-x-auto lg:bottom-6 lg:left-[17rem] lg:top-auto lg:max-w-sm" role="status">
-      <Lightbulb className="size-5 shrink-0 text-[#a86a00]" aria-hidden />
-      <p className="min-w-0 flex-1 text-sm">¿Primera vez en <span className="font-medium">{guia.nombre}</span>?</p>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amarillo-50 text-[#a86a00]"><Lightbulb className="size-5" aria-hidden /></span>
+      <p className="min-w-0 flex-1 text-sm">¿Primera vez en <span className="font-semibold text-noche">{guia.nombre}</span>? <span className="text-gris">Te lo explicamos en un minuto.</span></p>
       <button type="button" onClick={onVer} className="h-9 shrink-0 rounded-lg bg-amarillo px-3 text-sm font-semibold text-tinta hover:bg-amarillo-600">Muéstrame</button>
       <button type="button" onClick={onDescartar} className="rounded-lg p-2 text-gris hover:bg-fondo" aria-label="Ahora no"><X className="size-4" /></button>
     </div>
