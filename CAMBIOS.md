@@ -1,5 +1,9 @@
 # Cambios
 
+## 12.31 · 21/11/2026 · Organigrama: moverse con el ratón
+
+- **Arrastrar el fondo** del organigrama (vista «Completo») lo mueve como un mapa, en horizontal y vertical; el cursor cambia a mano abierta/cerrada. Un clic quieto sigue abriendo o contrayendo las tarjetas. **Ctrl + rueda** acerca o aleja. En pantallas táctiles se usa el desplazamiento normal con el dedo.
+
 ## 12.30 · 21/11/2026 · Facturas: imágenes, comprobantes de pago y reporte descargable
 
 - **Imágenes y documentos en la factura:** en el detalle de cada factura, sección nueva con miniaturas que se abren en grande; agrega varias fotos o PDF a la vez (JPG, PNG, WEBP o PDF, hasta 10 MB cada uno), descárgalas o quítalas. Útil para la foto del trabajo entregado, la orden de compra del cliente o el acuse.

@@ -269,6 +269,58 @@ export default function Organigrama() {
     const s = +Math.max(minimo, Math.min(1, (caja.clientWidth - 48) / interior.scrollWidth)).toFixed(2);
     if (animado) animar(s, 0, arriba ?? window.scrollY); else setEscala(s);
   }, [animar]);
+  // Moverse con el ratón: arrastrar el fondo mueve el organigrama (como un mapa) y Ctrl + rueda acerca o aleja. Con el dedo se usa el desplazamiento normal.
+  useEffect(() => {
+    const caja = contenedor.current;
+    if (!caja || vista !== "grafico") return undefined;
+    let arrastre = null, suprimirClic = false;
+    const abajo = (e) => {
+      if (e.pointerType === "touch" || e.button !== 0 || e.target.closest("button, a, input, select, textarea, summary")) return;
+      cancelAnimationFrame(animacion.current);
+      arrastre = { x: e.clientX, y: e.clientY, movido: false };
+    };
+    const mover = (e) => {
+      if (!arrastre) return;
+      const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y;
+      if (!arrastre.movido) {
+        if (Math.hypot(dx, dy) < 4) return; // un clic quieto no es un arrastre
+        arrastre.movido = true;
+        caja.classList.add("arrastrando");
+      }
+      caja.scrollLeft -= dx;
+      window.scrollBy(0, -dy);
+      arrastre.x = e.clientX;
+      arrastre.y = e.clientY;
+    };
+    const arriba = () => {
+      if (!arrastre) return;
+      suprimirClic = arrastre.movido; // al soltar, el clic que sigue al arrastre no abre ni cierra nada
+      arrastre = null;
+      caja.classList.remove("arrastrando");
+      if (suprimirClic) setTimeout(() => { suprimirClic = false; }, 0);
+    };
+    const clic = (e) => { if (suprimirClic) { e.stopPropagation(); e.preventDefault(); } };
+    const rueda = (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      setEscala((v) => +Math.min(1.4, Math.max(0.4, v * (e.deltaY < 0 ? 1.08 : 0.92))).toFixed(2));
+    };
+    caja.addEventListener("pointerdown", abajo);
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", arriba);
+    window.addEventListener("pointercancel", arriba);
+    caja.addEventListener("click", clic, true);
+    caja.addEventListener("wheel", rueda, { passive: false });
+    return () => {
+      caja.removeEventListener("pointerdown", abajo);
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", arriba);
+      window.removeEventListener("pointercancel", arriba);
+      caja.removeEventListener("click", clic, true);
+      caja.removeEventListener("wheel", rueda);
+    };
+  }, [vista, datos]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Al abrir, el gráfico entra completo en pantalla si se puede leer (mínimo 60 %)
   useEffect(() => {
     if (!datos || vista !== "grafico") return undefined;
@@ -383,7 +435,7 @@ export default function Organigrama() {
               <Boton variante="fantasma" tam="sm" onClick={() => setCerrados(new Set(todos.filter((n) => n.hijos.length && !datos.raices.some((r) => r.id === n.id)).map((n) => n.id)))}>Contraer</Boton>
             </div>
             {vista === "grafico" && (
-              <div className="inline-flex items-center gap-1 rounded-lg border border-linea px-1" role="group" aria-label="Zoom">
+              <div className="inline-flex items-center gap-1 rounded-lg border border-linea px-1" role="group" aria-label="Zoom" title="Arrastra el fondo para moverte · Ctrl + rueda para acercar o alejar">
                 <button type="button" onClick={() => setEscala((e) => Math.max(0.4, +(e - 0.1).toFixed(2)))} aria-label="Alejar" className="rounded p-1.5 text-gris hover:bg-fondo"><Minus className="size-4" aria-hidden /></button>
                 <span className="num w-11 text-center text-sm text-gris" aria-live="polite">{Math.round(escala * 100)}%</span>
                 <button type="button" onClick={() => setEscala((e) => Math.min(1.4, +(e + 0.1).toFixed(2)))} aria-label="Acercar" className="rounded p-1.5 text-gris hover:bg-fondo"><Plus className="size-4" aria-hidden /></button>
@@ -411,7 +463,7 @@ export default function Organigrama() {
       </div>
 
       {vista === "grafico" ? (
-        <div ref={contenedor} className="overflow-auto rounded-xl border border-linea bg-[radial-gradient(circle,#dfe5f1_1px,transparent_1px)] [background-size:22px_22px] bg-white p-6 print:overflow-visible print:border-0">
+        <div ref={contenedor} className="cursor-grab overflow-auto rounded-xl border border-linea [&.arrastrando]:cursor-grabbing [&.arrastrando]:select-none bg-[radial-gradient(circle,#dfe5f1_1px,transparent_1px)] [background-size:22px_22px] bg-white p-6 print:overflow-visible print:border-0">
           <Lienzo escala={escala}>
             <div className="space-y-12">{datos.raices.map((r) => <Arbol key={r.id} raiz={r} ctx={ctx} />)}</div>
           </Lienzo>
