@@ -52,7 +52,10 @@ def estado_view(request):
         'marca_obligatoria': bool(obligatoria),  # si no la tiene, no se le pide marcar al entrar
         'estado': estado, 'siguientes': servicios.SIGUIENTES[estado],
         'ahora': timezone.now(),  # la hora oficial: la que se estampa al marcar. La pantalla se sincroniza con ella, no con el reloj de la PC
-        'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento} if ultimo else None,
+        'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento, 'almuerzo': ultimo.es_almuerzo} if ultimo else None,
+        'en_almuerzo': estado == 'EN_PAUSA' and bool(ultimo and ultimo.es_almuerzo),
+        'limites': {'pausa_min': horario.pausa_max_minutos if horario else 60, 'almuerzo_min': horario.almuerzo_minutos if horario else 60,
+                    'almuerzo_inicio': (horario.almuerzo_inicio or None) if horario else None},
         'hoy': servicios.jornada(request.user, timezone.localdate()),
         'horario': {'id': horario.id, 'nombre': horario.nombre} if horario else None,
         'donde_marca': _donde(request.user),
@@ -67,6 +70,11 @@ def _donde(user):
 @api_view(['POST'])
 def marcar_view(request):
     tipo = request.data.get('tipo')
+    almuerzo = bool(request.data.get('almuerzo'))
+    if tipo == 'ALMUERZO':  # «inicio de almuerzo» / «fin de almuerzo» son una pausa y su regreso, marcados como almuerzo
+        tipo, almuerzo = Marcaje.PAUSA, True
+    elif tipo == 'FIN_ALMUERZO':
+        tipo = Marcaje.REGRESO
     if tipo not in dict(Marcaje.TIPOS):
         return Response({'detail': 'Marcaje no válido.'}, status=400)
     from .lugar import validar
@@ -75,10 +83,10 @@ def marcar_view(request):
         return Response({'detail': error, 'lugar': True}, status=400)
     origen = lugar.pop('origen') or ('MOVIL' if request.data.get('movil') else 'WEB')
     marcaje, error = servicios.marcar(request.user, tipo, origen, _ip(request), request.data.get('motivo') or '', request.data.get('nota') or '',
-                                      lugar=lugar)
+                                      lugar=lugar, almuerzo=almuerzo)
     if error:
         return Response({'detail': error}, status=400)
-    return Response({'ok': True, 'tipo': marcaje.tipo, 'momento': marcaje.momento,
+    return Response({'ok': True, 'tipo': marcaje.tipo, 'almuerzo': marcaje.es_almuerzo, 'momento': marcaje.momento,
                      'sitio': marcaje.sitio.nombre if marcaje.sitio_id else None}, status=201)
 
 
@@ -118,7 +126,8 @@ def hoy_view(request):
     for u in personas:
         j = jornadas_hoy[u.pk]
         filas.append({**_persona(u), **{k: j[k] for k in ('estado', 'llegada', 'entrada', 'salida', 'tardanza', 'trabajados', 'pausa', 'turno', 'ausencia',
-                                                                 'trabajados_seg', 'pausa_seg', 'tardanza_seg')},
+                                                                 'trabajados_seg', 'pausa_seg', 'tardanza_seg', 'almuerzo_seg', 'pausas_seg', 'excesos')},
+                      'pausa_abierta': next((p for p in reversed(j['pausas']) if p['fin'] is None), None),
                       'pc': contactos.get(u.pk)})
     orden = {'TARDE_SIN_MARCAR': 0, 'AUSENTE': 1, 'EN_PAUSA': 2, 'TRABAJANDO': 3, 'PRESENTE': 4, 'PENDIENTE': 5, 'PERMISO': 6}
     filas.sort(key=lambda f: (orden.get(f['estado'], 9), f['nombre']))
@@ -154,12 +163,13 @@ def reporte_view(request):
         w.writerow(['Colaborador', 'Puesto', 'Departamento', 'Días laborables', 'Días presentes', 'A tiempo', 'Tardanzas',
                     'Tiempo tarde (H:MM:SS)', 'Ausencias', 'Permisos', 'Salidas tempranas', 'Días sin marcar salida',
                     'Horas programadas', 'Tiempo trabajado (H:MM:SS)', 'Segundos trabajados', 'Horas trabajadas (decimal)',
-                    'Tiempo extra (H:MM:SS)', 'Puntualidad %', 'Asistencia %', 'Adherencia %'])
+                    'Tiempo extra (H:MM:SS)', 'Almuerzo (H:MM:SS)', 'Pausas (H:MM:SS)', 'Pausas que pasaron el límite', 'Exceso en pausas (H:MM:SS)', 'Puntualidad %', 'Asistencia %', 'Adherencia %'])
         for f in filas:
             w.writerow([f['nombre'], f['puesto'] or '', f['departamento'] or '', f['dias_laborables'], f['dias_presentes'], f['dias_a_tiempo'],
                         f['tardanzas'], _hms(f['segundos_tarde']), f['ausencias'], f['permisos'], f['salidas_tempranas'], f['sin_salida'],
                         round(f['minutos_programados'] / 60, 2), _hms(f['segundos_trabajados']), f['segundos_trabajados'],
                         round(f['segundos_trabajados'] / 3600, 4), _hms(f['segundos_extra']),
+                        _hms(f['segundos_almuerzo']), _hms(f['segundos_pausas']), f['pausas_excedidas'], _hms(f['segundos_exceso_pausa']),
                         f['puntualidad'] if f['puntualidad'] is not None else '', f['asistencia'] if f['asistencia'] is not None else '',
                         f['adherencia'] if f['adherencia'] is not None else ''])
         return resp
@@ -170,7 +180,7 @@ def reporte_view(request):
 class MarcajeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Marcaje
-        fields = ['id', 'usuario', 'tipo', 'momento', 'origen', 'motivo_pausa', 'nota', 'corregido_por', 'fecha_creacion']
+        fields = ['id', 'usuario', 'tipo', 'es_almuerzo', 'momento', 'origen', 'motivo_pausa', 'nota', 'corregido_por', 'fecha_creacion']
         read_only_fields = ['origen', 'corregido_por', 'fecha_creacion']
 
 
@@ -213,10 +223,19 @@ class HorarioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Horario
-        fields = ['id', 'nombre', 'dias', 'almuerzo_minutos', 'tolerancia_minutos', 'por_defecto', 'activo', 'personas']
+        fields = ['id', 'nombre', 'dias', 'almuerzo_minutos', 'almuerzo_inicio', 'pausa_max_minutos', 'tolerancia_minutos', 'departamentos', 'especial',
+                  'por_defecto', 'activo', 'personas']
 
     def get_personas(self, obj):
         return obj.asignaciones.count()
+
+    def validate_almuerzo_inicio(self, valor):
+        if not valor:
+            return ''
+        try:
+            return datetime.strptime(valor, '%H:%M').strftime('%H:%M')
+        except ValueError:
+            raise serializers.ValidationError('Usa una hora como «12:00».')
 
     def validate_dias(self, dias):
         limpio = {}

@@ -7,6 +7,9 @@ Reglas:
 - Salida temprana: minutos entre la última SALIDA y la hora de salida del turno, si pasan la tolerancia.
 - Almuerzo: si la persona trabajó más de 6 horas y marcó menos pausa que el almuerzo del horario, se descuenta
   la diferencia (el almuerzo no cuenta como trabajado aunque se olvide marcarlo).
+- Pausas: el almuerzo se marca aparte (es_almuerzo) y se cuenta por separado de las demás pausas. Una pausa que pasa de
+  `pausa_max_minutos` del horario, o un almuerzo que pasa de `almuerzo_minutos`, cuenta como exceso (y avisa: revisar_pausas).
+- Horario de cada persona: el suyo propio, si no el del departamento de su puesto, si no el general.
 - Día pasado sin SALIDA: se cierra a la hora de salida del turno y el día queda marcado «sin salida».
 - Extra: lo trabajado por encima de lo programado, desde 15 minutos.
 """
@@ -28,10 +31,32 @@ def rango(desde, hasta=None):
     return timezone.make_aware(datetime.combine(desde, time.min)), timezone.make_aware(datetime.combine(hasta + timedelta(days=1), time.min))
 
 
+def _departamento_id(usuario):
+    try:
+        puesto = usuario.perfil.puesto_trabajo
+    except Exception:  # noqa: BLE001 (sin perfil o sin puesto)
+        return None
+    return puesto.departamento_id if puesto else None
+
+
+def horarios_por_departamento():
+    """{id de departamento: horario activo}. Si un departamento tiene varios, el primero por nombre."""
+    mapa = {}
+    for h in Horario.objects.filter(activo=True, departamentos__isnull=False).prefetch_related('departamentos').order_by('nombre').distinct():
+        for d in h.departamentos.all():
+            mapa.setdefault(d.pk, h)
+    return mapa
+
+
 def horario_de(usuario):
     asignacion = AsignacionHorario.objects.filter(usuario=usuario).select_related('horario').first()
     if asignacion:
         return asignacion.horario, asignacion.marca_obligatoria
+    depto = _departamento_id(usuario)
+    if depto:
+        propio = Horario.objects.filter(activo=True, departamentos=depto).order_by('nombre').first()
+        if propio:
+            return propio, True
     return Horario.objects.filter(por_defecto=True, activo=True).first(), True
 
 
@@ -77,14 +102,18 @@ def en_jornada(usuario, ahora=None):
 SIGUIENTES = {'FUERA': [Marcaje.ENTRADA], 'TRABAJANDO': [Marcaje.PAUSA, Marcaje.SALIDA], 'EN_PAUSA': [Marcaje.REGRESO, Marcaje.SALIDA]}
 
 
-def marcar(usuario, tipo, origen='WEB', ip=None, motivo='', nota='', momento=None, lugar=None):
-    """Registra un marcaje si tiene sentido según el estado actual. Devuelve (marcaje, error)."""
+def marcar(usuario, tipo, origen='WEB', ip=None, motivo='', nota='', momento=None, lugar=None, almuerzo=False):
+    """Registra un marcaje si tiene sentido según el estado actual. Devuelve (marcaje, error).
+    `almuerzo`: la pausa que empieza es el almuerzo (se cuenta aparte de las demás pausas)."""
     estado, _ = estado_actual(usuario, momento)
     motivo, nota = str(motivo or ''), str(nota or '')
     if tipo not in SIGUIENTES[estado]:
         textos = {'FUERA': 'No has marcado entrada hoy.', 'TRABAJANDO': 'Ya marcaste entrada.', 'EN_PAUSA': 'Estás en pausa: marca tu regreso.'}
         return None, textos[estado]
-    return Marcaje.objects.create(usuario=usuario, tipo=tipo, origen=origen, ip=ip, motivo_pausa=motivo[:60],
+    almuerzo = bool(almuerzo) and tipo == Marcaje.PAUSA
+    if almuerzo and not motivo:
+        motivo = 'Almuerzo'
+    return Marcaje.objects.create(usuario=usuario, tipo=tipo, origen=origen, ip=ip, motivo_pausa=motivo[:60], es_almuerzo=almuerzo,
                                   nota=nota[:255], momento=momento or timezone.now(), **(lugar or {})), None
 
 
@@ -119,10 +148,11 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         'entrada': None, 'salida': None, 'trabajados': 0, 'pausa': 0, 'tardanza': 0, 'salida_temprana': 0,
         'extra': 0, 'segundos_en_curso': 0,
         # Lo mismo en segundos exactos: de ahí sale el pago, los minutos son solo para mostrar
-        'programados_seg': programados * 60, 'trabajados_seg': 0, 'pausa_seg': 0, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
+        'programados_seg': programados * 60, 'trabajados_seg': 0, 'pausa_seg': 0, 'almuerzo_seg': 0, 'pausas_seg': 0, 'pausas': [], 'excesos': 0, 'exceso_seg': 0,
+        'almuerzo_programado': (horario.almuerzo_inicio or None) if horario else None, 'pausa_max_minutos': horario.pausa_max_minutos if horario else 60, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
         'ausencia': ausencia.get_tipo_display() if ausencia else None,
         'marcajes': [{'id': m.id, 'tipo': m.tipo, 'momento': m.momento.isoformat(), 'origen': m.origen,
-                      'motivo': m.motivo_pausa, 'corregido': bool(m.corregido_por_id)} for m in marcajes],
+                      'motivo': m.motivo_pausa, 'almuerzo': m.es_almuerzo, 'corregido': bool(m.corregido_por_id)} for m in marcajes],
     }
     if desde_control is False:
         desde_control = inicio_control(usuario)
@@ -143,17 +173,20 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
 
     trabajados = pausa = 0.0  # segundos
     inicio = inicio_pausa = None
+    es_almuerzo = False
+    tramos = []  # (inicio, fin o None si sigue abierta, es almuerzo)
     for m in marcajes:
         if m.tipo in (Marcaje.ENTRADA, Marcaje.REGRESO):
             if inicio_pausa:
                 pausa += _segundos(m.momento - inicio_pausa)
+                tramos.append((inicio_pausa, m.momento, es_almuerzo))
                 inicio_pausa = None
             inicio = inicio or m.momento
         elif m.tipo in (Marcaje.PAUSA, Marcaje.SALIDA) and inicio:
             trabajados += _segundos(m.momento - inicio)
             inicio = None
             if m.tipo == Marcaje.PAUSA:
-                inicio_pausa = m.momento
+                inicio_pausa, es_almuerzo = m.momento, m.es_almuerzo
     if inicio:  # sigue abierta al terminar el día
         siguiente = Marcaje.objects.filter(usuario=usuario, momento__gt=inicio, momento__lte=inicio + TURNO_MAXIMO,
                                            tipo__in=(Marcaje.PAUSA, Marcaje.SALIDA)).order_by('momento').first()
@@ -171,14 +204,29 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
     if inicio_pausa:
         if ahora - inicio_pausa < TURNO_MAXIMO and not any(m.momento > inicio_pausa for m in marcajes):
             pausa += _segundos(ahora - inicio_pausa)
+            tramos.append((inicio_pausa, None, es_almuerzo))
         else:
             fila['sin_salida'] = True  # se fue a pausa y no volvió a marcar
     almuerzo = horario.almuerzo_minutos if horario else 0
+    limite_pausa = (horario.pausa_max_minutos if horario else 60) * 60
+    limite_almuerzo = almuerzo * 60
+    for t_ini, t_fin, t_alm in tramos:
+        dur = _segundos((t_fin or ahora) - t_ini)
+        limite = limite_almuerzo if t_alm else limite_pausa
+        excedida = bool(limite) and dur > limite
+        fila['pausas'].append({'inicio': t_ini.isoformat(), 'fin': t_fin.isoformat() if t_fin else None, 'almuerzo': t_alm,
+                               'segundos': _enteros(dur), 'excedida': excedida, 'exceso_seg': _enteros(dur - limite) if excedida else 0})
+        fila['almuerzo_seg' if t_alm else 'pausas_seg'] += _enteros(dur)
+        if excedida:
+            fila['excesos'] += 1
+            fila['exceso_seg'] += _enteros(dur - limite)
     if trabajados > DIA_LARGO * 60 and pausa < almuerzo * 60:
         trabajados -= almuerzo * 60 - pausa
 
     primera = next((m for m in marcajes if m.tipo == Marcaje.ENTRADA), None)
     ultima_salida = next((m for m in reversed(marcajes) if m.tipo == Marcaje.SALIDA), None)
+    primer_almuerzo = next((m for m in marcajes if m.tipo == Marcaje.PAUSA and m.es_almuerzo), None)
+    fila['almuerzo_inicio'] = timezone.localtime(primer_almuerzo.momento).strftime('%H:%M') if primer_almuerzo else None
     fila.update(trabajados=_min(trabajados), pausa=_min(pausa), trabajados_seg=_enteros(trabajados), pausa_seg=_enteros(pausa),
                 entrada=primera.momento.isoformat() if primera else None,
                 salida=ultima_salida.momento.isoformat() if ultima_salida else None)
@@ -232,6 +280,7 @@ def jornadas_del_dia(usuarios, dia, ahora=None):
     ids = [u.pk for u in usuarios]
     asignados = {a.usuario_id: a for a in AsignacionHorario.objects.filter(usuario_id__in=ids).select_related('horario')}
     por_defecto = Horario.objects.filter(por_defecto=True, activo=True).first()
+    por_depto = horarios_por_departamento()
     marcajes = defaultdict(list)
     for m in Marcaje.objects.filter(usuario_id__in=ids, momento__range=rango(dia)).order_by('momento'):
         marcajes[m.usuario_id].append(m)
@@ -243,7 +292,7 @@ def jornadas_del_dia(usuarios, dia, ahora=None):
     salida = {}
     for u in usuarios:
         asignacion = asignados.get(u.pk)
-        horario, obligatoria = (asignacion.horario, asignacion.marca_obligatoria) if asignacion else (por_defecto, True)
+        horario, obligatoria = (asignacion.horario, asignacion.marca_obligatoria) if asignacion else (por_depto.get(_departamento_id(u)) or por_defecto, True)
         control = timezone.localtime(primeros[u.pk]).date() if u.pk in primeros else None
         salida[u.pk] = jornada(u, dia, ahora, horario, obligatoria, marcajes.get(u.pk, []), ausencias.get(u.pk, []), feriados, control)
     return salida
@@ -263,6 +312,7 @@ def resumen(usuario, desde, hasta, ahora=None):
     trabajados_seg = sum(d['trabajados_seg'] for d in dias)  # se suma en segundos y se convierte una sola vez
     tarde_seg, salida_seg = sum(d['tardanza_seg'] for d in dias), sum(d['salida_temprana_seg'] for d in dias)
     extra_seg, pausa_seg = sum(d['extra_seg'] for d in dias), sum(d['pausa_seg'] for d in dias)
+    almuerzo_seg, pausas_seg = sum(d['almuerzo_seg'] for d in dias), sum(d['pausas_seg'] for d in dias)
     return {
         'dias_laborables': len(laborables), 'dias_presentes': len(presentes), 'dias_a_tiempo': len(a_tiempo),
         'tardanzas': len(presentes_laborables) - len(a_tiempo), 'minutos_tarde': tarde_seg // 60, 'segundos_tarde': tarde_seg,
@@ -272,6 +322,8 @@ def resumen(usuario, desde, hasta, ahora=None):
         'minutos_programados': programados, 'minutos_trabajados': trabajados_seg // 60, 'segundos_trabajados': trabajados_seg,
         'minutos_extra': extra_seg // 60, 'segundos_extra': extra_seg,
         'minutos_pausa': pausa_seg // 60, 'segundos_pausa': pausa_seg,
+        'segundos_almuerzo': almuerzo_seg, 'segundos_pausas': pausas_seg,
+        'pausas_excedidas': sum(d['excesos'] for d in dias), 'segundos_exceso_pausa': sum(d['exceso_seg'] for d in dias),
         'puntualidad': round(len(a_tiempo) / len(presentes_laborables) * 100, 1) if presentes_laborables else None,
         'asistencia': round(len(presentes_laborables) / esperados * 100, 1) if esperados > 0 else None,
         'cumplimiento_horas': round(min(trabajados_seg / (programados * 60), 1.5) * 100, 1) if programados else None,
@@ -294,3 +346,32 @@ def mes(periodo):
     inicio = periodo.replace(day=1)
     fin = (inicio + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     return inicio, fin
+
+
+def revisar_pausas(ahora=None):
+    """Avisa de las pausas (y almuerzos) abiertas que pasaron de su límite, una sola vez por pausa. Devuelve cuántas avisó.
+    Se llama a cada minuto desde las pantallas abiertas (al pedir las notificaciones): no hace falta un programa aparte."""
+    from apps.desempeno.permisos import revisores_de
+    from apps.desempeno.servicios import avisar, nombre
+    ahora = ahora or timezone.now()
+    avisadas = 0
+    abiertas = Marcaje.objects.filter(tipo=Marcaje.PAUSA, alerta_enviada=False, momento__gt=ahora - TURNO_MAXIMO, momento__lte=ahora
+                                      ).select_related('usuario')
+    for m in abiertas:
+        if Marcaje.objects.filter(usuario=m.usuario, momento__gt=m.momento).exists():
+            continue  # ya volvió (o salió): el contador se detuvo
+        horario, _ = horario_de(m.usuario)
+        limite = (horario.almuerzo_minutos if m.es_almuerzo else (horario.pausa_max_minutos if horario else 60)) if horario else 60
+        if not limite or ahora - m.momento < timedelta(minutes=limite):
+            continue
+        if not Marcaje.objects.filter(pk=m.pk, alerta_enviada=False).update(alerta_enviada=True):
+            continue  # otro proceso ya la avisó
+        seg = int((ahora - m.momento).total_seconds())
+        tiempo = f'{seg // 3600}:{seg % 3600 // 60:02d}:{seg % 60:02d}'
+        cosa = 'el almuerzo' if m.es_almuerzo else 'una pausa'
+        titulo = f'{nombre(m.usuario)} lleva {tiempo} en {"almuerzo" if m.es_almuerzo else "pausa"}'
+        detalle = f'Empezó {cosa} a las {timezone.localtime(m.momento):%H:%M} y no ha registrado el regreso (límite: {limite} min).'
+        avisar(revisores_de(m.usuario, 'asistencia.ver'), 'ASISTENCIA', titulo, detalle, enlace='/asistencia')
+        avisar([m.usuario], 'ASISTENCIA', f'Llevas {tiempo} en {"almuerzo" if m.es_almuerzo else "pausa"}', 'Marca tu regreso en cuanto vuelvas.', enlace='/')
+        avisadas += 1
+    return avisadas

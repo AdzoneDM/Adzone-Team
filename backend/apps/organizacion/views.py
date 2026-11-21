@@ -115,6 +115,7 @@ def organigrama_view(request):
     puestos = list(_puestos())
     nodos = {p.id: {
         'id': p.id, 'nombre': p.nombre, 'departamento': p.departamento.nombre, 'departamento_id': p.departamento_id,
+        'funciones': (p.funciones_principales or '').strip()[:260],
         'personas': [{'id': pf.user_id, 'nombre': pf.user.get_full_name() or pf.user.username}
                      for pf in p.perfiles_usuarios.all() if pf.user.is_active],
         'hijos': [],

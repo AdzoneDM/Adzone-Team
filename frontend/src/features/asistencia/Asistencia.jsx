@@ -5,7 +5,7 @@ import { CalendarClock, Check, Download, Plus, Trash2, X } from "lucide-react";
 import {
   asignacionesHorario, asignarHorario, asistenciaHoy, asistenciaMes, asistenciaReporte, ausencias, borrarFeriado, borrarHorario,
   borrarMarcaje, corregirMarcaje, feriados, guardarFeriado, guardarHorario, horarios, pedirAusencia, retirarAusencia, revisarAusencia,
-  urlAsistenciaCsv,
+  departamentos, urlAsistenciaCsv,
 } from "@/lib/api";
 import { diaSemana, fechaCorta, horaExacta, mesActual, relojSeg } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
@@ -68,7 +68,7 @@ export function MesPersona({ usuario, puedeCorregir }) {
           <Panel titulo="Día por día" cuerpo="p-0">
             <div className="overflow-x-auto">
               <table className="tabla">
-                <thead><tr><th>Día</th><th>Estado</th><th>Entrada</th><th>Salida</th><th className="text-right">Trabajado</th><th className="text-right">Tarde</th><th className="text-right">Extra</th><th>Marcajes</th></tr></thead>
+                <thead><tr><th>Día</th><th>Estado</th><th>Entrada</th><th>Salida</th><th className="text-right">Trabajado</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th><th className="text-right">Tarde</th><th className="text-right">Extra</th><th>Marcajes</th></tr></thead>
                 <tbody>
                   {[...d.dias].reverse().map((j) => (
                     <tr key={j.fecha} className={!j.laborable && !j.entrada ? "text-gris" : ""}>
@@ -77,6 +77,10 @@ export function MesPersona({ usuario, puedeCorregir }) {
                       <td className="num">{hora(j.entrada)}</td>
                       <td className="num">{hora(j.salida)}</td>
                       <td className="text-right num">{j.trabajados_seg ? dur(j.trabajados_seg) : "—"}</td>
+                      <td className={cx("text-right num", j.pausas.some((p) => p.almuerzo && p.excedida) && "text-rojo")}
+                        title={j.almuerzo_programado ? `Almuerzo programado a las ${j.almuerzo_programado}` : undefined}>{j.almuerzo_seg ? dur(j.almuerzo_seg) : "—"}</td>
+                      <td className={cx("text-right num", j.pausas.some((p) => !p.almuerzo && p.excedida) && "text-rojo")}>{j.pausas_seg ? dur(j.pausas_seg) : "—"}
+                        {j.excesos > 0 && <span className="block text-xs">+{dur(j.exceso_seg)} sobre el límite</span>}</td>
                       <td className={cx("text-right num", j.tardanza && "text-rojo")}>{j.tardanza ? `${j.tardanza} min` : "—"}</td>
                       <td className="text-right num">{j.extra_seg ? dur(j.extra_seg) : "—"}</td>
                       <td>
@@ -84,7 +88,7 @@ export function MesPersona({ usuario, puedeCorregir }) {
                           {j.marcajes.map((m) => (
                             <span key={m.id} className={cx("inline-flex items-center gap-1 rounded border px-1.5 text-xs num", m.corregido ? "border-amarillo bg-amarillo-50" : "border-linea")}
                               title={`${m.tipo}${m.motivo ? ` · ${m.motivo}` : ""}${m.corregido ? " · corregido" : ""} · ${m.origen}`}>
-                              {{ ENTRADA: "E", PAUSA: "P", REGRESO: "R", SALIDA: "S" }[m.tipo]} {hora(m.momento)}
+                              {etiquetaMarcaje(m, j.marcajes)} {hora(m.momento)}
                               {puedeCorregir && <button type="button" aria-label="Borrar marcaje" className="text-gris hover:text-rojo" onClick={async () => {
                                 if (await confirmar({ titulo: "¿Borrar este marcaje?", boton: "Borrar", peligro: true })) {
                                   try { await borrarMarcaje(m.id); cargar(); } catch (e) { avisar(e.message, "rojo"); }
@@ -106,14 +110,15 @@ export function MesPersona({ usuario, puedeCorregir }) {
       <Modal abierto={!!corrigiendo} onCerrar={() => setCorrigiendo(null)} titulo="Agregar marcaje" descripcion="Queda registrado que lo agregaste tú, con la nota."
         pie={<><Boton variante="secundario" onClick={() => setCorrigiendo(null)}>Cancelar</Boton><Boton onClick={async () => {
           try {
-            await corregirMarcaje({ usuario, tipo: corrigiendo.tipo, momento: new Date(`${corrigiendo.fecha}T${corrigiendo.hora}`).toISOString(), nota: corrigiendo.nota });
+            const almuerzo = corrigiendo.tipo === "ALMUERZO";
+            await corregirMarcaje({ usuario, tipo: almuerzo ? "PAUSA" : corrigiendo.tipo, es_almuerzo: almuerzo, motivo_pausa: almuerzo ? "Almuerzo" : "", momento: new Date(`${corrigiendo.fecha}T${corrigiendo.hora}`).toISOString(), nota: corrigiendo.nota });
             setCorrigiendo(null); avisar("Marcaje agregado."); cargar();
           } catch (e) { avisar(e.message, "rojo"); }
         }}>Agregar</Boton></>}>
         {corrigiendo && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Tipo">{(id) => <select id={id} className="campo" value={corrigiendo.tipo} onChange={(e) => setCorrigiendo({ ...corrigiendo, tipo: e.target.value })}>
-              <option value="ENTRADA">Entrada</option><option value="PAUSA">Inicio de pausa</option><option value="REGRESO">Fin de pausa</option><option value="SALIDA">Salida</option></select>}</Campo>
+              <option value="ENTRADA">Entrada</option><option value="ALMUERZO">Inicio de almuerzo</option><option value="REGRESO">Fin de almuerzo o de pausa</option><option value="PAUSA">Inicio de pausa</option><option value="SALIDA">Salida</option></select>}</Campo>
             <Campo etiqueta="Hora">{(id) => <input id={id} type="time" className="campo" value={corrigiendo.hora} onChange={(e) => setCorrigiendo({ ...corrigiendo, hora: e.target.value })} />}</Campo>
             <Campo etiqueta="Motivo de la corrección" className="sm:col-span-2">{(id) => <input id={id} className="campo" placeholder="Olvidó marcar la salida" value={corrigiendo.nota} onChange={(e) => setCorrigiendo({ ...corrigiendo, nota: e.target.value })} />}</Campo>
           </div>
@@ -121,6 +126,16 @@ export function MesPersona({ usuario, puedeCorregir }) {
       </Modal>
     </div>
   );
+}
+
+/** E entrada · P pausa · R regreso de pausa · A almuerzo · FA fin de almuerzo · S salida */
+function etiquetaMarcaje(m, todos) {
+  if (m.tipo === "PAUSA") return m.almuerzo ? "A" : "P";
+  if (m.tipo === "REGRESO") {
+    const antes = todos.slice(0, todos.findIndex((x) => x.id === m.id)).reverse().find((x) => x.tipo === "PAUSA");
+    return antes?.almuerzo ? "FA" : "R";
+  }
+  return { ENTRADA: "E", SALIDA: "S" }[m.tipo];
 }
 
 function Hoy({ onVer }) {
@@ -147,14 +162,18 @@ function Hoy({ onVer }) {
       <Panel titulo="Equipo hoy" cuerpo="p-0">
         <div className="overflow-x-auto">
           <table className="tabla">
-            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th className="text-right">Trabajado</th><th>Computadora</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Estado</th><th>Entrada</th><th className="text-right">Trabajado</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th><th>Computadora</th></tr></thead>
             <tbody>
               {d.personas.map((p) => (
                 <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
                   <td><p className="font-medium">{p.nombre}</p><p className="text-xs text-gris">{p.puesto || "Sin puesto"}</p></td>
-                  <td><Estado e={p.estado} />{p.llegada === "TARDE" && <span className="ml-1 text-xs text-rojo">{p.tardanza} min tarde</span>}</td>
+                  <td><Estado e={p.estado} />{p.llegada === "TARDE" && <span className="ml-1 text-xs text-rojo">{p.tardanza} min tarde</span>}
+                    {p.pausa_abierta && <span className={cx("mt-0.5 block text-xs", p.pausa_abierta.excedida ? "font-semibold text-rojo" : "text-gris")}>
+                      {p.pausa_abierta.almuerzo ? "Almuerzo" : "Pausa"} desde las {hora(p.pausa_abierta.inicio)} · {dur(p.pausa_abierta.segundos)}{p.pausa_abierta.excedida ? " (pasó el límite)" : ""}</span>}</td>
                   <td className="num">{hora(p.entrada)}{p.turno && <span className="block text-xs text-gris">turno {p.turno[0]}</span>}</td>
                   <td className="text-right num">{p.trabajados_seg ? dur(p.trabajados_seg) : "—"}</td>
+                  <td className="text-right num">{p.almuerzo_seg ? dur(p.almuerzo_seg) : "—"}</td>
+                  <td className={cx("text-right num", p.excesos > 0 && "text-rojo")}>{p.pausas_seg ? dur(p.pausas_seg) : "—"}</td>
                   <td>{p.pc ? (
                     <span className="text-sm"><span className={cx("mr-1.5 inline-block size-2 rounded-full", p.pc.en_vivo ? (p.pc.activo ? "bg-verde" : "bg-amarillo-600") : "bg-gris")} />
                       {p.pc.en_vivo ? (p.pc.activo ? p.pc.app || "Activo" : "Inactivo") : `Visto ${hora(p.pc.minuto)}`}</span>
@@ -185,7 +204,7 @@ function MesEquipo({ onVer }) {
         <Panel cuerpo="p-0">
           <div className="overflow-x-auto">
             <table className="tabla">
-              <thead><tr><th>Persona</th><th className="text-right">Adherencia</th><th className="text-right">Puntualidad</th><th className="text-right">Asistencia</th><th className="text-right">Tardanzas</th><th className="text-right">Ausencias</th><th className="text-right">Trabajadas</th><th className="text-right">Extra</th><th className="text-right">Sin salida</th></tr></thead>
+              <thead><tr><th>Persona</th><th className="text-right">Adherencia</th><th className="text-right">Puntualidad</th><th className="text-right">Asistencia</th><th className="text-right">Tardanzas</th><th className="text-right">Ausencias</th><th className="text-right">Trabajadas</th><th className="text-right">Extra</th><th className="text-right">Almuerzo</th><th className="text-right">Pausas</th><th className="text-right">Sin salida</th></tr></thead>
               <tbody>
                 {d.personas.map((p) => (
                   <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
@@ -197,6 +216,8 @@ function MesEquipo({ onVer }) {
                     <td className={cx("text-right num", p.ausencias && "text-rojo")}>{p.ausencias}</td>
                     <td className="text-right num">{dur(p.segundos_trabajados)}</td>
                     <td className={cx("text-right num", p.minutos_extra >= 600 && "text-[#a86a00]")}>{dur(p.segundos_extra)}</td>
+                    <td className="text-right num">{dur(p.segundos_almuerzo)}</td>
+                    <td className={cx("text-right num", p.pausas_excedidas > 0 && "text-rojo")}>{dur(p.segundos_pausas)}{p.pausas_excedidas > 0 && <span className="block text-xs">{p.pausas_excedidas} pasaron el límite</span>}</td>
                     <td className="text-right num">{p.sin_salida}</td>
                   </tr>
                 ))}
@@ -279,6 +300,8 @@ function Horarios() {
   const [fer, setFer] = useState([]);
   const [editando, setEditando] = useState(null);
   const [nuevoFeriado, setNuevoFeriado] = useState({ fecha: "", nombre: "" });
+  const [deptos, setDeptos] = useState([]);
+  useEffect(() => { departamentos().then((d) => setDeptos(d.results || d)).catch(() => {}); }, []);
   const cargar = useCallback(() => {
     horarios().then(setLista).catch(() => setLista([]));
     asignacionesHorario().then(setPersonas).catch(() => {});
@@ -289,12 +312,13 @@ function Horarios() {
   const resumen = (h) => Object.entries(h.dias).map(([d, [a, b]]) => `${DIAS[d].slice(0, 3)} ${a}-${b}`).join(" · ");
   return (
     <div className="space-y-5">
-      <Panel titulo="Horarios" accion={<Boton tam="sm" icono={Plus} onClick={() => setEditando({ nombre: "", dias: { 0: ["08:00", "17:00"], 1: ["08:00", "17:00"], 2: ["08:00", "17:00"], 3: ["08:00", "17:00"], 4: ["08:00", "17:00"] }, almuerzo_minutos: 60, tolerancia_minutos: 10, por_defecto: false, activo: true })}>Horario</Boton>} cuerpo="p-0">
+      <Panel titulo="Horarios" accion={<Boton tam="sm" icono={Plus} onClick={() => setEditando({ nombre: "", dias: { 0: ["08:00", "17:00"], 1: ["08:00", "17:00"], 2: ["08:00", "17:00"], 3: ["08:00", "17:00"], 4: ["08:00", "17:00"] }, almuerzo_minutos: 60, almuerzo_inicio: "", pausa_max_minutos: 60, tolerancia_minutos: 10, departamentos: [], especial: false, por_defecto: false, activo: true })}>Horario</Boton>} cuerpo="p-0">
         <ul className="divide-y divide-linea-suave">
           {lista.map((h) => (
             <li key={h.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-              <div className="min-w-0 flex-1"><p className="font-medium">{h.nombre} {h.por_defecto && <Insignia tono="azul">Por defecto</Insignia>}</p>
-                <p className="text-sm text-gris">{resumen(h)} · almuerzo {h.almuerzo_minutos} min · tolerancia {h.tolerancia_minutos} min · {h.personas} persona(s)</p></div>
+              <div className="min-w-0 flex-1"><p className="font-medium">{h.nombre} {h.por_defecto && <Insignia tono="azul">Por defecto</Insignia>} {h.especial && <Insignia tono="amarillo">Turno especial</Insignia>}</p>
+                <p className="text-sm text-gris">{resumen(h)} · almuerzo {h.almuerzo_minutos} min{h.almuerzo_inicio ? ` (${h.almuerzo_inicio})` : ""} · pausa máx. {h.pausa_max_minutos} min · tolerancia {h.tolerancia_minutos} min · {h.personas} persona(s)</p>
+                {h.departamentos.length > 0 && <p className="text-sm text-gris">Departamentos: {h.departamentos.map((id) => deptos.find((d) => d.id === id)?.nombre || id).join(", ")}</p>}</div>
               <Boton tam="sm" variante="secundario" onClick={() => setEditando({ ...h })}>Editar</Boton>
               <Boton tam="sm" variante="fantasma" icono={Trash2} className="text-rojo" aria-label={`Borrar ${h.nombre}`} onClick={async () => {
                 if (await confirmar({ titulo: `¿Borrar «${h.nombre}»?`, boton: "Borrar", peligro: true })) { try { await borrarHorario(h.id); cargar(); } catch (e) { avisar(e.message, "rojo"); } }
@@ -372,8 +396,21 @@ function Horarios() {
             </fieldset>
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo etiqueta="Almuerzo (minutos)" ayuda="No cuenta como trabajado.">{(id) => <input id={id} type="number" min={0} className="campo" value={editando.almuerzo_minutos} onChange={(e) => setEditando({ ...editando, almuerzo_minutos: Number(e.target.value) })} />}</Campo>
+              <Campo etiqueta="Hora del almuerzo" ayuda="Opcional. Se registra aparte y sirve de referencia.">{(id) => <input id={id} type="time" className="campo" value={editando.almuerzo_inicio || ""} onChange={(e) => setEditando({ ...editando, almuerzo_inicio: e.target.value })} />}</Campo>
+              <Campo etiqueta="Pausa máxima (minutos)" ayuda="Pasado este tiempo sin marcar el regreso, se avisa al supervisor. El almuerzo usa su propio límite.">{(id) => <input id={id} type="number" min={1} className="campo" value={editando.pausa_max_minutos} onChange={(e) => setEditando({ ...editando, pausa_max_minutos: Number(e.target.value) })} />}</Campo>
               <Campo etiqueta="Tolerancia (minutos)" ayuda="Gracia antes de contar tardanza.">{(id) => <input id={id} type="number" min={0} className="campo" value={editando.tolerancia_minutos} onChange={(e) => setEditando({ ...editando, tolerancia_minutos: Number(e.target.value) })} />}</Campo>
             </div>
+            <fieldset>
+              <legend className="etiqueta">Departamentos con este horario</legend>
+              <p className="mb-2 text-sm text-gris">Quien trabaja en ellos y no tiene un horario propio usa este. El horario de una persona siempre manda.</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {deptos.map((d) => (
+                  <label key={d.id} className="flex min-h-9 items-center gap-2 text-sm"><input type="checkbox" className="accent-azul" checked={(editando.departamentos || []).includes(d.id)}
+                    onChange={(e) => setEditando({ ...editando, departamentos: e.target.checked ? [...(editando.departamentos || []), d.id] : (editando.departamentos || []).filter((x) => x !== d.id) })} />{d.nombre}</label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-azul" checked={!!editando.especial} onChange={(e) => setEditando({ ...editando, especial: e.target.checked })} />Es un turno especial (queda identificado)</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-azul" checked={editando.por_defecto} onChange={(e) => setEditando({ ...editando, por_defecto: e.target.checked })} />Usar para quien no tenga horario asignado</label>
           </div>
         )}

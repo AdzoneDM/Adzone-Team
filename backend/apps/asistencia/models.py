@@ -17,6 +17,11 @@ class Horario(models.Model):
     dias = models.JSONField(default=dict, help_text='Día (0 = lunes) → ["entrada", "salida"], p. ej. {"0": ["08:00", "17:00"]}.')
     almuerzo_minutos = models.PositiveSmallIntegerField(default=60, help_text="Pausa de almuerzo que no cuenta como trabajada.")
     tolerancia_minutos = models.PositiveSmallIntegerField(default=10, help_text="Minutos de gracia antes de contar tardanza.")
+    almuerzo_inicio = models.CharField(max_length=5, blank=True, help_text="Hora a la que se espera el almuerzo, p. ej. «12:00» (opcional; se registra por separado).")
+    pausa_max_minutos = models.PositiveSmallIntegerField(default=60, help_text="Una pausa (no el almuerzo) que pasa de estos minutos sin registrar el regreso genera una alerta.")
+    departamentos = models.ManyToManyField('core.Departamento', blank=True, related_name='horarios',
+                                           help_text="Quien trabaja en estos departamentos y no tiene un horario propio usa este.")
+    especial = models.BooleanField(default=False, help_text="Turno especial (marcado para identificarlo y documentarlo).")
     por_defecto = models.BooleanField(default=False, help_text="Se usa para quien no tiene horario asignado.")
     activo = models.BooleanField(default=True)
 
@@ -81,6 +86,8 @@ class Marcaje(models.Model):
     momento = models.DateTimeField(db_index=True)
     origen = models.CharField(max_length=10, choices=ORIGENES, default='WEB')
     motivo_pausa = models.CharField(max_length=60, blank=True, help_text="Almuerzo, diligencia, reunión fuera…")
+    es_almuerzo = models.BooleanField(default=False, help_text="La pausa es el almuerzo (se cuenta aparte de las demás pausas).")
+    alerta_enviada = models.BooleanField(default=False, help_text="Ya se avisó que esta pausa pasó del límite.")
     ip = models.GenericIPAddressField(null=True, blank=True)
     nota = models.CharField(max_length=255, blank=True)
     corregido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',

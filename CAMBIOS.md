@@ -1,5 +1,21 @@
 # Cambios
 
+## 12.21 · 21/11/2026 · Ponches de almuerzo y pausas con alerta, horarios por departamento y organigrama con zoom
+
+**Control de asistencia**
+- **Seis ponches**: entrada, salida, inicio y fin de almuerzo, inicio y fin de pausa. El almuerzo se marca aparte (botón «Iniciar almuerzo»); las pausas piden su motivo. Cada ponche guarda fecha, hora al segundo y quién lo hizo.
+- **Contador de la pausa** en el botón de la jornada: «Almuerzo 0:23:10» / «Pausa 0:12:03». Se pone rojo y parpadea al pasar el límite, y se detiene al marcar el regreso.
+- **Alerta automática**: cuando una pausa llega a su límite sin registrar el regreso, se avisa a la persona y a su supervisor, con el nombre y el tiempo transcurrido («Ana lleva 1:02:10 en pausa»). Se avisa una sola vez por pausa. No necesita tarea programada: se revisa cada vez que una pantalla abierta consulta sus avisos.
+- **Límites configurables por horario**: «Pausa máxima» (60 min por defecto) y la duración del almuerzo, que son límites distintos (el almuerzo no usa el de las pausas).
+- **Horarios por departamento y turnos**: cada horario puede asociarse a departamentos (quien no tiene horario propio usa el de su departamento; el horario personal siempre manda; si no hay ninguno, el general). Se puede marcar un horario como «turno especial» y fijar la hora del almuerzo.
+- **Reportes**: Hoy muestra quién está en almuerzo o pausa y desde cuándo; el día a día y el reporte del mes (y su Excel) separan almuerzo y pausas y cuentan las que pasaron el límite. Corregir marcajes admite «Inicio de almuerzo».
+- Lo marcado antes de esta versión no genera alertas; las pausas con motivo «Almuerzo» pasan a contarse como almuerzo.
+- **No incluido**: los turnos del Call Center. Los agentes siguen con el horario general hasta que se definan sus turnos y se les asigne (Asistencia → Horarios).
+
+**Organigrama**
+- Nueva vista **Por áreas** (la de entrada): cada departamento es una tarjeta con su color, su responsable y sus cifras, unidas por líneas según de quién dependen. Al tocar un área la pantalla **se acerca (zoom)** a su tarjeta y muestra el **organigrama interno**: responsable, de quién depende, cargos con sus funciones, equipo y vacantes. «Organigrama general» regresa; el área abierta queda en la dirección (recargar o volver atrás no te saca de ahí). En el celular las áreas son tarjetas y el interior una lista. «Completo» y «Lista» siguen disponibles.
+
+
 ## 12.20 · 20/11/2026 · Ya no hay que recargar a mano después de una actualización
 
 - **Causa** de «tengo que dar a recargar para entrar a /puestos»: cada versión nueva cambia los nombres de los archivos de la app. Una pestaña que ya estaba abierta intentaba cargar una pantalla que aún no había visitado (por ejemplo Puestos) con el nombre **viejo**, que ya no existe: el servidor respondía la página principal en vez del archivo y la pantalla se quedaba cargando hasta que recargabas.
