@@ -1,8 +1,8 @@
 // Cotizaciones y facturas: editor de líneas, detalle con acciones y pagos.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Ban, CheckCircle2, CloudUpload, Copy, Plus, Printer, Receipt, RefreshCw, Send, Trash2, X } from "lucide-react";
-import { accionDocumento, borrarPago, eliminarDocumento, guardarDocumento, listarProyectos, registrarPago } from "@/lib/api";
+import { Ban, CheckCircle2, CloudUpload, Copy, Download, FileText, ImagePlus, Paperclip, Plus, Printer, Receipt, RefreshCw, Send, Trash2, X } from "lucide-react";
+import { accionDocumento, borrarAdjuntoFactura, borrarPago, eliminarDocumento, guardarDocumento, listarProyectos, quitarComprobantePago, registrarPago, subirAdjuntosFactura, subirComprobantePago, urlAdjuntoFactura, urlComprobantePago } from "@/lib/api";
 import { dinero, fechaCorta, hoyISO, sumarDias } from "@/lib/formato";
 import { SelectorCliente } from "@/components/Selectores";
 import { Alerta, Boton, Campo, Modal, cx, useAviso, useConfirmar } from "@/components/ui";
@@ -120,6 +120,90 @@ export function EditorDocumento({ tipo, abierto, inicial, onCerrar, onGuardado }
 }
 
 /** Detalle de una cotización o factura con sus acciones. */
+/** Imágenes y documentos de una factura: miniaturas que se abren en grande, descarga y borrado, y subida de varios a la vez. */
+function AdjuntosFactura({ doc, onCambio }) {
+  const avisar = useAviso();
+  const confirmar = useConfirmar();
+  const entrada = useRef(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const subir = async (e) => {
+    const archivos = e.target.files;
+    if (!archivos?.length) return;
+    setSubiendo(true);
+    try { onCambio(await subirAdjuntosFactura(doc.id, archivos)); avisar(archivos.length > 1 ? `${archivos.length} archivos agregados.` : "Archivo agregado."); } catch (err) { avisar(err.message, "rojo"); }
+    setSubiendo(false);
+    e.target.value = "";
+  };
+  return (
+    <section>
+      <div className="mb-2 flex items-center gap-2">
+        <h3 className="font-semibold">Imágenes y documentos</h3>
+        {doc.adjuntos.length > 0 && <span className="text-sm text-gris">({doc.adjuntos.length})</span>}
+        <input ref={entrada} type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={subir} aria-label="Elegir imágenes o PDF" />
+        <Boton tam="sm" variante="secundario" icono={ImagePlus} cargando={subiendo} className="ml-auto" onClick={() => entrada.current?.click()}>Agregar</Boton>
+      </div>
+      {doc.adjuntos.length === 0 ? (
+        <button type="button" onClick={() => entrada.current?.click()} className="flex w-full flex-col items-center gap-1 rounded-xl border-2 border-dashed border-linea px-4 py-6 text-sm text-gris hover:border-azul/50 hover:bg-fondo">
+          <ImagePlus className="size-6" aria-hidden />Agrega fotos del trabajo, la orden de compra del cliente o cualquier PDF
+          <span className="text-xs">JPG, PNG, WEBP o PDF · hasta 10 MB cada uno</span>
+        </button>
+      ) : (
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {doc.adjuntos.map((a) => (
+            <li key={a.id} className="group relative overflow-hidden rounded-xl border border-linea bg-white">
+              <a href={urlAdjuntoFactura(doc.id, a.id)} target="_blank" rel="noopener" className="block" aria-label={`Abrir ${a.nombre}`}>
+                {a.es_imagen
+                  ? <img src={urlAdjuntoFactura(doc.id, a.id)} alt={a.nombre} loading="lazy" className="h-28 w-full object-cover" />
+                  : <span className="flex h-28 flex-col items-center justify-center gap-1 bg-fondo text-gris"><FileText className="size-8" aria-hidden /><span className="text-xs font-semibold">PDF</span></span>}
+                <span className="block truncate px-2 py-1.5 text-xs text-tinta" title={a.nombre}>{a.nombre}</span>
+              </a>
+              <div className="absolute right-1 top-1 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                <a href={urlAdjuntoFactura(doc.id, a.id, true)} aria-label={`Descargar ${a.nombre}`} title="Descargar" className="rounded-lg bg-white/95 p-1.5 text-tinta shadow hover:text-azul"><Download className="size-4" /></a>
+                <button type="button" aria-label={`Quitar ${a.nombre}`} title="Quitar" className="rounded-lg bg-white/95 p-1.5 text-tinta shadow hover:text-rojo" onClick={async () => {
+                  if (await confirmar({ titulo: `¿Quitar «${a.nombre}»?`, boton: "Quitar", peligro: true })) { try { onCambio(await borrarAdjuntoFactura(doc.id, a.id)); } catch (err) { avisar(err.message, "rojo"); } }
+                }}><Trash2 className="size-4" /></button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** El comprobante de un pago: verlo, descargarlo, cambiarlo o quitarlo; o adjuntarlo si no se subió al cobrar. */
+function ComprobanteDePago({ pago, onCambio }) {
+  const avisar = useAviso();
+  const entrada = useRef(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const subir = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setSubiendo(true);
+    try { onCambio(await subirComprobantePago(pago.id, f)); avisar("Comprobante guardado."); } catch (err) { avisar(err.message, "rojo"); }
+    setSubiendo(false);
+    e.target.value = "";
+  };
+  return (
+    <span className="flex items-center gap-1">
+      <input ref={entrada} type="file" accept="image/*,application/pdf" className="hidden" onChange={subir} aria-label="Elegir el comprobante" />
+      {pago.tiene_comprobante ? (
+        <>
+          <a href={urlComprobantePago(pago.id)} target="_blank" rel="noopener" className="inline-flex items-center gap-1 rounded-lg bg-verde-50 px-2 py-1 text-xs font-medium text-verde hover:underline" title="Ver el comprobante">
+            {pago.comprobante_es_imagen ? <img src={urlComprobantePago(pago.id)} alt="" className="size-5 rounded object-cover" loading="lazy" /> : <FileText className="size-4" aria-hidden />}Comprobante
+          </a>
+          <a href={urlComprobantePago(pago.id, true)} aria-label="Descargar el comprobante" title="Descargar" className="rounded p-1 text-gris hover:text-azul"><Download className="size-4" /></a>
+          <button type="button" aria-label="Quitar el comprobante" title="Quitar" className="rounded p-1 text-gris hover:text-rojo" onClick={async () => { try { onCambio(await quitarComprobantePago(pago.id)); } catch (err) { avisar(err.message, "rojo"); } }}><X className="size-4" /></button>
+        </>
+      ) : (
+        <button type="button" disabled={subiendo} onClick={() => entrada.current?.click()} className="inline-flex items-center gap-1 rounded-lg border border-dashed border-linea px-2 py-1 text-xs font-medium text-gris hover:border-azul hover:text-azul">
+          <Paperclip className="size-3.5" aria-hidden />{subiendo ? "Subiendo…" : "Adjuntar comprobante"}
+        </button>
+      )}
+    </span>
+  );
+}
+
 export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
   const esCot = tipo === "cotizaciones";
   const avisar = useAviso();
@@ -203,7 +287,8 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
             <ul className="divide-y divide-linea-suave rounded-xl border border-linea text-sm">
               {doc.pagos.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 px-3 py-2">
-                  <span className="flex-1">{fechaCorta(p.fecha)} · {p.metodo_nombre}{p.referencia ? ` · ${p.referencia}` : ""}</span>
+                  <span className="min-w-0 flex-1">{fechaCorta(p.fecha)} · {p.metodo_nombre}{p.referencia ? ` · ${p.referencia}` : ""}</span>
+                  <ComprobanteDePago pago={p} onCambio={onCambio} />
                   <span className="font-medium num">{dinero(p.monto, doc.moneda)}</span>
                   <button type="button" className="rounded p-1 text-gris hover:text-rojo" aria-label="Borrar pago" onClick={async () => {
                     if (await confirmar({ titulo: "¿Borrar este pago?", mensaje: "El saldo vuelve a subir.", boton: "Borrar", peligro: true })) { onCambio(await borrarPago(p.id)); avisar("Pago borrado."); }
@@ -213,6 +298,7 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
             </ul>
           </section>
         )}
+        {!esCot && <AdjuntosFactura doc={doc} onCambio={onCambio} />}
         {doc.notas && <p className="whitespace-pre-line text-sm text-gris">{doc.notas}</p>}
         {pago && (
           <form className="space-y-3 rounded-xl border border-amarillo bg-amarillo-50/60 p-4" onSubmit={async (e) => {
@@ -227,6 +313,9 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
                 <option value="TRANSFERENCIA">Transferencia</option><option value="EFECTIVO">Efectivo</option><option value="CHEQUE">Cheque</option><option value="TARJETA">Tarjeta</option><option value="OTRO">Otro</option></select>}</Campo>
               <Campo etiqueta="Referencia">{(id) => <input id={id} className="campo bg-white" value={pago.referencia} onChange={(e) => setPago({ ...pago, referencia: e.target.value })} maxLength={100} />}</Campo>
             </div>
+            <Campo etiqueta="Comprobante de pago (opcional)" ayuda="Foto de la transferencia o del depósito, o un PDF. También puedes adjuntarlo después.">
+              {(id) => <input id={id} type="file" accept="image/*,application/pdf" className="campo bg-white py-2" onChange={(e) => setPago({ ...pago, comprobante: e.target.files?.[0] || null })} />}
+            </Campo>
             <div className="flex justify-end gap-2"><Boton variante="secundario" onClick={() => setPago(null)}>Cancelar</Boton><Boton type="submit">Guardar pago</Boton></div>
           </form>
         )}

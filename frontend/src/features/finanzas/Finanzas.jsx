@@ -1,8 +1,8 @@
 // Finanzas operativas: lo que entra, lo que se debe, lo que se gasta y qué deja ganancia.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { FileText, Paperclip, Pencil, Plus, Receipt, Search, Trash2, Wallet } from "lucide-react";
-import { eliminarDocumento, facturarOrden, guardarGasto, listarDocumentos, listarProyectos, obtenerDocumento, rentabilidad, resumenFinanzas } from "@/lib/api";
+import { ChevronDown, Download, FileSpreadsheet, FileText, Paperclip, Pencil, Plus, Receipt, Search, Trash2, Wallet } from "lucide-react";
+import { eliminarDocumento, facturarOrden, guardarGasto, listarDocumentos, listarProyectos, obtenerDocumento, rentabilidad, resumenFinanzas, urlReporteFacturas } from "@/lib/api";
 import { dinero, fechaCorta, hoyISO, horas, mesActual } from "@/lib/formato";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, Panel, Pestanas, SelectorMes, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 import { DetalleDocumento, EditorDocumento, EstadoDoc } from "./documentos";
@@ -95,6 +95,36 @@ function Resumen({ onFacturar }) {
   );
 }
 
+/** Descargar el reporte en Excel: las facturas (con lo filtrado en pantalla) o los pagos con su comprobante, por rango de fechas. */
+function ReporteFacturas({ filtro }) {
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const filtros = filtro === "vencidas" ? { vencidas: 1 } : filtro === "por_cobrar" ? { por_cobrar: 1 } : filtro ? { estado: filtro } : {};
+  const rango = { ...(desde && { desde }), ...(hasta && { hasta }) };
+  const cierra = (e) => { const d = e.currentTarget.closest("details"); setTimeout(() => d?.removeAttribute("open"), 100); };
+  return (
+    <details className="relative">
+      <summary className="inline-flex h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-linea bg-white px-4 text-[15px] font-medium text-tinta hover:border-azul [&::-webkit-details-marker]:hidden">
+        <Download className="size-4" aria-hidden />Descargar reporte<ChevronDown className="size-4 text-gris" aria-hidden />
+      </summary>
+      <div className="absolute right-0 z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] space-y-3 rounded-xl border border-linea bg-white p-4 shadow-xl">
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-xs font-medium text-gris">Desde<input type="date" className="campo mt-1 h-10" value={desde} onChange={(e) => setDesde(e.target.value)} /></label>
+          <label className="text-xs font-medium text-gris">Hasta<input type="date" className="campo mt-1 h-10" value={hasta} onChange={(e) => setHasta(e.target.value)} /></label>
+        </div>
+        <a href={urlReporteFacturas({ ...filtros, ...rango })} download onClick={cierra} className="flex items-start gap-3 rounded-lg border border-linea p-3 hover:border-azul hover:bg-fondo">
+          <FileSpreadsheet className="mt-0.5 size-5 shrink-0 text-verde" aria-hidden />
+          <span><span className="block text-sm font-semibold">Facturas (Excel)</span><span className="block text-xs text-gris">{filtro ? "Con el filtro de la pantalla: " : "Todas: "}total, pagado, saldo, atraso, pagos, comprobantes e imágenes</span></span>
+        </a>
+        <a href={urlReporteFacturas({ tipo: "pagos", ...rango })} download onClick={cierra} className="flex items-start gap-3 rounded-lg border border-linea p-3 hover:border-azul hover:bg-fondo">
+          <FileSpreadsheet className="mt-0.5 size-5 shrink-0 text-azul" aria-hidden />
+          <span><span className="block text-sm font-semibold">Pagos y comprobantes (Excel)</span><span className="block text-xs text-gris">Cada pago con su forma, referencia y si tiene comprobante</span></span>
+        </a>
+      </div>
+    </details>
+  );
+}
+
 function ListaDocumentos({ tipo, abrirId }) {
   const avisar = useAviso();
   const [params, setParams] = useSearchParams();
@@ -126,7 +156,10 @@ function ListaDocumentos({ tipo, abrirId }) {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" />
           <input className="campo h-11 pl-9" placeholder="Número, cliente o NCF" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar" />
         </div>
-        <Boton icono={Plus} className="ml-auto" onClick={() => setEditor({})}>{esCot ? "Nueva cotización" : "Nueva factura"}</Boton>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {!esCot && <ReporteFacturas filtro={filtro} />}
+          <Boton icono={Plus} onClick={() => setEditor({})}>{esCot ? "Nueva cotización" : "Nueva factura"}</Boton>
+        </div>
       </div>
       {!lista ? <Cargando /> : filtrada.length === 0 ? <Vacio icono={FileText} titulo={esCot ? "Sin cotizaciones" : "Sin facturas"}>
         {esCot ? "Cotiza aquí, márcala aprobada cuando el cliente diga que sí y crea la orden de trabajo y la factura con un clic." : "Factura desde una orden entregada o una cotización aprobada, o crea una aquí."}</Vacio> : (

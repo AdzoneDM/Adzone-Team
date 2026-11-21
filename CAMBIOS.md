@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.30 · 21/11/2026 · Facturas: imágenes, comprobantes de pago y reporte descargable
+
+- **Imágenes y documentos en la factura:** en el detalle de cada factura, sección nueva con miniaturas que se abren en grande; agrega varias fotos o PDF a la vez (JPG, PNG, WEBP o PDF, hasta 10 MB cada uno), descárgalas o quítalas. Útil para la foto del trabajo entregado, la orden de compra del cliente o el acuse.
+- **Comprobante de pago:** al registrar un pago puedes adjuntar la foto de la transferencia/depósito o un PDF; si no lo subiste, se adjunta después desde la lista de pagos («Adjuntar comprobante»). Se puede ver, descargar, cambiar o quitar. Si el archivo no sirve, el pago no se registra.
+- **Descargar reporte** (botón en la lista de facturas, con rango de fechas): **Facturas (Excel)**, con lo filtrado en pantalla (número, cliente, RNC, estado, NCF, total, pagado, saldo, vencimiento, días de atraso, pagos, comprobantes, imágenes y totales por moneda) y **Pagos y comprobantes (Excel)**.
+- «Facturar» sigue igual: desde una orden entregada, una cotización aprobada o «Nueva factura».
+- Seguridad: solo Finanzas y la Dirección ven, suben o descargan estos archivos; se validan que sean fotos reales o PDF. Migración nueva (`finanzas.0004`): agrega el campo de comprobante y la tabla de adjuntos, sin tocar lo existente.
+
 ## 12.29 · 21/11/2026 · El almuerzo es una pausa: un solo total de Pausas
 
 - **Un solo total:** el almuerzo ya no se muestra como una cifra aparte que parece sumarse a las pausas. «Pausas» es **un total que incluye el almuerzo**, y debajo se detalla cada pausa (Pausa 10:00 a. m. 0:20:00 · Almuerzo 12:00 p. m. 1:05:00). Lo mismo en el día a día, en «Hoy» («incluye almuerzo …»), en el reporte del equipo, en el panel del botón de jornada y en el Excel (columnas «Pausas, incluido el almuerzo» y «De ellas, almuerzo»).

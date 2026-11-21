@@ -298,7 +298,26 @@ export const guardarDocumento = (tipo, d) => (d.id ? api(`${F}/${tipo}/${d.id}/`
 export const eliminarDocumento = (tipo, id) => api(`${F}/${tipo}/${id}/`, { method: "DELETE" });
 export const accionDocumento = (tipo, id, accion, body) => api(`${F}/${tipo}/${id}/${accion}/`, { method: "POST", body });
 export const facturarOrden = (orden, extra = {}) => api(`${F}/facturas/desde_orden/`, { method: "POST", body: { orden, ...extra } });
-export const registrarPago = (factura, pago) => api(`${F}/facturas/${factura}/pagos/`, { method: "POST", body: pago });
+export const registrarPago = (factura, pago) => {
+  const { comprobante, ...datos } = pago;
+  if (!comprobante) return api(`${F}/facturas/${factura}/pagos/`, { method: "POST", body: datos });
+  const f = new FormData(); // con comprobante (foto o PDF) el pago va como formulario
+  Object.entries(datos).forEach(([k, v]) => f.append(k, v ?? ""));
+  f.append("comprobante", comprobante);
+  return api(`${F}/facturas/${factura}/pagos/`, { method: "POST", body: f });
+};
+// Imágenes y documentos de una factura, comprobante de cada pago y reporte descargable
+export const subirAdjuntosFactura = (id, archivos) => {
+  const f = new FormData();
+  [...archivos].forEach((a) => f.append("archivos", a));
+  return api(`${F}/facturas/${id}/adjuntos/`, { method: "POST", body: f });
+};
+export const borrarAdjuntoFactura = (id, adjunto) => api(`${F}/facturas/${id}/adjuntos/${adjunto}/`, { method: "DELETE" });
+export const urlAdjuntoFactura = (id, adjunto, descargar = false) => `${F}/facturas/${id}/adjuntos/${adjunto}/${descargar ? "?descargar=1" : ""}`;
+export const urlComprobantePago = (id, descargar = false) => `${F}/pagos/${id}/comprobante/${descargar ? "?descargar=1" : ""}`;
+export const subirComprobantePago = (id, archivo) => { const f = new FormData(); f.append("comprobante", archivo); return api(`${F}/pagos/${id}/comprobante/`, { method: "POST", body: f }); };
+export const quitarComprobantePago = (id) => api(`${F}/pagos/${id}/comprobante/`, { method: "DELETE" });
+export const urlReporteFacturas = (params = {}) => `${F}/facturas/reporte/${q(params)}`;
 export const borrarPago = (id) => api(`${F}/pagos/${id}/`, { method: "DELETE" });
 export const guardarGasto = (g, comprobante) => {
   if (!comprobante) return g.id ? api(`${F}/gastos/${g.id}/`, { method: "PATCH", body: g }) : api(`${F}/gastos/`, { method: "POST", body: g });

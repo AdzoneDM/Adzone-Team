@@ -131,6 +131,16 @@ class LineaFactura(Linea):
     documento = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name='lineas')
 
 
+def _ruta_comprobante_pago(instancia, nombre):
+    ext = os.path.splitext(nombre)[1].lower()[:10]
+    return f"pagos/{timezone.localdate():%Y/%m}/{uuid.uuid4().hex}{ext}"
+
+
+def _ruta_adjunto(instancia, nombre):
+    ext = os.path.splitext(nombre)[1].lower()[:10]
+    return f"facturas/{instancia.factura_id}/{uuid.uuid4().hex}{ext}"
+
+
 class Pago(models.Model):
     METODOS = [('TRANSFERENCIA', 'Transferencia'), ('EFECTIVO', 'Efectivo'), ('CHEQUE', 'Cheque'),
                ('TARJETA', 'Tarjeta'), ('OTRO', 'Otro')]
@@ -142,9 +152,25 @@ class Pago(models.Model):
     registrado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     cashflow_id = models.CharField(max_length=60, blank=True, help_text="Recibo de ingreso en Cashflow (si vino de allá).")
+    comprobante = models.FileField(upload_to=_ruta_comprobante_pago, null=True, blank=True, help_text="Foto o PDF del comprobante de pago (transferencia, depósito, cheque).")
 
     class Meta:
         ordering = ['-fecha', '-id']
+
+
+class AdjuntoFactura(models.Model):
+    """Imágenes y documentos de una factura: la foto del trabajo entregado, la orden de compra del cliente, el acuse, etc."""
+    factura = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name='adjuntos')
+    archivo = models.FileField(upload_to=_ruta_adjunto)
+    nombre = models.CharField(max_length=150)
+    es_imagen = models.BooleanField(default=False)
+    nota = models.CharField(max_length=200, blank=True)
+    subido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['fecha_creacion', 'id']
+        verbose_name = 'Adjunto de factura'
 
 
 def _ruta_comprobante(instancia, nombre):

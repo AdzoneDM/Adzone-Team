@@ -12,6 +12,7 @@ router.register(r'tasas', views.TasaViewSet, basename='tasa')
 urlpatterns = [
     path('', include(router.urls)),
     path('pagos/<int:pk>/', views.borrar_pago_view, name='borrar_pago'),
+    path('pagos/<int:pk>/comprobante/', views.comprobante_pago_view, name='comprobante_pago'),
     path('resumen/', views.resumen_view, name='finanzas_resumen'),
     path('rentabilidad/', views.rentabilidad_view, name='finanzas_rentabilidad'),
     path('rentabilidad/ordenes/', views.rentabilidad_ordenes_view),

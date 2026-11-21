@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import Cotizacion, Factura, Gasto, LineaCotizacion, LineaFactura, Pago
+from .models import AdjuntoFactura, Cotizacion, Factura, Gasto, LineaCotizacion, LineaFactura, Pago
 
 
 class LineaSerializer(serializers.Serializer):
@@ -75,10 +75,18 @@ class CotizacionSerializer(DocumentoSerializer):
 
 class PagoSerializer(serializers.ModelSerializer):
     metodo_nombre = serializers.CharField(source='get_metodo_display', read_only=True)
+    tiene_comprobante = serializers.SerializerMethodField()
+    comprobante_es_imagen = serializers.SerializerMethodField()
 
     class Meta:
         model = Pago
-        fields = ['id', 'fecha', 'monto', 'metodo', 'metodo_nombre', 'referencia']
+        fields = ['id', 'fecha', 'monto', 'metodo', 'metodo_nombre', 'referencia', 'tiene_comprobante', 'comprobante_es_imagen']
+
+    def get_tiene_comprobante(self, p):
+        return bool(p.comprobante)
+
+    def get_comprobante_es_imagen(self, p):
+        return bool(p.comprobante) and not p.comprobante.name.lower().endswith('.pdf')
 
     def validate_monto(self, v):
         if v <= 0:
@@ -86,18 +94,30 @@ class PagoSerializer(serializers.ModelSerializer):
         return v
 
 
+class AdjuntoSerializer(serializers.ModelSerializer):
+    subido_por_nombre = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AdjuntoFactura
+        fields = ['id', 'nombre', 'es_imagen', 'nota', 'subido_por_nombre', 'fecha_creacion']
+
+    def get_subido_por_nombre(self, a):
+        return (a.subido_por.get_full_name() or a.subido_por.username) if a.subido_por else None
+
+
 class FacturaSerializer(DocumentoSerializer):
     MODELO_LINEA = LineaFactura
     saldo = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     vencida = serializers.BooleanField(read_only=True)
     pagos = PagoSerializer(many=True, read_only=True)
+    adjuntos = AdjuntoSerializer(many=True, read_only=True)
     orden_numero = serializers.CharField(source='orden.codigo', read_only=True, default=None)
     cotizacion_numero = serializers.CharField(source='cotizacion.numero', read_only=True, default=None)
 
     class Meta:
         model = Factura
         fields = DocumentoSerializer.BASE + ['vencimiento', 'ncf', 'orden', 'orden_numero', 'cotizacion', 'cotizacion_numero',
-                                             'pagado', 'saldo', 'vencida', 'pagos', 'es_anticipo']
+                                             'pagado', 'saldo', 'vencida', 'pagos', 'adjuntos', 'es_anticipo']
         read_only_fields = ['numero', 'subtotal', 'itbis', 'total', 'estado', 'pagado', 'cotizacion', 'cashflow_id',
                             'cashflow_numero', 'cashflow_estado', 'cashflow_sincronizado']
 

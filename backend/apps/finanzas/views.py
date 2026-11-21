@@ -1,5 +1,6 @@
 """Finanzas operativas. Todo aquí es solo para Finanzas (departamento de Administración) y administradores."""
 import csv
+import mimetypes
 import os
 from datetime import date, timedelta
 from decimal import Decimal
@@ -8,14 +9,14 @@ from django.db.models import Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
 from rest_framework import permissions, serializers, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from apps.operaciones.models import OrdenTrabajo
 from apps.operaciones.permisos import es_finanzas
 from . import servicios
-from .models import Cotizacion, Factura, Gasto, Pago, redondear
+from .models import AdjuntoFactura, Cotizacion, Factura, Gasto, Pago, redondear
 from .serializers import CotizacionSerializer, FacturaSerializer, GastoSerializer, PagoSerializer
 
 
@@ -47,6 +48,35 @@ def _filtros(qs, p):
     if p.get('q'):
         qs = qs.filter(Q(numero__icontains=p['q']) | Q(cliente__nombre__icontains=p['q']) | Q(titulo__icontains=p['q']))
     return qs
+
+
+EXTENSIONES_IMAGEN = ('.jpg', '.jpeg', '.png', '.webp')
+EXTENSIONES_ARCHIVO = EXTENSIONES_IMAGEN + ('.pdf',)
+
+
+def _revisar_archivo(f, que="El archivo", campo="comprobante"):
+    """Foto o PDF de hasta 10 MB. Devuelve si es una imagen. Una «foto» que no se puede abrir como imagen se rechaza."""
+    ext = os.path.splitext(f.name)[1].lower()
+    if ext not in EXTENSIONES_ARCHIVO:
+        raise serializers_error(f"{que} tiene que ser una foto (JPG, PNG, WEBP) o un PDF.", campo)
+    if f.size > 10 * 1024 * 1024:
+        raise serializers_error(f"{que} pesa más de 10 MB.", campo)
+    es_imagen = ext in EXTENSIONES_IMAGEN
+    if es_imagen:
+        from PIL import Image
+        try:
+            Image.open(f).verify()
+        except Exception:  # noqa: BLE001 (cualquier falla al abrirla = no es una imagen válida)
+            raise serializers_error(f"{que} no es una imagen válida.", campo)
+        finally:
+            f.seek(0)
+    return es_imagen
+
+
+def _enviar(campo, descargar=False):
+    """Un archivo guardado, para verlo en el navegador (foto, PDF) o descargarlo."""
+    tipo = mimetypes.guess_type(campo.name)[0] or 'application/octet-stream'
+    return FileResponse(campo.open('rb'), filename=os.path.basename(campo.name), content_type=tipo, as_attachment=descargar)
 
 
 class CotizacionViewSet(viewsets.ModelViewSet):
@@ -144,10 +174,11 @@ class CotizacionViewSet(viewsets.ModelViewSet):
 class FacturaViewSet(viewsets.ModelViewSet):
     serializer_class = FacturaSerializer
     permission_classes = [EsFinanzas]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_queryset(self):
         qs = _filtros(Factura.objects.select_related('cliente', 'proyecto', 'orden', 'cotizacion', 'creada_por')
-                      .prefetch_related('lineas', 'pagos'), self.request.query_params)
+                      .prefetch_related('lineas', 'pagos', 'adjuntos'), self.request.query_params)
         if self.request.query_params.get('vencidas') == '1':
             qs = qs.filter(estado='EMITIDA', vencimiento__lt=timezone.localdate())
         if self.request.query_params.get('por_cobrar') == '1':
@@ -259,8 +290,123 @@ class FacturaViewSet(viewsets.ModelViewSet):
         s.is_valid(raise_exception=True)
         if s.validated_data['monto'] > f.saldo:
             return Response({"monto": [f"El saldo es {f.saldo:,.2f}. No se puede cobrar de más."]}, status=status.HTTP_400_BAD_REQUEST)
-        servicios.registrar_pago(f, request.user, **s.validated_data)
+        comprobante = request.FILES.get('comprobante')
+        if comprobante:
+            _revisar_archivo(comprobante, "El comprobante")  # antes de cobrar: si el archivo no sirve, no se registra nada
+        pago = servicios.registrar_pago(f, request.user, **s.validated_data)
+        if comprobante:
+            pago.comprobante = comprobante
+            pago.save(update_fields=['comprobante'])
         return Response(self.get_serializer(self.get_queryset().get(pk=f.pk)).data, status=status.HTTP_201_CREATED)
+
+
+    @action(detail=True, methods=['post'], url_path='adjuntos')
+    def subir_adjuntos(self, request, pk=None):
+        """Agrega imágenes o PDF a la factura (varios a la vez, en el campo «archivos»)."""
+        f = self.get_object()
+        archivos = request.FILES.getlist('archivos') or request.FILES.getlist('archivo')
+        if not archivos:
+            raise serializers_error("Elige al menos una imagen o PDF.", 'archivos')
+        if len(archivos) > 10:
+            raise serializers_error("Sube hasta 10 archivos a la vez.", 'archivos')
+        revisados = [(a, _revisar_archivo(a, f"«{a.name}»", 'archivos')) for a in archivos]
+        for a, es_imagen in revisados:
+            AdjuntoFactura.objects.create(factura=f, archivo=a, nombre=a.name[:150], es_imagen=es_imagen,
+                                          nota=str(request.data.get('nota') or '')[:200], subido_por=request.user)
+        return Response(self.get_serializer(self.get_queryset().get(pk=f.pk)).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get', 'delete'], url_path=r'adjuntos/(?P<adjunto_id>[0-9]+)')
+    def adjunto(self, request, pk=None, adjunto_id=None):
+        a = AdjuntoFactura.objects.filter(factura=self.get_object(), pk=adjunto_id).first()
+        if a is None:
+            raise Http404
+        if request.method == 'DELETE':
+            a.archivo.delete(save=False)
+            a.delete()
+            return Response(self.get_serializer(self.get_queryset().get(pk=pk)).data)
+        return _enviar(a.archivo, descargar=request.query_params.get('descargar') == '1')
+
+    @action(detail=False, methods=['get'])
+    def reporte(self, request):
+        """Excel (CSV) de las facturas con los mismos filtros de la pantalla, o de los pagos con su comprobante (`tipo=pagos`)."""
+        p = request.query_params
+        r = HttpResponse(content_type='text/csv; charset=utf-8')
+        hoy = timezone.localdate()
+        r.write('\ufeff')
+        w = csv.writer(r)
+        if p.get('tipo') == 'pagos':
+            r['Content-Disposition'] = f'attachment; filename="pagos-{hoy}.csv"'
+            qs = Pago.objects.select_related('factura__cliente', 'registrado_por').order_by('fecha', 'id')
+            if p.get('desde'):
+                qs = qs.filter(fecha__gte=p['desde'])
+            if p.get('hasta'):
+                qs = qs.filter(fecha__lte=p['hasta'])
+            if p.get('cliente'):
+                qs = qs.filter(factura__cliente_id=p['cliente'])
+            w.writerow(['Fecha del pago', 'Factura', 'Cliente', 'Monto', 'Moneda', 'Forma de pago', 'Referencia', 'Comprobante', 'Registrado por'])
+            totales = {}
+            for x in qs:
+                m = x.factura.moneda
+                totales[m] = totales.get(m, Decimal('0')) + x.monto
+                w.writerow([x.fecha.isoformat(), x.factura.numero, x.factura.cliente.nombre, x.monto, m, x.get_metodo_display(), x.referencia,
+                            'Sí' if x.comprobante else 'No', (x.registrado_por.get_full_name() or x.registrado_por.username) if x.registrado_por else ''])
+            w.writerow([])
+            for m, t in totales.items():
+                w.writerow(['TOTAL', '', '', t, m])
+            return r
+        r['Content-Disposition'] = f'attachment; filename="facturas-{hoy}.csv"'
+        qs = _filtros(Factura.objects.select_related('cliente', 'orden', 'cotizacion').prefetch_related('pagos', 'adjuntos'), p).order_by('fecha', 'id')
+        if p.get('vencidas') == '1':
+            qs = qs.filter(estado='EMITIDA', vencimiento__lt=hoy)
+        if p.get('por_cobrar') == '1':
+            qs = qs.filter(estado='EMITIDA')
+        w.writerow(['Número', 'Fecha', 'Cliente', 'RNC', 'Título', 'Estado', 'NCF', 'Moneda', 'Subtotal', 'ITBIS', 'Total', 'Pagado', 'Saldo',
+                    'Vencimiento', 'Días de atraso', 'Pagos', 'Último pago', 'Comprobantes de pago', 'Imágenes y documentos', 'Orden', 'Cotización'])
+        totales = {}
+        for f in qs:
+            pagos = list(f.pagos.all())
+            atraso = (hoy - f.vencimiento).days if f.vencida else 0
+            t = totales.setdefault(f.moneda, [Decimal('0')] * 3)
+            if f.estado != 'ANULADA':
+                t[0] += f.total
+                t[1] += f.pagado
+                t[2] += f.saldo
+            w.writerow([f.numero, f.fecha.isoformat(), f.cliente.nombre, f.cliente.rnc or '', f.titulo, f.get_estado_display(), f.ncf, f.moneda,
+                        f.subtotal, f.itbis, f.total, f.pagado, f.saldo, f.vencimiento.isoformat() if f.vencimiento else '', atraso, len(pagos),
+                        max((x.fecha for x in pagos), default='') if pagos else '', sum(1 for x in pagos if x.comprobante), len(f.adjuntos.all()),
+                        f.orden.codigo if f.orden_id else '', f.cotizacion.numero if f.cotizacion_id else ''])
+        w.writerow([])
+        for m, (tot, pag, sal) in totales.items():
+            w.writerow(['TOTAL (sin anuladas)', '', '', '', '', '', '', m, '', '', tot, pag, sal])
+        return r
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([EsFinanzas])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def comprobante_pago_view(request, pk):
+    """El comprobante de un pago: verlo o descargarlo (GET), agregarlo o cambiarlo después de registrar el pago (POST) y quitarlo (DELETE)."""
+    pago = Pago.objects.select_related('factura').filter(pk=pk).first()
+    if pago is None:
+        raise Http404
+    if request.method == 'GET':
+        if not pago.comprobante:
+            raise Http404
+        return _enviar(pago.comprobante, descargar=request.query_params.get('descargar') == '1')
+    if request.method == 'POST':
+        archivo = request.FILES.get('comprobante')
+        if not archivo:
+            raise serializers_error("Elige la foto o el PDF del comprobante.")
+        _revisar_archivo(archivo, "El comprobante")
+        if pago.comprobante:
+            pago.comprobante.delete(save=False)
+        pago.comprobante = archivo
+        pago.save(update_fields=['comprobante'])
+    elif pago.comprobante:
+        pago.comprobante.delete(save=False)
+        pago.comprobante = None
+        pago.save(update_fields=['comprobante'])
+    return Response(FacturaSerializer(Factura.objects.prefetch_related('lineas', 'pagos', 'adjuntos').get(pk=pago.factura_id)).data)
 
 
 @api_view(['DELETE'])
@@ -272,7 +418,7 @@ def borrar_pago_view(request, pk):
     factura = pago.factura
     pago.delete()
     factura.actualizar_pagos()
-    return Response(FacturaSerializer(Factura.objects.prefetch_related('lineas', 'pagos').get(pk=factura.pk)).data)
+    return Response(FacturaSerializer(Factura.objects.prefetch_related('lineas', 'pagos', 'adjuntos').get(pk=factura.pk)).data)
 
 
 class GastoViewSet(viewsets.ModelViewSet):
@@ -319,9 +465,9 @@ class GastoViewSet(viewsets.ModelViewSet):
         return FileResponse(g.comprobante.open('rb'), filename=os.path.basename(g.comprobante.name))
 
 
-def serializers_error(msg):
+def serializers_error(msg, campo='comprobante'):
     from rest_framework.exceptions import ValidationError
-    return ValidationError({'comprobante': [msg]})
+    return ValidationError({campo: [msg]})
 
 
 @api_view(['GET'])
