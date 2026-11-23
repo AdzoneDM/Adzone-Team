@@ -91,7 +91,7 @@ function Revision({ tarea, onListo }) {
         <Campo etiqueta="Comentario" ayuda="Opcional al validar. Si la devuelves, di exactamente qué corregir.">
           {(id) => <textarea id={id} className="campo bg-white" rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} />}
         </Campo>
-        <SelectorArchivos archivos={archivos} onCambio={setArchivos} etiqueta="Adjuntar boceto o imagen para la corrección" ayuda="Se envían solo si la devuelves." disabled={!!enviando} />
+        <SelectorArchivos archivos={archivos} onCambio={setArchivos} etiqueta="Adjuntar boceto, imagen o video para la corrección" ayuda="Se envían solo si la devuelves." disabled={!!enviando} />
         <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
           <Boton variante="secundario" icono={RotateCcw} onClick={devolver} cargando={enviando === "devolver"} disabled={!!enviando}>Devolver</Boton>
           <Boton icono={CircleCheckBig} onClick={validar} cargando={enviando === "validar"} disabled={!!enviando}>Validar</Boton>

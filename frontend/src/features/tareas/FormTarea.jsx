@@ -86,7 +86,7 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         <Campo etiqueta="Qué hay que hacer">{(id) => <input id={id} className="campo" value={f.titulo || ""} onChange={cambiar("titulo")} maxLength={255} autoFocus />}</Campo>
         <Campo etiqueta="Detalles (opcional)">{(id) => <textarea id={id} className="campo" rows={3} value={f.descripcion || ""} onChange={cambiar("descripcion")} />}</Campo>
         {!f.repetir && (
-          <SelectorArchivos archivos={referencias} onCambio={setReferencias} etiqueta="Adjuntar boceto o imagen de referencia" ayuda="Para que la persona tenga una guía visual. Imágenes o PDF." disabled={guardando} />
+          <SelectorArchivos archivos={referencias} onCambio={setReferencias} etiqueta="Adjuntar boceto, imagen o video de referencia" ayuda="Para que la persona tenga una guía visual." disabled={guardando} />
         )}
         <Campo etiqueta="Cliente (opcional)">{(id) => <input id={id} className="campo" value={f.cliente || ""} onChange={cambiar("cliente")} maxLength={150} placeholder="Ej.: Plaza Bonao" />}</Campo>
         {!editando && !esRecurrente && <Sugerencias titulo={f.titulo} descripcion={f.descripcion} lista={sugeridos} setLista={setSugeridos}

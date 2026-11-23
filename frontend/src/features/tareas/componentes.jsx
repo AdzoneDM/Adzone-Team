@@ -68,7 +68,7 @@ export function achicarFoto(archivo) {
 }
 
 /** Elegir bocetos, imágenes o PDF para adjuntar (las fotos se achican antes de subir). */
-export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boceto o referencia", ayuda, max = MAX_ARCHIVOS, disabled }) {
+export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boceto, imagen o video", ayuda, max = MAX_ARCHIVOS, disabled }) {
   const entrada = useRef(null);
   const [procesando, setProcesando] = useState(false);
   const [aviso, setAviso] = useState("");
@@ -93,7 +93,7 @@ export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boce
           className="inline-flex h-10 items-center gap-2 rounded-lg border border-dashed border-azul/50 bg-azul/5 px-3 text-sm font-medium text-azul hover:bg-azul/10 disabled:cursor-not-allowed disabled:opacity-50">
           <Paperclip className="size-4" aria-hidden />{procesando ? "Preparando…" : etiqueta}
         </button>
-        {ayuda && archivos.length === 0 && <span className="text-xs text-gris">{ayuda}</span>}
+        {archivos.length === 0 && <span className="text-xs text-gris">{ayuda ? `${ayuda} ` : ""}Imágenes, PDF o videos (hasta {limites.videoMB} MB).</span>}
       </div>
       {aviso && <p role="alert" className="mt-1.5 text-xs text-rojo">{aviso}</p>}
       {archivos.length > 0 && (
@@ -188,7 +188,7 @@ export function Referencias({ tarea, onCambio, avisar }) {
         ))}
         {puedeAgregar && (
           <div className="space-y-2">
-            <SelectorArchivos archivos={nuevos} onCambio={setNuevos} etiqueta="Agregar boceto o imagen" disabled={subiendo} />
+            <SelectorArchivos archivos={nuevos} onCambio={setNuevos} etiqueta="Agregar boceto, imagen o video" disabled={subiendo} />
             {nuevos.length > 0 && <Boton tam="sm" onClick={subir} cargando={subiendo}>Enviar {nuevos.length === 1 ? "el archivo" : `los ${nuevos.length} archivos`}</Boton>}
           </div>
         )}

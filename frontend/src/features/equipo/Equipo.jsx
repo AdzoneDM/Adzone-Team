@@ -225,6 +225,7 @@ export default function Equipo() {
       )}
 
       <DetalleTarea tarea={detalle} abierto={!!detalle} onCerrar={() => setDetalle(null)}
+        onCambio={(t) => { setDetalle(t); cargar(true); }}  // al enviar una referencia (foto, video o PDF) o marcar un paso, la ventana se actualiza al instante
         pie={detalle && (
           <div className="flex w-full flex-wrap justify-end gap-2">
             {detalle.estado === "COMPLETADA" && detalle.puedo_revisar && <Boton variante="secundario" icono={RotateCcw} onClick={() => setReabriendo(true)}>Reabrir</Boton>}

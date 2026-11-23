@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.35 · 23/11/2026 · Referencias con video en «Mi equipo»: ya se ven al enviarlas
+
+- **Falla corregida:** en **Mi equipo → Tareas → detalle de la tarea → Referencias**, al enviar un archivo (boceto, imagen, PDF o video) el envío sí llegaba y a la persona le llegaba el aviso, pero la ventana **no se actualizaba** y parecía que no se había enviado nada. Ahora la referencia aparece al instante (y también al marcar un paso).
+- Los botones de adjuntar dicen ahora **«boceto, imagen o video»** y muestran los formatos y el peso permitidos («Imágenes, PDF o videos (hasta 60 MB)»), en referencias, al crear o devolver una tarea y al asignarse una tarea propia.
+
 ## 12.34 · 23/11/2026 · Videos por el chat y «Mi equipo» con las tareas propias y las de toda la gente a cargo
 
 - **Videos en el chat** (privado, grupos y sala de la empresa): el clip ahora acepta videos (MP4, MOV, M4V, WEBM, AVI, MKV, 3GP) con el mismo límite de la plataforma (60 MB por ahora). Se ven y se reproducen dentro del mensaje, con vista previa antes de enviar. Como un chat no «se valida», los videos del chat se borran solos a los **14 días** (se cambia en Reglas del puntaje → «Días que se conservan los videos del chat»); el mensaje queda con el aviso «El video se borró solo para liberar espacio». Los documentos y las imágenes del chat no se borran.

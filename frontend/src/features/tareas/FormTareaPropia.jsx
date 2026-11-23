@@ -73,7 +73,7 @@ export default function FormTareaPropia({ abierto, onCerrar, onGuardada }) {
             </select>
           )}
         </Campo>
-        <SelectorArchivos archivos={referencias} onCambio={setReferencias} etiqueta="Adjuntar boceto o referencia (opcional)" disabled={guardando} />
+        <SelectorArchivos archivos={referencias} onCambio={setReferencias} etiqueta="Adjuntar boceto, imagen o video (opcional)" disabled={guardando} />
       </form>
     </Modal>
   );
