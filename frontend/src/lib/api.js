@@ -377,6 +377,7 @@ export const eliminarCampana = (id) => api(`${CC}/campanas/${id}/`, { method: "D
 // Control de horario
 const AS = "/api/asistencia";
 export const estadoJornada = () => api(`${AS}/estado/`);
+export const elegirAlmuerzo = (hora) => api(`${AS}/mi-almuerzo/`, { method: "POST", body: { hora } });
 export const marcarJornada = (tipo, extra = {}) => api(`${AS}/marcar/`, { method: "POST", body: { tipo, ...extra } });
 export const asistenciaMes = (params) => api(`${AS}/mes/${q(params)}`);
 export const asistenciaHoy = () => api(`${AS}/hoy/`);

@@ -193,3 +193,58 @@ class AvisosDeAlmuerzoTests(Base):
         self.marcar(('ENTRADA', '08:00'), ('PAUSA', '10:00'))
         servicios.revisar_almuerzos(ahora=en('10:57'))
         self.assertFalse(Notificacion.objects.filter(tipo__startswith='ALMUERZO').exists())
+
+
+class AlmuerzoPersonalTests(Base):
+    """Cada persona elige su hora de almuerzo; sin la suya vale la del horario."""
+    def elegir(self, hora, quien=None):
+        c = APIClient()
+        c.force_authenticate(quien or self.ana)
+        return c.post('/api/asistencia/mi-almuerzo/', {'hora': hora}, format='json')
+
+    def marcar_entrada(self):
+        Marcaje.objects.create(usuario=self.ana, tipo='ENTRADA', momento=en('08:00'), alerta_enviada=False)
+
+    def test_elige_su_hora_y_el_aviso_llega_a_esa_hora_no_a_la_del_horario(self):
+        self.horario.almuerzo_inicio = '12:00'
+        self.horario.save()
+        self.marcar_entrada()
+        self.assertEqual(self.elegir('15:00').status_code, 200)
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('12:05')), 0)        # ya no a las 12
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('15:00')), 1)
+        n = Notificacion.objects.get(tipo='ALMUERZO_HORA', destinatario=self.ana)
+        self.assertIn('15:00', n.mensaje)
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('15:10')), 0)        # una sola vez
+
+    def test_sin_hora_del_horario_su_hora_activa_el_aviso(self):
+        self.marcar_entrada()                                                       # el horario no tiene hora de almuerzo
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('13:00')), 0)
+        self.elegir('13:30')
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('13:30')), 1)
+
+    def test_si_la_cambia_el_mismo_dia_avisa_a_la_nueva_hora(self):
+        self.marcar_entrada()
+        self.elegir('12:00')
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('12:00')), 1)
+        self.elegir('15:00')                                                        # cambió de idea: ahora almuerza a las 3
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('15:00')), 1)
+
+    def test_vacia_vuelve_a_la_del_horario_y_valida_la_hora(self):
+        self.horario.almuerzo_inicio = '12:00'
+        self.horario.save()
+        self.elegir('15:00')
+        r = self.elegir('')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['almuerzo_inicio'], '12:00')
+        for mala in ('mediodía', '25:00', '07:30', '19:00'):
+            self.assertEqual(self.elegir(mala).status_code, 400, mala)
+
+    def test_cada_quien_solo_cambia_la_suya_y_el_estado_la_muestra(self):
+        self.elegir('14:00')
+        self.assertEqual(self.elegir('11:00', quien=self.jefe).status_code, 200)
+        c = APIClient()
+        c.force_authenticate(self.ana)
+        lim = c.get('/api/asistencia/estado/').json()['limites']
+        self.assertEqual((lim['almuerzo_inicio'], lim['almuerzo_propio']), ('14:00', '14:00'))
+        c.force_authenticate(self.jefe)
+        self.assertEqual(c.get('/api/asistencia/estado/').json()['limites']['almuerzo_propio'], '11:00')

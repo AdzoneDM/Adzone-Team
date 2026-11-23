@@ -14,7 +14,7 @@ from apps.desempeno.permisos import EsAdministrador, LecturaOAdministrador, equi
 from apps.desempeno.servicios import avisar
 from apps.desempeno.views import periodo_desde_mes
 from . import servicios
-from .models import AsignacionHorario, Ausencia, Feriado, Horario, Marcaje
+from .models import AlmuerzoPersonal, AsignacionHorario, Ausencia, Feriado, Horario, Marcaje
 
 
 def _nombre(u):
@@ -55,11 +55,33 @@ def estado_view(request):
         'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento, 'almuerzo': ultimo.es_almuerzo, 'motivo': ultimo.motivo_pausa} if ultimo else None,
         'en_almuerzo': estado == 'EN_PAUSA' and bool(ultimo and ultimo.es_almuerzo),
         'limites': {'pausa_min': horario.pausa_max_minutos if horario else 60, 'almuerzo_min': horario.almuerzo_minutos if horario else 60,
-                    'almuerzo_inicio': (horario.almuerzo_inicio or None) if horario else None},
+                    'almuerzo_inicio': servicios.almuerzo_inicio_de(request.user, horario),   # la que eligió la persona o, si no, la del horario
+                    'almuerzo_propio': AlmuerzoPersonal.objects.filter(usuario=request.user).values_list('hora', flat=True).first(),
+                    'almuerzo_horario': (horario.almuerzo_inicio or None) if horario else None},
         'hoy': servicios.jornada(request.user, timezone.localdate()),
         'horario': {'id': horario.id, 'nombre': horario.nombre} if horario else None,
         'donde_marca': _donde(request.user),
     })
+
+
+HORA_ALMUERZO_MIN, HORA_ALMUERZO_MAX = '09:00', '18:00'
+
+
+@api_view(['POST'])
+def mi_almuerzo_view(request):
+    """Cada persona elige la hora a la que almuerza (para que se le avise). Vacía = vuelve a valer la del horario."""
+    hora = (request.data.get('hora') or '').strip()
+    if not hora:
+        AlmuerzoPersonal.objects.filter(usuario=request.user).delete()
+        return Response({'almuerzo_propio': None, 'almuerzo_inicio': servicios.almuerzo_inicio_de(request.user, servicios.horario_de(request.user)[0])})
+    try:
+        hora = datetime.strptime(hora, '%H:%M').strftime('%H:%M')
+    except ValueError:
+        return Response({'hora': ['Usa una hora como «15:00».']}, status=status.HTTP_400_BAD_REQUEST)
+    if not (HORA_ALMUERZO_MIN <= hora <= HORA_ALMUERZO_MAX):
+        return Response({'hora': ['Elige una hora entre las 9:00 a. m. y las 6:00 p. m.']}, status=status.HTTP_400_BAD_REQUEST)
+    AlmuerzoPersonal.objects.update_or_create(usuario=request.user, defaults={'hora': hora})
+    return Response({'almuerzo_propio': hora, 'almuerzo_inicio': hora})
 
 
 def _donde(user):

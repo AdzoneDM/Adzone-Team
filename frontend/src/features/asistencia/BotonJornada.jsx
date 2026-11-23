@@ -1,7 +1,7 @@
 // Marcar entrada, pausa, regreso y salida desde cualquier pantalla (arriba, junto al buscador).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Coffee, LogIn, LogOut, Play, Utensils } from "lucide-react";
-import { estadoJornada, marcarJornada } from "@/lib/api";
+import { estadoJornada, marcarJornada, elegirAlmuerzo } from "@/lib/api";
 import { horaExacta, relojSeg } from "@/lib/formato";
 import { datosDeLugar } from "@/lib/ubicacion";
 import { Boton, Modal, cx, useAviso } from "@/components/ui";
@@ -12,6 +12,46 @@ const MOTIVOS = ["Diligencia personal", "Reunión fuera", "Descanso", "Otro"]; /
 
 /** «17:00» → «5:00 p. m.» */
 const hhmm = (t) => { const [h, m] = String(t).split(":").map(Number); return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "a. m." : "p. m."}`; };
+
+/** La hora de almuerzo de cada persona: no todos comen a las 12. Si no elige una, vale la del horario (si la tiene). */
+function HoraAlmuerzo({ limites, onCambio }) {
+  const avisar = useAviso();
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(limites.almuerzo_inicio || "12:00");
+  const [guardando, setGuardando] = useState(false);
+  const guardar = async (hora) => {
+    setGuardando(true);
+    try {
+      await elegirAlmuerzo(hora);
+      avisar(hora ? `Tu almuerzo quedó a las ${hhmm(hora)}. Te avisamos a esa hora.` : "Vuelve a valer la hora de tu horario.");
+      setEditando(false);
+      await onCambio();
+    } catch (e) { avisar(e.message, "rojo"); }
+    setGuardando(false);
+  };
+  if (editando) {
+    return (
+      <div className="mt-2 rounded-md bg-azul/5 px-2 py-2 text-sm text-azul">
+        <label className="block font-medium" htmlFor="hora-almuerzo">¿A qué hora almuerzas?</label>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <input id="hora-almuerzo" type="time" min="09:00" max="18:00" value={valor} onChange={(e) => setValor(e.target.value)} className="campo !h-9 !w-32 !py-1" />
+          <Boton tam="sm" cargando={guardando} onClick={() => valor && guardar(valor)}>Guardar</Boton>
+          <button type="button" onClick={() => setEditando(false)} className="text-xs font-medium text-gris hover:text-tinta">Cancelar</button>
+        </div>
+        <p className="mt-1 text-xs text-gris">Entre las 9:00 a. m. y las 6:00 p. m. Te avisamos a esa hora.</p>
+        {limites.almuerzo_propio && <button type="button" onClick={() => guardar("")} className="mt-1 text-xs font-medium text-azul hover:underline">Usar la hora de mi horario{limites.almuerzo_horario ? ` (${hhmm(limites.almuerzo_horario)})` : " (ninguna)"}</button>}
+      </div>
+    );
+  }
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-x-2 rounded-md bg-azul/5 px-2 py-1 text-sm text-azul">
+      {limites.almuerzo_inicio
+        ? <span>Tu almuerzo: <strong>{hhmm(limites.almuerzo_inicio)}</strong> · {limites.almuerzo_min} min.</span>
+        : <span>No has elegido tu hora de almuerzo.</span>}
+      <button type="button" onClick={() => { setValor(limites.almuerzo_inicio || "12:00"); setEditando(true); }} className="text-xs font-semibold underline underline-offset-2">{limites.almuerzo_inicio ? "Cambiar" : "Elegir"}</button>
+    </p>
+  );
+}
 
 export function useJornada() {
   const [estado, setEstado] = useState(null);
@@ -118,9 +158,7 @@ export default function BotonJornada() {
                 : enAlmuerzo ? `${nombrePausa}: ${Math.round(limitePausa / 60)} min · vuelve a las ${volverA}` : `${nombrePausa}: límite ${Math.round(limitePausa / 60)} min.`}
             </p>
           )}
-          {e === "TRABAJANDO" && estado.limites?.almuerzo_inicio && !hoy.almuerzo_inicio && (
-            <p className="mt-2 rounded-md bg-azul/5 px-2 py-1 text-sm text-azul">Tu almuerzo: <strong>{hhmm(estado.limites.almuerzo_inicio)}</strong> · {estado.limites.almuerzo_min} min. Te avisamos.</p>
-          )}
+          {e === "TRABAJANDO" && !hoy.almuerzo_inicio && <HoraAlmuerzo limites={estado.limites} onCambio={cargar} />}
           <div className="mt-3 grid gap-2">
             {estado.siguientes.map((t) => {
               if (t === "PAUSA") {

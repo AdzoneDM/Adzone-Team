@@ -135,3 +135,17 @@ class Feriado(models.Model):
 
     class Meta:
         ordering = ['fecha']
+
+
+class AlmuerzoPersonal(models.Model):
+    """La hora de almuerzo que cada persona elige para sí (no todos almuerzan a las 12). Si no la elige, vale la del horario."""
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='almuerzo_personal')
+    hora = models.CharField(max_length=5, help_text="«15:00»: a esta hora se le avisa que es su almuerzo.")
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'almuerzo personal'
+        verbose_name_plural = 'almuerzos personales'
+
+    def __str__(self):
+        return f'{self.usuario} · {self.hora}'

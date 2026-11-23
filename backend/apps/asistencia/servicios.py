@@ -18,7 +18,7 @@ from datetime import date, datetime, time, timedelta
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from .models import AsignacionHorario, Ausencia, Feriado, Horario, Marcaje
+from .models import AlmuerzoPersonal, AsignacionHorario, Ausencia, Feriado, Horario, Marcaje
 
 EXTRA_MINIMO = 15
 DIA_LARGO = 6 * 60
@@ -58,6 +58,14 @@ def horario_de(usuario):
         if propio:
             return propio, True
     return Horario.objects.filter(por_defecto=True, activo=True).first(), True
+
+
+def almuerzo_inicio_de(usuario, horario=None):
+    """Hora de almuerzo de la persona: la que ella eligió o, si no, la del horario («HH:MM» o None)."""
+    propia = AlmuerzoPersonal.objects.filter(usuario=usuario).values_list('hora', flat=True).first()
+    if propia:
+        return propia
+    return (horario.almuerzo_inicio or None) if horario else None
 
 
 def _hora(texto):
@@ -149,7 +157,7 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         'extra': 0, 'segundos_en_curso': 0,
         # Lo mismo en segundos exactos: de ahí sale el pago, los minutos son solo para mostrar
         'programados_seg': programados * 60, 'trabajados_seg': 0, 'pausa_seg': 0, 'almuerzo_seg': 0, 'pausas_seg': 0, 'pausas': [], 'excesos': 0, 'exceso_seg': 0,
-        'almuerzo_programado': (horario.almuerzo_inicio or None) if horario else None, 'pausa_max_minutos': horario.pausa_max_minutos if horario else 60, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
+        'almuerzo_programado': almuerzo_inicio_de(usuario, horario), 'pausa_max_minutos': horario.pausa_max_minutos if horario else 60, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
         'ausencia': ausencia.get_tipo_display() if ausencia else None,
         'marcajes': [{'id': m.id, 'tipo': m.tipo, 'momento': m.momento.isoformat(), 'origen': m.origen,
                       'motivo': m.motivo_pausa, 'almuerzo': m.es_almuerzo, 'corregido': bool(m.corregido_por_id)} for m in marcajes],
@@ -411,9 +419,10 @@ def revisar_almuerzos(ahora=None):
                 avisar([u], 'ALMUERZO_FIN', f'Te quedan {max(1, int(restante.total_seconds() // 60 + 0.99))} minutos de almuerzo',
                        f'Saliste a las {timezone.localtime(ultimo.momento):%H:%M}: debes estar de vuelta a las {vuelve:%H:%M}. Marca tu regreso al llegar.')
                 enviados += 1
-        elif estado == 'TRABAJANDO' and horario.almuerzo_inicio:
+        elif estado == 'TRABAJANDO' and almuerzo_inicio_de(u, horario):
+            hora_almuerzo = almuerzo_inicio_de(u, horario)
             try:
-                inicio = _aware(hoy, _hora(horario.almuerzo_inicio))
+                inicio = _aware(hoy, _hora(hora_almuerzo))
             except (ValueError, TypeError):
                 continue
             if not (inicio <= ahora < inicio + VENTANA_HORA_ALMUERZO):
@@ -421,9 +430,9 @@ def revisar_almuerzos(ahora=None):
             desde, hasta = rango(hoy)
             if Marcaje.objects.filter(usuario=u, es_almuerzo=True, momento__gte=min(desde, ahora - TURNO_MAXIMO), momento__lte=ahora).exists():
                 continue  # ya salió a almorzar hoy
-            if _una_vez(u, f'almuerzo-hora-{hoy:%Y%m%d}', 'ALMUERZO_HORA'):
+            if _una_vez(u, f'almuerzo-hora-{hoy:%Y%m%d}-{hora_almuerzo.replace(":", "")}', 'ALMUERZO_HORA'):
                 avisar([u], 'ALMUERZO_HORA', 'Es tu hora de almuerzo',
-                       f'Tu almuerzo es a las {horario.almuerzo_inicio} y dura {horario.almuerzo_minutos} min. Marca «Almuerzo» al salir: '
+                       f'Tu almuerzo es a las {hora_almuerzo} y dura {horario.almuerzo_minutos} min. Marca «Almuerzo» al salir: '
                        f'te avisamos cuando falten 5 minutos y cuando se cumpla tu tiempo.')
                 enviados += 1
     return enviados

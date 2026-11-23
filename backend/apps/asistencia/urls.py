@@ -14,6 +14,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('estado/', views.estado_view),
     path('marcar/', views.marcar_view),
+    path('mi-almuerzo/', views.mi_almuerzo_view),
     path('sitios/<int:pk>/nueva-clave/', views.sitio_nueva_clave_view),
     path('mi-ip/', views.mi_ip_view),
     path('pantalla/<str:clave>/', views.pantalla_qr_view),

@@ -1,5 +1,11 @@
 # Cambios
 
+## 12.41 · 23/11/2026 · Cada persona elige su hora de almuerzo
+
+- No todos almuerzan a las 12 (hay quien prefiere trabajar hasta las 3 y comer después). Ahora **cada persona fija su propia hora de almuerzo**: en el reloj de la jornada (arriba a la derecha), «Tu almuerzo → Elegir / Cambiar», entre las 9:00 a. m. y las 6:00 p. m. Se guarda por persona y **tiene prioridad sobre la hora del horario**; con «Usar la hora de mi horario» vuelve a la general.
+- El aviso «Es tu hora de almuerzo» llega **a la hora de cada quien** (no a la del horario), una vez al día; si la cambia el mismo día, avisa a la nueva hora. Funciona aunque el horario no tenga hora de almuerzo (como «Oficina»). Los avisos de «faltan 5 minutos» y «se acabó tu tiempo» siguen contándose desde que cada quien marca su salida a almorzar.
+- Cada persona solo puede cambiar la suya. Migración `asistencia.0006` (tabla nueva `AlmuerzoPersonal`). 5 pruebas nuevas.
+
 ## 12.40 · 23/11/2026 · «Visto» en el chat y eliminar clientes
 
 - **Visto en el chat:** debajo de tus mensajes aparece ✓ **Enviado** hasta que la otra persona lo lee; entonces pasa a ✓✓ azul **Visto**. En grupos y en la sala de la empresa dice **«Visto por 3 de 8»** (o «Visto por todos»), y al pasar el cursor por encima se ven los nombres. Se actualiza solo en pocos segundos, sin recargar; solo cuenta a quien tiene la conversación abierta. Cada consulta de mensajes trae «hasta dónde leyó cada persona» (no hay tabla nueva: se usan las lecturas que ya existían).
