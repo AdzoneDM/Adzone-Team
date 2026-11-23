@@ -234,6 +234,9 @@ MEDIA_ROOT = Path(env('MEDIA_ROOT', str(BASE_DIR / 'media')))
 MEDIA_URL = '/media-privada/'
 EVIDENCIA_MAX_MB = int(env('EVIDENCIA_MAX_MB', '10'))
 EVIDENCIA_MAX_ARCHIVOS = 6
+# Un video pesa mucho más que una foto. Por defecto 60 MB: lo que cabe en el límite actual del nginx de Plesk (64 MB).
+# Para permitir videos más grandes, subir antes `client_max_body_size` del servidor y luego este valor (ver docs/DESPLIEGUE.md).
+EVIDENCIA_VIDEO_MAX_MB = int(env('EVIDENCIA_VIDEO_MAX_MB', '60'))
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 

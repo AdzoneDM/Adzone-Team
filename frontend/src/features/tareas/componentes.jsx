@@ -1,12 +1,47 @@
 // Piezas de tareas que comparten Mis tareas, Por validar y Tareas del equipo.
 import { useEffect, useRef, useState } from "react";
-import { Briefcase, Camera, Check, ExternalLink, FileText, ImagePlus, Link2, Paperclip, Repeat, Target, Trash2, Users, X } from "lucide-react";
+import { Briefcase, Camera, Check, ExternalLink, FileText, Film, ImagePlus, Link2, Paperclip, Repeat, Target, Trash2, Users, Video, X } from "lucide-react";
 import { entregarTarea, historialTarea, marcarPaso, obtenerTarea, quitarReferencia, subirReferencias } from "@/lib/api";
+import { MAX_FOTO_MB, limites } from "@/lib/archivos";
 import { fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
 import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx, useAviso } from "@/components/ui";
 
 const MAX_LADO = 1600;
 const MAX_ARCHIVOS = 6;
+const EXT_PERMITIDAS = /\.(jpe?g|png|webp|heic|heif|gif|pdf|mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i;
+export const esVideo = (f) => (f.type || "").startsWith("video/") || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i.test(f.name || "");
+const tamanoMB = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : b >= 10 * 1024 * 1024 ? `${Math.round(b / 1024 / 1024)} MB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
+
+/** Qué le pasa a un archivo antes de subirlo (null = está bien): tipo permitido y peso (el video tiene su propio límite). */
+export function problemaDeArchivo(f) {
+  if (!EXT_PERMITIDAS.test(f.name || "")) return `«${f.name}»: solo se aceptan fotos, videos o PDF.`;
+  const tope = esVideo(f) ? limites.videoMB : MAX_FOTO_MB;
+  if (f.size > tope * 1024 * 1024) return `«${f.name}» pesa ${tamanoMB(f.size)} y el máximo es ${tope} MB${esVideo(f) ? ". Para un video largo, súbelo a Drive y pega el enlace" : ""}.`;
+  return null;
+}
+
+/** Un video de una entrega o una referencia: se reproduce en la página; si ya se borró solo, lo dice. */
+export function VideoArchivo({ a }) {
+  if (a.purgado) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-dashed border-linea bg-fondo px-3 py-2.5 text-sm text-gris">
+        <Film className="size-5 shrink-0" aria-hidden />
+        <span className="min-w-0"><span className="block truncate font-medium text-tinta">{a.nombre_original || "Video"}</span>Se borró solo para liberar espacio (pasaron los días de conservación después de validada la tarea).</span>
+      </div>
+    );
+  }
+  return (
+    <figure>
+      <video controls preload="metadata" playsInline src={a.url} className="aspect-video w-full rounded-lg bg-black" aria-label={a.nombre_original || "Video"}>
+        <a href={`${a.url}?descargar=1`}>Descargar el video</a>
+      </video>
+      <figcaption className="mt-1 flex items-center justify-between gap-2 text-xs text-gris">
+        <span className="min-w-0 truncate">{a.nombre_original}{a.tamano ? ` · ${tamanoMB(a.tamano)}` : ""}</span>
+        <a href={`${a.url}?descargar=1`} className="shrink-0 font-medium text-azul hover:underline">Descargar</a>
+      </figcaption>
+    </figure>
+  );
+}
 
 /** Achica una foto en el navegador (máx. 1600 px, JPG): sube rápido con datos móviles. */
 export function achicarFoto(archivo) {
@@ -36,9 +71,14 @@ export function achicarFoto(archivo) {
 export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boceto o referencia", ayuda, max = MAX_ARCHIVOS, disabled }) {
   const entrada = useRef(null);
   const [procesando, setProcesando] = useState(false);
+  const [aviso, setAviso] = useState("");
   const elegir = async (e) => {
-    const nuevos = Array.from(e.target.files || []);
+    const elegidos = Array.from(e.target.files || []);
     e.target.value = "";
+    if (!elegidos.length) return;
+    const falla = elegidos.map(problemaDeArchivo).find(Boolean);
+    setAviso(falla || "");
+    const nuevos = elegidos.filter((f) => !problemaDeArchivo(f));
     if (!nuevos.length) return;
     setProcesando(true);
     const listos = await Promise.all(nuevos.map(achicarFoto));
@@ -47,7 +87,7 @@ export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boce
   };
   return (
     <div>
-      <input ref={entrada} type="file" multiple accept="image/*,application/pdf" className="sr-only" onChange={elegir} tabIndex={-1} aria-hidden="true" />
+      <input ref={entrada} type="file" multiple accept="image/*,video/*,application/pdf" className="sr-only" onChange={elegir} tabIndex={-1} aria-hidden="true" />
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => entrada.current?.click()} disabled={disabled || procesando || archivos.length >= max}
           className="inline-flex h-10 items-center gap-2 rounded-lg border border-dashed border-azul/50 bg-azul/5 px-3 text-sm font-medium text-azul hover:bg-azul/10 disabled:cursor-not-allowed disabled:opacity-50">
@@ -55,11 +95,12 @@ export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boce
         </button>
         {ayuda && archivos.length === 0 && <span className="text-xs text-gris">{ayuda}</span>}
       </div>
+      {aviso && <p role="alert" className="mt-1.5 text-xs text-rojo">{aviso}</p>}
       {archivos.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-2">
           {archivos.map((a, i) => (
             <li key={`${a.name}-${i}`} className="flex max-w-full items-center gap-2 rounded-lg border border-linea bg-white py-1 pl-2.5 pr-1 text-sm">
-              {a.type.startsWith("image/") ? <ImagePlus className="size-4 shrink-0 text-gris" aria-hidden /> : <FileText className="size-4 shrink-0 text-gris" aria-hidden />}
+              {a.type.startsWith("image/") ? <ImagePlus className="size-4 shrink-0 text-gris" aria-hidden /> : esVideo(a) ? <Film className="size-4 shrink-0 text-gris" aria-hidden /> : <FileText className="size-4 shrink-0 text-gris" aria-hidden />}
               <span className="max-w-40 truncate">{a.name}</span>
               <button type="button" onClick={() => onCambio(archivos.filter((_, j) => j !== i))} aria-label={`Quitar ${a.name}`} className="rounded p-1 text-gris hover:bg-rojo-50 hover:text-rojo"><X className="size-4" aria-hidden /></button>
             </li>
@@ -111,8 +152,19 @@ export function Referencias({ tarea, onCambio, avisar }) {
         {grupos.map((g) => (
           <div key={g.clave}>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gris">{g.titulo}</p>
+            {g.items.some((r) => r.es_video) && (
+              <ul className="mb-2 grid gap-3 sm:grid-cols-2">
+                {g.items.filter((r) => r.es_video).map((r) => (
+                  <li key={r.id} className="group relative">
+                    <VideoArchivo a={r} />
+                    {r.puede_borrar && <button type="button" onClick={() => quitar(r)} aria-label={`Quitar ${r.nombre_original || "video"}`} className="absolute right-1 top-1 rounded-md bg-white/90 p-1 text-gris shadow hover:text-rojo"><Trash2 className="size-3.5" aria-hidden /></button>}
+                    {r.nota && <p className="mt-0.5 line-clamp-2 text-[11px] text-gris">{r.nota}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-2">
-              {g.items.map((r) => (
+              {g.items.filter((r) => !r.es_video).map((r) => (
                 <li key={r.id} className="group relative">
                   {r.es_imagen ? (
                     <button type="button" onClick={() => setGrande(r)} className="block w-full overflow-hidden rounded-lg border border-linea bg-fondo" aria-label={`Ver ${r.nombre_original || "imagen"} en grande`}>
@@ -251,9 +303,14 @@ export function Evidencias({ tarea, compacto }) {
           <Link2 className="size-4 shrink-0" /><span className="truncate">{tarea.evidencia_enlace}</span><ExternalLink className="size-3.5 shrink-0" />
         </a>
       )}
-      {mostrar.length > 0 && (
+      {mostrar.some((e) => e.es_video) && (
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {mostrar.filter((e) => e.es_video).map((e) => <li key={e.id}><VideoArchivo a={e} />{!compacto && rondas.length > 1 && <p className="mt-0.5 text-[11px] text-gris">Entrega {e.ronda + 1}</p>}</li>)}
+        </ul>
+      )}
+      {mostrar.some((e) => !e.es_video) && (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2">
-          {mostrar.map((e) => (
+          {mostrar.filter((e) => !e.es_video).map((e) => (
             <li key={e.id}>
               {e.es_imagen ? (
                 <button type="button" onClick={() => setGrande(e)} className="block w-full overflow-hidden rounded-lg border border-linea bg-fondo">
@@ -365,15 +422,20 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
   const camara = useRef(null);
+  const camaraVideo = useRef(null);
   const galeria = useRef(null);
 
   useEffect(() => { if (abierto) { setNota(""); setEnlace(""); setArchivos([]); setError(""); } }, [abierto, tarea?.id]);
 
   const agregar = async (lista) => {
-    const nuevos = Array.from(lista || []);
-    if (archivos.length + nuevos.length > MAX_ARCHIVOS) setError(`Como máximo ${MAX_ARCHIVOS} archivos por entrega.`);
+    const elegidos = Array.from(lista || []);
+    const falla = elegidos.map(problemaDeArchivo).find(Boolean);
+    const nuevos = elegidos.filter((f) => !problemaDeArchivo(f));
+    if (falla) setError(falla);
+    else if (archivos.length + nuevos.length > MAX_ARCHIVOS) setError(`Como máximo ${MAX_ARCHIVOS} archivos por entrega.`);
+    else setError("");
     const listos = await Promise.all(nuevos.slice(0, MAX_ARCHIVOS - archivos.length).map(achicarFoto));
-    setArchivos((a) => [...a, ...listos.map((f) => ({ f, url: f.type.startsWith("image/") ? URL.createObjectURL(f) : null }))]);
+    setArchivos((a) => [...a, ...listos.map((f) => ({ f, url: f.type.startsWith("image/") || esVideo(f) ? URL.createObjectURL(f) : null, video: esVideo(f) }))]);
   };
 
   const enviar = async (e) => {
@@ -403,7 +465,7 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
     <Modal abierto={abierto} onCerrar={onCerrar} titulo="Entregar tarea" descripcion={tarea.titulo}
       pie={<>
         <Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton>
-        <Boton type="submit" form="form-entrega" variante="acento" cargando={enviando}>{archivos.length ? "Subir y entregar" : "Entregar"}</Boton>
+        <Boton type="submit" form="form-entrega" variante="acento" cargando={enviando}>{archivos.some((x) => x.video) ? (enviando ? "Subiendo el video…" : "Subir y entregar") : archivos.length ? "Subir y entregar" : "Entregar"}</Boton>
       </>}>
       <form id="form-entrega" onSubmit={enviar} className="space-y-4">
         {tarea.comentario_revision && <Alerta tono="rojo"><p className="font-medium">Lo que pidieron corregir</p><p className="whitespace-pre-line">{tarea.comentario_revision}</p></Alerta>}
@@ -416,18 +478,22 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
           {(id) => <input id={id} className="campo" type="url" inputMode="url" value={enlace} onChange={(e) => setEnlace(e.target.value)} placeholder="https://" />}
         </Campo>
         <div>
-          <p className="etiqueta">Fotos o PDF (opcional, hasta {MAX_ARCHIVOS})</p>
+          <p className="etiqueta">Fotos, videos o PDF (opcional, hasta {MAX_ARCHIVOS})</p>
           <div className="grid grid-cols-2 gap-2 md:flex">
             <Boton variante="secundario" icono={Camera} onClick={() => camara.current?.click()} className="md:hidden">Tomar foto</Boton>
+            <Boton variante="secundario" icono={Video} onClick={() => camaraVideo.current?.click()} className="md:hidden">Grabar video</Boton>
             <Boton variante="secundario" icono={ImagePlus} onClick={() => galeria.current?.click()}>Elegir archivos</Boton>
           </div>
+          <p className="mt-1.5 text-xs text-gris">Videos de hasta {limites.videoMB} MB (MP4, MOV o WEBM); para uno más largo, súbelo a Drive y pega el enlace. Se borran solos unos días después de que se valide la tarea; las fotos y los PDF se quedan.</p>
           <input ref={camara} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
-          <input ref={galeria} type="file" accept="image/*,application/pdf" multiple className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
+          <input ref={camaraVideo} type="file" accept="video/*" capture="environment" className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
+          <input ref={galeria} type="file" accept="image/*,video/*,application/pdf" multiple className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
           {archivos.length > 0 && (
             <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2">
               {archivos.map((a, i) => (
                 <li key={i} className="relative">
-                  {a.url ? <img src={a.url} alt={`Archivo ${i + 1}`} className="aspect-square w-full rounded-lg object-cover" />
+                  {a.video ? <video src={a.url} muted playsInline preload="metadata" className="aspect-square w-full rounded-lg bg-black object-cover" aria-label={a.f.name} />
+                    : a.url ? <img src={a.url} alt={`Archivo ${i + 1}`} className="aspect-square w-full rounded-lg object-cover" />
                     : <div className="flex aspect-square items-center justify-center rounded-lg bg-fondo p-2 text-center text-xs text-gris"><FileText className="mb-1 size-5" />{a.f.name}</div>}
                   <button type="button" onClick={() => setArchivos((l) => l.filter((_, j) => j !== i))}
                     className="absolute -right-1.5 -top-1.5 flex size-7 items-center justify-center rounded-full border-2 border-white bg-tinta text-white" aria-label={`Quitar archivo ${i + 1}`}>

@@ -445,13 +445,15 @@ def referencia_view(request, pk):
         ref.archivo.delete(save=False)
         ref.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    if ref.purgado:
+        return Response({'detail': 'Este video se borró solo para liberar espacio (pasaron los días de conservación después de validada la tarea).'}, status=status.HTTP_410_GONE)
     try:
         archivo = ref.archivo.open('rb')
     except (FileNotFoundError, ValueError):
         raise Http404
     tipo = mimetypes.guess_type(ref.archivo.name)[0] or 'application/octet-stream'
     from apps.core.archivos import entregar
-    respuesta = entregar(archivo, ref.nombre_original or os.path.basename(ref.archivo.name), tipo)
+    respuesta = entregar(archivo, ref.nombre_original or os.path.basename(ref.archivo.name), tipo, request)
     respuesta['Cache-Control'] = 'private, max-age=3600'
     return respuesta
 
@@ -466,13 +468,15 @@ def evidencia_archivo_view(request, pk):
     tarea = evidencia.tarea
     if not (tarea.colaborador_id == request.user.pk or puede_gestionar(request.user, tarea.colaborador)):
         raise Http404
+    if evidencia.purgado:
+        return Response({'detail': 'Este video se borró solo para liberar espacio (pasaron los días de conservación después de validada la tarea).'}, status=status.HTTP_410_GONE)
     try:
         archivo = evidencia.archivo.open('rb')
     except (FileNotFoundError, ValueError):
         raise Http404
     tipo = mimetypes.guess_type(evidencia.archivo.name)[0] or 'application/octet-stream'
     from apps.core.archivos import entregar
-    respuesta = entregar(archivo, evidencia.nombre_original or os.path.basename(evidencia.archivo.name), tipo)
+    respuesta = entregar(archivo, evidencia.nombre_original or os.path.basename(evidencia.archivo.name), tipo, request)
     respuesta['Cache-Control'] = 'private, max-age=3600'
     respuesta['X-Content-Type-Options'] = 'nosniff'
     return respuesta

@@ -309,3 +309,27 @@ def pedir_trabajo(quien):
     avisar(jefes, 'PIDE_TRABAJO', f"{nombre(quien)} terminó sus tareas: en espera de asignación",
            f"No tiene tareas por hacer.{extra}", enlace=f'/equipo?colaborador={quien.id}', excepto=quien)
     return [nombre(j) for j in jefes]
+
+
+def purgar_videos(hoy=None):
+    """Borra los videos (evidencias y referencias) de las tareas ya validadas, pasados `dias_conservar_videos` desde la validación.
+    El archivo se elimina del disco (pesan mucho); la fila queda marcada para mostrar «se borró solo» y no perder el historial."""
+    from datetime import timedelta
+    from django.utils import timezone
+    from .models import ConfiguracionDesempeno, EvidenciaArchivo, ReferenciaArchivo
+    hoy = hoy or timezone.localdate()
+    corte = hoy - timedelta(days=ConfiguracionDesempeno.actual().dias_conservar_videos)
+    borrados = liberado = 0
+    for modelo in (EvidenciaArchivo, ReferenciaArchivo):
+        for f in modelo.objects.filter(purgado=False, tarea__estado='COMPLETADA', tarea__fecha_completada__lte=corte).exclude(archivo=''):
+            if not f.es_video:
+                continue
+            liberado += f.tamano or 0
+            try:
+                f.archivo.delete(save=False)
+            except OSError:
+                pass
+            f.purgado, f.purgado_en = True, timezone.now()
+            f.save(update_fields=['archivo', 'purgado', 'purgado_en'])
+            borrados += 1
+    return borrados, liberado

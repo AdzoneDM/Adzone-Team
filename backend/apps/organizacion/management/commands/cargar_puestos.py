@@ -38,7 +38,7 @@ class Command(BaseCommand):
             funciones_str = "\n".join(item.get('funciones_principales', [])) # Unir lista de funciones en un string
 
             if not nombre_puesto or not nombre_departamento:
-                self.stderr.write(self.style.ERROR(f'Error: "nombre_puesto" y "nombre_departamento" son obligatorios. Saltando item: {item}'))
+                self.stderr.write(self.style.ERROR(f'Error: "nombre_puesto" y "nombre_departamento" son obligatorios. Saltando ítem: {item}'))
                 puestos_con_error_count += 1
                 continue
 

@@ -20,6 +20,10 @@ class Command(BaseCommand):
         excepciones = revisar_excepciones()
         from apps.core.views_respaldos import recordar_semanal
         recordar_semanal()
+        from apps.desempeno.servicios import purgar_videos
+        videos, bytes_liberados = purgar_videos()
+        if videos:
+            self.stdout.write(f'Videos de tareas validadas borrados: {videos} ({bytes_liberados // 1024 // 1024} MB).')
         from apps.desempeno.inteligencia import avisar_resumen
         try:
             avisar_resumen()

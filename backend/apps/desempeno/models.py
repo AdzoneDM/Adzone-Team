@@ -285,9 +285,18 @@ class EvidenciaArchivo(models.Model):
     subido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     fecha = models.DateTimeField(auto_now_add=True)
 
+    # Los videos pesan mucho: se borran solos unos días después de validada la tarea (la fila queda, con el aviso)
+    purgado = models.BooleanField(default=False, help_text="El archivo ya se borró (limpieza automática de videos).")
+    purgado_en = models.DateTimeField(null=True, blank=True)
+
     @property
     def es_imagen(self):
         return self.tipo.startswith('image/') or self.archivo.name.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic'))
+
+    @property
+    def es_video(self):
+        from apps.core.archivos import es_video
+        return es_video(self.nombre_original or self.archivo.name, self.tipo)
 
     def __str__(self):
         return f"Evidencia de {self.tarea_id}: {self.nombre_original}"
@@ -321,9 +330,17 @@ class ReferenciaArchivo(models.Model):
     subido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     fecha = models.DateTimeField(auto_now_add=True)
 
+    purgado = models.BooleanField(default=False, help_text="El archivo ya se borró (limpieza automática de videos).")
+    purgado_en = models.DateTimeField(null=True, blank=True)
+
     @property
     def es_imagen(self):
         return self.tipo.startswith('image/') or self.archivo.name.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic'))
+
+    @property
+    def es_video(self):
+        from apps.core.archivos import es_video
+        return es_video(self.nombre_original or self.archivo.name, self.tipo)
 
     def __str__(self):
         return f"Referencia de {self.tarea_id}: {self.nombre_original}"
@@ -452,6 +469,8 @@ class ConfiguracionDesempeno(models.Model):
     minimo_tareas_evaluacion = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas que ya cuentan en el mes para juzgar el mínimo. Con menos (y sin KPIs medidos), "
                              "la persona sale como «pocos datos» y no como incumplimiento.")
+    dias_conservar_videos = models.PositiveSmallIntegerField(
+        default=7, help_text="Días que se conservan los videos de una tarea después de validada; luego se borran solos para liberar espacio. Con 0 se borran al validarla.")
     max_recordatorios = models.PositiveSmallIntegerField(
         default=15, help_text="Cuántas veces se puede recordar una misma tarea (0 = sin límite).")
     revisores_propias = models.ManyToManyField(

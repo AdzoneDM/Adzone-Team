@@ -4,6 +4,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
+from apps.core.archivos import EXTENSIONES_VIDEO, es_video
+
 from .models import (
     ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
     PasoTarea, ResultadoKPI, Tarea, TareaRecurrente,
@@ -18,10 +20,11 @@ def _nombre(usuario):
 class EvidenciaSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
     es_imagen = serializers.BooleanField(read_only=True)
+    es_video = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = EvidenciaArchivo
-        fields = ['id', 'url', 'nombre_original', 'tipo', 'tamano', 'ronda', 'es_imagen', 'fecha']
+        fields = ['id', 'url', 'nombre_original', 'tipo', 'tamano', 'ronda', 'es_imagen', 'es_video', 'purgado', 'fecha']
 
     def get_url(self, obj):
         # Siempre por la API: revisa permisos antes de entregar el archivo.
@@ -31,12 +34,13 @@ class EvidenciaSerializer(serializers.ModelSerializer):
 class ReferenciaSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
     es_imagen = serializers.BooleanField(read_only=True)
+    es_video = serializers.BooleanField(read_only=True)
     subido_por_nombre = serializers.SerializerMethodField()
     puede_borrar = serializers.SerializerMethodField()
 
     class Meta:
         model = ReferenciaArchivo
-        fields = ['id', 'url', 'nombre_original', 'tipo', 'tamano', 'momento', 'ronda', 'nota', 'es_imagen', 'fecha',
+        fields = ['id', 'url', 'nombre_original', 'tipo', 'tamano', 'momento', 'ronda', 'nota', 'es_imagen', 'es_video', 'purgado', 'fecha',
                   'subido_por_nombre', 'puede_borrar']
 
     def get_url(self, obj):
@@ -243,17 +247,13 @@ class EntregaSerializer(serializers.Serializer):
     evidencia_enlace = serializers.URLField(required=False, allow_blank=True, max_length=500)
     archivos = serializers.ListField(child=serializers.FileField(), required=False, allow_empty=True)
 
-    EXTENSIONES = ('.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.pdf')
+    EXTENSIONES = ('.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.pdf') + EXTENSIONES_VIDEO
 
     def validate_archivos(self, archivos):
         maximo = settings.EVIDENCIA_MAX_ARCHIVOS
         if len(archivos) > maximo:
             raise serializers.ValidationError(f"Como máximo {maximo} archivos por entrega.")
-        for archivo in archivos:
-            if archivo.size > settings.EVIDENCIA_MAX_MB * 1024 * 1024:
-                raise serializers.ValidationError(f"«{archivo.name}» pesa más de {settings.EVIDENCIA_MAX_MB} MB.")
-            if os.path.splitext(archivo.name)[1].lower() not in self.EXTENSIONES:
-                raise serializers.ValidationError(f"«{archivo.name}»: solo se aceptan fotos o PDF.")
+        validar_tamano_y_tipo(archivos, "fotos, videos o PDF")
         return archivos
 
     def validate(self, data):
@@ -275,15 +275,22 @@ class ReferenciasSerializer(serializers.Serializer):
 MAX_REFERENCIAS_POR_TAREA = 30
 
 
+def validar_tamano_y_tipo(archivos, tipos):
+    """Fotos y PDF, hasta EVIDENCIA_MAX_MB; videos, hasta EVIDENCIA_VIDEO_MAX_MB (pesan mucho más)."""
+    for archivo in archivos:
+        if os.path.splitext(archivo.name)[1].lower() not in EntregaSerializer.EXTENSIONES:
+            raise serializers.ValidationError(f"«{archivo.name}»: solo se aceptan {tipos}.")
+        video = es_video(archivo.name, getattr(archivo, 'content_type', ''))
+        tope = settings.EVIDENCIA_VIDEO_MAX_MB if video else settings.EVIDENCIA_MAX_MB
+        if archivo.size > tope * 1024 * 1024:
+            raise serializers.ValidationError(f"«{archivo.name}» pesa más de {tope} MB" + (" (para un video largo, súbelo a Drive y pega el enlace)." if video else "."))
+
+
 def validar_archivos_referencia(archivos):
     maximo = settings.EVIDENCIA_MAX_ARCHIVOS
     if len(archivos) > maximo:
         raise serializers.ValidationError(f"Como máximo {maximo} archivos cada vez.")
-    for archivo in archivos:
-        if archivo.size > settings.EVIDENCIA_MAX_MB * 1024 * 1024:
-            raise serializers.ValidationError(f"«{archivo.name}» pesa más de {settings.EVIDENCIA_MAX_MB} MB.")
-        if os.path.splitext(archivo.name)[1].lower() not in EntregaSerializer.EXTENSIONES:
-            raise serializers.ValidationError(f"«{archivo.name}»: solo se aceptan imágenes o PDF.")
+    validar_tamano_y_tipo(archivos, "imágenes, videos o PDF")
     return archivos
 
 
@@ -426,7 +433,7 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracionDesempeno
         fields = ['peso_tareas', 'peso_calidad', 'peso_jornada', 'peso_kpis', 'nota_tarde', 'minimo_tareas_empleado_mes', 'puntaje_minimo',
-                  'minimo_tareas_evaluacion', 'espera_recordatorio_min', 'max_recordatorios', 'revisores_propias', 'candidatos_revisor', 'tramos_bono', 'fecha_modificacion']
+                  'minimo_tareas_evaluacion', 'espera_recordatorio_min', 'max_recordatorios', 'dias_conservar_videos', 'revisores_propias', 'candidatos_revisor', 'tramos_bono', 'fecha_modificacion']
 
     def validate(self, data):
         tareas = data.get('peso_tareas', getattr(self.instance, 'peso_tareas', 40))
@@ -449,6 +456,11 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
     def validate_max_recordatorios(self, value):
         if not 0 <= value <= 200:
             raise serializers.ValidationError("Debe estar entre 0 (sin límite) y 200.")
+        return value
+
+    def validate_dias_conservar_videos(self, value):
+        if not 0 <= value <= 365:
+            raise serializers.ValidationError("Debe estar entre 0 y 365 días.")
         return value
 
     def validate_espera_recordatorio_min(self, value):

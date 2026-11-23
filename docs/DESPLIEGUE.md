@@ -270,3 +270,27 @@ Pasa los puestos a los departamentos oficiales y borra los departamentos viejos 
 ### Retiro del monitoreo (versión 12.23)
 
 Se eliminó el módulo de monitoreo (agente, actividad, capturas, computadoras, reglas y su pantalla). La migración borra sus tablas: **haz un respaldo antes de desplegar**. Quien tenía permisos de monitoreo pasa a «Equipos y activos». Los KPIs que salían de la computadora pasan a entrada manual y la política de monitoreo queda inactiva. Quita del servidor la tarea `limpiar_monitoreo` si la tenías programada.
+
+
+### Videos como evidencia (versión 12.33)
+
+Las entregas y referencias de las tareas aceptan videos (MP4, MOV, M4V, WEBM, AVI, MKV, 3GP). Los videos se borran solos a los **7 días** de validada la tarea (se cambia en «Reglas del puntaje → Días que se conservan los videos»; la limpieza corre con `tareas_diarias`). Las fotos y los PDF no se borran.
+
+El límite por video es `EVIDENCIA_VIDEO_MAX_MB` (60 MB por defecto, lo que cabe en el límite de 64 MB del nginx de Plesk). **Para videos más grandes** hay que subir primero el límite del servidor web, en Plesk → el dominio → Apache y nginx → «Directivas nginx adicionales» (archivo `vhost_nginx.conf` del dominio):
+
+```
+location ~ / {
+	proxy_pass http://127.0.0.1:8000;
+	proxy_set_header Host $host;
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	client_max_body_size 400m;
+	client_body_timeout 600s;
+	proxy_request_buffering off;
+	proxy_send_timeout 600s;
+	proxy_read_timeout 600s;
+}
+```
+
+y después poner `EVIDENCIA_VIDEO_MAX_MB=300` (u otro valor menor que 400) en el `stack.env` y reiniciar. Cuida el disco: cada video grande ocupa su tamaño hasta que pasan los días de conservación.

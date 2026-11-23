@@ -21,7 +21,7 @@ export default function Configuracion() {
     try {
       const r = await guardarConfiguracion({
         peso_tareas: pesoTareas, peso_calidad: pesoCalidad, peso_jornada: pesoJornada, nota_tarde: Number(f.nota_tarde), minimo_tareas_empleado_mes: Number(f.minimo_tareas_empleado_mes),
-        puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion), espera_recordatorio_min: Number(f.espera_recordatorio_min), max_recordatorios: Number(f.max_recordatorios),
+        puntaje_minimo: Number(f.puntaje_minimo), minimo_tareas_evaluacion: Number(f.minimo_tareas_evaluacion), espera_recordatorio_min: Number(f.espera_recordatorio_min), max_recordatorios: Number(f.max_recordatorios), dias_conservar_videos: Number(f.dias_conservar_videos ?? 7),
         revisores_propias: f.revisores_propias || [],
         tramos_bono: tramos.filter((t) => t.desde !== "" && t.porcentaje !== "").map((t) => ({ desde: Number(t.desde), porcentaje: Number(t.porcentaje), ...(t.proporcional ? { proporcional: true } : {}) })),
       });
@@ -85,6 +85,9 @@ export default function Configuracion() {
             </Campo>
             <Campo etiqueta="Espera entre recordatorios (minutos)" ayuda="Tiempo mínimo para volver a enviarle a alguien el recordatorio de la misma tarea. Con 0 no hay espera.">
               {(id) => <input id={id} type="number" min={0} max={1440} className="campo" value={f.espera_recordatorio_min ?? 2} onChange={(e) => setF({ ...f, espera_recordatorio_min: e.target.value })} />}
+            </Campo>
+            <Campo etiqueta="Días que se conservan los videos" ayuda="Los videos de una tarea se borran solos pasados estos días desde que se valida (pesan mucho). Las fotos y los PDF no se borran. Con 0, se borran al validarla.">
+              {(id) => <input id={id} type="number" min={0} max={365} className="campo" value={f.dias_conservar_videos ?? 7} onChange={(e) => setF({ ...f, dias_conservar_videos: e.target.value })} />}
             </Campo>
             <Campo etiqueta="Tareas validadas para ser candidato" ayuda="Mínimo en el mes para optar a Empleado del Mes.">
               {(id) => <input id={id} type="number" min={0} max={100} className="campo" value={f.minimo_tareas_empleado_mes} onChange={(e) => setF({ ...f, minimo_tareas_empleado_mes: e.target.value })} />}

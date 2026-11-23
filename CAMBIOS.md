@@ -1,5 +1,30 @@
 # Cambios
 
+## 12.33 · 23/11/2026 · Videos como evidencia de las tareas, con limpieza automática
+
+- **Se pueden subir videos** (MP4, MOV, M4V, WEBM, AVI, MKV, 3GP) como evidencia al entregar una tarea y como referencia al asignarla o devolverla. En el celular hay un botón **«Grabar video»**. Antes el servidor solo aceptaba fotos y PDF y rechazaba cualquier video.
+- **Reproducción dentro de la página**, con avance y retroceso (el servidor entrega el video por tramos, algo que Safari y los celulares exigen) y botón para descargarlo. Los formatos que el navegador no reproduce (AVI, MKV, 3GP) se descargan.
+- **Límite por video: 60 MB** por ahora (`EVIDENCIA_VIDEO_MAX_MB`), que es lo que cabe en el límite de 64 MB del nginx de Plesk; si pesa más, la pantalla lo avisa antes de subirlo y sugiere pegar un enlace de Drive. Fotos y PDF siguen en 10 MB. Para permitir videos más grandes hay que subir antes el límite del servidor web: ver `docs/DESPLIEGUE.md`.
+- **Limpieza automática:** los videos de una tarea ya **validada** se borran solos a los **7 días** (configurable en Reglas del puntaje → «Días que se conservan los videos»; con 0 se borran al validar). Corre todos los días con `tareas_diarias`. Se borra el archivo del disco, pero queda el registro con el aviso «Se borró solo para liberar espacio…». **Las fotos y los PDF no se borran.** Mientras la tarea no esté validada, los videos se conservan.
+- Migración `desempeno.0023`: campos nuevos (sin tocar lo existente).
+
+## 12.32 · 23/11/2026 · Grupos de chat por área, archivos en el chat, Documentos compartidos y login sin autocompletado
+
+**Datos (hechos directamente en el servidor, con respaldo antes)**
+- **Vlady (vladimir.adzone) dado de baja:** cuenta desactivada para siempre (sin contraseña utilizable), sin perfiles ni excepciones, sin equipo adicional, sin avisos push ni dos pasos, con la sesión cerrada. No era dueño de nada activo (sin tareas, órdenes ni proyectos). Queda en el historial. **Enmanuel (enmanuel.adzone)** ya tenía todos sus permisos (perfil Gerente de Departamento, que incluye los de Supervisor) y el puesto «Gerente de Marketing y Audiovisuales» como puesto adicional: ahora es quien valida y supervisa a ese equipo.
+- **Chat de prueba borrado:** 45 mensajes y 11 chats privados; solo queda la sala de la empresa, vacía.
+
+**Login**
+- El formulario de entrada ya no ofrece ni propone guardar contraseñas del navegador: `autocomplete="off"` en el formulario y el usuario, `new-password` en la contraseña (más las marcas para gestores de contraseñas), sin el campo oculto que invitaba a guardarla. Al abrir la pantalla de entrada se limpia el almacenamiento de la sesión anterior.
+
+**Chat**
+- **Grupos por área o con personas elegidas.** Crear, editar (nombre, área, quién participa) y eliminar grupos requiere el nuevo permiso **«Grupos de chat»** (`chat.grupos`), que traen por defecto los perfiles Gerente de Departamento, Administrador y Administrador del sistema (y se puede dar o quitar por perfil o por persona en Accesos y permisos). Se valida en el servidor, no solo en la pantalla: quien no lo tiene recibe 403 aunque fuerce la ruta. Quien administra un grupo es quien lo creó o Dirección; el resto solo participa y ve quiénes están. Los grupos son privados (solo sus participantes los ven).
+- **Archivos en el chat** (privados, grupos y sala de la empresa): botón de clip, vista previa antes de enviar, imágenes que se ven en el mensaje, documentos como tarjeta con descarga. PDF, Word, Excel, PowerPoint, texto, CSV, ZIP e imágenes, hasta 15 MB; se rechazan ejecutables e imágenes falsas. Solo quienes participan descargan el archivo.
+
+**Documentos** (menú nuevo, fuera del chat)
+- Sube un archivo (hasta 25 MB), ponle título, nota y **carpeta**, y envíalo a **personas o áreas completas** (o déjalo solo para ti). Quien lo recibe ve un aviso y la marca «Nuevo» hasta que lo abre. Pestañas Todos / Recibidos / Enviados, búsqueda y filtro por carpeta. Quien lo subió lo edita, cambia con quién lo comparte o lo elimina.
+
+
 ## 12.31 · 21/11/2026 · Organigrama: moverse con el ratón
 
 - **Arrastrar el fondo** del organigrama (vista «Completo») lo mueve como un mapa, en horizontal y vertical; el cursor cambia a mano abierta/cerrada. Un clic quieto sigue abriendo o contrayendo las tarjetas. **Ctrl + rueda** acerca o aleja. En pantallas táctiles se usa el desplazamiento normal con el dedo.
