@@ -500,6 +500,21 @@ export const guardarDocumentoArea = (deptoId, doc, archivo) => {
 export const borrarDocumentoArea = (id) => api(`${D}/documentos-area/${id}/`, { method: "DELETE" });
 export const urlDocumentoArea = (id) => `${D}/documentos-area/${id}/`;
 
+// Documentos compartidos: subir, organizar y enviar a personas o áreas
+export const documentosLista = (params = {}, signal) => api(`/api/documentos/${q(params)}`, { signal });
+export const documentosResumen = () => api("/api/documentos/resumen/");
+export const documentoSubir = ({ archivo, destinatarios = [], areas = [], ...datos }) => {
+  const f = new FormData();
+  f.append("archivo", archivo);
+  Object.entries(datos).forEach(([k, v]) => f.append(k, v ?? ""));
+  destinatarios.forEach((id) => f.append("destinatarios", id));
+  areas.forEach((id) => f.append("areas", id));
+  return api("/api/documentos/", { method: "POST", body: f });
+};
+export const documentoEditar = (id, datos) => api(`/api/documentos/${id}/`, { method: "PATCH", body: datos });
+export const documentoEliminar = (id) => api(`/api/documentos/${id}/`, { method: "DELETE" });
+export const urlDocumentoCompartido = (id, descargar = false) => `/api/documentos/${id}/archivo/${descargar ? "?descargar=1" : ""}`;
+
 // Chat: sala de la empresa y chats privados
 export const chatConversaciones = (signal) => api("/api/chat/conversaciones/", { signal });
 export const chatAbrir = (persona) => api("/api/chat/conversaciones/", { method: "POST", body: { persona } });

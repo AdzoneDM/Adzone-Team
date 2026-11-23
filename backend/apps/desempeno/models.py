@@ -385,6 +385,7 @@ class Notificacion(models.Model):
         ('BLOQUEADA', 'Tarea bloqueada'),
         ('COLABORACION', 'Colaboración'),
         ('ACTIVIDAD', 'Actividad adicional'),
+        ('DOCUMENTO', 'Documento compartido'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",

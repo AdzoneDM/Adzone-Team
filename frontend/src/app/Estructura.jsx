@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
-  Award, CalendarClock, Gauge, HeartHandshake, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
+  Award, CalendarClock, FolderOpen, Gauge, HeartHandshake, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos, tablerosDepartamentos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
@@ -48,6 +48,7 @@ function secciones({ esAdmin, puedeValidar, puedeAsignar, esFinanzas, esCoordina
       { a: "/ficha", texto: "Mi ficha", icono: Gauge },
       { a: "/talento", texto: puedeValidar || esAdmin || esRRHH ? "Talento" : "Evaluaciones", icono: Award },
       { a: "/politicas", texto: "Políticas", icono: ScrollText },
+      { a: "/documentos", texto: "Documentos", icono: FolderOpen },
       ...(gestionaActivos ? [] : [{ a: "/activos", texto: "Equipos asignados", icono: Laptop }]),
     ] },
     { titulo: "Operación", items: [

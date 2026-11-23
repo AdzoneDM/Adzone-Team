@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'apps.talento',
     'apps.activos',
     'apps.chat',
+    'apps.documentos',
     'corsheaders',
     'rest_framework',
     'django_filters',

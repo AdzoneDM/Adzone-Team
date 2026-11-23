@@ -50,6 +50,7 @@ const Asistencia = perezosa(() => import("@/features/asistencia/Asistencia"));
 const Ficha = perezosa(() => import("@/features/desempeno/Ficha"));
 const Talento = perezosa(() => import("@/features/talento/Talento"));
 const Politicas = perezosa(() => import("@/features/talento/Politicas"));
+const Documentos = perezosa(() => import("@/features/documentos/Documentos"));
 const Activos = perezosa(() => import("@/features/activos/Activos"));
 const Constancia = perezosa(() => import("@/features/talento/Politicas").then((m) => ({ default: m.Constancia })));
 const PanelGerencial = perezosa(() => import("@/features/desempeno/PanelGerencial"));
@@ -123,6 +124,7 @@ export default function App() {
           <Route path="ficha" element={<Ficha />} />
           <Route path="talento" element={<Talento />} />
           <Route path="politicas" element={<Politicas />} />
+          <Route path="documentos" element={<Documentos />} />
           <Route path="activos" element={<Activos />} />
           <Route path="politicas/:id/constancia" element={<Constancia />} />
           <Route path="panel" element={<Protegida admin><PanelGerencial /></Protegida>} />
