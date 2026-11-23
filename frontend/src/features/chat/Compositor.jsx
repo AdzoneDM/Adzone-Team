@@ -15,6 +15,7 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
   const [archivo, setArchivo] = useState(null);
   const [vista, setVista] = useState(null); // miniatura de la imagen elegida
   const [aviso, setAviso] = useState("");
+  const [arrastrando, setArrastrando] = useState(false);
   const ref = useRef(null);
   const entrada = useRef(null);
 
@@ -25,7 +26,7 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
     const el = ref.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
   }, [texto]);
 
   // Miniatura de la imagen antes de enviarla (se libera al cambiar o cerrar)
@@ -36,10 +37,11 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
     return () => URL.revokeObjectURL(url);
   }, [archivo]);
 
-  const elegir = (e) => {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
+  // Un archivo elegido con el clip, pegado (Ctrl + V / captura de pantalla) o arrastrado a la conversación
+  const aceptar = (f0) => {
+    if (!f0) return;
+    // Una captura pegada llega como «image.png»: se le da un nombre útil (y la hora para que no se repita)
+    const f = /^image\.(png|jpe?g|gif|webp)$/i.test(f0.name) ? new File([f0], `captura-${new Date().toTimeString().slice(0, 8).replace(/:/g, "")}.${f0.type.split("/")[1] === "jpeg" ? "jpg" : f0.type.split("/")[1] || "png"}`, { type: f0.type }) : f0;
     if (!PERMITIDOS.test(f.name)) return setAviso("Solo imágenes, videos y documentos (PDF, Word, Excel, PowerPoint, texto, CSV o ZIP).");
     if (esVideo(f) ? f.size > limites.videoMB * 1024 * 1024 : f.size > MAX_ARCHIVO) {
       return setAviso(esVideo(f) ? `El video pesa más de ${limites.videoMB} MB. Para uno más largo, súbelo a Drive y pega el enlace.` : "El archivo pesa más de 15 MB.");
@@ -47,6 +49,24 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
     setAviso("");
     setArchivo(f);
     ref.current?.focus();
+  };
+  const elegir = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    aceptar(f);
+  };
+  const alPegar = (e) => {
+    const f = Array.from(e.clipboardData?.files || []).find((x) => x.size > 0);
+    if (!f) return; // texto normal: se pega como siempre
+    e.preventDefault();
+    aceptar(f);
+  };
+  const alSoltar = (e) => {
+    const f = e.dataTransfer?.files?.[0];
+    if (!f) return;
+    e.preventDefault();
+    setArrastrando(false);
+    aceptar(f);
   };
 
   const puedeEnviar = (texto.trim() || archivo) && !enviando;
@@ -63,14 +83,15 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
 
   const cerca = texto.length > LIMITE - 200;
   return (
-    <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className="border-t border-linea bg-white p-3">
+    <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className={cx("border-t border-linea bg-white p-3 transition-colors", arrastrando && "bg-azul/5 ring-2 ring-inset ring-azul/40")}
+      onDragOver={(e) => { if (e.dataTransfer?.types?.includes("Files")) { e.preventDefault(); setArrastrando(true); } }} onDragLeave={() => setArrastrando(false)} onDrop={alSoltar}>
       {archivo && (
         <div className="mb-2 flex items-center gap-3 rounded-xl border border-linea bg-fondo p-2">
-          {vista ? (esVideo(archivo) ? <video src={vista} muted playsInline preload="metadata" className="size-12 rounded-lg bg-black object-cover" aria-label={archivo.name} /> : <img src={vista} alt="" className="size-12 rounded-lg object-cover" />)
-            : <span className="flex size-12 items-center justify-center rounded-lg bg-white text-azul"><FileText className="size-6" aria-hidden /></span>}
+          {vista ? (esVideo(archivo) ? <video src={vista} muted playsInline preload="metadata" className="size-20 rounded-lg bg-black object-cover" aria-label={archivo.name} /> : <img src={vista} alt="Vista previa" className="size-20 rounded-lg object-cover" />)
+            : <span className="flex size-20 items-center justify-center rounded-lg bg-white text-azul"><FileText className="size-6" aria-hidden /></span>}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-tinta">{archivo.name}</p>
-            <p className="text-xs text-gris">{tamano(archivo.size)} · se envía con tu mensaje</p>
+            <p className="text-xs text-gris">{tamano(archivo.size)} · se envía con tu mensaje · <button type="button" onClick={() => setArchivo(null)} className="font-medium text-rojo hover:underline">Cancelar</button></p>
           </div>
           <button type="button" onClick={() => setArchivo(null)} aria-label="Quitar el archivo" className="rounded-lg p-2 text-gris hover:bg-white hover:text-rojo"><X className="size-4" aria-hidden /></button>
         </div>
@@ -83,9 +104,9 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
           className={cx("flex size-10 shrink-0 items-center justify-center rounded-lg text-gris transition-colors hover:bg-fondo hover:text-azul", archivo && "text-azul")}>
           <Paperclip className="size-5" aria-hidden />
         </button>
-        <textarea ref={ref} value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={alTeclear} rows={1} maxLength={LIMITE}
-          placeholder={archivo ? "Agrega un mensaje (opcional)…" : "Escribe un mensaje…"} aria-label="Mensaje" enterKeyHint="send"
-          className="campo max-h-[120px] min-h-10 flex-1 resize-none !py-2" />
+        <textarea ref={ref} value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={alTeclear} onPaste={alPegar} rows={2} maxLength={LIMITE}
+          placeholder={archivo ? "Agrega un mensaje (opcional)…" : "Escribe un mensaje o pega una imagen (Ctrl + V)…"} aria-label="Mensaje" enterKeyHint="send"
+          className="campo max-h-[220px] min-h-[3.25rem] flex-1 resize-none !py-2.5" />
         <button type="submit" disabled={!puedeEnviar} aria-label="Enviar mensaje"
           className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-azul text-white transition-colors hover:bg-azul-700 disabled:cursor-not-allowed disabled:opacity-40">
           <SendHorizontal className="size-5" aria-hidden />

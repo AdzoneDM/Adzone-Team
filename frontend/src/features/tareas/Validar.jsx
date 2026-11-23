@@ -17,7 +17,7 @@ const resumenEvidencia = (t) => [
   t.evidencia_enlace && "enlace", t.evidencia_nota?.trim() && "nota",
 ].filter(Boolean).join(" · ");
 
-function Revision({ tarea, onListo }) {
+function Revision({ tarea, onListo, onFallo }) {
   const avisar = useAviso();
   const [calidad, setCalidad] = useState(0);
   const [comentario, setComentario] = useState("");
@@ -39,7 +39,7 @@ function Revision({ tarea, onListo }) {
       await validarTarea(tarea.id, calidad, comentario.trim(), oa ? { g3 } : {});
       avisar(`Validada. Ya cuenta para el puntaje de ${[tarea.colaborador_nombre, ...(tarea.companeros_nombres || [])].join(" y ")}.`);
       onListo(tarea.id);
-    } catch (e) { setError(e.message); setEnviando(null); }
+    } catch (e) { setError(e.message); setEnviando(null); onFallo?.(); }
   };
   const devolver = async () => {
     if (comentario.trim().length < 5) { setError("Para devolverla, escribe qué debe corregir."); return; }
@@ -48,7 +48,7 @@ function Revision({ tarea, onListo }) {
       await devolverTarea(tarea.id, comentario.trim(), oa ? { g3, causa_retrabajo: causa || null } : {}, archivos);
       avisar(`Devuelta a ${tarea.colaborador_nombre} con tu comentario${archivos.length ? " y tus archivos de referencia" : ""}.`);
       onListo(tarea.id);
-    } catch (e) { setError(e.message); setEnviando(null); }
+    } catch (e) { setError(e.message); setEnviando(null); onFallo?.(); }
   };
 
   return (
@@ -175,14 +175,14 @@ export default function Validar() {
           </ul>
           {esPC && tarea && (
             <section className="sticky top-24 self-start rounded-xl border border-linea bg-white p-6" aria-label="Revisión">
-              <Revision tarea={tarea} onListo={listo} />
+              <Revision tarea={tarea} onListo={listo} onFallo={cargar} />
             </section>
           )}
         </div>
       )}
       {!esPC && (
         <Modal abierto={!!tarea} onCerrar={() => setElegida(null)} titulo="Revisar entrega" ancho="md:max-w-2xl">
-          {tarea && <Revision tarea={tarea} onListo={listo} />}
+          {tarea && <Revision tarea={tarea} onListo={listo} onFallo={cargar} />}
         </Modal>
       )}
     </div>

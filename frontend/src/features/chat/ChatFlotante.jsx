@@ -126,10 +126,10 @@ export default function ChatFlotante() {
 
       {abierto && (
         <section role="dialog" aria-modal="false" aria-labelledby={titulo}
-          className="fixed inset-0 z-50 flex bg-white sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(640px,calc(100dvh-3rem))] sm:w-[min(780px,calc(100vw-3rem))] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-linea sm:shadow-2xl"
+          className="fixed inset-0 z-50 flex bg-white sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(820px,calc(100dvh-3rem))] sm:w-[min(1080px,calc(100vw-3rem))] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-linea sm:shadow-2xl"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           {/* Izquierda: buscador y conversaciones (en el celular, solo cuando no hay una abierta) */}
-          <aside className={cx("min-h-0 w-full flex-col sm:flex sm:w-[290px] sm:shrink-0 sm:border-r sm:border-linea", listaMovil ? "flex" : "hidden")} aria-label="Conversaciones">
+          <aside className={cx("min-h-0 w-full flex-col sm:flex sm:w-[300px] sm:shrink-0 sm:border-r sm:border-linea", listaMovil ? "flex" : "hidden")} aria-label="Conversaciones">
             <Cabecera conv={null} onCerrar={cerrar} onAtras={conv ? () => setListaMovil(false) : undefined} etiquetaAtras="Volver a la conversación" soloMovil />
             <div className="hidden bg-white px-4 pb-1 pt-4 sm:block"><p className="font-display text-lg font-semibold text-noche">Chats</p></div>
             <PanelChats conversaciones={conversaciones} cargando={cargando} usuarioId={usuario.id} activaId={conv?.id} onAbrir={abrirConversacion} onPersona={abrirConPersona}

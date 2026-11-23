@@ -37,7 +37,7 @@ function Adjunto({ m, mio }) {
     }
     return (
       <span className="mb-1 block max-w-full overflow-hidden rounded-2xl ring-1 ring-linea">
-        <video controls preload="metadata" playsInline src={abrir} className="max-h-64 w-full bg-black" aria-label={a.nombre}>
+        <video controls preload="metadata" playsInline src={abrir} className="max-h-[22rem] w-full min-w-[16rem] bg-black" aria-label={a.nombre}>
           <a href={bajar}>Descargar el video</a>
         </video>
         <a href={bajar} className={cx("flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs", mio ? "bg-azul-700 text-white/90" : "bg-white text-gris")}><span className="truncate">{a.nombre} · {tamano(a.tamano)}</span><Download className="size-3.5 shrink-0" aria-hidden /></a>
@@ -47,7 +47,7 @@ function Adjunto({ m, mio }) {
   if (a.es_imagen) {
     return (
       <span className="group/img relative mb-1 block overflow-hidden rounded-2xl ring-1 ring-linea">
-        <a href={abrir} target="_blank" rel="noopener" aria-label={`Abrir ${a.nombre}`}><img src={abrir} alt={a.nombre} loading="lazy" className="max-h-56 max-w-full object-cover" /></a>
+        <a href={abrir} target="_blank" rel="noopener" aria-label={`Abrir ${a.nombre}`}><img src={abrir} alt={a.nombre} loading="lazy" className="max-h-[22rem] max-w-full object-cover" /></a>
         <a href={bajar} aria-label={`Descargar ${a.nombre}`} title="Descargar" className="absolute right-1.5 top-1.5 rounded-lg bg-white/90 p-1.5 text-tinta opacity-100 shadow hover:text-azul sm:opacity-0 sm:group-hover/img:opacity-100"><Download className="size-4" /></a>
       </span>
     );
@@ -71,7 +71,7 @@ function Burbuja({ m, mio, primero, privado, onBorrar }) {
   return (
     <div className={cx("group flex items-end gap-2", mio ? "flex-row-reverse" : "", primero ? "mt-3" : "mt-0.5")}>
       {!mio && !privado && (primero ? <Avatar nombre={m.autor_nombre} tam="sm" /> : <span className="size-8 shrink-0" aria-hidden />)}
-      <div className={cx("flex max-w-[80%] flex-col", mio ? "items-end" : "items-start")}>
+      <div className={cx("flex max-w-[85%] flex-col lg:max-w-[75%]", mio ? "items-end" : "items-start")}>
         {primero && !mio && !privado && <span className="mb-0.5 px-1 text-xs font-medium text-gris">{m.autor_nombre}</span>}
         <div className="flex items-center gap-1.5">
           {m.puede_borrar && (

@@ -51,8 +51,18 @@ if (typeof window !== "undefined") {
 }
 export const EVENTO_SESION = "adzone:sesion";
 
-export async function api(url, { method = "GET", body, signal } = {}) {
+// Si el servidor o la red no responden, la petición se corta y se avisa (antes un botón podía quedarse «cargando» para siempre).
+// Con archivos (videos) se espera mucho más: dependen de la velocidad de subida.
+const ESPERA_MS = 45000;
+const ESPERA_ARCHIVOS_MS = 20 * 60000;
+
+export async function api(url, { method = "GET", body, signal: externa } = {}) {
   const esFormulario = body instanceof FormData;
+  const control = new AbortController();
+  let vencio = false;
+  const reloj = setTimeout(() => { vencio = true; control.abort(); }, esFormulario ? ESPERA_ARCHIVOS_MS : ESPERA_MS);
+  if (externa) { if (externa.aborted) control.abort(); else externa.addEventListener("abort", () => control.abort(), { once: true }); }
+  const signal = control.signal;
   const headers = { Accept: "application/json" };
   if (Date.now() - ultimaInteraccion < 60000) headers["X-Actividad"] = "1";
   if (method !== "GET") headers["X-CSRFToken"] = getCookie("csrftoken") || "";
@@ -64,11 +74,15 @@ export async function api(url, { method = "GET", body, signal } = {}) {
       body: body ? (esFormulario ? body : JSON.stringify(body)) : undefined,
     });
   } catch (e) {
+    clearTimeout(reloj);
+    if (vencio) throw new ApiError("Tardó demasiado en responder. Revisa tu internet; si era una validación o una entrega, mira si ya se aplicó antes de repetirla.", 0);
     if (e.name === "AbortError") throw e;
     throw new ApiError("Sin conexión. Revisa el internet e inténtalo de nuevo.", 0);
   }
-  if (response.status === 204) return null;
-  const data = await response.json().catch(() => null);
+  if (response.status === 204) { clearTimeout(reloj); return null; }
+  let data;
+  try { data = await response.json(); } catch { data = null; } finally { clearTimeout(reloj); }
+  if (vencio && data === null) throw new ApiError("Tardó demasiado en responder. Revisa tu internet y vuelve a intentarlo.", 0);
   if (!response.ok) {
     // La sesión se cerró (inactividad, código pendiente) o falta activar los dos pasos: la app se entera y reacciona
     if ((response.status === 401 && data?.detail) || data?.activar_dos_pasos) {

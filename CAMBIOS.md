@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.38 · 23/11/2026 · Chat más grande con imágenes pegadas, validaciones que no se quedan colgadas
+
+- **Chat:** se puede **pegar una imagen o una captura de pantalla con Ctrl + V** (sin guardarla antes) o **arrastrarla** a la conversación. Aparece una vista previa grande con el botón «Cancelar» antes de enviar. Las capturas se nombran solas («captura-HHMMSS.png»). Igual que antes: fotos, videos y documentos con el clip.
+- **Chat más amplio:** la ventana pasa de 780×640 a hasta 1080×820 en computadora (sigue a pantalla completa en celular y tablet), más mensajes a la vista, caja de escribir más alta (crece hasta 220 px) y fotos y videos más grandes dentro de la conversación.
+- **Validaciones que se quedaban «cargando»:** toda petición tiene ahora un tiempo máximo (45 s; 20 min cuando lleva archivos). Si el servidor o la red no responden, se corta, se **avisa con un mensaje claro**, el botón se libera y la lista se actualiza sola (si la validación sí se había aplicado, la tarea desaparece de «Por validar»). Sin recargar la página.
+- **App instalable:** evaluación en `docs/APP_INSTALABLE.md` (ya es una PWA; conviene seguir con ella). Los avisos de almuerzo también salen como notificación del sistema con la app cerrada.
+
 ## 12.37 · 23/11/2026 · Alertas de almuerzo: la hora, los 5 minutos y cuando te pasas
 
 Tres alertas emergentes con sonido para quien está en jornada (como las de tareas; la de pasarse insiste hasta que marcas tu regreso):
