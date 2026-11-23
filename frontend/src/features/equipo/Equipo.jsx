@@ -15,6 +15,7 @@ import Ahora from "@/features/equipo/Ahora";
 import BuscadorEquipo from "@/features/equipo/BuscadorEquipo";
 import FormTarea from "@/features/tareas/FormTarea";
 import { useNovedades } from "@/lib/novedades";
+import { useSesion } from "@/lib/sesion";
 
 function Recurrentes({ gente, onEditar, recargar, version }) {
   const [lista, setLista] = useState(null);
@@ -56,6 +57,7 @@ function Recurrentes({ gente, onEditar, recargar, version }) {
 }
 
 export default function Equipo() {
+  const { usuario } = useSesion();
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const [params, setParams] = useSearchParams();
@@ -125,7 +127,7 @@ export default function Equipo() {
   if (error) return <Alerta>{error}</Alerta>;
   return (
     <div>
-      <Cabecera titulo="Mi equipo" descripcion="En qué está cada quien, sus tareas y las que se repiten. Las tareas cuentan para el puntaje cuando las validas.">
+      <Cabecera titulo="Mi equipo" descripcion="En qué está cada quien: tus tareas y las de toda tu gente, y las que se repiten. Las tareas de tu equipo cuentan para su puntaje cuando las validas.">
         <Boton icono={Plus} onClick={() => setForm({ colaborador: colaborador || "" })} data-guia="nueva-tarea">Nueva tarea</Boton>
       </Cabecera>
 
@@ -193,7 +195,7 @@ export default function Equipo() {
                             </div>
                             <EquipoTarea tarea={t} className="mt-0.5" />
                           </td>
-                          <td className="whitespace-nowrap">{t.colaborador_nombre}{t.companeros_nombres?.length > 0 && <span className="block text-sm text-gris">+{t.companeros_nombres.length}</span>}</td>
+                          <td className="whitespace-nowrap">{t.colaborador_nombre}{t.colaborador === usuario?.id && <span className="ml-1 rounded bg-azul/10 px-1.5 py-0.5 text-[11px] font-semibold text-azul">Tú</span>}{t.companeros_nombres?.length > 0 && <span className="block text-sm text-gris">+{t.companeros_nombres.length}</span>}</td>
                           <td className="hidden xl:table-cell"><PrioridadTarea prioridad={t.prioridad} /></td>
                           <td className="whitespace-nowrap"><p className="num">{fechaCorta(t.fecha_limite)}</p><Vencimiento tarea={t} /></td>
                           <td className="whitespace-nowrap"><EstadoTarea estado={t.estado} /></td>
@@ -209,7 +211,7 @@ export default function Equipo() {
                 {lista.map((t) => (
                   <li key={t.id}>
                     <button type="button" onClick={() => setDetalle(t)} className="w-full rounded-xl border border-linea bg-white p-4 text-left">
-                      <p className="text-sm text-gris">{t.colaborador_nombre}</p>
+                      <p className="text-sm text-gris">{t.colaborador_nombre}{t.colaborador === usuario?.id && <span className="ml-1 rounded bg-azul/10 px-1.5 py-0.5 text-[11px] font-semibold text-azul">Tú</span>}</p>
                       <p className="font-medium">{t.titulo}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2"><EstadoTarea estado={t.estado} /><PrioridadTarea prioridad={t.prioridad} /><Vencimiento tarea={t} /><Progreso progreso={t.progreso} /></div>
                       <EquipoTarea tarea={t} className="mt-1.5" />

@@ -65,6 +65,7 @@ class Mensaje(models.Model):
     archivo_nombre = models.CharField(max_length=150, blank=True)
     archivo_es_imagen = models.BooleanField(default=False)
     archivo_tamano = models.PositiveIntegerField(default=0)
+    archivo_purgado = models.BooleanField(default=False, help_text="El video ya se borró (limpieza automática de videos del chat).")
     creado = models.DateTimeField(auto_now_add=True, db_index=True)
     # Un mensaje borrado no se elimina de la base (queda constancia), pero deja de mostrar su texto.
     eliminado = models.BooleanField(default=False)

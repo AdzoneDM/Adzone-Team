@@ -469,6 +469,8 @@ class ConfiguracionDesempeno(models.Model):
     minimo_tareas_evaluacion = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas que ya cuentan en el mes para juzgar el mínimo. Con menos (y sin KPIs medidos), "
                              "la persona sale como «pocos datos» y no como incumplimiento.")
+    dias_conservar_videos_chat = models.PositiveSmallIntegerField(
+        default=14, help_text="Días que se conservan los videos enviados por el chat antes de borrarse solos para liberar espacio.")
     dias_conservar_videos = models.PositiveSmallIntegerField(
         default=7, help_text="Días que se conservan los videos de una tarea después de validada; luego se borran solos para liberar espacio. Con 0 se borran al validarla.")
     max_recordatorios = models.PositiveSmallIntegerField(

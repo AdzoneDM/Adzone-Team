@@ -7,6 +7,9 @@ from django.utils import timezone
 
 from rest_framework.exceptions import ValidationError
 
+from django.conf import settings
+
+from apps.core.archivos import EXTENSIONES_VIDEO, es_video
 from apps.core.permisos import tiene
 from apps.desempeno.permisos import es_administrador
 
@@ -18,6 +21,7 @@ PAGINA_MAX = 100
 MAX_ARCHIVO = 15 * 1024 * 1024
 EXT_IMAGEN = ('.jpg', '.jpeg', '.png', '.webp', '.gif')
 EXT_DOCUMENTO = ('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.zip', '.odt', '.ods')
+EXT_VIDEO = EXTENSIONES_VIDEO
 
 
 def sala_global():
@@ -70,8 +74,12 @@ def puede_borrar(usuario, mensaje):
 def revisar_archivo(archivo):
     """Documento o imagen de hasta 15 MB. Devuelve si es una imagen. Un archivo ejecutable o de otro tipo se rechaza."""
     ext = os.path.splitext(archivo.name)[1].lower()
-    if ext not in EXT_IMAGEN + EXT_DOCUMENTO:
-        raise ValidationError({'archivo': ['Solo se pueden enviar imágenes y documentos (PDF, Word, Excel, PowerPoint, texto, CSV o ZIP).']})
+    if ext not in EXT_IMAGEN + EXT_DOCUMENTO + EXT_VIDEO:
+        raise ValidationError({'archivo': ['Solo se pueden enviar imágenes, videos y documentos (PDF, Word, Excel, PowerPoint, texto, CSV o ZIP).']})
+    if es_video(archivo.name, getattr(archivo, 'content_type', '')):
+        if archivo.size > settings.EVIDENCIA_VIDEO_MAX_MB * 1024 * 1024:
+            raise ValidationError({'archivo': [f'El video pesa más de {settings.EVIDENCIA_VIDEO_MAX_MB} MB. Para uno más largo, súbelo a Drive y pega el enlace.']})
+        return False
     if archivo.size > MAX_ARCHIVO:
         raise ValidationError({'archivo': ['El archivo pesa más de 15 MB.']})
     es_imagen = ext in EXT_IMAGEN
@@ -110,6 +118,28 @@ def registrar(mensaje):
     c = mensaje.conversacion
     c.ultimo_id, c.ultimo_texto, c.ultimo_autor_id, c.ultima_actividad = mensaje.id, (mensaje.texto or f'📎 {mensaje.archivo_nombre}')[:140], mensaje.autor_id, mensaje.creado
     c.save(update_fields=['ultimo_id', 'ultimo_texto', 'ultimo_autor', 'ultima_actividad'])
+
+
+def purgar_videos_del_chat(hoy=None):
+    """Borra los videos del chat de más de `dias_conservar_videos_chat` días (pesan mucho y un chat no «se valida»). El mensaje queda,
+    con el aviso de que el video se borró solo."""
+    from datetime import timedelta
+    from apps.desempeno.models import ConfiguracionDesempeno
+    dias = ConfiguracionDesempeno.actual().dias_conservar_videos_chat
+    corte = (hoy or timezone.now()) - timedelta(days=dias)
+    borrados = liberado = 0
+    for m in Mensaje.objects.filter(archivo_purgado=False, creado__lte=corte).exclude(archivo=''):
+        if not es_video(m.archivo_nombre or m.archivo.name):
+            continue
+        liberado += m.archivo_tamano or 0
+        try:
+            m.archivo.delete(save=False)
+        except OSError:
+            pass
+        m.archivo, m.archivo_purgado = None, True
+        m.save(update_fields=['archivo', 'archivo_purgado'])
+        borrados += 1
+    return borrados, liberado
 
 
 def al_borrar(mensaje):

@@ -9,6 +9,7 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
+from apps.core.archivos import entregar, es_video
 from apps.desempeno.permisos import es_administrador
 
 from . import servicios
@@ -33,9 +34,13 @@ class MensajeSerializer(serializers.ModelSerializer):
         fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'creado', 'eliminado', 'puede_borrar']
 
     def get_archivo(self, o):
-        if o.eliminado or not o.archivo:
+        if o.eliminado:
             return None
-        return {'nombre': o.archivo_nombre, 'es_imagen': o.archivo_es_imagen, 'tamano': o.archivo_tamano}
+        if o.archivo_purgado:
+            return {'nombre': o.archivo_nombre, 'es_imagen': False, 'es_video': True, 'purgado': True, 'tamano': o.archivo_tamano}
+        if not o.archivo:
+            return None
+        return {'nombre': o.archivo_nombre, 'es_imagen': o.archivo_es_imagen, 'es_video': es_video(o.archivo_nombre or o.archivo.name), 'tamano': o.archivo_tamano}
 
     def get_autor_nombre(self, o):
         return (o.autor.get_full_name() or o.autor.username) if o.autor else 'Persona eliminada'
@@ -178,9 +183,13 @@ def archivo_view(request, pk):
     m = get_object_or_404(Mensaje.objects.select_related('conversacion'), pk=pk)
     _conversacion_o_404(request, m.conversacion_id)
     if m.eliminado or not m.archivo:
+        if m.archivo_purgado:
+            return Response({'detail': 'Este video se borró solo para liberar espacio.'}, status=status.HTTP_410_GONE)
         from django.http import Http404
         raise Http404
     tipo = mimetypes.guess_type(m.archivo.name)[0] or 'application/octet-stream'
+    if es_video(m.archivo_nombre or m.archivo.name):  # los videos se entregan por tramos (se reproducen y avanzan sin bajarlos completos)
+        return entregar(m.archivo.open('rb'), m.archivo_nombre or os.path.basename(m.archivo.name), tipo, request)
     resp = FileResponse(m.archivo.open('rb'), filename=m.archivo_nombre or os.path.basename(m.archivo.name), content_type=tipo,
                         as_attachment=request.query_params.get('descargar') == '1' or not m.archivo_es_imagen and tipo != 'application/pdf')
     resp['X-Content-Type-Options'] = 'nosniff'

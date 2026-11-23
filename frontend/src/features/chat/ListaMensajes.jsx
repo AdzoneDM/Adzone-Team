@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, Download, FileSpreadsheet, FileText, Trash2 } from "lucide-react";
+import { ArrowDown, Download, FileSpreadsheet, FileText, Film, Trash2 } from "lucide-react";
 import { urlArchivoChat } from "@/lib/api";
 import { Avatar, cx } from "@/components/ui";
 
@@ -31,6 +31,19 @@ const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} K
 function Adjunto({ m, mio }) {
   const a = m.archivo;
   const abrir = urlArchivoChat(m.id), bajar = urlArchivoChat(m.id, true);
+  if (a.es_video) {
+    if (a.purgado) {
+      return <span className={cx("mb-1 flex items-center gap-2 rounded-2xl px-3 py-2 text-xs italic", mio ? "bg-azul-700 text-white/80" : "bg-white text-gris ring-1 ring-linea")}><Film className="size-4 shrink-0" aria-hidden />El video se borró solo para liberar espacio</span>;
+    }
+    return (
+      <span className="mb-1 block max-w-full overflow-hidden rounded-2xl ring-1 ring-linea">
+        <video controls preload="metadata" playsInline src={abrir} className="max-h-64 w-full bg-black" aria-label={a.nombre}>
+          <a href={bajar}>Descargar el video</a>
+        </video>
+        <a href={bajar} className={cx("flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs", mio ? "bg-azul-700 text-white/90" : "bg-white text-gris")}><span className="truncate">{a.nombre} · {tamano(a.tamano)}</span><Download className="size-3.5 shrink-0" aria-hidden /></a>
+      </span>
+    );
+  }
   if (a.es_imagen) {
     return (
       <span className="group/img relative mb-1 block overflow-hidden rounded-2xl ring-1 ring-linea">
@@ -134,7 +147,7 @@ export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, p
         {!cargando && mensajes.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
             <p className="font-display text-base font-semibold text-tinta">Aún no hay mensajes</p>
-            <p className="mt-1 text-sm text-gris">{privado ? `Escribe el primero para saludar a ${nombreOtro}.` : "Escribe el primero para saludar al equipo."} También puedes adjuntar un documento o una imagen con el clip.</p>
+            <p className="mt-1 text-sm text-gris">{privado ? `Escribe el primero para saludar a ${nombreOtro}.` : "Escribe el primero para saludar al equipo."} También puedes adjuntar un documento, una imagen o un video con el clip.</p>
           </div>
         )}
         {mensajes.map((m, i) => {

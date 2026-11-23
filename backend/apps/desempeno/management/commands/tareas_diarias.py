@@ -22,6 +22,9 @@ class Command(BaseCommand):
         recordar_semanal()
         from apps.desempeno.servicios import purgar_videos
         videos, bytes_liberados = purgar_videos()
+        from apps.chat.servicios import purgar_videos_del_chat
+        v_chat, b_chat = purgar_videos_del_chat()
+        videos, bytes_liberados = videos + v_chat, bytes_liberados + b_chat
         if videos:
             self.stdout.write(f'Videos de tareas validadas borrados: {videos} ({bytes_liberados // 1024 // 1024} MB).')
         from apps.desempeno.inteligencia import avisar_resumen

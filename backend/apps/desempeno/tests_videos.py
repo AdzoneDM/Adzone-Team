@@ -142,3 +142,33 @@ class VideosTests(Base):
         self.assertEqual(self.c.get(f'/api/desempeno/referencias/{ref.pk}/archivo/').status_code, 410)
         ficha = self.c.get(f'{T}{t.id}/').json()
         self.assertTrue(all(e['purgado'] for e in ficha['evidencias'] if e['es_video']))
+
+
+class EquipoVeSuTrabajoTests(Base):
+    """«Mi equipo» muestra las tareas de toda la gente a cargo y también las propias del encargado."""
+
+    def test_el_encargado_ve_las_suyas_y_las_de_su_equipo_juntas(self):
+        mia = self.tarea(self.vladi)
+        de_erlin = self.tarea(self.erlin)
+        ajena = self.tarea(self.dev)                                # de otra área: no es de su equipo
+        self.como(self.vladi)
+        ids = {t['id'] for t in self._lista('/api/desempeno/tareas/?ambito=equipo')}
+        self.assertIn(mia.id, ids)
+        self.assertIn(de_erlin.id, ids)
+        self.assertNotIn(ajena.id, ids)
+
+    def _lista(self, url):
+        r = self.c.get(url).json()
+        return r['results'] if isinstance(r, dict) else r
+
+    def test_mis_tareas_sigue_mostrando_solo_las_mias(self):
+        mia, de_erlin = self.tarea(self.vladi), self.tarea(self.erlin)
+        self.como(self.vladi)
+        ids = {t['id'] for t in self._lista('/api/desempeno/tareas/?ambito=mias')}
+        self.assertEqual(ids, {mia.id})
+
+    def test_un_colaborador_sin_equipo_solo_ve_las_suyas(self):
+        mia, otra = self.tarea(self.erlin), self.tarea(self.dev)
+        self.como(self.erlin)
+        ids = {t['id'] for t in self._lista('/api/desempeno/tareas/?ambito=equipo')}
+        self.assertEqual(ids, {mia.id})

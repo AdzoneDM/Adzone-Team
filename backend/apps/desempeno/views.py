@@ -77,7 +77,8 @@ class TareaViewSet(viewsets.ModelViewSet):
         if ambito == 'mias':
             queryset = queryset.filter(Q(colaborador=user) | Q(companeros=user)).distinct()
         elif ambito == 'equipo':
-            queryset = queryset.filter(colaborador__in=equipo_gestionable(user)).exclude(colaborador=user)
+            # «Mi equipo»: las tareas de toda su gente (directa o más abajo en el organigrama) y también las suyas, todo en un solo lugar
+            queryset = queryset.filter(Q(colaborador__in=equipo_gestionable(user)) | Q(colaborador=user) | Q(companeros=user)).distinct()
         elif ambito == 'por_validar':
             queryset = revisables(queryset.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
                                   .exclude(colaborador=user).exclude(companeros=user), user)

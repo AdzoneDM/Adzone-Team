@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { FileText, Paperclip, SendHorizontal, X } from "lucide-react";
+import { limites } from "@/lib/archivos";
 import { cx } from "@/components/ui";
 
 const LIMITE = 2000;
 const MAX_ARCHIVO = 15 * 1024 * 1024;
-const PERMITIDOS = /\.(jpe?g|png|webp|gif|pdf|docx?|xlsx?|pptx?|txt|csv|zip|odt|ods)$/i;
+const PERMITIDOS = /\.(jpe?g|png|webp|gif|pdf|docx?|xlsx?|pptx?|txt|csv|zip|odt|ods|mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i;
+const esVideo = (f) => (f.type || "").startsWith("video/") || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i.test(f.name);
 const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 
-/** Caja para escribir. Enter envía; Mayús+Enter hace un salto de línea. El clip adjunta un documento o una imagen (hasta 15 MB). */
+/** Caja para escribir. Enter envía; Mayús+Enter hace un salto de línea. El clip adjunta un documento, una imagen (hasta 15 MB) o un video. */
 export default function Compositor({ enviando, onEnviar, autoFoco }) {
   const [texto, setTexto] = useState("");
   const [archivo, setArchivo] = useState(null);
@@ -28,7 +30,7 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
 
   // Miniatura de la imagen antes de enviarla (se libera al cambiar o cerrar)
   useEffect(() => {
-    if (!archivo || !archivo.type.startsWith("image/")) { setVista(null); return undefined; }
+    if (!archivo || !(archivo.type.startsWith("image/") || esVideo(archivo))) { setVista(null); return undefined; }
     const url = URL.createObjectURL(archivo);
     setVista(url);
     return () => URL.revokeObjectURL(url);
@@ -38,8 +40,10 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    if (!PERMITIDOS.test(f.name)) return setAviso("Solo imágenes y documentos (PDF, Word, Excel, PowerPoint, texto, CSV o ZIP).");
-    if (f.size > MAX_ARCHIVO) return setAviso("El archivo pesa más de 15 MB.");
+    if (!PERMITIDOS.test(f.name)) return setAviso("Solo imágenes, videos y documentos (PDF, Word, Excel, PowerPoint, texto, CSV o ZIP).");
+    if (esVideo(f) ? f.size > limites.videoMB * 1024 * 1024 : f.size > MAX_ARCHIVO) {
+      return setAviso(esVideo(f) ? `El video pesa más de ${limites.videoMB} MB. Para uno más largo, súbelo a Drive y pega el enlace.` : "El archivo pesa más de 15 MB.");
+    }
     setAviso("");
     setArchivo(f);
     ref.current?.focus();
@@ -62,7 +66,7 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
     <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className="border-t border-linea bg-white p-3">
       {archivo && (
         <div className="mb-2 flex items-center gap-3 rounded-xl border border-linea bg-fondo p-2">
-          {vista ? <img src={vista} alt="" className="size-12 rounded-lg object-cover" />
+          {vista ? (esVideo(archivo) ? <video src={vista} muted playsInline preload="metadata" className="size-12 rounded-lg bg-black object-cover" aria-label={archivo.name} /> : <img src={vista} alt="" className="size-12 rounded-lg object-cover" />)
             : <span className="flex size-12 items-center justify-center rounded-lg bg-white text-azul"><FileText className="size-6" aria-hidden /></span>}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-tinta">{archivo.name}</p>
@@ -74,8 +78,8 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
       {aviso && <p role="alert" className="mb-2 text-xs text-rojo">{aviso}</p>}
       <div className="flex items-end gap-2">
         <input ref={entrada} type="file" className="hidden" onChange={elegir} aria-label="Elegir un archivo"
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.odt,.ods" />
-        <button type="button" onClick={() => entrada.current?.click()} aria-label="Adjuntar un documento o una imagen" title="Adjuntar un documento o una imagen"
+          accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.odt,.ods" />
+        <button type="button" onClick={() => entrada.current?.click()} aria-label="Adjuntar un documento, una imagen o un video" title="Adjuntar un documento, una imagen o un video"
           className={cx("flex size-10 shrink-0 items-center justify-center rounded-lg text-gris transition-colors hover:bg-fondo hover:text-azul", archivo && "text-azul")}>
           <Paperclip className="size-5" aria-hidden />
         </button>

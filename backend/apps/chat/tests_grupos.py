@@ -11,6 +11,7 @@ from PIL import Image
 from apps.core.models import Departamento
 from apps.organizacion.models import PuestoDeTrabajo
 
+from . import servicios
 from .models import Conversacion, Mensaje
 from .tests import BASE, Base
 
@@ -178,3 +179,63 @@ class GruposTests(Base):
         self.como(self.ana).delete(f'{BASE}/mensajes/{mid}/')
         self.assertFalse(os.path.exists(ruta))
         self.assertEqual(self.como(self.luis).get(f'{BASE}/mensajes/{mid}/archivo/').status_code, 404)
+
+
+def video(nombre='clip.mp4', tam=1500):
+    return SimpleUploadedFile(nombre, b'\x00\x00\x00\x18ftypmp42' + bytes(range(256)) * (tam // 256), content_type='video/mp4')
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class VideosEnElChatTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.priv = self.privado(self.ana, self.luis)
+
+    def enviar_video(self, quien, conv, archivo=None, texto=''):
+        return self.como(quien).post(f'{BASE}/conversaciones/{conv}/mensajes/', {'texto': texto, 'archivo': archivo or video()}, format='multipart')
+
+    def test_se_envia_un_video_por_un_chat_privado_y_por_la_sala(self):
+        for conv in (self.priv, self.sala.id):
+            r = self.enviar_video(self.ana, conv, texto='mira')
+            self.assertEqual(r.status_code, 201, r.content)
+            self.assertEqual((r.data['archivo']['es_video'], r.data['archivo']['es_imagen'], r.data['texto']), (True, False, 'mira'))
+
+    def test_formatos_del_celular(self):
+        for nombre in ('a.mov', 'b.webm', 'c.m4v', 'd.3gp'):
+            self.assertEqual(self.enviar_video(self.ana, self.sala.id, video(nombre)).status_code, 201, nombre)
+
+    @override_settings(EVIDENCIA_VIDEO_MAX_MB=1)
+    def test_un_video_pesado_se_rechaza_con_el_limite_de_videos(self):
+        r = self.enviar_video(self.ana, self.sala.id, video('largo.mp4', 2 * 1024 * 1024))
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('1 MB', str(r.json()))
+        self.assertEqual(Mensaje.objects.count(), 0)
+
+    def test_el_video_se_reproduce_por_tramos_y_solo_lo_ven_los_participantes(self):
+        mid = self.enviar_video(self.ana, self.priv).data['id']
+        c = self.como(self.luis)
+        total = int(c.get(f'{BASE}/mensajes/{mid}/archivo/')['Content-Length'])
+        parte = c.get(f'{BASE}/mensajes/{mid}/archivo/', HTTP_RANGE='bytes=0-9')
+        self.assertEqual((parte.status_code, parte['Content-Range']), (206, f'bytes 0-9/{total}'))
+        self.assertEqual(self.como(self.eva).get(f'{BASE}/mensajes/{mid}/archivo/').status_code, 404)
+
+    def test_los_videos_viejos_se_borran_solos_y_lo_demas_se_queda(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        mv = Mensaje.objects.get(pk=self.enviar_video(self.ana, self.priv).data['id'])
+        mf = Mensaje.objects.get(pk=self.como(self.ana).post(f'{BASE}/conversaciones/{self.priv}/mensajes/', {'archivo': pdf()}, format='multipart').data['id'])
+        import os
+        ruta = mv.archivo.path
+        Mensaje.objects.filter(pk__in=[mv.pk, mf.pk]).update(creado=timezone.now() - timedelta(days=30))
+        self.assertEqual(servicios.purgar_videos_del_chat()[0], 1)
+        mv.refresh_from_db(), mf.refresh_from_db()
+        self.assertTrue(mv.archivo_purgado)
+        self.assertFalse(os.path.exists(ruta))
+        self.assertFalse(mf.archivo_purgado)                                           # los documentos no se borran
+        visto = next(m for m in self.como(self.luis).get(f'{BASE}/conversaciones/{self.priv}/mensajes/').data['mensajes'] if m['id'] == mv.pk)
+        self.assertTrue(visto['archivo']['purgado'])
+        self.assertEqual(self.como(self.luis).get(f'{BASE}/mensajes/{mv.pk}/archivo/').status_code, 410)
+
+    def test_un_video_reciente_no_se_borra(self):
+        self.enviar_video(self.ana, self.priv)
+        self.assertEqual(servicios.purgar_videos_del_chat(), (0, 0))

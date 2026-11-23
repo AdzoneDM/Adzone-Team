@@ -1,5 +1,11 @@
 # Cambios
 
+## 12.34 · 23/11/2026 · Videos por el chat y «Mi equipo» con las tareas propias y las de toda la gente a cargo
+
+- **Videos en el chat** (privado, grupos y sala de la empresa): el clip ahora acepta videos (MP4, MOV, M4V, WEBM, AVI, MKV, 3GP) con el mismo límite de la plataforma (60 MB por ahora). Se ven y se reproducen dentro del mensaje, con vista previa antes de enviar. Como un chat no «se valida», los videos del chat se borran solos a los **14 días** (se cambia en Reglas del puntaje → «Días que se conservan los videos del chat»); el mensaje queda con el aviso «El video se borró solo para liberar espacio». Los documentos y las imágenes del chat no se borran.
+- **Mi equipo → Tareas** (para encargados, gerentes y supervisores): ahora muestra **las tareas propias y las de toda la gente a su cargo** (directa o más abajo en el organigrama, más su equipo adicional) en un solo lugar; las suyas llevan la marca «Tú». Antes las propias quedaban fuera de esa lista.
+- Migraciones `chat.0006` y `desempeno.0024` (campos nuevos).
+
 ## 12.33 · 23/11/2026 · Videos como evidencia de las tareas, con limpieza automática
 
 - **Se pueden subir videos** (MP4, MOV, M4V, WEBM, AVI, MKV, 3GP) como evidencia al entregar una tarea y como referencia al asignarla o devolverla. En el celular hay un botón **«Grabar video»**. Antes el servidor solo aceptaba fotos y PDF y rechazaba cualquier video.

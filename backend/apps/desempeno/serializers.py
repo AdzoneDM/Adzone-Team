@@ -433,7 +433,7 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracionDesempeno
         fields = ['peso_tareas', 'peso_calidad', 'peso_jornada', 'peso_kpis', 'nota_tarde', 'minimo_tareas_empleado_mes', 'puntaje_minimo',
-                  'minimo_tareas_evaluacion', 'espera_recordatorio_min', 'max_recordatorios', 'dias_conservar_videos', 'revisores_propias', 'candidatos_revisor', 'tramos_bono', 'fecha_modificacion']
+                  'minimo_tareas_evaluacion', 'espera_recordatorio_min', 'max_recordatorios', 'dias_conservar_videos', 'dias_conservar_videos_chat', 'revisores_propias', 'candidatos_revisor', 'tramos_bono', 'fecha_modificacion']
 
     def validate(self, data):
         tareas = data.get('peso_tareas', getattr(self.instance, 'peso_tareas', 40))
@@ -456,6 +456,11 @@ class ConfiguracionSerializer(serializers.ModelSerializer):
     def validate_max_recordatorios(self, value):
         if not 0 <= value <= 200:
             raise serializers.ValidationError("Debe estar entre 0 (sin límite) y 200.")
+        return value
+
+    def validate_dias_conservar_videos_chat(self, value):
+        if not 1 <= value <= 365:
+            raise serializers.ValidationError("Debe estar entre 1 y 365 días.")
         return value
 
     def validate_dias_conservar_videos(self, value):
