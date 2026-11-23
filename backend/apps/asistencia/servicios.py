@@ -372,9 +372,61 @@ def revisar_pausas(ahora=None):
         titulo = f'{nombre(m.usuario)} lleva {tiempo} en {"almuerzo" if m.es_almuerzo else "pausa"}'
         detalle = f'Empezó {cosa} a las {timezone.localtime(m.momento):%H:%M} y no ha registrado el regreso (límite: {limite} min).'
         avisar(revisores_de(m.usuario, 'asistencia.ver'), 'ASISTENCIA', titulo, detalle, enlace='/asistencia')
-        avisar([m.usuario], 'ASISTENCIA', f'Llevas {tiempo} en {"almuerzo" if m.es_almuerzo else "pausa"}', 'Marca tu regreso en cuanto vuelvas.', enlace='/')
+        if m.es_almuerzo:
+            # Alerta emergente con sonido (insiste hasta que la persona la atiende): el regreso era a la hora que salió + su almuerzo
+            debia = timezone.localtime(m.momento + timedelta(minutes=limite))
+            avisar([m.usuario], 'ALMUERZO_EXCESO', 'Se acabó tu tiempo de almuerzo',
+                   f'Saliste a las {timezone.localtime(m.momento):%H:%M} y tu almuerzo es de {limite} min: debías regresar a las {debia:%H:%M}. '
+                   f'Llevas {tiempo}. Marca tu regreso ahora.')
+        else:
+            avisar([m.usuario], 'ASISTENCIA', f'Llevas {tiempo} en pausa', 'Marca tu regreso en cuanto vuelvas.', enlace='/')
         avisadas += 1
     return avisadas
+
+
+AVISO_ANTES_ALMUERZO = timedelta(minutes=5)   # «te quedan 5 minutos»
+VENTANA_HORA_ALMUERZO = timedelta(hours=2)    # pasado este tiempo desde la hora del almuerzo ya no se avisa que «es la hora»
+
+
+def revisar_almuerzos(ahora=None):
+    """Avisos de almuerzo para quien está en jornada (cada uno una sola vez):
+    1) «Es tu hora de almuerzo»: llegó la hora del horario (`almuerzo_inicio`) y todavía no salió a comer hoy.
+    2) «Te quedan 5 minutos»: ya está en almuerzo y falta poco para que se cumpla su tiempo, contado desde que salió.
+    (Pasarse del tiempo lo avisa `revisar_pausas`.) Devuelve cuántos avisos creó."""
+    from apps.desempeno.servicios import avisar
+    ahora = ahora or timezone.now()
+    local = timezone.localtime(ahora)
+    hoy = local.date()
+    candidatos = Marcaje.objects.filter(momento__gt=ahora - TURNO_MAXIMO, momento__lte=ahora).values_list('usuario_id', flat=True).distinct()
+    enviados = 0
+    for u in User.objects.filter(is_active=True, pk__in=list(candidatos)):
+        estado, ultimo = estado_actual(u, ahora)
+        horario, _ = horario_de(u)
+        if not horario or estado == 'FUERA':
+            continue
+        if estado == 'EN_PAUSA' and ultimo.es_almuerzo:
+            restante = timedelta(minutes=horario.almuerzo_minutos) - (ahora - ultimo.momento)
+            if horario.almuerzo_minutos > 5 and timedelta(0) < restante <= AVISO_ANTES_ALMUERZO and _una_vez(u, f'almuerzo-fin-{ultimo.pk}', 'ALMUERZO_FIN'):
+                vuelve = timezone.localtime(ultimo.momento + timedelta(minutes=horario.almuerzo_minutos))
+                avisar([u], 'ALMUERZO_FIN', f'Te quedan {max(1, int(restante.total_seconds() // 60 + 0.99))} minutos de almuerzo',
+                       f'Saliste a las {timezone.localtime(ultimo.momento):%H:%M}: debes estar de vuelta a las {vuelve:%H:%M}. Marca tu regreso al llegar.')
+                enviados += 1
+        elif estado == 'TRABAJANDO' and horario.almuerzo_inicio:
+            try:
+                inicio = _aware(hoy, _hora(horario.almuerzo_inicio))
+            except (ValueError, TypeError):
+                continue
+            if not (inicio <= ahora < inicio + VENTANA_HORA_ALMUERZO):
+                continue
+            desde, hasta = rango(hoy)
+            if Marcaje.objects.filter(usuario=u, es_almuerzo=True, momento__gte=min(desde, ahora - TURNO_MAXIMO), momento__lte=ahora).exists():
+                continue  # ya salió a almorzar hoy
+            if _una_vez(u, f'almuerzo-hora-{hoy:%Y%m%d}', 'ALMUERZO_HORA'):
+                avisar([u], 'ALMUERZO_HORA', 'Es tu hora de almuerzo',
+                       f'Tu almuerzo es a las {horario.almuerzo_inicio} y dura {horario.almuerzo_minutos} min. Marca «Almuerzo» al salir: '
+                       f'te avisamos cuando falten 5 minutos y cuando se cumpla tu tiempo.')
+                enviados += 1
+    return enviados
 
 
 def _una_vez(usuario, clave, tipo, detalle=''):
@@ -390,7 +442,7 @@ def revisar_asistencia(ahora=None):
     from apps.desempeno.servicios import avisar
     ahora = ahora or timezone.now()
     hoy = timezone.localtime(ahora).date()
-    enviados = revisar_pausas(ahora)
+    enviados = revisar_pausas(ahora) + revisar_almuerzos(ahora)
     # Solo a quien ya usa el control de horario o tiene horario asignado
     usan = set(Marcaje.objects.values_list('usuario_id', flat=True).distinct()) | set(
         AsignacionHorario.objects.filter(marca_obligatoria=True).values_list('usuario_id', flat=True))

@@ -134,3 +134,62 @@ class HorarioPorDepartamentoTests(Base):
         self.assertEqual((r.json()['almuerzo_inicio'], r.json()['pausa_max_minutos'], r.json()['especial']), ('13:00', 45, True))
         self.assertEqual(c.post('/api/asistencia/horarios/', {'nombre': 'Malo', 'dias': {'0': ['10:00', '18:00']}, 'almuerzo_inicio': '25:99'},
                                 format='json').status_code, 400)
+
+
+class AvisosDeAlmuerzoTests(Base):
+    """Alerta a la hora del almuerzo, aviso de 5 minutos y alerta al pasarse (contado desde que salió a comer)."""
+    def setUp(self):
+        super().setUp()
+        self.horario.almuerzo_inicio = '12:00'
+        self.horario.almuerzo_minutos = 45
+        self.horario.save()
+
+    def marcar(self, *pares, almuerzo_en=()):
+        for tipo, hora in pares:
+            Marcaje.objects.create(usuario=self.ana, tipo=tipo, momento=en(hora), es_almuerzo=(tipo == 'PAUSA' and hora in almuerzo_en), alerta_enviada=False)
+
+    def avisos(self, tipo):
+        return Notificacion.objects.filter(tipo=tipo, destinatario=self.ana)
+
+    def test_avisa_cuando_llega_la_hora_del_almuerzo_una_sola_vez(self):
+        self.marcar(('ENTRADA', '08:00'))
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('11:59')), 0)
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('12:00')), 1)
+        n = self.avisos('ALMUERZO_HORA').get()
+        self.assertIn('12:00', n.mensaje)
+        self.assertIn('45', n.mensaje)
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('12:10')), 0)
+
+    def test_no_avisa_la_hora_si_ya_salio_a_almorzar_ni_si_esta_fuera(self):
+        self.marcar(('ENTRADA', '08:00'), ('PAUSA', '11:50'), almuerzo_en=('11:50',))
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('12:00')), 0)
+        self.assertFalse(self.avisos('ALMUERZO_HORA').exists())
+        Marcaje.objects.all().delete()                                  # sin entrada: no está en jornada
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('12:00')), 0)
+
+    def test_no_avisa_la_hora_mucho_despues(self):
+        self.marcar(('ENTRADA', '08:00'))
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('14:30')), 0)
+
+    def test_faltan_5_minutos_se_cuenta_desde_que_salio(self):
+        self.marcar(('ENTRADA', '08:00'), ('PAUSA', '12:20'), almuerzo_en=('12:20',))   # 45 min: debe volver a las 13:05
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('12:50')), 0)
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('13:00')), 1)
+        n = self.avisos('ALMUERZO_FIN').get()
+        self.assertIn('13:05', n.mensaje)
+        self.assertIn('12:20', n.mensaje)
+        self.assertEqual(servicios.revisar_almuerzos(ahora=en('13:02')), 0)             # una sola vez
+
+    def test_alerta_al_pasarse_dice_a_que_hora_debia_volver(self):
+        self.marcar(('ENTRADA', '08:00'), ('PAUSA', '12:20'), almuerzo_en=('12:20',))
+        self.assertEqual(servicios.revisar_pausas(ahora=en('13:04')), 0)
+        self.assertEqual(servicios.revisar_pausas(ahora=en('13:06')), 1)
+        n = self.avisos('ALMUERZO_EXCESO').get()
+        self.assertIn('13:05', n.mensaje)
+        self.assertEqual(n.enlace, '')
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.jefe, tipo='ASISTENCIA').exists())  # el jefe sigue enterándose
+
+    def test_una_pausa_normal_no_dispara_avisos_de_almuerzo(self):
+        self.marcar(('ENTRADA', '08:00'), ('PAUSA', '10:00'))
+        servicios.revisar_almuerzos(ahora=en('10:57'))
+        self.assertFalse(Notificacion.objects.filter(tipo__startswith='ALMUERZO').exists())

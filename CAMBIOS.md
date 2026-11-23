@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.37 · 23/11/2026 · Alertas de almuerzo: la hora, los 5 minutos y cuando te pasas
+
+Tres alertas emergentes con sonido para quien está en jornada (como las de tareas; la de pasarse insiste hasta que marcas tu regreso):
+- **«Es tu hora de almuerzo»**: llega a la hora que tiene el horario (`almuerzo_inicio`, p. ej. 12:00) si todavía no saliste a comer. Una vez al día. Si el horario no tiene hora de almuerzo, no hay esta alerta (se pone en Asistencia → Horarios).
+- **«Te quedan 5 minutos de almuerzo»**: contado desde que **marcaste** la salida a almorzar, con la hora exacta a la que debes estar de vuelta.
+- **«Se acabó tu tiempo de almuerzo»**: al cumplirse los minutos del almuerzo desde que saliste; dice a qué hora debías regresar. Tu supervisor sigue recibiendo su aviso como antes.
+- En el reloj de la jornada, mientras almuerzas, aparece «vuelve a las 1:45 p. m.», y mientras trabajas, «Tu almuerzo: 12:00 p. m. · 60 min».
+- Migración `desempeno.0025` (solo los tipos de aviso nuevos). 6 pruebas nuevas.
+
 ## 12.36 · 23/11/2026 · Videos de hasta 300 MB
 
 - Se subió el límite de carga del servidor web (nginx de Plesk: de 64 MB a 400 MB, con plazos de 10 minutos) y el de la aplicación: **cada video puede pesar hasta 300 MB** (tareas, referencias y chat). Nginx recibe el archivo completo antes de pasarlo a la aplicación, así una conexión lenta no ocupa un proceso. Probado con archivos de 350 MB (pasan hasta la aplicación) y de 450 MB (se rechazan con 413).

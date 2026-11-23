@@ -84,6 +84,8 @@ export default function BotonJornada() {
   const segundosPausa = e === "EN_PAUSA" && estado.ultimo ? Math.max(0, (horaOficial - Date.parse(estado.ultimo.momento)) / 1000) : 0;
   const limitePausa = (enAlmuerzo ? estado.limites?.almuerzo_min : estado.limites?.pausa_min) * 60 || 0;
   const pasada = e === "EN_PAUSA" && limitePausa > 0 && segundosPausa >= limitePausa;
+  const volverA = e === "EN_PAUSA" && estado.ultimo && limitePausa > 0
+    ? new Date(Date.parse(estado.ultimo.momento) + limitePausa * 1000).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" }) : "";
   const color = e === "TRABAJANDO" ? "border-verde/40 bg-verde/10 text-verde" : e === "EN_PAUSA" ? (pasada ? "border-rojo/50 bg-rojo/10 text-rojo" : "border-amarillo bg-amarillo-50 text-[#8a5a00]") : "border-linea bg-white text-tinta";
   const punto = e === "TRABAJANDO" ? "bg-verde" : e === "EN_PAUSA" ? (pasada ? "bg-rojo animate-pulse" : "bg-amarillo-600") : "bg-gris";
   const etiqueta = e === "TRABAJANDO" ? relojSeg(segundosHoy) : e === "EN_PAUSA" ? relojSeg(segundosPausa) : hoy.salida ? "Salida marcada" : "Marcar entrada";
@@ -112,8 +114,12 @@ export default function BotonJornada() {
           <p className="mt-1 text-xs text-gris">Hora oficial: <span className="num font-medium text-tinta">{horaExacta(horaOficial)}</span></p>
           {e === "EN_PAUSA" && limitePausa > 0 && (
             <p className={cx("mt-2 rounded-md px-2 py-1 text-sm", pasada ? "bg-rojo/10 font-semibold text-rojo" : "bg-amarillo-50 text-[#8a5a00]")}>
-              {pasada ? `Pasaste el límite de ${Math.round(limitePausa / 60)} min: marca tu regreso.` : `${nombrePausa}: límite ${Math.round(limitePausa / 60)} min.`}
+              {pasada ? `Pasaste el límite de ${Math.round(limitePausa / 60)} min: marca tu regreso.`
+                : enAlmuerzo ? `${nombrePausa}: ${Math.round(limitePausa / 60)} min · vuelve a las ${volverA}` : `${nombrePausa}: límite ${Math.round(limitePausa / 60)} min.`}
             </p>
+          )}
+          {e === "TRABAJANDO" && estado.limites?.almuerzo_inicio && !hoy.almuerzo_inicio && (
+            <p className="mt-2 rounded-md bg-azul/5 px-2 py-1 text-sm text-azul">Tu almuerzo: <strong>{hhmm(estado.limites.almuerzo_inicio)}</strong> · {estado.limites.almuerzo_min} min. Te avisamos.</p>
           )}
           <div className="mt-3 grid gap-2">
             {estado.siguientes.map((t) => {

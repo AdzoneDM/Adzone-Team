@@ -910,9 +910,10 @@ def _revisar_pausas_si_toca():
     """Cada pantalla abierta pregunta por sus avisos cada minuto: de paso se revisan las pausas largas (como mucho cada 20 s)."""
     from django.core.cache import cache
     if cache.add('asistencia:revisar-pausas', 1, 20):
-        from apps.asistencia.servicios import revisar_pausas
+        from apps.asistencia.servicios import revisar_almuerzos, revisar_pausas
         try:
             revisar_pausas()
+            revisar_almuerzos()
         except Exception:  # noqa: BLE001 (una falla aquí nunca debe romper la campanita)
             import logging
             logging.getLogger(__name__).exception('No se pudieron revisar las pausas')
