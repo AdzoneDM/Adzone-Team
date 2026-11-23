@@ -42,7 +42,7 @@ class ReferenciasTests(Base):
         t = self.tarea(self.erlin)
         malo = SimpleUploadedFile('virus.exe', b'MZ', content_type='application/octet-stream')
         self.assertEqual(self.subir(self.vladi, t, malo).status_code, 400)
-        self.assertEqual(self.subir(self.vladi, t, *[foto(f'{i}.jpg') for i in range(7)]).status_code, 400)
+        self.assertEqual(self.subir(self.vladi, t, *[foto(f'{i}.jpg') for i in range(11)]).status_code, 400)
         pdf = SimpleUploadedFile('guia.pdf', b'%PDF-1.4', content_type='application/pdf')
         self.assertEqual(self.subir(self.vladi, t, pdf).status_code, 200)
         self.assertEqual(ReferenciaArchivo.objects.filter(tarea=t).count(), 1)

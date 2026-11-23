@@ -157,7 +157,7 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         'extra': 0, 'segundos_en_curso': 0,
         # Lo mismo en segundos exactos: de ahí sale el pago, los minutos son solo para mostrar
         'programados_seg': programados * 60, 'trabajados_seg': 0, 'pausa_seg': 0, 'almuerzo_seg': 0, 'pausas_seg': 0, 'pausas': [], 'excesos': 0, 'exceso_seg': 0,
-        'almuerzo_programado': almuerzo_inicio_de(usuario, horario), 'pausa_max_minutos': horario.pausa_max_minutos if horario else 60, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
+        'almuerzo_programado': (horario.almuerzo_inicio or None) if horario else None, 'pausa_max_minutos': horario.pausa_max_minutos if horario else 60, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None, 'pausa_max_minutos': horario.pausa_max_minutos if horario else 60, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
         'ausencia': ausencia.get_tipo_display() if ausencia else None,
         'marcajes': [{'id': m.id, 'tipo': m.tipo, 'momento': m.momento.isoformat(), 'origen': m.origen,
                       'motivo': m.motivo_pausa, 'almuerzo': m.es_almuerzo, 'corregido': bool(m.corregido_por_id)} for m in marcajes],

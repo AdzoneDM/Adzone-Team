@@ -123,7 +123,7 @@ class SeguridadTests(Base):
         self.como(self.erlin)
         malo = SimpleUploadedFile('virus.php', b'<?php echo 1;', content_type='image/jpeg')
         self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/entregar/', {'archivos': [malo]}, format='multipart').status_code, 400)
-        muchas = [foto(f'{i}.jpg') for i in range(7)]
+        muchas = [foto(f'{i}.jpg') for i in range(11)]
         self.assertEqual(self.c.post(f'/api/desempeno/tareas/{t.id}/entregar/', {'archivos': muchas}, format='multipart').status_code, 400)
 
     def test_no_se_queda_sin_administradores(self):
