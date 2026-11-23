@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ClipboardList, Mail, MapPin, Pencil, Phone, Plus } from "lucide-react";
-import { obtenerCliente, resumenCliente } from "@/lib/api";
+import { ArrowLeft, ClipboardList, Mail, MapPin, Pencil, Phone, Plus, Trash2 } from "lucide-react";
+import { eliminarCliente, guardarCliente, obtenerCliente, resumenCliente } from "@/lib/api";
 import { dinero, fechaCorta } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
-import { Alerta, Boton, Cargando, Panel, Vacio, cx, useAviso } from "@/components/ui";
+import { Alerta, Boton, Cargando, Panel, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 import FormOrden from "@/features/ordenes/FormOrden";
 import { TarjetaOrden } from "@/features/ordenes/piezas";
 import { AvanceProyecto, EstadoProyecto, FormProyecto } from "@/features/proyectos/piezas";
@@ -14,6 +14,7 @@ export default function ClienteDetalle() {
   const { id } = useParams();
   const { usuario } = useSesion();
   const avisar = useAviso();
+  const confirmar = useConfirmar();
   const navigate = useNavigate();
   const [c, setC] = useState(null);
   const [r, setR] = useState(null);
@@ -21,6 +22,20 @@ export default function ClienteDetalle() {
   const [modal, setModal] = useState(null);
   const cargar = useCallback(() => Promise.all([obtenerCliente(id), resumenCliente(id)]).then(([a, b]) => { setC(a); setR(b); }).catch((e) => setError(e.message)), [id]);
   useEffect(() => { cargar(); }, [cargar]);
+  // Eliminar: solo un cliente sin historial. Si tiene órdenes, proyectos o facturas el servidor lo impide y se ofrece dejarlo inactivo.
+  const eliminar = async () => {
+    if (!(await confirmar({ titulo: `¿Eliminar a ${c.nombre}?`, mensaje: "Se borra el cliente y sus enlaces del portal. No se puede deshacer. Si ya tiene órdenes, proyectos o facturas no se podrá borrar y te ofreceremos dejarlo inactivo.", boton: "Eliminar", peligro: true }))) return;
+    try {
+      await eliminarCliente(c.id);
+      avisar("Cliente eliminado.");
+      navigate("/clientes", { replace: true });
+    } catch (e) {
+      const protegido = /márcalo como inactivo/.test(e.message);
+      if (protegido && c.activo && await confirmar({ titulo: "No se puede eliminar", mensaje: `${e.message} ¿Lo dejo inactivo ahora?`, boton: "Dejar inactivo" })) {
+        try { await guardarCliente({ id: c.id, activo: false }); avisar("Cliente marcado como inactivo."); cargar(); } catch (e2) { avisar(e2.message, "rojo"); }
+      } else avisar(e.message, "rojo");
+    }
+  };
   if (error) return <Alerta>{error}</Alerta>;
   if (!c || !r) return <Cargando />;
   const abiertas = r.ordenes.filter((o) => !["ENTREGADA", "CANCELADA"].includes(o.estado));
@@ -46,6 +61,7 @@ export default function ClienteDetalle() {
               <Boton tam="sm" icono={Plus} onClick={() => setModal("orden")}>Orden</Boton>
               {puedeEditar && <Boton tam="sm" variante="secundario" icono={Plus} onClick={() => setModal("proyecto")}>Proyecto</Boton>}
               {puedeEditar && <Boton tam="sm" variante="secundario" icono={Pencil} onClick={() => setModal("editar")}>Editar</Boton>}
+              {puedeEditar && !c.es_interno && <Boton tam="sm" variante="peligro" icono={Trash2} onClick={eliminar}>Eliminar</Boton>}
             </div>
           </Panel>
           {r.finanzas && (

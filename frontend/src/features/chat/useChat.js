@@ -98,6 +98,7 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
   const [cargado, setCargado] = useState(false);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [lectores, setLectores] = useState({ lista: [], total: 0 }); // quién leyó hasta dónde: el «visto» de tus mensajes
   const ultimoId = useRef(0);
 
   const aplicar = useCallback((lista) => {
@@ -113,6 +114,7 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
       const r = await chatMensajes(conversacion);
       setMensajes(r.mensajes);
       setHayMas(r.hay_mas);
+      setLectores({ lista: r.lectores || [], total: r.participantes || 0 });
       ultimoId.current = Math.max(0, ...r.mensajes.map((m) => m.id));
       setCargado(true);
     } catch (e) {
@@ -130,6 +132,7 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
       // Mensaje nuevo de la otra persona en la conversación que tienes abierta: suena
       if (r.mensajes.some((m) => m.autor !== usuarioId && !m.eliminado)) sonarMensaje();
       aplicar(r.mensajes);
+      setLectores({ lista: r.lectores || [], total: r.participantes || 0 });
       setError("");
     } catch { setError("Sin conexión. Reintentando…"); }
   }, CADA_MENSAJES_MS, cargado);
@@ -179,5 +182,5 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
     }
   }, [aplicar]);
 
-  return { mensajes, hayMas, cargando, error, enviando, enviar, borrar, cargarAnteriores, reintentar: cargarInicial, limpiarError: () => setError("") };
+  return { mensajes, lectores, hayMas, cargando, error, enviando, enviar, borrar, cargarAnteriores, reintentar: cargarInicial, limpiarError: () => setError("") };
 }

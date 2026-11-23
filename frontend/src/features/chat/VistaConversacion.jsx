@@ -13,7 +13,7 @@ export default function VistaConversacion({ conversacion, usuarioId, alLeer }) {
           <button type="button" onClick={() => { chat.limpiarError(); if (!chat.mensajes.length) chat.reintentar(); }} className="font-semibold underline">Cerrar</button>
         </div>
       )}
-      <ListaMensajes mensajes={chat.mensajes} usuarioId={usuarioId} hayMas={chat.hayMas} cargando={chat.cargando}
+      <ListaMensajes mensajes={chat.mensajes} lectores={chat.lectores} usuarioId={usuarioId} hayMas={chat.hayMas} cargando={chat.cargando}
         privado={conversacion.tipo === "DIRECTA"} nombreOtro={conversacion.titulo}
         onMas={chat.cargarAnteriores} onBorrar={chat.borrar} />
       <Compositor enviando={chat.enviando} onEnviar={chat.enviar} autoFoco />

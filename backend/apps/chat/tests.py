@@ -157,3 +157,26 @@ class PrivadosTests(Base):
         self.como(self.ana).delete(f'{BASE}/mensajes/{mid}/')
         fila = next(x for x in self.como(self.luis).get(f'{BASE}/conversaciones/').data['conversaciones'] if x['id'] == conv)
         self.assertEqual(fila['ultimo_texto'], '')
+
+
+class VistoTests(Base):
+    """El «visto»: cada consulta de mensajes trae hasta dónde leyó cada persona."""
+    def test_privado_la_otra_persona_aparece_como_lectora_cuando_lee(self):
+        conv = self.privado(self.ana, self.luis)
+        m = self.como(self.ana).post(f'{BASE}/conversaciones/{conv}/mensajes/', {'texto': 'hola'}, format='json').data
+        r = self.como(self.ana).get(f'{BASE}/conversaciones/{conv}/mensajes/').data
+        self.assertEqual((r['lectores'], r['participantes']), ([], 1))             # Luis aún no lo ve
+        self.como(self.luis).post(f'{BASE}/conversaciones/{conv}/leido/', {'hasta': m['id']}, format='json')
+        r = self.como(self.ana).get(f'{BASE}/conversaciones/{conv}/mensajes/', {'despues': m['id']}).data
+        self.assertEqual([(x['id'], x['hasta']) for x in r['lectores']], [(self.luis.pk, m['id'])])
+        self.assertEqual(r['participantes'], 1)
+
+    def test_no_se_cuenta_a_uno_mismo_y_en_grupo_solo_miembros(self):
+        grupo = Conversacion.objects.create(tipo=Conversacion.GRUPO, nombre='Equipo', creado_por=self.ana)
+        grupo.miembros.set([self.ana, self.luis])
+        m = self.como(self.ana).post(f'{BASE}/conversaciones/{grupo.id}/mensajes/', {'texto': 'a todos'}, format='json').data
+        r = self.como(self.ana).get(f'{BASE}/conversaciones/{grupo.id}/mensajes/').data
+        self.assertEqual((r['lectores'], r['participantes']), ([], 1))             # ella escribió: ella no cuenta como lectora
+        self.como(self.luis).post(f'{BASE}/conversaciones/{grupo.id}/leido/', {'hasta': m['id']}, format='json')
+        r = self.como(self.ana).get(f'{BASE}/conversaciones/{grupo.id}/mensajes/').data
+        self.assertEqual([x['nombre'] for x in r['lectores']], [self.luis.get_full_name() or self.luis.username])

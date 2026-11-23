@@ -60,6 +60,12 @@ def _serializar(request, qs):
     return MensajeSerializer(qs.select_related('autor', 'conversacion'), many=True, context={'request': request}).data
 
 
+def _con_lectores(request, conv, datos):
+    """Agrega a la respuesta quién ya leyó hasta dónde (para el «visto» de tus mensajes)."""
+    leyeron, total = servicios.lectores(conv, request.user)
+    return datos | {'lectores': leyeron, 'participantes': total}
+
+
 def _conversacion_o_404(request, pk):
     c = servicios.conversacion_de(request.user, pk)
     if c is None:
@@ -226,11 +232,11 @@ def mensajes_view(request, pk):
     if despues is not None:
         # Lo nuevo, en orden; el cliente reconcilia por id (así se reflejan también los borrados)
         ids = list(qs.filter(id__gt=despues).values_list('id', flat=True)[:servicios.PAGINA_MAX * 2])
-        return Response({'mensajes': _serializar(request, Mensaje.objects.filter(id__in=ids)), 'hay_mas': False})
+        return Response(_con_lectores(request, conv, {'mensajes': _serializar(request, Mensaje.objects.filter(id__in=ids)), 'hay_mas': False}))
     if antes is not None:
         qs = qs.filter(id__lt=antes)
     ids = list(qs.order_by('-id').values_list('id', flat=True)[:limite + 1])
-    return Response({'mensajes': _serializar(request, Mensaje.objects.filter(id__in=ids[:limite])), 'hay_mas': len(ids) > limite})
+    return Response(_con_lectores(request, conv, {'mensajes': _serializar(request, Mensaje.objects.filter(id__in=ids[:limite])), 'hay_mas': len(ids) > limite}))
 
 
 @api_view(['DELETE'])

@@ -185,6 +185,24 @@ def marcar_leido(usuario, conv, hasta):
         lectura.save(update_fields=['ultimo_leido', 'actualizado'])
 
 
+def participantes_activos(conv):
+    """Quiénes forman parte de la conversación (activos): los dos de un privado, los miembros de un grupo o todo el equipo en la sala."""
+    if conv.tipo == Conversacion.DIRECTA:
+        return User.objects.filter(pk__in=[x for x in (conv.a_id, conv.b_id) if x], is_active=True)
+    if conv.tipo == Conversacion.GRUPO:
+        return conv.miembros.filter(is_active=True)
+    return User.objects.filter(is_active=True)
+
+
+def lectores(conv, yo):
+    """Hasta qué mensaje leyó cada persona (sin contarte a ti): con eso la pantalla marca «visto».
+    Devuelve ({'id', 'nombre', 'hasta'} de quienes ya leyeron algo, total de personas que deberían leer)."""
+    activos = {u.pk: u for u in participantes_activos(conv).exclude(pk=yo.pk)}
+    filas = Lectura.objects.filter(conversacion=conv, usuario_id__in=list(activos), ultimo_leido__gt=0).values_list('usuario_id', 'ultimo_leido')
+    leyeron = [{'id': uid, 'nombre': activos[uid].get_full_name() or activos[uid].username, 'hasta': hasta} for uid, hasta in filas]
+    return leyeron, len(activos)
+
+
 def persona(u):
     perfil = getattr(u, 'perfil', None)
     puesto = getattr(perfil, 'puesto_trabajo', None)

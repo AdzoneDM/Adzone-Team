@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, Download, FileSpreadsheet, FileText, Film, Trash2 } from "lucide-react";
+import { ArrowDown, Check, CheckCheck, Download, FileSpreadsheet, FileText, Film, Trash2 } from "lucide-react";
 import { urlArchivoChat } from "@/lib/api";
 import { Avatar, cx } from "@/components/ui";
 
@@ -79,7 +79,24 @@ function Adjunto({ m, mio }) {
   );
 }
 
-function Burbuja({ m, mio, primero, privado, onBorrar }) {
+/** El «visto» de un mensaje tuyo: una palomita = enviado; dos azules = ya lo leyeron. En grupos, cuántas personas lo leyeron (con sus nombres). */
+function Visto({ m, lectores, privado, detalle }) {
+  const vistos = lectores.lista.filter((l) => l.hasta >= m.id);
+  const total = lectores.total;
+  const todos = total > 0 && vistos.length >= total;
+  const algunos = vistos.length > 0;
+  const nombres = vistos.map((l) => l.nombre).join(", ");
+  const texto = privado ? (algunos ? "Visto" : "Enviado") : algunos ? `Visto por ${todos ? "todos" : `${vistos.length} de ${total}`}` : "Enviado";
+  const Icono = algunos ? CheckCheck : Check;
+  return (
+    <span className={cx("inline-flex items-center gap-1", algunos ? "text-azul" : "text-gris")} title={algunos && !privado ? `Lo vieron: ${nombres}` : texto}>
+      <Icono className="size-3.5" aria-hidden />
+      {detalle ? <span className="font-medium">{texto}</span> : <span className="sr-only">{texto}</span>}
+    </span>
+  );
+}
+
+function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio }) {
   const [confirmar, setConfirmar] = useState(false);
   if (m.eliminado) {
     return <p className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : privado ? "" : "pl-10")}>Mensaje eliminado</p>;
@@ -108,14 +125,17 @@ function Burbuja({ m, mio, primero, privado, onBorrar }) {
             )}
           </div>
         </div>
-        <time dateTime={m.creado} className="px-1 pt-0.5 text-[11px] text-gris">{hora(m.creado)}</time>
+        <div className="flex items-center gap-1.5 px-1 pt-0.5 text-[11px] text-gris">
+          <time dateTime={m.creado}>{hora(m.creado)}</time>
+          {mio && <Visto m={m} lectores={lectores} privado={privado} detalle={ultimoMio} />}
+        </div>
       </div>
     </div>
   );
 }
 
 /** Lista con desplazamiento inteligente: si estás al final sigue los mensajes nuevos; si lees arriba, no te mueve y te avisa. */
-export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, privado = false, nombreOtro = "", onMas, onBorrar }) {
+export default function ListaMensajes({ mensajes, lectores = { lista: [], total: 0 }, usuarioId, hayMas, cargando, privado = false, nombreOtro = "", onMas, onBorrar }) {
   const caja = useRef(null);
   const alFinal = useRef(true);
   const previo = useRef({ n: 0, primero: null, alto: 0 });
@@ -151,6 +171,7 @@ export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, p
     if (alFinal.current) setNuevos(false);
   };
 
+  const ultimoPropio = [...mensajes].reverse().find((x) => x.autor === usuarioId && !x.eliminado)?.id;
   let diaPrevio = "";
   return (
     <div className="relative min-h-0 flex-1">
@@ -176,7 +197,7 @@ export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, p
           return (
             <Fragment key={m.id}>
               {nuevoDia && <p className="my-3 text-center text-xs font-medium capitalize text-gris">{dia}</p>}
-              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} />
+              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} lectores={lectores} ultimoMio={m.id === ultimoPropio} />
             </Fragment>
           );
         })}

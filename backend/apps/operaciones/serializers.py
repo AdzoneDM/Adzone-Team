@@ -35,13 +35,14 @@ class ClienteSerializer(serializers.ModelSerializer):
     ordenes_abiertas = serializers.IntegerField(read_only=True, default=0)
     proyectos_activos = serializers.IntegerField(read_only=True, default=0)
     tipo_nombre = serializers.CharField(source='get_tipo_display', read_only=True)
+    es_interno = serializers.BooleanField(read_only=True)
 
     cashflow_id = serializers.CharField(read_only=True)
 
     class Meta:
         model = Cliente
         fields = ['id', 'nombre', 'tipo', 'tipo_nombre', 'rnc', 'cashflow_id', 'contacto', 'telefono', 'correo', 'direccion', 'notas',
-                  'activo', 'ordenes_abiertas', 'proyectos_activos', 'fecha_creacion']
+                  'activo', 'ordenes_abiertas', 'proyectos_activos', 'fecha_creacion', 'es_interno']
 
     def validate_nombre(self, v):
         v = ' '.join(v.split())

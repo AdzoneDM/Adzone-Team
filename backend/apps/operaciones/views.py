@@ -1,6 +1,7 @@
 import mimetypes
 import os
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.db.models import Count, Q
 from django.db.models.deletion import ProtectedError
 from django.http import FileResponse, Http404
@@ -67,11 +68,24 @@ class ClienteViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def destroy(self, request, *args, **kwargs):
+        """Se borra solo un cliente sin historial. Si ya tiene órdenes, proyectos o documentos de Finanzas, se conserva (se marca inactivo)
+        para no perder la trazabilidad de lo que se hizo y se cobró."""
         self._exigir()
+        cliente = self.get_object()
+        if cliente.es_interno:
+            return Response({"detail": "ADZONE (cliente interno) no se puede eliminar: lo usan las órdenes internas."}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            return super().destroy(request, *args, **kwargs)
-        except ProtectedError:
-            return Response({"detail": "Este cliente tiene órdenes, proyectos o facturas. Márcalo como inactivo."},
+            with transaction.atomic():
+                return super().destroy(request, *args, **kwargs)
+        except ProtectedError as e:
+            nombres = {'OrdenTrabajo': 'órdenes de trabajo', 'Proyecto': 'proyectos', 'Factura': 'facturas', 'Cotizacion': 'cotizaciones',
+                       'Gasto': 'gastos', 'Cobro': 'cobros'}
+            cuentas = {}
+            for obj in e.protected_objects:
+                nombre = nombres.get(type(obj).__name__) or str(obj._meta.verbose_name_plural)
+                cuentas[nombre] = cuentas.get(nombre, 0) + 1
+            detalle = ", ".join(f"{nombre} ({n})" for nombre, n in cuentas.items())
+            return Response({"detail": f"No se puede eliminar: tiene {detalle}. Se conservan para no perder su historial; márcalo como inactivo."},
                             status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True)

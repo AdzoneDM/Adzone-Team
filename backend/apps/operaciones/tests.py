@@ -792,3 +792,38 @@ class OrganigramaTests(TestCase):
         self.assertEqual(PuestoDeTrabajo.objects.get(pk=soporte.pk).funciones_principales, 'Escrita a mano')  # no la pisa
         self.assertEqual(KPIAsignado.objects.filter(puesto_trabajo=soporte).count(), 4)  # no duplica KPIs
         self.assertEqual(PuestoDeTrabajo.objects.filter(nombre='Gerente de Call Center').count(), 1)
+
+
+class EliminarClienteTests(Base):
+    def borrar(self, quien, cliente):
+        self.como(quien)
+        return self.c.delete(f'/api/operaciones/clientes/{cliente.id}/')
+
+    def test_gerente_elimina_un_cliente_sin_historial(self):
+        c = Cliente.objects.create(nombre='Cliente de prueba')
+        self.assertEqual(self.borrar(self.vladi, c).status_code, 204)
+        self.assertFalse(Cliente.objects.filter(pk=c.pk).exists())
+
+    def test_quien_no_gestiona_no_puede_eliminar(self):
+        c = Cliente.objects.create(nombre='Otro cliente')
+        r = self.borrar(self.erlin, c)
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(Cliente.objects.filter(pk=c.pk).exists())
+
+    def test_con_historial_no_se_borra_y_dice_por_que(self):
+        self.pedir()                                   # ABAMON ya tiene una orden de trabajo
+        r = self.borrar(self.osiris, self.cliente)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('márcalo como inactivo', r.json()['detail'])
+        self.assertIn('órdenes de trabajo (1)', r.json()['detail'])
+        self.assertTrue(Cliente.objects.filter(pk=self.cliente.pk).exists())
+
+    def test_el_cliente_interno_no_se_elimina(self):
+        interno = Cliente.objects.create(nombre='ADZONE', tipo='INTERNO')
+        r = self.borrar(self.osiris, interno)
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(Cliente.objects.filter(pk=interno.pk).exists())
+
+    def test_la_ficha_dice_si_es_interno(self):
+        self.como(self.osiris)
+        self.assertFalse(self.c.get(f'/api/operaciones/clientes/{self.cliente.id}/').json()['es_interno'])

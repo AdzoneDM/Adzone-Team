@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.40 · 23/11/2026 · «Visto» en el chat y eliminar clientes
+
+- **Visto en el chat:** debajo de tus mensajes aparece ✓ **Enviado** hasta que la otra persona lo lee; entonces pasa a ✓✓ azul **Visto**. En grupos y en la sala de la empresa dice **«Visto por 3 de 8»** (o «Visto por todos»), y al pasar el cursor por encima se ven los nombres. Se actualiza solo en pocos segundos, sin recargar; solo cuenta a quien tiene la conversación abierta. Cada consulta de mensajes trae «hasta dónde leyó cada persona» (no hay tabla nueva: se usan las lecturas que ya existían).
+- **Eliminar clientes:** botón **Eliminar** en la ficha del cliente (para quien gestiona un departamento o Finanzas, como editar). Solo se borra un cliente **sin historial**; si ya tiene órdenes de trabajo, proyectos o documentos de Finanzas el sistema lo impide y explica por qué («tiene órdenes de trabajo (2)…») y ofrece **dejarlo inactivo** en un clic, para no perder lo que se hizo y se cobró. El cliente interno ADZONE no se puede eliminar. Sin migraciones.
+
 ## 12.39 · 23/11/2026 · Varias imágenes a la vez y mensajes de hasta 20 000 caracteres
 
 - **Chat con varios archivos:** el clip deja elegir **varias imágenes, videos o documentos de una vez** (hasta 10); también se pueden **pegar varias capturas con Ctrl + V** o **arrastrarlas**. Cada archivo se ve en una miniatura que se puede quitar, y se envía como su propio mensaje (el texto va con el primero). Si uno falla, lo que ya salió se queda enviado y lo que falta sigue en pantalla.
