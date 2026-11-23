@@ -56,11 +56,11 @@ const Constancia = perezosa(() => import("@/features/talento/Politicas").then((m
 const PanelGerencial = perezosa(() => import("@/features/desempeno/PanelGerencial"));
 
 function Protegida({ children, admin, supervisor, asignar, finanzas, permiso }) {
-  const { usuario, esAdmin, puedeValidar, puedeAsignar, esFinanzas, tiene, recargar } = useSesion();
+  const { usuario, esAdmin, puedeValidar, puedeAsignar, puedeAutoasignar, esFinanzas, tiene, recargar } = useSesion();
   const location = useLocation();
   const [comprobada, setComprobada] = useState(null); // pantalla cuyos permisos ya se confirmaron con el servidor
   const sinPermiso = !!usuario && !usuario.debe_activar_dos_pasos
-    && ((admin && !esAdmin) || (supervisor && !puedeValidar) || (asignar && !puedeValidar && !puedeAsignar) || (finanzas && !esFinanzas) || (permiso && ![].concat(permiso).some(tiene)));
+    && ((admin && !esAdmin) || (supervisor && !puedeValidar && !puedeAutoasignar) || (asignar && !puedeValidar && !puedeAsignar) || (finanzas && !esFinanzas) || (permiso && ![].concat(permiso).some(tiene)));
   // Los permisos de la pestaña pueden estar viejos (alguien cambió el perfil, o hubo una actualización): antes de decir «no puedes»
   // se pregunta al servidor una vez. Así no hace falta recargar la página a mano para que te deje entrar.
   useEffect(() => {

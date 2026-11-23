@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.42 · 23/11/2026 · Tareas entre áreas y autovalidación
+
+- **Asignar tareas a otras áreas.** Nuevo permiso **«Asignar tareas a otras áreas»** (Accesos y permisos; por defecto en «Gerente de Departamento» y Dirección). Quien lo tiene (y puede asignar tareas) puede pedirle una tarea —como aporte o colaboración— a **cualquier persona de otra área**, sin pertenecer al departamento de esa persona. **Quedan fuera Call Center y Dirección**: no reciben tareas de otras áreas (el Call Center lo dirige su propia gerencia). Se valida en el servidor, no solo en la pantalla; el selector «Responsable» muestra a la gente agrupada por departamento.
+- **Trazabilidad.** Cada tarea guarda el **departamento de origen** de quien la asigna (campo nuevo, queda fijo) junto al departamento de quien la hace; las tareas entre áreas muestran la insignia «Aporte: de Marketing → Tecnología». Siguen el historial, las evidencias y los comentarios de siempre. Quien asignó la tarea la **ve y la sigue** en «Mi equipo» aunque sea de otra área, puede editarla y adjuntar referencias (solo las que él asignó), y **también puede validarla** al entregarse (además del supervisor de la persona).
+- **Enmanuel Beltre** (Gerente de Departamento) queda con asignación a **todas las áreas menos Call Center**; el resto de su cuenta no cambia. Las 11 personas de Call Center siguen sin poder recibir tareas de otras áreas.
+- **Autovalidación.** Quien tiene «Asignarse tareas a sí mismo» puede **validar las tareas que él mismo se creó** (aparecen en su «Por validar», que ahora también ve quien no supervisa a nadie). Queda en el historial como «Autovalidada por quien la hizo», y la tarea muestra la insignia «Autovalidada». Devolver o reabrir el trabajo propio sigue sin permitirse, y lo que otra persona te asigna lo valida otra persona. Al crear una tarea propia, **elegir revisor ya es opcional** (vacío = «Yo mismo»); si eliges uno, ese revisor también puede validarla.
+- Sin cambios en puntajes ni reportes. Migraciones `core.0014` (permiso nuevo en los perfiles) y `desempeno.0026` (campo `departamento_origen`).
+
 ## 12.41 · 23/11/2026 · Cada persona elige su hora de almuerzo
 
 - No todos almuerzan a las 12 (hay quien prefiere trabajar hasta las 3 y comer después). Ahora **cada persona fija su propia hora de almuerzo**: en el reloj de la jornada (arriba a la derecha), «Tu almuerzo → Elegir / Cambiar», entre las 9:00 a. m. y las 6:00 p. m. Se guarda por persona y **tiene prioridad sobre la hora del horario**; con «Usar la hora de mi horario» vuelve a la general.

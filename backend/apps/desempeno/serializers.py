@@ -10,7 +10,7 @@ from .models import (
     ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
     PasoTarea, ResultadoKPI, Tarea, TareaRecurrente,
 )
-from .permisos import puede_gestionar, puede_revisar_tarea
+from .permisos import puede_gestionar, puede_gestionar_tarea, puede_revisar_tarea
 
 
 def _nombre(usuario):
@@ -51,7 +51,7 @@ class ReferenciaSerializer(serializers.ModelSerializer):
 
     def get_puede_borrar(self, obj):
         user = getattr(self.context.get('request'), 'user', None)
-        return bool(user and (obj.subido_por_id == user.pk or puede_gestionar(user, obj.tarea.colaborador, 'tareas.asignar')))
+        return bool(user and (obj.subido_por_id == user.pk or puede_gestionar_tarea(user, obj.tarea)))
 
 
 class HistorialSerializer(serializers.ModelSerializer):
@@ -84,6 +84,9 @@ class TareaSerializer(serializers.ModelSerializer):
     colaborador_departamento = serializers.CharField(
         source='colaborador.perfil.puesto_trabajo.departamento.nombre', read_only=True, default=None)
     asignada_por_nombre = serializers.SerializerMethodField()
+    departamento_origen_nombre = serializers.CharField(source='departamento_origen.nombre', read_only=True, default=None)
+    entre_areas = serializers.SerializerMethodField()
+    autovalidada = serializers.SerializerMethodField()
     validada_por_nombre = serializers.SerializerMethodField()
     kpi_nombre = serializers.CharField(source='kpi_asignado.plantilla_kpi.nombre', read_only=True, default=None)
     a_tiempo = serializers.BooleanField(read_only=True)
@@ -125,7 +128,7 @@ class TareaSerializer(serializers.ModelSerializer):
             'id', 'titulo', 'descripcion', 'cliente',
             'colaborador', 'companeros', 'companeros_nombres', 'pasos', 'pasos_texto', 'progreso',
             'proyecto', 'proyecto_nombre', 'orden', 'orden_numero', 'oa', 'oa_info', 'fecha_inicio', 'horas_estimadas', 'colaborador_nombre', 'colaborador_puesto', 'colaborador_departamento',
-            'asignada_por', 'asignada_por_nombre', 'revisor', 'revisor_nombre',
+            'asignada_por', 'asignada_por_nombre', 'revisor', 'revisor_nombre', 'departamento_origen', 'departamento_origen_nombre', 'entre_areas', 'autovalidada',
             'kpi_asignado', 'kpi_nombre',
             'prioridad', 'estado', 'fecha_limite', 'fecha_completada', 'a_tiempo', 'a_la_primera',
             'evidencia_nota', 'evidencia_enlace', 'evidencias', 'referencias',
@@ -138,7 +141,7 @@ class TareaSerializer(serializers.ModelSerializer):
         # El estado y la calificación solo cambian con las acciones (iniciar, entregar, validar,
         # devolver, reabrir), que dejan historial y avisos. Editar no salta el flujo.
         read_only_fields = [
-            'asignada_por', 'estado', 'orden', 'oa', 'fecha_completada', 'evidencia_nota', 'evidencia_enlace',
+            'asignada_por', 'departamento_origen', 'estado', 'orden', 'oa', 'fecha_completada', 'evidencia_nota', 'evidencia_enlace',
             'validada_por', 'fecha_validacion', 'comentario_revision', 'calificacion_calidad',
             'comentario_evaluacion', 'rondas_revision',
             'motivo_bloqueo', 'bloqueada_desde', 'fecha_inicio_trabajo', 'fecha_entrega_real',
@@ -154,6 +157,14 @@ class TareaSerializer(serializers.ModelSerializer):
     def get_revisor_nombre(self, obj):
         return _nombre(obj.revisor)
 
+    def get_entre_areas(self, obj):
+        """Aporte entre áreas: el área de quien la pidió no es la de quien la hace."""
+        destino = getattr(getattr(getattr(getattr(obj.colaborador, 'perfil', None), 'puesto_trabajo', None), 'departamento', None), 'pk', None)
+        return bool(obj.departamento_origen_id and destino and obj.departamento_origen_id != destino)
+
+    def get_autovalidada(self, obj):
+        return bool(obj.validada_por_id and obj.validada_por_id == obj.colaborador_id)
+
     def get_asignada_por_nombre(self, obj):
         return _nombre(obj.asignada_por)
 
@@ -165,7 +176,7 @@ class TareaSerializer(serializers.ModelSerializer):
 
     def get_puedo_gestionar(self, obj):
         user = self._usuario()
-        return bool(user and puede_gestionar(user, obj.colaborador, 'tareas.asignar'))
+        return bool(user and puede_gestionar_tarea(user, obj))
 
     def get_puedo_revisar(self, obj):
         user = self._usuario()

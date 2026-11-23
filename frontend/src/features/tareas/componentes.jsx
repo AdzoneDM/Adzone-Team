@@ -366,6 +366,8 @@ export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
         <div className="flex flex-wrap items-center gap-2">
           <EstadoTarea estado={tarea.estado} />
           <PrioridadTarea prioridad={tarea.prioridad} />
+          {tarea.entre_areas && <Insignia tono="azul">Aporte: de {tarea.departamento_origen_nombre} → {tarea.colaborador_departamento}</Insignia>}
+          {tarea.autovalidada && <Insignia tono="amarillo">Autovalidada</Insignia>}
           {tarea.es_recurrente && <Insignia><Repeat className="size-3" />Recurrente</Insignia>}
           {tarea.rondas_revision > 0 && <Insignia tono="rojo">{tarea.rondas_revision === 1 ? "Devuelta 1 vez" : `Devuelta ${tarea.rondas_revision} veces`}</Insignia>}
         </div>

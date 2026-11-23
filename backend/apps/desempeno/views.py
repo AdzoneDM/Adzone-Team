@@ -23,8 +23,9 @@ from .models import (
     Tarea, TareaRecurrente,
 )
 from .permisos import (
-    EsAdministrador, equipo_gestionable, es_administrador, puede_gestionar, puede_revisar, puede_revisar_tarea,
-    puede_validar, puesto_de, revisables, revisores_posibles, revisores_propias_ids, subordinados,
+    EsAdministrador, tiene_otras_areas, tiene_propias, asignables, equipo_gestionable, es_administrador, por_validar, puede_asignar_a, puede_autovalidar, puede_gestionar,
+    puede_gestionar_tarea, puede_revisar, puede_revisar_tarea, puede_validar, puesto_de, revisables, revisores_posibles,
+    revisores_propias_ids, subordinados,
 )
 from .puntaje import calcular_ranking, filtrar_grupo, rango_del_mes, sin_evaluar
 from .serializers import (
@@ -70,7 +71,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         ).prefetch_related('evidencias', 'referencias', 'pasos', 'companeros')
         if not es_administrador(user):
             subs = equipo_gestionable(user, 'equipo.ver')
-            queryset = queryset.filter(Q(colaborador=user) | Q(companeros=user) | Q(colaborador__in=subs)).distinct()
+            queryset = queryset.filter(Q(colaborador=user) | Q(companeros=user) | Q(colaborador__in=subs) | Q(asignada_por=user)).distinct()
 
         params = self.request.query_params
         ambito = params.get('ambito')
@@ -78,10 +79,9 @@ class TareaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(Q(colaborador=user) | Q(companeros=user)).distinct()
         elif ambito == 'equipo':
             # «Mi equipo»: las tareas de toda su gente (directa o más abajo en el organigrama) y también las suyas, todo en un solo lugar
-            queryset = queryset.filter(Q(colaborador__in=equipo_gestionable(user)) | Q(colaborador=user) | Q(companeros=user)).distinct()
+            queryset = queryset.filter(Q(colaborador__in=equipo_gestionable(user)) | Q(colaborador=user) | Q(companeros=user) | Q(asignada_por=user)).distinct()
         elif ambito == 'por_validar':
-            queryset = revisables(queryset.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
-                                  .exclude(colaborador=user).exclude(companeros=user), user)
+            queryset = por_validar(queryset, user)
 
         if params.get('mes'):
             queryset = queryset.filter(fecha_limite__range=rango_del_mes(periodo_desde_mes(params['mes'])))
@@ -103,9 +103,14 @@ class TareaViewSet(viewsets.ModelViewSet):
         servicios.generar_recurrentes_si_toca()
         return super().list(request, *args, **kwargs)
 
-    def _exigir_gestion(self, colaborador):
-        if not puede_gestionar(self.request.user, colaborador, 'tareas.asignar'):
-            raise PermissionDenied("Solo quien tiene permiso para asignar tareas a esta persona puede hacerlo.")
+    def _exigir_gestion(self, colaborador, tarea=None):
+        """Asignar a su equipo; o, con «Asignar tareas a otras áreas», a cualquier otra área (menos Call Center y Dirección).
+        Sobre una tarea ya creada: su supervisor, o quien la asignó entre áreas."""
+        u = self.request.user
+        if puede_gestionar(u, colaborador, 'tareas.asignar') or (puede_asignar_a(u, colaborador) and (tarea is None or tarea.asignada_por_id == u.pk)):
+            return
+        raise PermissionDenied("No puedes asignarle tareas a esta persona (Call Center y Dirección no reciben tareas de otras áreas)."
+                               if tiene_otras_areas(u) else "Solo quien tiene permiso para asignar tareas a esta persona puede hacerlo.")
 
     def _exigir_participante(self, tarea, que="trabajar"):
         if self.request.user.pk not in tarea.participantes_ids():
@@ -126,7 +131,7 @@ class TareaViewSet(viewsets.ModelViewSet):
     def referencias(self, request, pk=None):
         """Quien asigna o supervisa adjunta un boceto, una imagen o un PDF de referencia (al asignar o al corregir)."""
         tarea = self.get_object()
-        self._exigir_gestion(tarea.colaborador)
+        self._exigir_gestion(tarea.colaborador, tarea)
         if tarea.estado in ('COMPLETADA', 'CANCELADA'):
             return Response({"detail": "Esta tarea ya terminó: no se le agregan referencias."}, status=status.HTTP_400_BAD_REQUEST)
         datos = ReferenciasSerializer(data={'archivos': request.FILES.getlist('archivos'), 'nota': request.data.get('nota', ''),
@@ -136,9 +141,10 @@ class TareaViewSet(viewsets.ModelViewSet):
         servicios.al_referenciar(tarea, request.user, n)
         return self._respuesta(tarea)
 
-    def _exigir_revision(self, tarea):
-        if self.request.user.pk in tarea.participantes_ids():
-            raise PermissionDenied("Nadie puede validar, devolver ni reabrir su propia tarea.")
+    def _exigir_revision(self, tarea, validando=False):
+        # Una tarea que la persona se asignó a sí misma la puede validar ella (autovalidación); devolverla o reabrirla no.
+        if self.request.user.pk in tarea.participantes_ids() and not (validando and puede_autovalidar(self.request.user, tarea)):
+            raise PermissionDenied("Nadie puede devolver ni reabrir su propia tarea; validar solo las que tú mismo te asignaste.")
         if not puede_revisar_tarea(self.request.user, tarea):
             raise PermissionDenied(f"Esta tarea la revisa {_nombre(tarea.revisor)}." if tarea.revisor_id
                                    else "Solo el supervisor directo o un administrador puede revisar esta tarea.")
@@ -149,7 +155,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         if colaborador.pk != self.request.user.pk:
             return None
         if revisor is None:
-            raise serializers.ValidationError({"revisor": "Elige quién va a validar tu tarea."})
+            return None  # se valida ella misma (si tiene «Asignarse tareas») o su supervisor; el historial lo deja claro
         if revisor.pk == self.request.user.pk or revisor.pk not in revisores_propias_ids():
             raise serializers.ValidationError({"revisor": "Esa persona no puede validar tareas propias. Elige a otra."})
         return revisor
@@ -160,12 +166,13 @@ class TareaViewSet(viewsets.ModelViewSet):
             self._exigir_gestion(companero)
         revisor = self._revisor_de(serializer.validated_data['colaborador'], serializer.validated_data.get('revisor'))
         serializer.validated_data['revisor'] = revisor
-        tarea = serializer.save(asignada_por=self.request.user)
+        puesto = puesto_de(self.request.user)
+        tarea = serializer.save(asignada_por=self.request.user, departamento_origen=puesto.departamento if puesto else None)
         servicios.al_asignar(tarea, self.request.user)
 
     def perform_update(self, serializer):
         serializer.validated_data.pop('revisor', None)  # el revisor se elige al crear la tarea propia y no cambia
-        self._exigir_gestion(serializer.instance.colaborador)
+        self._exigir_gestion(serializer.instance.colaborador, serializer.instance)
         nuevo = serializer.validated_data.get('colaborador')
         if nuevo:
             self._exigir_gestion(nuevo)
@@ -266,7 +273,7 @@ class TareaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def validar(self, request, pk=None):
         tarea = self.get_object()
-        self._exigir_revision(tarea)
+        self._exigir_revision(tarea, validando=True)
         if tarea.estado != 'EN_REVISION':
             return Response({"detail": "Solo se pueden validar tareas entregadas."},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -804,8 +811,8 @@ def mi_resumen_view(request):
             for k in KPIAsignado.objects.filter(puesto_trabajo=puesto, activo=True).select_related('plantilla_kpi')
         ] if puesto else [],
         'por_validar': (
-            revisables(Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar')).exclude(colaborador=user).exclude(companeros=user), user).count()
-            if puede_validar(user) else 0
+            por_validar(Tarea.objects.all(), user).count()
+            if (puede_validar(user) or tiene_propias(user)) else 0
         ),
     })
 
@@ -881,7 +888,7 @@ def tablero_view(request):
 @api_view(['GET'])
 def equipo_view(request):
     """Colaboradores a los que el usuario puede asignar tareas, con los KPIs que se alimentan de tareas."""
-    equipo = equipo_gestionable(request.user, 'tareas.asignar').select_related('perfil__puesto_trabajo__departamento').order_by(
+    equipo = asignables(request.user).select_related('perfil__puesto_trabajo__departamento').order_by(
         'first_name', 'username'
     )
     kpis_por_puesto = {}
@@ -928,8 +935,7 @@ def notificaciones_view(request):
         'no_leidas': qs.filter(leida=False).count(),
         'avisos': NotificacionSerializer(qs[:30], many=True).data,
         # Para el número junto a «Por validar» en el menú (se consulta cada minuto)
-        'por_validar': (revisables(Tarea.objects.filter(estado='EN_REVISION', colaborador__in=equipo_gestionable(user, 'tareas.validar'))
-                                   .exclude(colaborador=user).exclude(companeros=user), user).count() if puede_validar(user) else 0),
+        'por_validar': (por_validar(Tarea.objects.all(), user).count() if (puede_validar(user) or tiene_propias(user)) else 0),
     })
 
 

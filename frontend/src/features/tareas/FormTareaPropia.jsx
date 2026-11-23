@@ -31,11 +31,10 @@ export default function FormTareaPropia({ abierto, onCerrar, onGuardada }) {
     setError("");
     if (!f.titulo.trim()) return setError("Escribe qué vas a hacer.");
     if (!f.fecha_limite) return setError("Pon la fecha límite.");
-    if (!f.revisor) return setError("Elige quién va a validar tu tarea.");
     setGuardando(true);
     try {
       const t = await guardarTarea({
-        titulo: f.titulo.trim(), descripcion: f.descripcion.trim(), colaborador: usuario.id, revisor: Number(f.revisor),
+        titulo: f.titulo.trim(), descripcion: f.descripcion.trim(), colaborador: usuario.id, revisor: f.revisor ? Number(f.revisor) : null,
         prioridad: f.prioridad, fecha_limite: f.fecha_limite, horas_estimadas: f.horas_estimadas === "" ? null : f.horas_estimadas,
         pasos_texto: [],
       });
@@ -65,10 +64,10 @@ export default function FormTareaPropia({ abierto, onCerrar, onGuardada }) {
             {(id) => <input id={id} type="number" min={0} step="0.5" inputMode="decimal" className="campo" value={f.horas_estimadas} onChange={cambiar("horas_estimadas")} />}
           </Campo>
         </div>
-        <Campo etiqueta="Quién la valida" ayuda="Le llegará el aviso cuando la entregues.">
+        <Campo etiqueta="Quién la valida (opcional)" ayuda="Si eliges a alguien, le llega el aviso cuando la entregues. Si lo dejas vacío, la validas tú mismo en «Por validar» (queda registrado como autovalidación).">
           {(id) => (
             <select id={id} className="campo" value={f.revisor} onChange={cambiar("revisor")} disabled={!revisores}>
-              <option value="">{revisores ? "Elige a quien la revisa…" : "Cargando…"}</option>
+              <option value="">{revisores ? "Yo mismo (autovalidación)" : "Cargando…"}</option>
               {(revisores || []).map((r) => <option key={r.id} value={r.id}>{r.nombre}{r.puesto ? ` (${r.puesto})` : ""}</option>)}
             </select>
           )}

@@ -96,7 +96,13 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
             {(id) => (
               <select id={id} className="campo" value={f.colaborador || ""} onChange={(e) => setF((x) => ({ ...x, colaborador: e.target.value, kpi_asignado: "" }))} disabled={esRecurrente}>
                 <option value="">Elige una persona…</option>
-                {gente.map((g) => <option key={g.id} value={g.id}>{g.nombre}{g.puesto ? ` (${g.puesto})` : ""}</option>)}
+                {/* Con varias áreas (aporte entre áreas), la lista se agrupa por departamento; con una sola queda plana */}
+                {(() => {
+                  const opcion = (g) => <option key={g.id} value={g.id}>{g.nombre}{g.puesto ? ` (${g.puesto})` : ""}</option>;
+                  const areas = [...new Set(gente.map((g) => g.departamento || "Sin área"))];
+                  if (areas.length < 2) return gente.map(opcion);
+                  return areas.map((a) => <optgroup key={a} label={a}>{gente.filter((g) => (g.departamento || "Sin área") === a).map(opcion)}</optgroup>);
+                })()}
               </select>
             )}
           </Campo>

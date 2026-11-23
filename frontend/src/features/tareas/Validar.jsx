@@ -7,6 +7,7 @@ import { refrescarAvisos } from "@/app/Estructura";
 import { EquipoTarea, Evidencias, Historial, Pasos, SelectorArchivos } from "@/features/tareas/componentes";
 import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, EntradaEstrellas, Insignia, Modal, PrioridadTarea, Vacio, cx, useAviso } from "@/components/ui";
 import { useRecurso } from "@/lib/recursos";
+import { useSesion } from "@/lib/sesion";
 import { Checklist } from "@/features/ordenes/piezas";
 import { useNovedades } from "@/lib/novedades";
 
@@ -29,6 +30,8 @@ function Revision({ tarea, onListo, onFallo }) {
   const [archivos, setArchivos] = useState([]); // bocetos o imágenes para la corrección, si la devuelve
   const [catalogo] = useRecurso("catalogo");
   const oa = tarea.oa_info;
+  const { usuario } = useSesion();
+  const propia = tarea.colaborador === usuario?.id; // validar lo propio: solo validar (queda como autovalidación)
 
   useEffect(() => { setCalidad(0); setComentario(""); setArchivos([]); setError(""); setVerHistorial(false); setG3(tarea.oa_info?.g3_marcados || {}); setCausa(""); }, [tarea.id, tarea.oa_info]);
 
@@ -92,8 +95,9 @@ function Revision({ tarea, onListo, onFallo }) {
           {(id) => <textarea id={id} className="campo bg-white" rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} />}
         </Campo>
         <SelectorArchivos archivos={archivos} onCambio={setArchivos} etiqueta="Adjuntar boceto, imagen o video para la corrección" ayuda="Se envían solo si la devuelves." disabled={!!enviando} />
+        {propia && <Alerta tono="amarillo">Esta tarea la creaste para ti: puedes validarla tú mismo. Quedará registrada en el historial como <b>autovalidación</b>. (Devolverla o reabrirla no aplica a tu propio trabajo.)</Alerta>}
         <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-          <Boton variante="secundario" icono={RotateCcw} onClick={devolver} cargando={enviando === "devolver"} disabled={!!enviando}>Devolver</Boton>
+          {!propia && <Boton variante="secundario" icono={RotateCcw} onClick={devolver} cargando={enviando === "devolver"} disabled={!!enviando}>Devolver</Boton>}
           <Boton icono={CircleCheckBig} onClick={validar} cargando={enviando === "validar"} disabled={!!enviando}>Validar</Boton>
         </div>
       </div>

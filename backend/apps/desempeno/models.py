@@ -45,6 +45,9 @@ class Tarea(models.Model):
     revisor = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name="tareas_a_revisar",
         help_text="Quien valida la tarea cuando la persona se la asignó a sí misma (Dirección). Vacío: la valida su supervisor.")
+    departamento_origen = models.ForeignKey(
+        'core.Departamento', on_delete=models.SET_NULL, null=True, blank=True, related_name='tareas_pedidas',
+        help_text="Área de quien asignó la tarea (al crearla). Si es distinta a la de la persona, es un aporte entre áreas.")
     asignada_por = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

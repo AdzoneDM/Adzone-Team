@@ -126,6 +126,68 @@ def puede_asignar(user, colaborador):
     return puede_gestionar(user, colaborador, 'tareas.asignar')
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Asignar entre áreas («Asignar tareas a otras áreas»): una jefatura puede pedir un aporte a cualquier persona de otra área.
+# Quedan fuera Dirección y las áreas cerradas (Call Center: lo dirige su propia gerencia). La tarea guarda su área de origen.
+# ---------------------------------------------------------------------------------------------------------------------
+AREAS_CERRADAS = ('Call Center',)
+
+
+def _de_area_cerrada(colaborador):
+    return any(p.departamento.nombre in AREAS_CERRADAS for p in puestos_de(colaborador) if p.departamento_id)
+
+
+def entre_areas(user, colaborador):
+    """¿Puede `user` asignarle una tarea a `colaborador` por el permiso de otras áreas (no por ser su supervisor)?"""
+    return bool(tiene(user, 'tareas.asignar') and tiene(user, 'tareas.otras_areas') and colaborador.is_active and colaborador.pk != user.pk
+                and not es_administrador(colaborador) and not _de_area_cerrada(colaborador))
+
+
+def puede_asignar_a(user, colaborador):
+    """Asignar una tarea nueva a `colaborador`: a su equipo (como siempre) o, con el permiso de otras áreas, a cualquier otra área."""
+    return puede_gestionar(user, colaborador, 'tareas.asignar') or entre_areas(user, colaborador)
+
+
+def asignables(user):
+    """Personas a las que `user` puede asignar tareas: su equipo (y él mismo si puede) más, con el permiso, las demás áreas."""
+    base = equipo_gestionable(user, 'tareas.asignar')
+    if es_administrador(user) or not (tiene(user, 'tareas.asignar') and tiene(user, 'tareas.otras_areas')):
+        return base
+    otras = User.objects.filter(is_active=True).exclude(pk=user.pk).exclude(pk__in=administradores().values('pk')).exclude(
+        Q(perfil__puesto_trabajo__departamento__nombre__in=AREAS_CERRADAS) | Q(perfil__puestos_adicionales__departamento__nombre__in=AREAS_CERRADAS))
+    return User.objects.filter(Q(pk__in=base.values('pk')) | Q(pk__in=otras.values('pk')), is_active=True)
+
+
+def tiene_propias(user):
+    return bool(tiene(user, 'tareas.propias'))
+
+
+def tiene_otras_areas(user):
+    return bool(tiene(user, 'tareas.asignar') and tiene(user, 'tareas.otras_areas'))
+
+
+def por_validar(queryset, user):
+    """Las entregas que `user` puede validar: las de su equipo, las tareas que él mismo se asignó (autovalidación) y,
+    con el permiso de otras áreas, las que pidió a otras áreas."""
+    ajenas = Q(colaborador__in=equipo_gestionable(user, 'tareas.validar')) & ~Q(colaborador=user) & ~Q(companeros=user)
+    if tiene(user, 'tareas.propias'):
+        ajenas |= Q(colaborador=user, asignada_por=user)
+    if tiene_otras_areas(user) and tiene(user, 'tareas.validar'):
+        ajenas |= Q(asignada_por=user) & ~Q(colaborador=user)
+    return revisables(queryset.filter(estado='EN_REVISION').filter(ajenas).distinct(), user)
+
+
+def puede_gestionar_tarea(user, tarea):
+    """Editar, reasignar o adjuntar referencias a una tarea ya creada: su supervisor o quien la asignó entre áreas."""
+    return puede_gestionar(user, tarea.colaborador, 'tareas.asignar') or (
+        tarea.asignada_por_id == user.pk and entre_areas(user, tarea.colaborador))
+
+
+def puede_autovalidar(user, tarea):
+    """Quien tiene «Asignarse tareas a sí mismo» valida esas mismas tareas (las que él creó para sí). Queda en el historial."""
+    return bool(tiene(user, 'tareas.propias') and tarea.colaborador_id == user.pk and tarea.asignada_por_id == user.pk)
+
+
 def puede_revisar(user, colaborador):
     """Validar, devolver o reabrir: nunca el trabajo propio."""
     return user.pk != colaborador.pk and puede_gestionar(user, colaborador, 'tareas.validar')
@@ -223,8 +285,12 @@ def revisores_posibles(user):
 def puede_revisar_tarea(user, tarea):
     """Validar, devolver o reabrir una tarea: nunca el trabajo propio. Si la tarea tiene revisor designado, solo él o los
     demás revisores configurados; si no, quien la supervisa (o Dirección)."""
+    if puede_autovalidar(user, tarea):
+        return True
     if user.pk in tarea.participantes_ids():
         return False
+    if tarea.asignada_por_id == user.pk and entre_areas(user, tarea.colaborador) and tiene(user, 'tareas.validar'):
+        return True  # quien pidió el aporte a otra área también lo valida
     if tarea.revisor_id:
         return user.pk == tarea.revisor_id or user.pk in revisores_propias_ids()
     return puede_revisar(user, tarea.colaborador)
@@ -234,7 +300,7 @@ def revisables(queryset, user):
     """Quita de «por validar» las tareas con revisor designado que `user` no puede revisar."""
     if user.pk in revisores_propias_ids():
         return queryset
-    return queryset.filter(Q(revisor__isnull=True) | Q(revisor=user))
+    return queryset.filter(Q(revisor__isnull=True) | Q(revisor=user) | Q(colaborador=user, asignada_por=user))
 
 
 def revisores_de_tarea(tarea):

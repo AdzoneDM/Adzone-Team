@@ -28,8 +28,10 @@ class TareasPropiasTests(Base):
             datos['revisor'] = revisor.id
         return self.c.post(T, datos, format='json')
 
-    def test_la_tarea_propia_exige_elegir_revisor(self):
-        self.assertEqual(self.crear(self.vladi).status_code, 400)                         # sin revisor
+    def test_el_revisor_de_la_tarea_propia_es_opcional_pero_si_se_elige_debe_ser_valido(self):
+        r = self.crear(self.vladi)                                                        # sin revisor: se valida ella misma (autovalidación)
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertIsNone(r.json()['revisor'])
         self.assertEqual(self.crear(self.vladi, revisor=self.rebeca).status_code, 400)     # Rebeca no es revisora configurada
         self.assertEqual(self.crear(self.vladi, revisor=self.vladi).status_code, 400)      # tampoco él mismo
         r = self.crear(self.vladi, revisor=self.helen)
@@ -50,7 +52,7 @@ class TareasPropiasTests(Base):
         t = Tarea.objects.get(pk=self.crear(self.vladi, revisor=self.helen).json()['id'])
         Tarea.objects.filter(pk=t.pk).update(estado='EN_REVISION', evidencia_nota='listo')
         validar = lambda quien: (self.como(quien), self.c.post(f'{T}{t.id}/validar/', {'calificacion_calidad': 5, 'comentario_evaluacion': 'ok'}, format='json'))[1].status_code
-        self.assertEqual(validar(self.vladi), 403)     # nunca la propia
+        # (quien se la asignó ella misma también puede validarla: autovalidación, ver tests_entre_areas)
         self.assertEqual(validar(self.rebeca), 403)    # Dirección, pero no revisora de tareas propias
         self.assertEqual(validar(self.erlin), 404)     # ni la ve
         self.assertEqual(validar(self.osiris), 200)    # el otro revisor configurado sí puede

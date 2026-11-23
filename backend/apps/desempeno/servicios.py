@@ -71,7 +71,9 @@ def al_entregar(tarea, quien):
 
 def al_validar(tarea, quien):
     estrellas = f" · {tarea.calificacion_calidad}/5" if tarea.calificacion_calidad else ''
-    registrar(tarea, quien, 'VALIDADA', f"Calidad {tarea.calificacion_calidad}/5. {tarea.comentario_evaluacion}".strip())
+    auto = quien.pk == tarea.colaborador_id
+    registrar(tarea, quien, 'VALIDADA', (f"Calidad {tarea.calificacion_calidad}/5. {tarea.comentario_evaluacion}".strip())
+              + (" · Autovalidada por quien la hizo (la había creado para sí)." if auto else ""))
     avisar([tarea.colaborador, *tarea.companeros.all()], 'VALIDADA', f"Validada: {tarea.titulo}",
            f"{nombre(quien)} validó tu entrega{estrellas}. Ya cuenta para tu puntaje.",
            tarea=tarea, enlace='/mis-tareas?ver=validadas', excepto=quien)

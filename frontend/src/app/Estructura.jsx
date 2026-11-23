@@ -27,7 +27,7 @@ import AlertaClaveBase from "@/features/cuenta/AlertaClaveBase";
 import ChatFlotante from "@/features/chat/ChatFlotante";
 import { SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
-function secciones({ esAdmin, puedeValidar, puedeAsignar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
+function secciones({ esAdmin, puedeValidar, puedeAsignar, puedeAutoasignar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
   gestionaPersonas, veDirectorio, configuraSistema, esRRHH, tablerosDeptos = [] }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
@@ -62,7 +62,13 @@ function secciones({ esAdmin, puedeValidar, puedeAsignar, esFinanzas, esCoordina
   if (gestionaActivos) s[1].items.push({ a: "/activos", texto: "Activos y equipos", icono: Laptop });
   if (esAdmin || esCoordinacion) s[1].items.push({ a: "/produccion/ajustes", texto: "Áreas y tiempos", icono: SlidersHorizontal });
   // Quien solo se asigna tareas a sí mismo (sin supervisar a nadie) tiene la pantalla de tareas, sin «Por validar»
-  if (!puedeValidar && puedeAsignar) s.push({ titulo: "Mis asignaciones", items: [{ a: "/equipo", texto: "Asignar tareas", icono: Users }] });
+  // y, si puede asignárselas, también las valida él mismo (autovalidación): ve «Por validar» con sus propias entregas
+  if (!puedeValidar && (puedeAsignar || puedeAutoasignar)) {
+    s.push({ titulo: "Mis asignaciones", items: [
+      ...(puedeAsignar ? [{ a: "/equipo", texto: "Asignar tareas", icono: Users }] : []),
+      ...(puedeAutoasignar ? [{ a: "/validar", texto: "Por validar", icono: CircleCheckBig, cuenta: "por_validar" }] : []),
+    ] });
+  }
   if (puedeValidar) {
     s.push({ titulo: "Mi equipo", items: [
       { a: "/validar", texto: "Por validar", icono: CircleCheckBig, cuenta: "por_validar" },
