@@ -1,9 +1,13 @@
+import os
 from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
 from django.utils import timezone
 
+from rest_framework.exceptions import ValidationError
+
+from apps.core.permisos import tiene
 from apps.desempeno.permisos import es_administrador
 
 from .models import Conversacion, Lectura, Mensaje
@@ -11,6 +15,9 @@ from .models import Conversacion, Lectura, Mensaje
 MAX_POR_MINUTO = 20   # contra spam y ráfagas accidentales
 PAGINA = 40
 PAGINA_MAX = 100
+MAX_ARCHIVO = 15 * 1024 * 1024
+EXT_IMAGEN = ('.jpg', '.jpeg', '.png', '.webp', '.gif')
+EXT_DOCUMENTO = ('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.zip', '.odt', '.ods')
 
 
 def sala_global():
@@ -18,7 +25,7 @@ def sala_global():
 
 
 def conversaciones_de(usuario):
-    return Conversacion.objects.filter(Q(tipo=Conversacion.GLOBAL) | Q(a=usuario) | Q(b=usuario))
+    return Conversacion.objects.filter(Q(tipo=Conversacion.GLOBAL) | Q(a=usuario) | Q(b=usuario) | Q(miembros=usuario)).distinct()
 
 
 def conversacion_de(usuario, pk):
@@ -31,13 +38,67 @@ def privado_con(usuario, otro):
     return Conversacion.objects.get_or_create(tipo=Conversacion.DIRECTA, a=a, b=b)[0]
 
 
+def puede_crear_grupos(usuario):
+    """Solo las jefaturas (permiso «Grupos de chat»): gerentes de departamento, administradores y quien Dirección autorice."""
+    return tiene(usuario, 'chat.grupos')
+
+
+def departamentos_para_grupos(usuario):
+    """Las áreas entre las que una jefatura elige al crear un grupo (vacío para quien no puede crear grupos)."""
+    if not puede_crear_grupos(usuario):
+        return []
+    from apps.core.models import Departamento
+    return [{'id': d.id, 'nombre': d.nombre} for d in Departamento.objects.order_by('nombre')]
+
+
+def puede_gestionar_grupo(usuario, conv):
+    """Editar o eliminar un grupo: quien lo creó (si sigue teniendo el permiso) o Dirección. Los demás solo participan."""
+    return conv.tipo == Conversacion.GRUPO and puede_crear_grupos(usuario) and (conv.creado_por_id == usuario.id or es_administrador(usuario))
+
+
 def puede_borrar(usuario, mensaje):
     if mensaje.eliminado:
         return False
     if mensaje.autor_id == usuario.id:
         return True
-    # Dirección modera solo la sala de la empresa, nunca una conversación privada
-    return mensaje.conversacion.tipo == Conversacion.GLOBAL and es_administrador(usuario)
+    # Dirección modera la sala de la empresa y quien administra un grupo, el suyo; nunca una conversación privada
+    if mensaje.conversacion.tipo == Conversacion.GLOBAL:
+        return es_administrador(usuario)
+    return puede_gestionar_grupo(usuario, mensaje.conversacion)
+
+
+def revisar_archivo(archivo):
+    """Documento o imagen de hasta 15 MB. Devuelve si es una imagen. Un archivo ejecutable o de otro tipo se rechaza."""
+    ext = os.path.splitext(archivo.name)[1].lower()
+    if ext not in EXT_IMAGEN + EXT_DOCUMENTO:
+        raise ValidationError({'archivo': ['Solo se pueden enviar imágenes y documentos (PDF, Word, Excel, PowerPoint, texto, CSV o ZIP).']})
+    if archivo.size > MAX_ARCHIVO:
+        raise ValidationError({'archivo': ['El archivo pesa más de 15 MB.']})
+    es_imagen = ext in EXT_IMAGEN
+    if es_imagen:
+        from PIL import Image
+        try:
+            Image.open(archivo).verify()
+        except Exception:  # noqa: BLE001 (si no se puede abrir como imagen, no lo es)
+            raise ValidationError({'archivo': ['Ese archivo no es una imagen válida.']})
+        finally:
+            archivo.seek(0)
+    return es_imagen
+
+
+def crear_grupo(usuario, nombre, departamento=None, miembros=()):
+    nombre = (nombre or '').strip()
+    if len(nombre) < 3:
+        raise ValidationError({'nombre': ['Ponle un nombre al grupo (mínimo 3 letras).']})
+    ids = {usuario.pk, *[m for m in miembros if m]}
+    if departamento is not None:  # un grupo por área: entra todo el personal activo de esa área
+        ids |= set(User.objects.filter(is_active=True, perfil__puesto_trabajo__departamento=departamento).values_list('pk', flat=True))
+    personas = list(User.objects.filter(pk__in=ids, is_active=True))
+    if len(personas) < 2:
+        raise ValidationError({'miembros': ['Agrega al menos a una persona al grupo.']})
+    c = Conversacion.objects.create(tipo=Conversacion.GRUPO, nombre=nombre[:80], departamento=departamento, creado_por=usuario)
+    c.miembros.set(personas)
+    return c
 
 
 def excede_ritmo(usuario):
@@ -47,11 +108,15 @@ def excede_ritmo(usuario):
 
 def registrar(mensaje):
     c = mensaje.conversacion
-    c.ultimo_id, c.ultimo_texto, c.ultimo_autor_id, c.ultima_actividad = mensaje.id, mensaje.texto[:140], mensaje.autor_id, mensaje.creado
+    c.ultimo_id, c.ultimo_texto, c.ultimo_autor_id, c.ultima_actividad = mensaje.id, (mensaje.texto or f'📎 {mensaje.archivo_nombre}')[:140], mensaje.autor_id, mensaje.creado
     c.save(update_fields=['ultimo_id', 'ultimo_texto', 'ultimo_autor', 'ultima_actividad'])
 
 
 def al_borrar(mensaje):
+    if mensaje.archivo:  # el archivo de un mensaje borrado también se borra
+        mensaje.archivo.delete(save=False)
+        mensaje.archivo = None
+        mensaje.save(update_fields=['archivo'])
     c = mensaje.conversacion
     if c.ultimo_id == mensaje.id:
         c.ultimo_texto = ''

@@ -18,10 +18,11 @@ export default function TiraChats({ conversaciones, activaId, onAbrir, onTodos }
             <span className={cx("relative rounded-full p-0.5", activa ? "ring-2 ring-azul" : "ring-2 ring-transparent")}>
               {c.tipo === "GLOBAL"
                 ? <span className="flex size-11 items-center justify-center rounded-full bg-amarillo text-tinta" aria-hidden><Users className="size-5" /></span>
-                : <Avatar nombre={c.titulo} className="!size-11" />}
+                : c.tipo === "GRUPO" ? <span className="flex size-11 items-center justify-center rounded-full bg-azul text-white" aria-hidden><Users className="size-5" /></span>
+                  : <Avatar nombre={c.titulo} className="!size-11" />}
               {c.no_leidos > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rojo px-1 text-center text-[10px] font-semibold leading-4 text-white num">{c.no_leidos > 9 ? "9+" : c.no_leidos}</span>}
             </span>
-            <span className={cx("w-full truncate text-center", activa ? "font-semibold" : c.no_leidos ? "font-medium" : "text-gris")}>{c.tipo === "GLOBAL" ? "Todos" : primerNombre(c.titulo)}</span>
+            <span className={cx("w-full truncate text-center", activa ? "font-semibold" : c.no_leidos ? "font-medium" : "text-gris")}>{c.tipo === "GLOBAL" ? "Todos" : c.tipo === "GRUPO" ? c.titulo : primerNombre(c.titulo)}</span>
           </button>
         );
       })}

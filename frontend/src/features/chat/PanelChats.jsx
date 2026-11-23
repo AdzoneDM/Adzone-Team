@@ -1,7 +1,7 @@
 // Columna izquierda del chat (como los mensajes de Instagram): buscador y lista de conversaciones.
 // Al escribir en el buscador también aparecen los compañeros, para abrir un chat nuevo sin cambiar de pantalla.
 import { useEffect, useState } from "react";
-import { Search, Users, X } from "lucide-react";
+import { Plus, Search, Users, X } from "lucide-react";
 import { chatPersonas } from "@/lib/api";
 import { Avatar, cx } from "@/components/ui";
 
@@ -19,14 +19,17 @@ const sinTildes = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(
 
 function FilaConversacion({ c, usuarioId, activa, onAbrir }) {
   const global = c.tipo === "GLOBAL";
-  const previa = c.ultimo_texto ? `${c.ultimo_autor === usuarioId ? "Tú: " : ""}${c.ultimo_texto}` : global ? "Conversación de todo el equipo" : (c.persona?.puesto ?? "");
+  const grupo = c.tipo === "GRUPO";
+  const previa = c.ultimo_texto ? `${c.ultimo_autor === usuarioId ? "Tú: " : ""}${c.ultimo_texto}`
+    : global ? "Conversación de todo el equipo" : grupo ? `Grupo · ${c.grupo?.n_miembros ?? ""} personas${c.grupo?.departamento ? ` · ${c.grupo.departamento}` : ""}` : (c.persona?.puesto ?? "");
   return (
     <li>
       <button type="button" onClick={() => onAbrir(c)} aria-current={activa ? "true" : undefined}
         className={cx("flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-fondo focus-visible:bg-fondo", activa && "bg-azul/[0.07]")}>
         {global
           ? <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-amarillo text-tinta" aria-hidden><Users className="size-5" /></span>
-          : <Avatar nombre={c.titulo} className="!size-11" />}
+          : grupo ? <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-azul text-white" aria-hidden><Users className="size-5" /></span>
+            : <Avatar nombre={c.titulo} className="!size-11" />}
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <span className={cx("truncate text-sm text-tinta", c.no_leidos ? "font-semibold" : "font-medium")}>{c.titulo}</span>
@@ -42,7 +45,7 @@ function FilaConversacion({ c, usuarioId, activa, onAbrir }) {
   );
 }
 
-export default function PanelChats({ conversaciones, cargando, usuarioId, activaId, onAbrir, onPersona }) {
+export default function PanelChats({ conversaciones, cargando, usuarioId, activaId, onAbrir, onPersona, puedeCrearGrupos = false, onNuevoGrupo }) {
   const [texto, setTexto] = useState("");
   const [personas, setPersonas] = useState([]);
   const [estado, setEstado] = useState("listo"); // listo | cargando | error
@@ -69,7 +72,12 @@ export default function PanelChats({ conversaciones, cargando, usuarioId, activa
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      <div className="border-b border-linea p-3">
+      <div className="space-y-2 border-b border-linea p-3">
+        {puedeCrearGrupos && (
+          <button type="button" onClick={onNuevoGrupo} className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-azul/40 bg-azul/5 px-3 py-2 text-sm font-medium text-azul hover:bg-azul/10">
+            <Plus className="size-4" aria-hidden />Nuevo grupo
+          </button>
+        )}
         <label className="relative block">
           <span className="sr-only">Buscar un compañero o una conversación</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" aria-hidden />

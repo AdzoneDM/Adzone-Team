@@ -505,7 +505,18 @@ export const chatConversaciones = (signal) => api("/api/chat/conversaciones/", {
 export const chatAbrir = (persona) => api("/api/chat/conversaciones/", { method: "POST", body: { persona } });
 export const chatPersonas = (texto = "", signal) => api(`/api/chat/personas/${q({ q: texto })}`, { signal });
 export const chatMensajes = (conversacion, params = {}, signal) => api(`/api/chat/conversaciones/${conversacion}/mensajes/${q(params)}`, { signal });
-export const chatEnviar = (conversacion, texto) => api(`/api/chat/conversaciones/${conversacion}/mensajes/`, { method: "POST", body: { texto } });
+export const chatEnviar = (conversacion, texto, archivo = null) => {
+  if (!archivo) return api(`/api/chat/conversaciones/${conversacion}/mensajes/`, { method: "POST", body: { texto } });
+  const f = new FormData(); // con archivo (documento o imagen) el mensaje va como formulario
+  f.append("texto", texto || "");
+  f.append("archivo", archivo);
+  return api(`/api/chat/conversaciones/${conversacion}/mensajes/`, { method: "POST", body: f });
+};
+export const urlArchivoChat = (mensaje, descargar = false) => `/api/chat/mensajes/${mensaje}/archivo/${descargar ? "?descargar=1" : ""}`;
+export const chatGrupoCrear = (datos) => api("/api/chat/grupos/", { method: "POST", body: datos });
+export const chatGrupo = (id) => api(`/api/chat/grupos/${id}/`);
+export const chatGrupoEditar = (id, datos) => api(`/api/chat/grupos/${id}/`, { method: "PATCH", body: datos });
+export const chatGrupoEliminar = (id) => api(`/api/chat/grupos/${id}/`, { method: "DELETE" });
 export const chatBorrar = (id) => api(`/api/chat/mensajes/${id}/`, { method: "DELETE" });
 export const chatResumen = () => api("/api/chat/resumen/");
 export const chatLeido = (conversacion, hasta) => api(`/api/chat/conversaciones/${conversacion}/leido/`, { method: "POST", body: { hasta } });

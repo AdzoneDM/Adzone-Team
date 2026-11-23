@@ -2,10 +2,11 @@
 // En PC: tus chats a la izquierda y la conversación a la derecha (cambias de chat con un clic).
 // En celular: la lista y, al tocar una, la conversación a pantalla completa con flecha para volver.
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { ArrowLeft, MessageCircle, MessagesSquare, Users, X } from "lucide-react";
+import { ArrowLeft, Info, MessageCircle, MessagesSquare, Users, X } from "lucide-react";
 import { chatAbrir } from "@/lib/api";
 import { useSesion } from "@/lib/sesion";
 import { Avatar, cx } from "@/components/ui";
+import GrupoModal from "./GrupoModal";
 import PanelChats from "./PanelChats";
 import TiraChats from "./TiraChats";
 import VistaConversacion from "./VistaConversacion";
@@ -18,11 +19,13 @@ const LLAVE_CHAT = "adzone:chat";
 const leerChat = () => { try { return JSON.parse(sessionStorage.getItem(LLAVE_CHAT) || "null"); } catch { return null; } };
 const guardarChat = (v) => { try { if (v) sessionStorage.setItem(LLAVE_CHAT, JSON.stringify(v)); else sessionStorage.removeItem(LLAVE_CHAT); } catch { /* sin almacenamiento */ } };
 
-function Cabecera({ conv, titulo, onAtras, onCerrar, soloMovil, etiquetaAtras = "Todos los chats" }) {
+function Cabecera({ conv, titulo, onAtras, onCerrar, soloMovil, etiquetaAtras = "Todos los chats", onGrupo }) {
   const global = conv?.tipo === "GLOBAL";
+  const grupo = conv?.tipo === "GRUPO";
   const subtitulo = !conv ? "Tu equipo, en un solo lugar"
     : global ? "Conversación de todo el equipo"
-      : [conv.persona?.puesto, conv.persona?.departamento].filter(Boolean).join(" · ") || "Chat privado";
+      : grupo ? `Grupo · ${conv.grupo?.n_miembros ?? ""} personas${conv.grupo?.departamento ? ` · ${conv.grupo.departamento}` : ""}`
+        : [conv.persona?.puesto, conv.persona?.departamento].filter(Boolean).join(" · ") || "Chat privado";
   return (
     <header className={cx("flex shrink-0 items-center gap-2 bg-noche px-3 py-3 text-white", soloMovil && "sm:hidden")} style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
       {onAtras && (
@@ -32,11 +35,16 @@ function Cabecera({ conv, titulo, onAtras, onCerrar, soloMovil, etiquetaAtras = 
       )}
       {conv && (global
         ? <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amarillo text-tinta" aria-hidden><Users className="size-4" /></span>
-        : <Avatar nombre={conv.titulo} tam="sm" className="!bg-white/15 !text-white" />)}
+        : grupo ? <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white" aria-hidden><Users className="size-4" /></span>
+          : <Avatar nombre={conv.titulo} tam="sm" className="!bg-white/15 !text-white" />)}
       <div className={cx("min-w-0 flex-1", !conv && "pl-1")}>
         <h2 id={titulo} className="truncate font-display text-base font-semibold leading-tight !text-white">{conv ? conv.titulo : "Chat de Adzone"}</h2>
         <p className="truncate text-xs text-white/70">{subtitulo}</p>
       </div>
+      {grupo && onGrupo && (
+        <button type="button" onClick={onGrupo} aria-label={conv.grupo?.puede_gestionar ? "Administrar el grupo" : "Ver quién participa en el grupo"} title={conv.grupo?.puede_gestionar ? "Administrar el grupo" : "Participantes"}
+          className="rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"><Info className="size-5" aria-hidden /></button>
+      )}
       <button type="button" onClick={onCerrar} aria-label="Cerrar el chat" className="rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white">
         <X className="size-5" aria-hidden />
       </button>
@@ -51,7 +59,8 @@ export default function ChatFlotante() {
   const [conv, setConv] = useState(null); // conversación abierta a la derecha
   const [listaMovil, setListaMovil] = useState(false); // celular: lista completa con buscador (si no, la conversación con su tira)
   const [error, setError] = useState("");
-  const { conversaciones, noLeidos, cargando, error: errorLista, refrescar } = useConversaciones({ abierto, activo: !!usuario, usuarioId: usuario?.id, activaId: conv?.id });
+  const [modalGrupo, setModalGrupo] = useState(null); // null | 'nuevo' | 'ver' (el grupo abierto)
+  const { conversaciones, noLeidos, cargando, error: errorLista, refrescar, grupos } = useConversaciones({ abierto, activo: !!usuario, usuarioId: usuario?.id, activaId: conv?.id });
   const titulo = useId();
   const boton = useRef(null);
   const eligioAlgo = useRef(false);
@@ -123,14 +132,15 @@ export default function ChatFlotante() {
           <aside className={cx("min-h-0 w-full flex-col sm:flex sm:w-[290px] sm:shrink-0 sm:border-r sm:border-linea", listaMovil ? "flex" : "hidden")} aria-label="Conversaciones">
             <Cabecera conv={null} onCerrar={cerrar} onAtras={conv ? () => setListaMovil(false) : undefined} etiquetaAtras="Volver a la conversación" soloMovil />
             <div className="hidden bg-white px-4 pb-1 pt-4 sm:block"><p className="font-display text-lg font-semibold text-noche">Chats</p></div>
-            <PanelChats conversaciones={conversaciones} cargando={cargando} usuarioId={usuario.id} activaId={conv?.id} onAbrir={abrirConversacion} onPersona={abrirConPersona} />
+            <PanelChats conversaciones={conversaciones} cargando={cargando} usuarioId={usuario.id} activaId={conv?.id} onAbrir={abrirConversacion} onPersona={abrirConPersona}
+              puedeCrearGrupos={grupos.puedeCrear} onNuevoGrupo={() => setModalGrupo("nuevo")} />
           </aside>
 
           {/* Derecha: la conversación (en el celular, pantalla completa) */}
           <div className={cx("min-h-0 min-w-0 flex-1 flex-col sm:flex", listaMovil ? "hidden" : "flex")}>
             {conv ? (
               <>
-                <Cabecera conv={conv} titulo={titulo} onAtras={verLista} onCerrar={cerrar} />
+                <Cabecera conv={conv} titulo={titulo} onAtras={verLista} onCerrar={cerrar} onGrupo={() => setModalGrupo("ver")} />
                 <TiraChats conversaciones={conversaciones} activaId={conv.id} onAbrir={abrirConversacion} onTodos={verLista} />
                 {mensajeError && (
                   <div role="alert" className="flex shrink-0 items-center justify-between gap-2 bg-rojo-50 px-4 py-2 text-xs text-rojo">
@@ -151,6 +161,10 @@ export default function ChatFlotante() {
           </div>
         </section>
       )}
+      <GrupoModal abierto={!!modalGrupo} grupo={modalGrupo === "ver" ? conv : null} departamentos={grupos.departamentos} usuarioId={usuario.id}
+        onCerrar={() => setModalGrupo(null)}
+        onGuardado={(c) => { const nuevo = modalGrupo === "nuevo"; setModalGrupo(null); refrescar(); if (nuevo) abrirConversacion(c); else setConv((x) => (x ? { ...x, ...c } : x)); }}
+        onEliminado={() => { setModalGrupo(null); setConv(null); eligioAlgo.current = false; refrescar(); }} />
     </>
   );
 }

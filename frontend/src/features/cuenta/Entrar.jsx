@@ -1,7 +1,7 @@
 // Entrada principal: cada persona escribe su usuario (o correo) y su contraseña.
 // El directorio (clave general del equipo → área → persona → su contraseña) es solo para el
 // administrador: se abre desde «Entrar como administrador» y pide la clave general.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Eye, EyeOff, Users } from "lucide-react";
 import Marca from "@/components/Marca";
@@ -11,6 +11,8 @@ import { useSesion } from "@/lib/sesion";
 
 export default function Entrar() {
   const { login, verificarCodigo, avisoSesion } = useSesion();
+  // Pantalla de entrada limpia: sin rastros de la sesión anterior (qué pantalla tenía abierta, chat, avisos…) en este navegador
+  useEffect(() => { try { sessionStorage.clear(); } catch { /* sin almacenamiento */ } }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const [paso, setPaso] = useState("usuario"); // usuario | cargando | equipo | areas | personas | clave
@@ -102,11 +104,13 @@ function EnlaceAdmin({ onClick }) {
 }
 
 /** Campo de contraseña con botón para mostrarla. */
-function CampoClave({ id, valor, onCambio, autoFocus, autoComplete = "current-password" }) {
+function CampoClave({ id, valor, onCambio, autoFocus, autoComplete = "new-password" }) {
   const [ver, setVer] = useState(false);
   return (
     <div className="relative">
-      <input id={id} type={ver ? "text" : "password"} className="campo pr-11" autoComplete={autoComplete}
+      {/* «new-password» + las marcas de los gestores de contraseñas: el navegador no ofrece contraseñas guardadas ni propone guardar esta */}
+      <input id={id} name={`${id}-nuevo`} type={ver ? "text" : "password"} className="campo pr-11" autoComplete={autoComplete}
+        data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other"
         value={valor} onChange={(e) => onCambio(e.target.value)} autoFocus={autoFocus} />
       <button type="button" onClick={() => setVer((v) => !v)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-gris hover:text-azul"
         aria-label={ver ? "Ocultar contraseña" : "Mostrar contraseña"}>
@@ -152,7 +156,7 @@ function PasoEquipo({ configurada, onAbierto, onVolver }) {
       <Volver onClick={onVolver}>Volver</Volver>
       <h1 className="text-3xl font-semibold">Administrador</h1>
       <p className="mt-1 text-gris">Escribe la clave general del equipo ADZONE para abrir el directorio.</p>
-      <form onSubmit={(e) => { e.preventDefault(); enviar(() => !clave && "Escribe la clave del equipo."); }} className="mt-8 space-y-5" noValidate>
+      <form onSubmit={(e) => { e.preventDefault(); enviar(() => !clave && "Escribe la clave del equipo."); }} className="mt-8 space-y-5" noValidate autoComplete="off">
         {!configurada && <Alerta tono="amarillo">Todavía no hay clave del equipo. Un administrador debe definirla en «Mi cuenta».</Alerta>}
         {error && <Alerta>{error}</Alerta>}
         <div>
@@ -246,10 +250,8 @@ function PasoClave({ area, persona, onVolver, onEntrar }) {
           <p className="truncate text-gris">{persona.puesto}</p>
         </div>
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); enviar(() => !clave && "Escribe tu contraseña."); }} className="mt-8 space-y-5" noValidate>
+      <form onSubmit={(e) => { e.preventDefault(); enviar(() => !clave && "Escribe tu contraseña."); }} className="mt-8 space-y-5" noValidate autoComplete="off">
         {error && <Alerta>{error}</Alerta>}
-        {/* Para que el gestor de contraseñas del navegador la guarde a nombre de esta persona */}
-        <input type="text" name="username" autoComplete="username" value={persona.nombre} readOnly hidden />
         <div>
           <label htmlFor="clave" className="etiqueta">Tu contraseña</label>
           <CampoClave id="clave" valor={clave} onCambio={setClave} autoFocus />
@@ -299,11 +301,12 @@ function PasoUsuario({ onAdmin, onEntrar }) {
       <h1 className="text-3xl font-semibold">Entrar</h1>
       <p className="mt-1 text-gris">Entra con tu usuario o tu correo de ADZONE.</p>
       <form onSubmit={(e) => { e.preventDefault(); enviar(() => (!identificador.trim() || !clave) && "Escribe tu usuario (o correo) y tu contraseña."); }}
-        className="mt-8 space-y-5" noValidate>
+        className="mt-8 space-y-5" noValidate autoComplete="off">
         {error && <Alerta>{error}</Alerta>}
         <div>
           <label htmlFor="identificador" className="etiqueta">Usuario o correo</label>
-          <input id="identificador" name="identifier" className="campo" autoComplete="username" autoCapitalize="none"
+          <input id="identificador" name="identificador-entrada" className="campo" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+            data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other"
             value={identificador} onChange={(e) => setIdentificador(e.target.value)} autoFocus />
         </div>
         <div>

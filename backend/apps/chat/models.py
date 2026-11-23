@@ -1,19 +1,28 @@
-"""Chat: la sala global de la empresa y los chats privados de dos personas."""
+"""Chat: la sala global de la empresa, los chats privados de dos personas y los grupos por área."""
+import os
+import uuid
+
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 LIMITE_TEXTO = 2000
 
 
 class Conversacion(models.Model):
-    GLOBAL, DIRECTA = 'GLOBAL', 'DIRECTA'
-    TIPOS = [(GLOBAL, 'Sala de toda la empresa'), (DIRECTA, 'Chat privado')]
+    GLOBAL, DIRECTA, GRUPO = 'GLOBAL', 'DIRECTA', 'GRUPO'
+    TIPOS = [(GLOBAL, 'Sala de toda la empresa'), (DIRECTA, 'Chat privado'), (GRUPO, 'Grupo')]
     tipo = models.CharField(max_length=7, choices=TIPOS, default=DIRECTA)
     # Solo en los privados; siempre «a» es la persona con el id menor, así el par es único sin importar quién lo abrió.
     a = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='+')
     b = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='+')
     creado = models.DateTimeField(auto_now_add=True)
+    # Solo en los grupos: su nombre, el área a la que pertenecen (opcional), quién los creó y quiénes participan
+    nombre = models.CharField(max_length=80, blank=True)
+    departamento = models.ForeignKey('core.Departamento', on_delete=models.SET_NULL, null=True, blank=True, related_name='grupos_chat')
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    miembros = models.ManyToManyField(User, blank=True, related_name='grupos_chat')
     # Resumen de lo último que se escribió (evita consultar los mensajes para armar la lista)
     ultimo_id = models.BigIntegerField(default=0)
     ultimo_texto = models.CharField(max_length=140, blank=True)
@@ -25,23 +34,37 @@ class Conversacion(models.Model):
         verbose_name_plural = 'Conversaciones'
         constraints = [
             models.UniqueConstraint(fields=['a', 'b'], name='chat_par_unico'),
-            models.CheckConstraint(condition=Q(tipo='GLOBAL') | Q(a__isnull=False, b__isnull=False, a__lt=models.F('b')), name='chat_par_ordenado'),
+            models.CheckConstraint(condition=Q(tipo__in=['GLOBAL', 'GRUPO']) | Q(a__isnull=False, b__isnull=False, a__lt=models.F('b')), name='chat_par_ordenado'),
         ]
 
     def __str__(self):
+        if self.tipo == self.GRUPO:
+            return f'Grupo {self.nombre}'
         return 'Sala global' if self.tipo == self.GLOBAL else f'Privado {self.a_id}-{self.b_id}'
 
     def participa(self, usuario):
+        if self.tipo == self.GRUPO:
+            return self.miembros.filter(pk=usuario.id).exists()
         return self.tipo == self.GLOBAL or usuario.id in (self.a_id, self.b_id)
 
     def otro(self, usuario):
         return self.b if usuario.id == self.a_id else self.a
 
 
+def _ruta_archivo(instancia, nombre):
+    ext = os.path.splitext(nombre)[1].lower()[:10]
+    return f'chat/{timezone.localdate():%Y/%m}/{uuid.uuid4().hex}{ext}'
+
+
 class Mensaje(models.Model):
     conversacion = models.ForeignKey(Conversacion, on_delete=models.CASCADE, related_name='mensajes')
     autor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='mensajes_chat')
-    texto = models.TextField(max_length=LIMITE_TEXTO)
+    texto = models.TextField(max_length=LIMITE_TEXTO, blank=True)
+    # Un archivo adjunto (documento o imagen): el texto puede ir vacío si hay archivo
+    archivo = models.FileField(upload_to=_ruta_archivo, null=True, blank=True)
+    archivo_nombre = models.CharField(max_length=150, blank=True)
+    archivo_es_imagen = models.BooleanField(default=False)
+    archivo_tamano = models.PositiveIntegerField(default=0)
     creado = models.DateTimeField(auto_now_add=True, db_index=True)
     # Un mensaje borrado no se elimina de la base (queda constancia), pero deja de mostrar su texto.
     eliminado = models.BooleanField(default=False)

@@ -31,6 +31,7 @@ function useLatido(tarea, ms, activo = true, ocultoCada = 0) {
 export function useConversaciones({ abierto, activo, usuarioId, activaId }) {
   const [conversaciones, setConversaciones] = useState([]);
   const [noLeidos, setNoLeidos] = useState(0);
+  const [grupos, setGrupos] = useState({ puedeCrear: false, departamentos: [] }); // lo que puede hacer con grupos (lo decide el servidor)
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const previo = useRef(null);   // no leídos de la medición anterior (null = aún no hay)
@@ -55,6 +56,7 @@ export function useConversaciones({ abierto, activo, usuarioId, activaId }) {
       const r = await chatConversaciones();
       setConversaciones(r.conversaciones);
       setNoLeidos(r.no_leidos);
+      setGrupos({ puedeCrear: !!r.puede_crear_grupos, departamentos: r.departamentos || [] });
       // A la vista, la conversación abierta se lee en el acto (ya suena en su propia pantalla): no se cuenta aquí
       const propios = document.visibilityState === "visible" ? r.conversaciones.filter((c) => c.id !== activa.current) : r.conversaciones;
       medir(propios.reduce((n, c) => n + c.no_leidos, 0), r.conversaciones);
@@ -78,7 +80,7 @@ export function useConversaciones({ abierto, activo, usuarioId, activaId }) {
     } catch { /* sin conexión: se reintenta */ }
   }, CADA_CERRADO_MS, activo && !abierto, 2);
 
-  return { conversaciones, noLeidos, cargando, error, refrescar };
+  return { conversaciones, noLeidos, cargando, error, refrescar, grupos };
 }
 
 /** Mezcla por id (sin duplicar) y deja todo en orden. Un mensaje con el mismo id reemplaza al anterior (p. ej. al borrarse). */
@@ -149,10 +151,10 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
     }
   }, [conversacion, mensajes]);
 
-  const enviar = useCallback(async (texto) => {
+  const enviar = useCallback(async (texto, archivo = null) => {
     setEnviando(true);
     try {
-      aplicar([await chatEnviar(conversacion, texto)]);
+      aplicar([await chatEnviar(conversacion, texto, archivo)]);
       return true;
     } catch (e) {
       setError(e.message);

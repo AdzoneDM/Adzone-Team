@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, Trash2 } from "lucide-react";
+import { ArrowDown, Download, FileSpreadsheet, FileText, Trash2 } from "lucide-react";
+import { urlArchivoChat } from "@/lib/api";
 import { Avatar, cx } from "@/components/ui";
 
 const MINUTOS_AGRUPAR = 5;
@@ -24,6 +25,31 @@ function Texto({ texto }) {
     : <Fragment key={i}>{parte}</Fragment>));
 }
 
+const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
+
+/** Un archivo adjunto: la imagen se ve en el mensaje (y se abre en grande); un documento sale como tarjeta con su nombre, tamaño y descarga. */
+function Adjunto({ m, mio }) {
+  const a = m.archivo;
+  const abrir = urlArchivoChat(m.id), bajar = urlArchivoChat(m.id, true);
+  if (a.es_imagen) {
+    return (
+      <span className="group/img relative mb-1 block overflow-hidden rounded-2xl ring-1 ring-linea">
+        <a href={abrir} target="_blank" rel="noopener" aria-label={`Abrir ${a.nombre}`}><img src={abrir} alt={a.nombre} loading="lazy" className="max-h-56 max-w-full object-cover" /></a>
+        <a href={bajar} aria-label={`Descargar ${a.nombre}`} title="Descargar" className="absolute right-1.5 top-1.5 rounded-lg bg-white/90 p-1.5 text-tinta opacity-100 shadow hover:text-azul sm:opacity-0 sm:group-hover/img:opacity-100"><Download className="size-4" /></a>
+      </span>
+    );
+  }
+  const Icono = /\.(xlsx?|csv|ods)$/i.test(a.nombre) ? FileSpreadsheet : FileText;
+  return (
+    <a href={bajar} className={cx("mb-1 flex min-w-48 items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors", mio ? "bg-azul-700 text-white hover:bg-azul-700/90" : "bg-white text-tinta ring-1 ring-linea hover:bg-fondo")}
+      aria-label={`Descargar ${a.nombre}`}>
+      <span className={cx("flex size-10 shrink-0 items-center justify-center rounded-lg", mio ? "bg-white/15" : "bg-azul/10 text-azul")}><Icono className="size-5" aria-hidden /></span>
+      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{a.nombre}</span><span className={cx("block text-xs", mio ? "text-white/70" : "text-gris")}>{tamano(a.tamano)} · Descargar</span></span>
+      <Download className="size-4 shrink-0 opacity-70" aria-hidden />
+    </a>
+  );
+}
+
 function Burbuja({ m, mio, primero, privado, onBorrar }) {
   const [confirmar, setConfirmar] = useState(false);
   if (m.eliminado) {
@@ -43,10 +69,15 @@ function Burbuja({ m, mio, primero, privado, onBorrar }) {
               {confirmar ? "¿Borrar?" : <Trash2 className="size-3.5" aria-hidden />}
             </button>
           )}
-          <p className={cx("whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[14px] leading-snug",
-            mio ? "rounded-br-md bg-azul text-white" : "rounded-bl-md bg-white text-tinta shadow-sm ring-1 ring-linea")}>
-            <Texto texto={m.texto} />
-          </p>
+          <div className={cx("flex min-w-0 flex-col", mio ? "items-end" : "items-start")}>
+            {m.archivo && <Adjunto m={m} mio={mio} />}
+            {m.texto && (
+              <p className={cx("whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[14px] leading-snug",
+                mio ? "rounded-br-md bg-azul text-white" : "rounded-bl-md bg-white text-tinta shadow-sm ring-1 ring-linea")}>
+                <Texto texto={m.texto} />
+              </p>
+            )}
+          </div>
         </div>
         <time dateTime={m.creado} className="px-1 pt-0.5 text-[11px] text-gris">{hora(m.creado)}</time>
       </div>
@@ -103,7 +134,7 @@ export default function ListaMensajes({ mensajes, usuarioId, hayMas, cargando, p
         {!cargando && mensajes.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
             <p className="font-display text-base font-semibold text-tinta">Aún no hay mensajes</p>
-            <p className="mt-1 text-sm text-gris">{privado ? `Escribe el primero para saludar a ${nombreOtro}.` : "Escribe el primero para saludar al equipo."}</p>
+            <p className="mt-1 text-sm text-gris">{privado ? `Escribe el primero para saludar a ${nombreOtro}.` : "Escribe el primero para saludar al equipo."} También puedes adjuntar un documento o una imagen con el clip.</p>
           </div>
         )}
         {mensajes.map((m, i) => {
