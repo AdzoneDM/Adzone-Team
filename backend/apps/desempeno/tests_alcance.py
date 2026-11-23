@@ -39,7 +39,13 @@ class AlcanceTests(Base):
 
     def test_sin_el_permiso_un_gerente_sin_equipo_no_ve_a_nadie(self):
         self.assertEqual(list(equipo_gestionable(self.rebeca)), [])
+        # Sin «Asignar tareas a otras áreas» no puede asignarle a nadie fuera de su equipo (que está vacío)...
+        self.dar(self.rebeca, 'tareas.otras_areas', conceder=False)
         self.assertEqual(self.nueva(self.rebeca, self.erlin).status_code, 403)
+        # ...y con ese permiso (lo trae el perfil de gerente) sí puede pedirle un aporte a otra área
+        ExcepcionPermiso.objects.filter(usuario=self.rebeca, permiso='tareas.otras_areas').delete()
+        self.rebeca.__dict__.pop('_permisos_acceso', None)
+        self.assertEqual(self.nueva(self.rebeca, self.erlin).status_code, 201)
 
     def test_supervisar_a_toda_la_empresa(self):
         self.dar(self.rebeca, 'equipo.todos')
@@ -75,11 +81,12 @@ class AlcanceTests(Base):
         self.assertEqual(list(equipo_gestionable(self.ana, 'tareas.asignar')), [self.ana])
         self.como(self.ana)
         self.assertEqual([p['id'] for p in self.c.get('/api/desempeno/equipo/').json()], [self.ana.id])
-        # no se valida a sí misma, aunque se la haya asignado
+        # quien se asigna tareas también las valida (autovalidación), pero no devuelve ni reabre lo propio
         tid = r.json()['id']
         Tarea.objects.filter(pk=tid).update(estado='EN_REVISION', evidencia_nota='hecho')
         self.como(self.ana)
-        self.assertEqual(self.c.post(f'{T}{tid}/validar/', {'calificacion_calidad': 5, 'comentario_evaluacion': 'Yo'}, format='json').status_code, 403)
+        self.assertEqual(self.c.post(f'{T}{tid}/rechazar/', {'comentario_revision': 'rehacer todo'}, format='json').status_code, 403)
+        self.assertEqual(self.c.post(f'{T}{tid}/validar/', {'calificacion_calidad': 5, 'comentario_evaluacion': 'Yo'}, format='json').status_code, 200)
 
     def test_gerente_puede_asignarse_a_si_mismo_y_se_le_puede_quitar(self):
         self.assertEqual(self.nueva(self.vladi, self.vladi).status_code, 201)          # por defecto, por ser quien supervisa
