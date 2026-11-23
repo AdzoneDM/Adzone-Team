@@ -7,7 +7,7 @@ import { fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
 import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx, useAviso } from "@/components/ui";
 
 const MAX_LADO = 1600;
-const MAX_ARCHIVOS = 6;
+const MAX_ARCHIVOS = 10;
 const EXT_PERMITIDAS = /\.(jpe?g|png|webp|heic|heif|gif|pdf|mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i;
 export const esVideo = (f) => (f.type || "").startsWith("video/") || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i.test(f.name || "");
 const tamanoMB = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : b >= 10 * 1024 * 1024 ? `${Math.round(b / 1024 / 1024)} MB` : `${(b / 1024 / 1024).toFixed(1)} MB`);

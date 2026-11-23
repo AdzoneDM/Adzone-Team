@@ -19,6 +19,22 @@ function etiquetaDia(iso) {
 const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g;
 
 /** Texto con enlaces clicables. Se construye con elementos de React (nunca HTML), así que no hay inyección. */
+const LARGO = 1200; // más que esto se recorta con «Ver todo» (la conversación carga y se lee más rápido)
+
+/** Un mensaje largo: recortado al inicio; «Ver todo» lo despliega. */
+function TextoLargo({ texto }) {
+  const [abierto, setAbierto] = useState(false);
+  if (texto.length <= LARGO) return <Texto texto={texto} />;
+  return (
+    <>
+      <Texto texto={abierto ? texto : `${texto.slice(0, LARGO).trimEnd()}…`} />
+      <button type="button" onClick={() => setAbierto((a) => !a)} className="mt-1 block text-xs font-semibold underline underline-offset-2 opacity-90 hover:opacity-100">
+        {abierto ? "Ver menos" : `Ver todo (${Math.round(texto.length / 1000)} mil caracteres)`}
+      </button>
+    </>
+  );
+}
+
 function Texto({ texto }) {
   return texto.split(URL_RE).map((parte, i) => (i % 2 === 1
     ? <a key={i} href={parte} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2 break-all">{parte}</a>
@@ -87,7 +103,7 @@ function Burbuja({ m, mio, primero, privado, onBorrar }) {
             {m.texto && (
               <p className={cx("whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[14px] leading-snug",
                 mio ? "rounded-br-md bg-azul text-white" : "rounded-bl-md bg-white text-tinta shadow-sm ring-1 ring-linea")}>
-                <Texto texto={m.texto} />
+                <TextoLargo texto={m.texto} />
               </p>
             )}
           </div>

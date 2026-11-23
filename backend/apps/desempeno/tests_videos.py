@@ -31,6 +31,14 @@ class VideosTests(Base):
         self.assertEqual((ev['avance.mp4']['es_video'], ev['avance.mp4']['es_imagen']), (True, False))
         self.assertEqual((ev['captura.jpg']['es_video'], ev['captura.jpg']['es_imagen']), (False, True))
 
+    def test_se_entregan_varias_imagenes_a_la_vez(self):
+        t = self.tarea(self.erlin)
+        r = self.entregar(self.erlin, t, *[foto(f'foto{i}.jpg') for i in range(10)])
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(len(r.data['evidencias']), 10)
+        t2 = self.tarea(self.erlin)
+        self.assertEqual(self.entregar(self.erlin, t2, *[foto(f'f{i}.jpg') for i in range(11)]).status_code, 400)   # el tope es 10
+
     def test_formatos_de_video_del_celular_se_aceptan(self):
         for nombre in ('a.mov', 'b.m4v', 'c.webm', 'd.3gp'):
             self.assertEqual(self.entregar(self.erlin, self.tarea(self.erlin), video(nombre)).status_code, 200, nombre)

@@ -233,7 +233,7 @@ WHITENOISE_IMMUTABLE_FILE_TEST = _archivo_con_huella
 MEDIA_ROOT = Path(env('MEDIA_ROOT', str(BASE_DIR / 'media')))
 MEDIA_URL = '/media-privada/'
 EVIDENCIA_MAX_MB = int(env('EVIDENCIA_MAX_MB', '10'))
-EVIDENCIA_MAX_ARCHIVOS = 6
+EVIDENCIA_MAX_ARCHIVOS = int(env('EVIDENCIA_MAX_ARCHIVOS', '10'))  # fotos, videos o PDF por entrega, referencia o corrección
 # Un video pesa mucho más que una foto. Por defecto 60 MB: lo que cabe en el límite actual del nginx de Plesk (64 MB).
 # Para permitir videos más grandes, subir antes `client_max_body_size` del servidor y luego este valor (ver docs/DESPLIEGUE.md).
 EVIDENCIA_VIDEO_MAX_MB = int(env('EVIDENCIA_VIDEO_MAX_MB', '60'))

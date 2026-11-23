@@ -48,8 +48,12 @@ class SalaGlobalTests(Base):
 
     def test_validaciones(self):
         self.assertEqual(self.enviar(self.ana, self.sala.id, '   ').status_code, 400)
-        self.assertEqual(self.enviar(self.ana, self.sala.id, 'x' * 2001).status_code, 400)
-        self.assertEqual(Mensaje.objects.count(), 0)
+        self.assertEqual(self.enviar(self.ana, self.sala.id, 'x' * 20001).status_code, 400)
+        largo = ('Instrucciones del turno. ' * 800)[:20000]   # un mensaje largo, de unas 3 000 palabras, ya no se rechaza ni se recorta
+        r = self.enviar(self.ana, self.sala.id, largo)
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(len(r.data['texto']), len(largo.strip()))
+        self.assertEqual(Mensaje.objects.count(), 1)           # solo el largo; el vacío y el de 20 001 se rechazaron
 
     def test_limite_de_ritmo_por_persona_y_en_total(self):
         priv = self.privado(self.ana, self.luis)

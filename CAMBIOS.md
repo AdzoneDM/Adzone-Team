@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.39 · 23/11/2026 · Varias imágenes a la vez y mensajes de hasta 20 000 caracteres
+
+- **Chat con varios archivos:** el clip deja elegir **varias imágenes, videos o documentos de una vez** (hasta 10); también se pueden **pegar varias capturas con Ctrl + V** o **arrastrarlas**. Cada archivo se ve en una miniatura que se puede quitar, y se envía como su propio mensaje (el texto va con el primero). Si uno falla, lo que ya salió se queda enviado y lo que falta sigue en pantalla.
+- **Tareas:** en la entrega (evidencia), en las referencias y al asignar o devolver una tarea ya caben **hasta 10 archivos** por vez (antes 6) y se eligen varios juntos en el selector.
+- **Mensajes largos:** el límite del chat pasa de **2 000 a 20 000 caracteres** (unas 3 000 palabras): instrucciones, reportes o documentación completos. El texto no se pierde mientras se envía; la caja crece hasta casi media pantalla; cuando el mensaje es largo se muestra un contador de palabras y caracteres. Los mensajes de más de 1 200 caracteres se muestran recortados con **«Ver todo»** para que la conversación siga ágil.
+- Migración `chat.0007` (solo el límite del campo; la base de datos ya guardaba textos largos). El tope de archivos por tarea se puede cambiar con `EVIDENCIA_MAX_ARCHIVOS`.
+
 ## 12.38 · 23/11/2026 · Chat más grande con imágenes pegadas, validaciones que no se quedan colgadas
 
 - **Chat:** se puede **pegar una imagen o una captura de pantalla con Ctrl + V** (sin guardarla antes) o **arrastrarla** a la conversación. Aparece una vista previa grande con el botón «Cancelar» antes de enviar. Las capturas se nombran solas («captura-HHMMSS.png»). Igual que antes: fotos, videos y documentos con el clip.

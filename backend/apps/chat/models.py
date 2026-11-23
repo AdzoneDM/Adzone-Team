@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-LIMITE_TEXTO = 2000
+LIMITE_TEXTO = 20000  # caracteres por mensaje (unas 3 000 palabras); la columna es longtext, no hay tope de la base de datos
 
 
 class Conversacion(models.Model):
