@@ -294,3 +294,6 @@ location ~ / {
 ```
 
 y después poner `EVIDENCIA_VIDEO_MAX_MB=300` (u otro valor menor que 400) en el `stack.env` y reiniciar. Cuida el disco: cada video grande ocupa su tamaño hasta que pasan los días de conservación.
+
+
+**Hecho el 23/11/2026:** el nginx de Plesk de `kpi.adzone.marketing` ya tiene `client_max_body_size 400m` y los plazos de 600 s (archivo `vhost_nginx.conf` del dominio; copia anterior en `/root/vhost_nginx.conf.antes-300mb-*`), y el stack tiene `EVIDENCIA_VIDEO_MAX_MB=300` (el compose lo pasa al contenedor; copias anteriores en `/root/docker-compose.antes-300mb.yml` y `/root/stack.env.antes-300mb`). Para volver a 60 MB: restaurar esas copias, `nginx -t && systemctl reload nginx` y reiniciar `web` y `tareas` con `docker compose up -d --no-build --no-deps web tareas`.

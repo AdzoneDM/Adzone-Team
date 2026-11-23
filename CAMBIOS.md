@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.36 · 23/11/2026 · Videos de hasta 300 MB
+
+- Se subió el límite de carga del servidor web (nginx de Plesk: de 64 MB a 400 MB, con plazos de 10 minutos) y el de la aplicación: **cada video puede pesar hasta 300 MB** (tareas, referencias y chat). Nginx recibe el archivo completo antes de pasarlo a la aplicación, así una conexión lenta no ocupa un proceso. Probado con archivos de 350 MB (pasan hasta la aplicación) y de 450 MB (se rechazan con 413).
+- Cuida el espacio: el servidor tiene poco disco libre. Los videos de tareas se borran a los 7 días de validada la tarea y los del chat a los 14 (se cambian en Reglas del puntaje).
+
 ## 12.35 · 23/11/2026 · Referencias con video en «Mi equipo»: ya se ven al enviarlas
 
 - **Falla corregida:** en **Mi equipo → Tareas → detalle de la tarea → Referencias**, al enviar un archivo (boceto, imagen, PDF o video) el envío sí llegaba y a la persona le llegaba el aviso, pero la ventana **no se actualizaba** y parecía que no se había enviado nada. Ahora la referencia aparece al instante (y también al marcar un paso).
