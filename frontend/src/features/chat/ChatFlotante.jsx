@@ -2,7 +2,7 @@
 // En PC: tus chats a la izquierda y la conversación a la derecha (cambias de chat con un clic).
 // En celular: la lista y, al tocar una, la conversación a pantalla completa con flecha para volver.
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { ArrowLeft, Info, MessageCircle, MessagesSquare, Users, X } from "lucide-react";
+import { ArrowLeft, Info, MessageCircle, MessagesSquare, Upload, Users, X } from "lucide-react";
 import { chatAbrir } from "@/lib/api";
 import { useSesion } from "@/lib/sesion";
 import { Avatar, cx } from "@/components/ui";
@@ -66,6 +66,23 @@ export default function ChatFlotante() {
   const eligioAlgo = useRef(false);
 
   const cerrar = useCallback(() => { setAbierto(false); setConv(null); setListaMovil(false); eligioAlgo.current = false; guardarChat(null); boton.current?.focus(); }, []);
+  // Ocultarlo (al tocar fuera de la ventana): se cierra, pero al volver a abrirlo sigues en la misma conversación
+  const ocultar = useCallback(() => { setAbierto(false); setListaMovil(false); guardarChat(null); }, []);
+  const ventana = useRef(null);
+  const [arrastrando, setArrastrando] = useState(false); // se está arrastrando un archivo sobre la ventana
+  // Tocar o hacer clic en cualquier otro lado de la pantalla oculta el chat (en PC; en el celular ocupa toda la pantalla). No lo hacen las ventanas
+  // que se abren encima (confirmaciones, el modal del grupo, avisos): ahí el toque es de otra cosa.
+  useEffect(() => {
+    if (!abierto || !esEscritorio()) return undefined;
+    const fuera = (e) => {
+      const t = e.target;
+      if (!(t instanceof Element) || modalGrupo) return;
+      if (ventana.current?.contains(t) || boton.current?.contains(t) || t.closest('[role="dialog"], [role="alertdialog"], [role="alert"], [data-chat-ignorar]')) return;
+      ocultar();
+    };
+    document.addEventListener("pointerdown", fuera);
+    return () => document.removeEventListener("pointerdown", fuera);
+  }, [abierto, modalGrupo, ocultar]);
 
   // Recuerda el chat abierto y su conversación
   useEffect(() => { if (abierto) guardarChat({ conv: conv?.id ?? null }); }, [abierto, conv?.id]);
@@ -88,10 +105,10 @@ export default function ChatFlotante() {
   // Esc: en el celular, desde la lista completa vuelve a la conversación; en los demás casos cierra el chat
   useEffect(() => {
     if (!abierto) return undefined;
-    const tecla = (e) => { if (e.key === "Escape") (listaMovil && !esEscritorio() ? () => setListaMovil(false) : cerrar)(); };
+    const tecla = (e) => { if (e.key === "Escape" && !modalGrupo) (listaMovil && !esEscritorio() ? () => setListaMovil(false) : cerrar)(); }; // con el modal del grupo encima, Esc cierra solo el modal
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
-  }, [abierto, listaMovil, cerrar]);
+  }, [abierto, listaMovil, cerrar, modalGrupo]);
 
   // En el celular el chat ocupa toda la pantalla: la página de atrás no debe desplazarse
   useEffect(() => {
@@ -119,6 +136,17 @@ export default function ChatFlotante() {
   };
   abrirRef.current = abrirConPersona;
 
+  // Soltar archivos en cualquier parte de la ventana del chat: se adjuntan a la conversación abierta (sin esto el navegador abriría el archivo y saldrías de la plataforma)
+  const traeArchivos = (e) => Array.from(e.dataTransfer?.types || []).includes("Files");
+  const alArrastrar = (e) => { if (traeArchivos(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setArrastrando(true); } };
+  const alSoltar = (e) => {
+    if (!traeArchivos(e)) return;
+    e.preventDefault();
+    setArrastrando(false);
+    const archivos = Array.from(e.dataTransfer.files || []);
+    if (conv && !listaMovil && archivos.length) window.dispatchEvent(new CustomEvent("adzone:chat-soltar", { detail: { archivos } }));
+  };
+
   if (!usuario) return null;
   const n = noLeidos;
   const mensajeError = error || errorLista;
@@ -133,9 +161,19 @@ export default function ChatFlotante() {
       </button>
 
       {abierto && (
-        <section role="dialog" aria-modal="false" aria-labelledby={titulo}
+        <section ref={ventana} role="dialog" aria-modal="false" aria-labelledby={titulo}
+          onDragEnter={alArrastrar} onDragOver={alArrastrar} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setArrastrando(false); }} onDrop={alSoltar}
           className="fixed inset-0 z-50 flex bg-white sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(820px,calc(100dvh-3rem))] sm:w-[min(1080px,calc(100vw-3rem))] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-linea sm:shadow-2xl"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          {arrastrando && (
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-azul/10 p-6 text-center backdrop-blur-[1px]" aria-hidden>
+              <div className="rounded-2xl border-2 border-dashed border-azul bg-white/95 px-8 py-6 shadow-lg">
+                <Upload className="mx-auto size-8 text-azul" />
+                <p className="mt-2 font-display text-base font-semibold text-noche">{conv && !listaMovil ? "Suelta aquí para adjuntar" : "Abre una conversación y suéltalos ahí"}</p>
+                <p className="text-sm text-gris">Fotos, videos, documentos o ZIP; puedes soltar varios.</p>
+              </div>
+            </div>
+          )}
           {/* Izquierda: buscador y conversaciones (en el celular, solo cuando no hay una abierta) */}
           <aside className={cx("min-h-0 w-full flex-col sm:flex sm:w-[300px] sm:shrink-0 sm:border-r sm:border-linea", listaMovil ? "flex" : "hidden")} aria-label="Conversaciones">
             <Cabecera conv={null} onCerrar={cerrar} onAtras={conv ? () => setListaMovil(false) : undefined} etiquetaAtras="Volver a la conversación" soloMovil />

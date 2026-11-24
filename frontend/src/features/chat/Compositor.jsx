@@ -37,11 +37,14 @@ function Pieza({ archivo, onQuitar }) {
 
 /** Caja para escribir. Enter envía; Mayús+Enter hace un salto de línea. El clip adjunta (varios a la vez) documentos, imágenes o videos;
  *  también se pueden pegar con Ctrl + V o arrastrar a la conversación. */
-export default function Compositor({ enviando, progreso, onEnviar, autoFoco, participantes = [] }) {
-  const [texto, setTexto] = useState("");
+const leerBorrador = (c) => { try { return (c && sessionStorage.getItem(`adzone:borrador:${c}`)) || ""; } catch { return ""; } };
+const guardarBorrador = (c, t) => { try { if (!c) return; if (t) sessionStorage.setItem(`adzone:borrador:${c}`, t); else sessionStorage.removeItem(`adzone:borrador:${c}`); } catch { /* sin almacenamiento */ } };
+
+export default function Compositor({ enviando, progreso, onEnviar, autoFoco, participantes = [], clave }) {
+  const [texto, setTexto] = useState(() => leerBorrador(clave)); // el texto escrito se conserva si el chat se oculta sin querer
+  useEffect(() => { guardarBorrador(clave, texto); }, [clave, texto]);
   const [archivos, setArchivos] = useState([]);
   const [aviso, setAviso] = useState("");
-  const [arrastrando, setArrastrando] = useState(false);
   const ref = useRef(null);
   const entrada = useRef(null);
   const [cursor, setCursor] = useState(0);     // dónde está el cursor: la mención que se escribe es la que queda justo antes
@@ -83,6 +86,14 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco, par
     if (buenos.length) setArchivos(total.slice(0, MAX_ARCHIVOS));
     ref.current?.focus();
   };
+  // Los archivos que se sueltan en cualquier parte de la ventana del chat llegan aquí (ver ChatFlotante)
+  const aceptarRef = useRef(null);
+  aceptarRef.current = aceptar;
+  useEffect(() => {
+    const f = (e) => aceptarRef.current?.(e.detail?.archivos || []);
+    window.addEventListener("adzone:chat-soltar", f);
+    return () => window.removeEventListener("adzone:chat-soltar", f);
+  }, []);
   const elegir = (e) => {
     const lista = Array.from(e.target.files || []);
     e.target.value = "";
@@ -92,13 +103,6 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco, par
     const lista = Array.from(e.clipboardData?.files || []).filter((x) => x.size > 0);
     if (!lista.length) return; // texto normal: se pega como siempre
     e.preventDefault();
-    aceptar(lista);
-  };
-  const alSoltar = (e) => {
-    const lista = Array.from(e.dataTransfer?.files || []);
-    if (!lista.length) return;
-    e.preventDefault();
-    setArrastrando(false);
     aceptar(lista);
   };
 
@@ -149,8 +153,7 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco, par
   const cerca = texto.length > LIMITE * 0.8;
   const palabras = texto.trim() ? texto.trim().split(/\s+/).length : 0;
   return (
-    <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className={cx("border-t border-linea bg-white p-3 transition-colors", arrastrando && "bg-azul/5 ring-2 ring-inset ring-azul/40")}
-      onDragOver={(e) => { if (e.dataTransfer?.types?.includes("Files")) { e.preventDefault(); setArrastrando(true); } }} onDragLeave={() => setArrastrando(false)} onDrop={alSoltar}>
+    <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className="border-t border-linea bg-white p-3">
       {archivos.length > 0 && (
         <div className="mb-2 rounded-xl border border-linea bg-fondo p-2">
           <ul className="flex max-h-48 flex-wrap gap-3 overflow-y-auto p-1">

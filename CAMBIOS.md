@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.51 · 24/11/2026 · Chat: arrastrar archivos a cualquier parte y cerrar tocando fuera
+
+- **Soltar archivos en cualquier parte del chat:** ya no hace falta apuntar a la caja de escribir; se pueden **arrastrar fotos, videos, documentos o ZIP (varios a la vez)** sobre cualquier lugar de la ventana del chat (la lista de chats, el encabezado, los mensajes). Mientras se arrastra, la ventana muestra «Suelta aquí para adjuntar»; los archivos quedan con su vista previa y se envían con el mensaje. Si no hay una conversación abierta, avisa que primero hay que abrir una. Se siguen aplicando las mismas validaciones y límites (formato, tamaño, ZIP revisado).
+- **El chat se oculta al tocar cualquier otro lado de la pantalla** (además de la X), en computadora. Al volver a abrirlo sigues **en la misma conversación y con el texto que habías escrito** (el borrador se conserva por conversación). No se oculta si tocas dentro del chat ni cuando hay otra ventana encima (el modal del grupo, confirmaciones, avisos). En el celular el chat ocupa toda la pantalla, así que se cierra con la X o la flecha, como antes.
+- **Esc** ahora cierra solo el modal del grupo cuando está abierto (antes cerraba también el chat).
+- Solo cambios de pantalla: sin migraciones ni cambios en el servidor.
+
 ## 12.50 · 24/11/2026 · Chat: mensajes extensos más simples de leer
 
 - **«Ver todo»** (sin la cantidad de caracteres): el enlace de un mensaje largo ahora dice solo «Ver todo» y, abierto, «Ver menos».
