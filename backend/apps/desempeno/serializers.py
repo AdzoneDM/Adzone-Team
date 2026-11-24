@@ -6,6 +6,13 @@ from rest_framework import serializers
 
 from apps.core.archivos import EXTENSIONES_VIDEO, es_video
 
+# Documentos que se aceptan como evidencia o referencia (siempre se entregan como descarga, nunca se abren en el navegador)
+EXTENSIONES_DOCUMENTO = ('.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.csv', '.txt', '.zip')
+FIRMAS_DOCUMENTO = {  # el contenido debe corresponder a la extensión (no basta con el nombre)
+    '.doc': (b'\xd0\xcf\x11\xe0',), '.xls': (b'\xd0\xcf\x11\xe0',), '.ppt': (b'\xd0\xcf\x11\xe0',),
+    '.docx': (b'PK\x03\x04',), '.xlsx': (b'PK\x03\x04',), '.pptx': (b'PK\x03\x04',), '.odt': (b'PK\x03\x04',), '.ods': (b'PK\x03\x04',),
+}
+
 from .models import (
     ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
     PasoTarea, ResultadoKPI, Tarea, TareaRecurrente,
@@ -24,7 +31,12 @@ class EvidenciaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EvidenciaArchivo
-        fields = ['id', 'url', 'nombre_original', 'tipo', 'tamano', 'ronda', 'es_imagen', 'es_video', 'purgado', 'fecha']
+        fields = ['id', 'url', 'nombre_original', 'tipo', 'tamano', 'ronda', 'es_imagen', 'es_video', 'purgado', 'fecha', 'subido_por_nombre']
+
+    subido_por_nombre = serializers.SerializerMethodField()  # quién la adjuntó (y `fecha`: cuándo)
+
+    def get_subido_por_nombre(self, obj):
+        return _nombre(obj.subido_por) if obj.subido_por_id else None
 
     def get_url(self, obj):
         # Siempre por la API: revisa permisos antes de entregar el archivo.
@@ -258,13 +270,14 @@ class EntregaSerializer(serializers.Serializer):
     evidencia_enlace = serializers.URLField(required=False, allow_blank=True, max_length=500)
     archivos = serializers.ListField(child=serializers.FileField(), required=False, allow_empty=True)
 
-    EXTENSIONES = ('.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.pdf') + EXTENSIONES_VIDEO
+    # Fotos, PDF y videos, más documentos (Word, Excel, PowerPoint, OpenDocument, CSV, texto) y ZIP (revisado como en el chat)
+    EXTENSIONES = ('.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.pdf') + EXTENSIONES_VIDEO + EXTENSIONES_DOCUMENTO
 
     def validate_archivos(self, archivos):
         maximo = settings.EVIDENCIA_MAX_ARCHIVOS
         if len(archivos) > maximo:
             raise serializers.ValidationError(f"Como máximo {maximo} archivos por entrega.")
-        validar_tamano_y_tipo(archivos, "fotos, videos o PDF")
+        validar_tamano_y_tipo(archivos, "fotos, videos, PDF o documentos (Word, Excel, PowerPoint, CSV, texto o ZIP)")
         return archivos
 
     def validate(self, data):
@@ -287,14 +300,30 @@ MAX_REFERENCIAS_POR_TAREA = 30
 
 
 def validar_tamano_y_tipo(archivos, tipos):
-    """Fotos y PDF, hasta EVIDENCIA_MAX_MB; videos, hasta EVIDENCIA_VIDEO_MAX_MB (pesan mucho más)."""
+    """Fotos y PDF, hasta EVIDENCIA_MAX_MB; documentos (Word, Excel…), hasta EVIDENCIA_DOC_MAX_MB; videos, hasta EVIDENCIA_VIDEO_MAX_MB (pesan mucho más).
+    Un documento debe tener el contenido que dice su extensión, y un ZIP se revisa igual que en el chat (válido, sin ejecutables y con antivirus)."""
     for archivo in archivos:
-        if os.path.splitext(archivo.name)[1].lower() not in EntregaSerializer.EXTENSIONES:
+        ext = os.path.splitext(archivo.name)[1].lower()
+        if ext not in EntregaSerializer.EXTENSIONES:
             raise serializers.ValidationError(f"«{archivo.name}»: solo se aceptan {tipos}.")
         video = es_video(archivo.name, getattr(archivo, 'content_type', ''))
-        tope = settings.EVIDENCIA_VIDEO_MAX_MB if video else settings.EVIDENCIA_MAX_MB
+        documento = ext in EXTENSIONES_DOCUMENTO
+        tope = settings.EVIDENCIA_VIDEO_MAX_MB if video else settings.EVIDENCIA_DOC_MAX_MB if documento else settings.EVIDENCIA_MAX_MB
         if archivo.size > tope * 1024 * 1024:
             raise serializers.ValidationError(f"«{archivo.name}» pesa más de {tope} MB" + (" (para un video largo, súbelo a Drive y pega el enlace)." if video else "."))
+        if ext == '.zip':
+            from apps.chat.zips import revisar_zip
+            from rest_framework.exceptions import ValidationError as ErrorDRF
+            try:
+                revisar_zip(archivo)
+            except ErrorDRF as e:
+                raise serializers.ValidationError(f"«{archivo.name}»: {e.detail['archivo'][0]}")
+        elif ext in FIRMAS_DOCUMENTO:
+            archivo.seek(0)
+            cabeza = archivo.read(8)
+            archivo.seek(0)
+            if not any(cabeza.startswith(f) for f in FIRMAS_DOCUMENTO[ext]):
+                raise serializers.ValidationError(f"«{archivo.name}» no es un archivo {ext[1:].upper()} válido (aunque tenga ese nombre).")
 
 
 def validar_archivos_referencia(archivos):

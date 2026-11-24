@@ -182,3 +182,64 @@ def historial_tareas_view(request):
     pagina = min(pagina, paginas)
     filas = [_fila(t) for t in qs[(pagina - 1) * PAGINA:pagina * PAGINA]]
     return Response({'count': total, 'pagina': pagina, 'paginas': paginas, 'resultados': filas})
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Panel de estados: cuántas tareas hay en cada estado, con filtros. Cada persona ve solo las estadísticas de lo que ya puede ver.
+# ---------------------------------------------------------------------------------------------------------------------
+GRUPOS_ESTADO = {
+    'pendientes': Q(estado='PENDIENTE', rondas_revision=0),
+    'en_proceso': Q(estado='EN_PROGRESO', rondas_revision=0),
+    'devueltas': Q(estado__in=('PENDIENTE', 'EN_PROGRESO'), rondas_revision__gt=0),   # el supervisor las devolvió para corregir
+    'por_validar': Q(estado='EN_REVISION'),
+    'aprobadas': Q(estado='COMPLETADA'),
+    'bloqueadas': Q(estado='BLOQUEADA'),
+    'canceladas': Q(estado='CANCELADA'),
+}
+
+
+@api_view(['GET'])
+def resumen_tareas_view(request):
+    """?departamento &persona &asignador &estado=<grupo> &prioridad &desde &hasta (sobre la fecha límite). Devuelve conteos por estado,
+    por prioridad y por departamento de lo que la persona puede ver."""
+    from django.db.models import Count, F
+    p = request.query_params
+    hoy = timezone.localdate()
+    qs = _visibles(request.user)
+    if p.get('departamento'):
+        qs = qs.filter(colaborador__perfil__puesto_trabajo__departamento_id=p['departamento'])
+    if p.get('persona'):
+        qs = qs.filter(Q(colaborador_id=p['persona']) | Q(companeros__id=p['persona'])).distinct()
+    if p.get('asignador'):
+        qs = qs.filter(asignada_por_id=p['asignador'])
+    if p.get('prioridad'):
+        qs = qs.filter(prioridad=p['prioridad'])
+    if p.get('desde'):
+        qs = qs.filter(fecha_limite__gte=p['desde'])
+    if p.get('hasta'):
+        qs = qs.filter(fecha_limite__lte=p['hasta'])
+    if p.get('estado') == 'vencidas':
+        qs = qs.filter(estado__in=ABIERTAS, fecha_limite__lt=hoy)
+    elif p.get('estado') in GRUPOS_ESTADO:
+        qs = qs.filter(GRUPOS_ESTADO[p['estado']])
+    ids = list(qs.values_list('pk', flat=True))
+    base = Tarea.objects.filter(pk__in=ids)
+    conteos = {k: base.filter(q).count() for k, q in GRUPOS_ESTADO.items()}
+    conteos['total'] = len(ids)
+    conteos['vencidas'] = base.filter(estado__in=ABIERTAS, fecha_limite__lt=hoy).count()           # se cuentan además de su estado
+    conteos['a_tiempo'] = base.filter(estado='COMPLETADA', fecha_completada__lte=F('fecha_limite')).count()
+    conteos['fuera_de_plazo'] = base.filter(estado='COMPLETADA', fecha_completada__gt=F('fecha_limite')).count()
+    por_prioridad = dict(base.values_list('prioridad').annotate(n=Count('pk')))
+    deptos = {}
+    for dep, estado, limite in base.values_list('colaborador__perfil__puesto_trabajo__departamento__nombre', 'estado', 'fecha_limite'):
+        d = deptos.setdefault(dep or 'Sin departamento', {'departamento': dep or 'Sin departamento', 'total': 0, 'abiertas': 0, 'vencidas': 0, 'por_validar': 0, 'aprobadas': 0})
+        d['total'] += 1
+        if estado in ABIERTAS:
+            d['abiertas'] += 1
+            if limite < hoy:
+                d['vencidas'] += 1
+        elif estado == 'EN_REVISION':
+            d['por_validar'] += 1
+        elif estado == 'COMPLETADA':
+            d['aprobadas'] += 1
+    return Response({'conteos': conteos, 'por_prioridad': por_prioridad, 'por_departamento': sorted(deptos.values(), key=lambda x: -x['total']), 'hoy': hoy})

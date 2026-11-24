@@ -15,6 +15,7 @@ const Equipo = perezosa(() => import("@/features/equipo/Equipo"));
 const Colaboracion = perezosa(() => import("@/features/colaboracion/Colaboracion"));
 const Disponibilidad = perezosa(() => import("@/features/disponibilidad/Disponibilidad"));
 const HistorialTareas = perezosa(() => import("@/features/tareas/HistorialTareas"));
+const ResumenTareas = perezosa(() => import("@/features/tareas/ResumenTareas"));
 const Desempeno = perezosa(() => import("@/features/desempeno/Desempeno"));
 const KpisDelMes = perezosa(() => import("@/features/desempeno/KpisDelMes"));
 const Organigrama = perezosa(() => import("@/features/organizacion/Organigrama"));
@@ -110,6 +111,7 @@ export default function App() {
           <Route path="colaboracion" element={<Colaboracion />} />
           <Route path="disponibilidad" element={<Disponibilidad />} />
           <Route path="historial-tareas" element={<HistorialTareas />} />
+          <Route path="resumen-tareas" element={<ResumenTareas />} />
           <Route path="organigrama" element={<Organigrama />} />
           <Route path="mi-cuenta" element={<MiCuenta />} />
           <Route path="ordenes" element={<Ordenes />} />

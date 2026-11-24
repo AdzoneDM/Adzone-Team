@@ -74,6 +74,7 @@ export default function Equipo() {
   const colaborador = params.get("colaborador") || "";
   const estado = params.get("estado") || "";
   const vencidas = params.get("vencidas") === "1";
+  const asignadas = params.get("asignadas") === "1"; // solo las que yo asigné a otras personas
   const buscar = params.get("buscar") || "";
 
   useEffect(() => { if (params.get("nueva") === "1") { setForm({}); params.delete("nueva"); setParams(params, { replace: true }); } }, [params, setParams]);
@@ -82,9 +83,9 @@ export default function Equipo() {
   const cargar = useCallback((silencioso) => {
     if (silencioso !== true) setTareas(null);
     // Con una búsqueda de texto se mira en todas las tareas, de cualquier mes
-    listarTareas({ ambito: "equipo", mes: vencidas || buscar ? "" : mes, colaborador, estado, vencidas: vencidas ? "1" : "", buscar })
+    listarTareas({ ambito: "equipo", mes: vencidas || buscar ? "" : mes, colaborador, estado, vencidas: vencidas ? "1" : "", buscar, asignadas: asignadas ? "1" : "" })
       .then(setTareas).catch((e) => setError(e.message));
-  }, [mes, colaborador, estado, vencidas, buscar]);
+  }, [mes, colaborador, estado, vencidas, buscar, asignadas]);
   useEffect(() => { cargar(); }, [cargar, version]);
   useNovedades(useCallback(() => cargar(true), [cargar]));
   useEffect(() => { cargarEquipo().then(setGente).catch(() => {}); }, []);
@@ -155,6 +156,9 @@ export default function Equipo() {
             </select>
             <label className="flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm">
               <input type="checkbox" checked={vencidas} onChange={(e) => poner("vencidas", e.target.checked ? "1" : "")} className="accent-rojo" /> Solo vencidas
+            </label>
+            <label className="flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm" title="Las tareas que tú creaste y enviaste a otras personas, para darles seguimiento">
+              <input type="checkbox" checked={asignadas} onChange={(e) => poner("asignadas", e.target.checked ? "1" : "")} className="accent-azul" /> Las que yo asigné
             </label>
             {buscar && (
               <button type="button" onClick={() => poner("buscar", "")} className="flex h-11 items-center gap-2 rounded-full border border-azul/30 bg-azul/10 pl-4 pr-3 text-sm font-medium text-azul hover:bg-azul/15" aria-label={`Quitar la búsqueda «${buscar}»`}>

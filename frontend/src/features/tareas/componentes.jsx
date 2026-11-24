@@ -8,14 +8,16 @@ import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, Priorida
 
 const MAX_LADO = 1600;
 const MAX_ARCHIVOS = 10;
-const EXT_PERMITIDAS = /\.(jpe?g|png|webp|heic|heif|gif|pdf|mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i;
+const EXT_PERMITIDAS = /\.(jpe?g|png|webp|heic|heif|gif|pdf|mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g|doc|docx|xls|xlsx|ppt|pptx|odt|ods|csv|txt|zip)$/i;
+const esDocumento = (f) => /\.(doc|docx|xls|xlsx|ppt|pptx|odt|ods|csv|txt|zip)$/i.test(f.name || "");
+const ACEPTA = "image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.csv,.txt,.zip";
 export const esVideo = (f) => (f.type || "").startsWith("video/") || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i.test(f.name || "");
 const tamanoMB = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : b >= 10 * 1024 * 1024 ? `${Math.round(b / 1024 / 1024)} MB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 
 /** Qué le pasa a un archivo antes de subirlo (null = está bien): tipo permitido y peso (el video tiene su propio límite). */
 export function problemaDeArchivo(f) {
-  if (!EXT_PERMITIDAS.test(f.name || "")) return `«${f.name}»: solo se aceptan fotos, videos o PDF.`;
-  const tope = esVideo(f) ? limites.videoMB : MAX_FOTO_MB;
+  if (!EXT_PERMITIDAS.test(f.name || "")) return `«${f.name}»: solo se aceptan fotos, videos, PDF o documentos (Word, Excel, PowerPoint, CSV, texto o ZIP).`;
+  const tope = esVideo(f) ? limites.videoMB : /\.zip$/i.test(f.name) ? limites.zipMB : esDocumento(f) ? 15 : MAX_FOTO_MB;
   if (f.size > tope * 1024 * 1024) return `«${f.name}» pesa ${tamanoMB(f.size)} y el máximo es ${tope} MB${esVideo(f) ? ". Para un video largo, súbelo a Drive y pega el enlace" : ""}.`;
   return null;
 }
@@ -87,13 +89,13 @@ export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boce
   };
   return (
     <div>
-      <input ref={entrada} type="file" multiple accept="image/*,video/*,application/pdf" className="sr-only" onChange={elegir} tabIndex={-1} aria-hidden="true" />
+      <input ref={entrada} type="file" multiple accept={ACEPTA} className="sr-only" onChange={elegir} tabIndex={-1} aria-hidden="true" />
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => entrada.current?.click()} disabled={disabled || procesando || archivos.length >= max}
           className="inline-flex h-10 items-center gap-2 rounded-lg border border-dashed border-azul/50 bg-azul/5 px-3 text-sm font-medium text-azul hover:bg-azul/10 disabled:cursor-not-allowed disabled:opacity-50">
           <Paperclip className="size-4" aria-hidden />{procesando ? "Preparando…" : etiqueta}
         </button>
-        {archivos.length === 0 && <span className="text-xs text-gris">{ayuda ? `${ayuda} ` : ""}Imágenes, PDF o videos (hasta {limites.videoMB} MB).</span>}
+        {archivos.length === 0 && <span className="text-xs text-gris">{ayuda ? `${ayuda} ` : ""}Imágenes, PDF, documentos o videos (hasta {limites.videoMB} MB).</span>}
       </div>
       {aviso && <p role="alert" className="mt-1.5 text-xs text-rojo">{aviso}</p>}
       {archivos.length > 0 && (
@@ -317,10 +319,11 @@ export function Evidencias({ tarea, compacto }) {
                   <img src={e.url} alt={e.nombre_original || "Evidencia"} loading="lazy" className="aspect-square w-full object-cover" />
                 </button>
               ) : (
-                <a href={e.url} target="_blank" rel="noopener noreferrer" className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-linea bg-fondo p-2 text-center text-xs text-gris hover:text-azul">
-                  <FileText className="size-6" /><span className="line-clamp-2 break-all">{e.nombre_original}</span>
+                <a href={e.url} target="_blank" rel="noopener noreferrer" title={`${e.nombre_original}${e.subido_por_nombre ? ` · lo adjuntó ${e.subido_por_nombre}` : ""}`} className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-linea bg-fondo p-2 text-center text-xs text-gris hover:text-azul">
+                  <FileText className="size-6" /><span className="rounded bg-azul/10 px-1 text-[10px] font-bold uppercase text-azul">{(e.nombre_original || "").split(".").pop().slice(0, 5)}</span><span className="line-clamp-2 break-all">{e.nombre_original}</span>
                 </a>
               )}
+              {!compacto && e.subido_por_nombre && <p className="mt-0.5 truncate text-[11px] text-gris" title={e.fecha}>{e.subido_por_nombre} · {new Date(e.fecha).toLocaleDateString("es-DO", { day: "numeric", month: "short" })}</p>}
               {!compacto && rondas.length > 1 && <p className="mt-0.5 text-[11px] text-gris">Entrega {e.ronda + 1}</p>}
             </li>
           ))}
@@ -480,7 +483,7 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
           {(id) => <input id={id} className="campo" type="url" inputMode="url" value={enlace} onChange={(e) => setEnlace(e.target.value)} placeholder="https://" />}
         </Campo>
         <div>
-          <p className="etiqueta">Fotos, videos o PDF (opcional, hasta {MAX_ARCHIVOS})</p>
+          <p className="etiqueta">Fotos, videos, PDF o documentos (opcional, hasta {MAX_ARCHIVOS})</p>
           <div className="grid grid-cols-2 gap-2 md:flex">
             <Boton variante="secundario" icono={Camera} onClick={() => camara.current?.click()} className="md:hidden">Tomar foto</Boton>
             <Boton variante="secundario" icono={Video} onClick={() => camaraVideo.current?.click()} className="md:hidden">Grabar video</Boton>
@@ -489,7 +492,7 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
           <p className="mt-1.5 text-xs text-gris">Videos de hasta {limites.videoMB} MB (MP4, MOV o WEBM); para uno más largo, súbelo a Drive y pega el enlace. Se borran solos unos días después de que se valide la tarea; las fotos y los PDF se quedan.</p>
           <input ref={camara} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
           <input ref={camaraVideo} type="file" accept="video/*" capture="environment" className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
-          <input ref={galeria} type="file" accept="image/*,video/*,application/pdf" multiple className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
+          <input ref={galeria} type="file" accept={ACEPTA} multiple className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
           {archivos.length > 0 && (
             <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2">
               {archivos.map((a, i) => (

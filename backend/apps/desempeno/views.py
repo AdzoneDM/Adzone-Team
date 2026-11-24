@@ -83,6 +83,9 @@ class TareaViewSet(viewsets.ModelViewSet):
         elif ambito == 'por_validar':
             queryset = por_validar(queryset, user)
 
+        if params.get('asignadas') == '1':   # solo las que yo asigné a otras personas (para darles seguimiento)
+            queryset = queryset.filter(asignada_por=user).exclude(colaborador=user)
+
         if params.get('mes'):
             queryset = queryset.filter(fecha_limite__range=rango_del_mes(periodo_desde_mes(params['mes'])))
         if params.get('departamento'):

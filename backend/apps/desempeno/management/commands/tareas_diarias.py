@@ -14,6 +14,10 @@ class Command(BaseCommand):
         creadas = generar_recurrentes()
         avisos = avisar_por_vencer()
         bloqueadas = avisar_bloqueadas()
+        from apps.desempeno.servicios import avisar_vencidas
+        vencidas = avisar_vencidas()
+        if vencidas:
+            self.stdout.write(f'Tareas vencidas avisadas: {vencidas}.')
         from apps.automatizaciones.motor import revisar_vencimientos
         reglas = revisar_vencimientos()
         from apps.operaciones.servicios_ot import revisar_excepciones

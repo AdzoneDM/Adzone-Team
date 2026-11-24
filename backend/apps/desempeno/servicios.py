@@ -313,6 +313,27 @@ def pedir_trabajo(quien):
     return [nombre(j) for j in jefes]
 
 
+DIAS_AVISO_VENCIDA = 14   # solo se avisa de lo que venció hace poco (no de tareas viejas olvidadas)
+
+
+def avisar_vencidas(hoy=None):
+    """Una sola vez por tarea: avisa a quien la tiene que ya venció (y a quien la supervisa). Para el cron diario; devuelve cuántas avisó."""
+    hoy = hoy or timezone.localdate()
+    n = 0
+    tareas = Tarea.objects.filter(estado__in=('PENDIENTE', 'EN_PROGRESO'), fecha_limite__lt=hoy, fecha_limite__gte=hoy - timedelta(days=DIAS_AVISO_VENCIDA)
+                                  ).select_related('colaborador').prefetch_related('companeros')
+    for t in tareas:
+        if Notificacion.objects.filter(tarea=t, tipo='VENCE', titulo__startswith='Venció').exists():
+            continue
+        limite = f"{t.fecha_limite:%d/%m/%Y}"
+        avisar([t.colaborador, *t.companeros.all()], 'VENCE', f"Venció: {t.titulo}", f"Su fecha límite era el {limite}. Entrégala o pídele a tu supervisor una nueva fecha.",
+               tarea=t, enlace='/mis-tareas')
+        avisar([u for u in revisores_de_tarea(t) if u.pk != t.colaborador_id], 'VENCE', f"Vencida: {t.titulo}",
+               f"{nombre(t.colaborador)} no la entregó a tiempo (límite {limite}).", tarea=t, enlace=f'/equipo?colaborador={t.colaborador_id}')
+        n += 1
+    return n
+
+
 def purgar_videos(hoy=None):
     """Borra los videos (evidencias y referencias) de las tareas ya validadas, pasados `dias_conservar_videos` desde la validación.
     El archivo se elimina del disco (pesan mucho); la fila queda marcada para mostrar «se borró solo» y no perder el historial."""

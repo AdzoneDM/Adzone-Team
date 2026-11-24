@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.49 · 24/11/2026 · Requerimiento #8, etapa 1: seguimiento de tareas
+
+- **«Las que yo asigné»** (en *Mi equipo → Tareas*): un filtro que deja solo las tareas que tú creaste y enviaste a otras personas, para darles seguimiento (responsable, estado, fechas, comentarios y evidencias; se modifican con los permisos de siempre). Las demás vistas no cambian.
+- **Mis tareas:** dentro de «Por hacer», filtros **Todas / Vencidas / Devueltas para corregir** con su cantidad (aparecen cuando hay alguna).
+- **Resumen de tareas** (menú *Mi trabajo*): panel con cuántas tareas hay en cada estado (pendientes, en proceso, devueltas, por validar, aprobadas, vencidas, bloqueadas, canceladas), a tiempo y fuera de plazo, y desglose por departamento y prioridad. Filtros: departamento, colaborador, quién asigna, estado, prioridad y rango de fechas (por fecha límite; empieza en el mes actual). **Cada persona ve solo las estadísticas de lo que ya puede ver** (lo suyo, su equipo y lo que asignó; Dirección, todo). Los estados guardados no cambian: «Aprobada» = validada, «Por validar» = en revisión, «Devuelta» = en progreso con correcciones pedidas; «Vencida» se calcula por la fecha.
+- **Documentos en evidencias y referencias:** además de fotos, videos y PDF, ahora **Word, Excel, PowerPoint, OpenDocument, CSV, texto y ZIP**. Hasta 15 MB por documento; el contenido debe ser del tipo que dice su extensión (un «.docx» falso se rechaza); un **ZIP se revisa igual que en el chat** (válido, sin ejecutables y con antivirus). Se descargan siempre como archivo (nunca se abren en el navegador). Cada evidencia muestra **quién la adjuntó y cuándo**. Los PDF, fotos y videos funcionan igual que antes.
+- **Aviso de tareas vencidas:** una sola vez por tarea, a quien la tiene (y a quienes colaboran) y a quien la supervisa; solo de las que vencieron en los últimos 14 días (no de tareas viejas). Va en el cron diario.
+- Sin migraciones. 18 pruebas nuevas.
+
 ## 12.48 · 24/11/2026 · «Quién está libre» e historial de tareas
 
 - **Quién está libre** (menú *Mi trabajo*, para todas las personas y de **todos los departamentos**): tablero de disponibilidad, agrupado por departamento, con estados **Libre** (sin tareas abiertas), **Poca carga** (1 a 2), **Ocupado/a** (3 o más) y **No disponible hoy** (permiso o vacaciones aprobados). Cada persona muestra cuántas tareas abiertas tiene, las horas estimadas y su próxima entrega; **nunca de qué son** las tareas. Lo ya entregado que espera validación no cuenta como carga. Filtros por estado, departamento y búsqueda; se actualiza solo.

@@ -104,6 +104,7 @@ export default function MisTareas() {
   const [creando, setCreando] = useState(false); // nueva tarea para mí
   const [bloqueando, setBloqueando] = useState(null);
   const [disp, setDisp] = useState(null);
+  const [filtroHacer, setFiltroHacer] = useState("todas"); // dentro de «Por hacer»: todas, vencidas o devueltas para corregir
   const ver = params.get("ver") || "hacer";
   const abierta = params.get("tarea");
 
@@ -156,7 +157,13 @@ export default function MisTareas() {
   if (error) return <Alerta>{error}</Alerta>;
   if (!tareas || !resumen) return <Cargando />;
 
-  const lista = grupos[ver] || grupos.hacer;
+  const hoyStr = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Santo_Domingo" });
+  const esVencida = (t) => t.estado !== "BLOQUEADA" && t.fecha_limite < hoyStr;   // pasó su fecha límite sin entregarse
+  const esDevuelta = (t) => !!t.comentario_revision;                               // el supervisor la devolvió para corregir
+  const nVencidas = grupos.hacer.filter(esVencida).length;
+  const nDevueltas = grupos.hacer.filter(esDevuelta).length;
+  const base = grupos[ver] || grupos.hacer;
+  const lista = ver === "hacer" && filtroHacer === "vencidas" ? base.filter(esVencida) : ver === "hacer" && filtroHacer === "devueltas" ? base.filter(esDevuelta) : base;
   const soloBloqueadas = ver === "hacer" && lista.length > 0 && lista.every((t) => t.estado === "BLOQUEADA");
   const detalle = abierta ? tareas.find((t) => String(t.id) === abierta) : null;
 
@@ -187,11 +194,22 @@ export default function MisTareas() {
         {usuario.puede_autoasignar && <Boton icono={Plus} onClick={() => setCreando(true)} data-guia="tarea-propia" className="w-full md:w-auto">Nueva tarea para mí</Boton>}
       </div>
 
+      {ver === "hacer" && (nVencidas > 0 || nDevueltas > 0) && (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar lo que tienes por hacer">
+          {[["todas", "Todas", grupos.hacer.length, ""], ["vencidas", "Vencidas", nVencidas, "rojo"], ["devueltas", "Devueltas para corregir", nDevueltas, "amarillo"]].map(([k, texto, n, tono]) => (
+            <button key={k} type="button" aria-pressed={filtroHacer === k} onClick={() => setFiltroHacer(k)}
+              className={cx("flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors", filtroHacer === k ? "border-noche bg-noche text-white" : "border-linea bg-white text-tinta hover:bg-fondo")}>
+              {texto}<span className={cx("num rounded-full px-1.5 text-xs", filtroHacer === k ? "bg-white/20" : tono === "rojo" && n > 0 ? "bg-rojo-50 text-rojo" : tono === "amarillo" && n > 0 ? "bg-amarillo-50 text-[#8a5a00]" : "bg-fondo text-gris")}>{n}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {lista.length === 0 ? (
         <Vacio icono={ListChecks} accion={ver === "hacer" && <div className="flex flex-wrap justify-center gap-2">
           {usuario.puede_autoasignar && <Boton icono={Plus} onClick={() => setCreando(true)}>Nueva tarea para mí</Boton>}
           <Boton variante="acento" icono={Hand} onClick={pedir} cargando={pidiendo}>Pedir más trabajo</Boton></div>} titulo={
-          ver === "hacer" ? "No tienes tareas pendientes" : ver === "revision" ? "Nada esperando validación" : "Sin tareas validadas en ese mes"}>
+          ver === "hacer" ? (base.length > 0 ? "Nada con este filtro" : "No tienes tareas pendientes") : ver === "revision" ? "Nada esperando validación" : "Sin tareas validadas en ese mes"}>
           {ver === "hacer" ? (disp?.en_espera ? "Tu supervisor ya sabe que estás disponible. Mientras llega una tarea, registra tus actividades adicionales."
             : "Estás al día. Avísale a tu supervisor que puedes tomar más: quedas «en espera de asignación» hasta que te llegue una tarea.")
             : ver === "revision" ? "Lo que entregues queda aquí hasta que tu supervisor lo valide o te lo devuelva."

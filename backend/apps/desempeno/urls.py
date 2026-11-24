@@ -38,5 +38,6 @@ urlpatterns = [
     path('mi-disponibilidad/', views_equipo.mi_disponibilidad_view, name='mi_disponibilidad'),
     path('disponibilidad/', views_disponibilidad.disponibilidad_view, name='disponibilidad'),
     path('historial-tareas/', views_disponibilidad.historial_tareas_view, name='historial_tareas'),
+    path('resumen-tareas/', views_disponibilidad.resumen_tareas_view, name='resumen_tareas'),
     path('personas/', views_equipo.personas_view, name='personas_colaborar'),
 ]

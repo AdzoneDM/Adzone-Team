@@ -233,6 +233,7 @@ WHITENOISE_IMMUTABLE_FILE_TEST = _archivo_con_huella
 MEDIA_ROOT = Path(env('MEDIA_ROOT', str(BASE_DIR / 'media')))
 MEDIA_URL = '/media-privada/'
 EVIDENCIA_MAX_MB = int(env('EVIDENCIA_MAX_MB', '10'))
+EVIDENCIA_DOC_MAX_MB = int(env('EVIDENCIA_DOC_MAX_MB', '15'))   # documentos (Word, Excel, PowerPoint, CSV, texto) en evidencias y referencias
 # ZIP en el chat: tamaño máximo (el servidor tiene poco disco libre), antivirus (ClamAV del servidor por su socket) y ejecutables dentro del ZIP
 CHAT_ZIP_MAX_MB = int(env('CHAT_ZIP_MAX_MB', '50'))
 CHAT_ANTIVIRUS = env('CHAT_ANTIVIRUS', 'omitir' if DEBUG else 'exigir')   # «exigir»: sin antivirus, el ZIP se rechaza
