@@ -195,7 +195,7 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco, par
           <Paperclip className="size-5" aria-hidden />
         </button>
         <textarea ref={ref} value={texto} onChange={(e) => { setTexto(e.target.value); setCursor(e.target.selectionStart); setSel(0); setCerrada(false); }} onKeyDown={alTeclear} onKeyUp={(e) => setCursor(e.target.selectionStart)} onClick={(e) => setCursor(e.target.selectionStart)} onPaste={alPegar} rows={2} maxLength={LIMITE}
-          placeholder={archivos.length ? "Agrega un mensaje (opcional)…" : "Escribe un mensaje o pega imágenes (Ctrl + V)…"} aria-label="Mensaje" enterKeyHint="send"
+          placeholder={archivos.length ? "Agrega un mensaje…" : "Escribe un mensaje o pega imágenes (Ctrl + V)…"} aria-label="Mensaje" enterKeyHint="send"
           className="campo min-h-[3.25rem] flex-1 resize-none !py-2.5" />
         <button type="submit" disabled={!puedeEnviar} aria-label="Enviar mensaje"
           className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-azul text-white transition-colors hover:bg-azul-700 disabled:cursor-not-allowed disabled:opacity-40">

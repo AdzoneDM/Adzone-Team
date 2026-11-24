@@ -18,19 +18,34 @@ function etiquetaDia(iso) {
 
 const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g;
 
-/** Texto con enlaces clicables. Se construye con elementos de React (nunca HTML), así que no hay inyección. */
-const LARGO = 1200; // más que esto se recorta con «Ver todo» (la conversación carga y se lee más rápido)
+const ALTO_MAX = 288; // px (unas 15 líneas): un mensaje que no cabe en esta altura se muestra recortado, con «Ver todo»
 
-/** Un mensaje largo: recortado al inicio; «Ver todo» lo despliega. */
+/** Un mensaje que no cabe en la conversación: se ve su inicio, con un degradado al final que avisa que hay más, y «Ver todo» lo despliega completo
+ *  (con su formato y sus saltos de línea). Se mide por la altura real, así que también aplica a mensajes cortos con muchos renglones. */
 function TextoLargo({ texto, ...resto }) {
   const [abierto, setAbierto] = useState(false);
-  if (texto.length <= LARGO) return <Texto texto={texto} {...resto} />;
+  const [desborda, setDesborda] = useState(false);
+  const caja = useRef(null);
+  useLayoutEffect(() => {
+    const el = caja.current;
+    if (!el) return undefined;
+    const medir = () => setDesborda(el.scrollHeight > ALTO_MAX + 24); // un margen: no se recorta por unas pocas líneas de más
+    medir();
+    const o = new ResizeObserver(medir);
+    o.observe(el);
+    return () => o.disconnect();
+  }, [texto]);
+  const recortado = desborda && !abierto;
+  const degradado = "linear-gradient(to bottom, #000 70%, transparent)";
   return (
     <>
-      <Texto texto={abierto ? texto : `${texto.slice(0, LARGO).trimEnd()}…`} {...resto} />
-      <button type="button" onClick={() => setAbierto((a) => !a)} className="mt-1 block text-xs font-semibold underline underline-offset-2 opacity-90 hover:opacity-100">
-        {abierto ? "Ver menos" : `Ver todo (${Math.round(texto.length / 1000)} mil caracteres)`}
-      </button>
+      <span ref={caja} className="block" style={recortado ? { maxHeight: ALTO_MAX, overflow: "hidden", WebkitMaskImage: degradado, maskImage: degradado } : undefined}>
+        <Texto texto={texto} {...resto} />
+      </span>
+      {desborda && (
+        <button type="button" onClick={() => setAbierto((a) => !a)} aria-expanded={abierto}
+          className="mt-1 block text-xs font-semibold underline underline-offset-2 opacity-90 hover:opacity-100">{abierto ? "Ver menos" : "Ver todo"}</button>
+      )}
     </>
   );
 }
@@ -51,6 +66,7 @@ function Mencion({ token, menciones, yo, mio }) {
   );
 }
 
+/** Texto con enlaces clicables. Se construye con elementos de React (nunca HTML), así que no hay inyección. */
 function Texto({ texto, menciones = [], yo = null, mio = false }) {
   return texto.split(URL_RE).map((parte, i) => (i % 2 === 1
     ? <a key={i} href={parte} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2 break-all">{parte}</a>

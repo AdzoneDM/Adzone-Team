@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.50 · 24/11/2026 · Chat: mensajes extensos más simples de leer
+
+- **«Ver todo»** (sin la cantidad de caracteres): el enlace de un mensaje largo ahora dice solo «Ver todo» y, abierto, «Ver menos».
+- **Presentación unificada y más clara:** todo mensaje que no cabe en la conversación (unas 15 líneas) se muestra recortado con un **degradado al final** que avisa que hay más. Antes se recortaba por cantidad de caracteres, y un mensaje corto con muchos renglones ocupaba media pantalla; ahora se mide por la **altura real**, así que también se recorta. Al desplegar se ve completo, con sus saltos de línea y menciones; un mensaje corto no lleva botón.
+- **«Opcional» redundante, fuera del chat:** el cuadro de escribir al adjuntar archivos dice «Agrega un mensaje…» (no «… (opcional)») y la etiqueta «Área (opcional)» al crear un grupo pasó a «Área» (su ayuda ya explica para qué sirve).
+- Solo cambios de pantalla: sin migraciones ni cambios en el servidor.
+
 ## 12.49 · 24/11/2026 · Requerimiento #8, etapa 1: seguimiento de tareas
 
 - **«Las que yo asigné»** (en *Mi equipo → Tareas*): un filtro que deja solo las tareas que tú creaste y enviaste a otras personas, para darles seguimiento (responsable, estado, fechas, comentarios y evidencias; se modifican con los permisos de siempre). Las demás vistas no cambian.

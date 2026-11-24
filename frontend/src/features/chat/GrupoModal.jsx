@@ -69,7 +69,7 @@ export default function GrupoModal({ abierto, grupo, departamentos, usuarioId, o
         {puedeGestionar && (
           <>
             <Campo etiqueta="Nombre del grupo">{(id) => <input id={id} className="campo" value={nombre} maxLength={80} onChange={(e) => setNombre(e.target.value)} placeholder="Tecnología, Marketing, Gerencia…" autoComplete="off" />}</Campo>
-            <Campo etiqueta="Área (opcional)" ayuda={nuevo ? "Si eliges un área, entra todo su personal activo. Además puedes sumar a otras personas." : "El área solo sirve para identificar el grupo; las personas se cambian abajo."}>
+            <Campo etiqueta="Área" ayuda={nuevo ? "Si eliges un área, entra todo su personal activo. Además puedes sumar a otras personas." : "El área solo sirve para identificar el grupo; las personas se cambian abajo."}>
               {(id) => (
                 <select id={id} className="campo" value={area} onChange={(e) => setArea(e.target.value)}>
                   <option value="">Sin área: solo las personas que elija</option>
