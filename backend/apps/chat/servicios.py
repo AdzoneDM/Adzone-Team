@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import timedelta
 
 from django.contrib.auth.models import User
@@ -211,11 +212,41 @@ def lectores(conv, yo):
     return leyeron, len(activos)
 
 
+MENCION = re.compile(r'(?<![\w.@])@([\w.\-]+)')
+
+
+def menciones_de(texto, conv, autor):
+    """A quién se mencionó con @usuario: solo personas que participan en la conversación (nunca se avisa ni se revela a quien no está en ella).
+    Devuelve [{'id', 'username', 'nombre'}] sin repetir y sin contar al autor."""
+    nombres = {m.rstrip('.-').lower() for m in MENCION.findall(texto or '')}
+    nombres.discard('')
+    if not nombres:
+        return []
+    gente = [u for u in participantes_activos(conv) if u.username.lower() in nombres and u.pk != autor.pk]
+    return [{'id': u.pk, 'username': u.username, 'nombre': u.get_full_name() or u.username} for u in gente]
+
+
+def avisar_menciones(mensaje):
+    """Guarda a quién mencionó el mensaje y le llega el aviso de «te mencionó» (campanita y notificación del celular)."""
+    from apps.desempeno.servicios import avisar
+    lista = menciones_de(mensaje.texto, mensaje.conversacion, mensaje.autor)
+    if not lista:
+        return []
+    mensaje.menciones = lista
+    mensaje.save(update_fields=['menciones'])
+    c = mensaje.conversacion
+    donde = c.nombre if c.tipo == Conversacion.GRUPO else ('el chat de la empresa' if c.tipo == Conversacion.GLOBAL else 'un chat privado')
+    quien = mensaje.autor.get_full_name() or mensaje.autor.username
+    avisar(list(User.objects.filter(pk__in=[m['id'] for m in lista])), 'MENCION', f'{quien} te mencionó en {donde}', mensaje.texto[:300], enlace='/')
+    return lista
+
+
 def persona(u):
     perfil = getattr(u, 'perfil', None)
     puesto = getattr(perfil, 'puesto_trabajo', None)
     return {
         'id': u.id,
+        'usuario': u.username,
         'nombre': u.get_full_name() or u.username,
         'puesto': puesto.nombre if puesto else '',
         'departamento': puesto.departamento.nombre if puesto and puesto.departamento_id else '',

@@ -22,12 +22,12 @@ const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g;
 const LARGO = 1200; // más que esto se recorta con «Ver todo» (la conversación carga y se lee más rápido)
 
 /** Un mensaje largo: recortado al inicio; «Ver todo» lo despliega. */
-function TextoLargo({ texto }) {
+function TextoLargo({ texto, ...resto }) {
   const [abierto, setAbierto] = useState(false);
-  if (texto.length <= LARGO) return <Texto texto={texto} />;
+  if (texto.length <= LARGO) return <Texto texto={texto} {...resto} />;
   return (
     <>
-      <Texto texto={abierto ? texto : `${texto.slice(0, LARGO).trimEnd()}…`} />
+      <Texto texto={abierto ? texto : `${texto.slice(0, LARGO).trimEnd()}…`} {...resto} />
       <button type="button" onClick={() => setAbierto((a) => !a)} className="mt-1 block text-xs font-semibold underline underline-offset-2 opacity-90 hover:opacity-100">
         {abierto ? "Ver menos" : `Ver todo (${Math.round(texto.length / 1000)} mil caracteres)`}
       </button>
@@ -35,10 +35,28 @@ function TextoLargo({ texto }) {
   );
 }
 
-function Texto({ texto }) {
+/** Un @usuario que el servidor reconoció como mención: se ve como «@Nombre» resaltado (más fuerte si te mencionaron a ti). */
+function Mencion({ token, menciones, yo, mio }) {
+  const limpio = token.slice(1).replace(/[.-]+$/, "");
+  const sobra = token.slice(1 + limpio.length);
+  const m = menciones.find((x) => x.username.toLowerCase() === limpio.toLowerCase());
+  if (!m) return token;
+  const soyYo = m.id === yo;
+  return (
+    <>
+      <span title={`${m.nombre} (@${m.username})`}
+        className={cx("rounded px-1 font-semibold", soyYo ? "bg-amarillo text-tinta" : mio ? "bg-white/20 text-white" : "bg-azul/10 text-azul")}>@{m.nombre.split(" ")[0]}</span>
+      {sobra}
+    </>
+  );
+}
+
+function Texto({ texto, menciones = [], yo = null, mio = false }) {
   return texto.split(URL_RE).map((parte, i) => (i % 2 === 1
     ? <a key={i} href={parte} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2 break-all">{parte}</a>
-    : <Fragment key={i}>{parte}</Fragment>));
+    : <Fragment key={i}>{menciones.length
+      ? parte.split(/((?<![\w.@])@[\w.-]+)/g).map((p, j) => (j % 2 === 1 ? <Mencion key={j} token={p} menciones={menciones} yo={yo} mio={mio} /> : p))
+      : parte}</Fragment>));
 }
 
 const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
@@ -115,7 +133,7 @@ function Visto({ m, lectores, privado, detalle }) {
   );
 }
 
-function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio }) {
+function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo }) {
   const [confirmar, setConfirmar] = useState(false);
   if (m.eliminado) {
     return <p className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : privado ? "" : "pl-10")}>Mensaje eliminado</p>;
@@ -139,7 +157,7 @@ function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio }) {
             {m.texto && (
               <p className={cx("whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[14px] leading-snug",
                 mio ? "rounded-br-md bg-azul text-white" : "rounded-bl-md bg-white text-tinta shadow-sm ring-1 ring-linea")}>
-                <TextoLargo texto={m.texto} />
+                <TextoLargo texto={m.texto} menciones={m.menciones || []} yo={yo} mio={mio} />
               </p>
             )}
           </div>
@@ -216,7 +234,7 @@ export default function ListaMensajes({ mensajes, lectores = { lista: [], total:
           return (
             <Fragment key={m.id}>
               {nuevoDia && <p className="my-3 text-center text-xs font-medium capitalize text-gris">{dia}</p>}
-              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} lectores={lectores} ultimoMio={m.id === ultimoPropio} />
+              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} lectores={lectores} ultimoMio={m.id === ultimoPropio} yo={usuarioId} />
             </Fragment>
           );
         })}

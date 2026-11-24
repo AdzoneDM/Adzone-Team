@@ -66,6 +66,8 @@ class Mensaje(models.Model):
     archivo_es_imagen = models.BooleanField(default=False)
     archivo_tamano = models.PositiveIntegerField(default=0)
     archivo_purgado = models.BooleanField(default=False, help_text="El video o ZIP ya se borró (limpieza automática de archivos pesados del chat).")
+    # A quién se mencionó con @usuario (solo participantes de la conversación): [{'id', 'username', 'nombre'}]
+    menciones = models.JSONField(default=list, blank=True)
     # Solo ZIP: cuántos archivos trae y si el antivirus lo revisó (LIMPIO) o no (NO_REVISADO: ambiente de desarrollo)
     archivo_items = models.PositiveIntegerField(null=True, blank=True)
     archivo_escaneo = models.CharField(max_length=12, blank=True, default='')

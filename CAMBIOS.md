@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.47 · 24/11/2026 · Mencionar con @ en el chat
+
+- **Etiquetar personas en el chat de grupo** (y en la sala de la empresa): al escribir `@` y unas letras (por ejemplo `@bas`) aparece la lista de personas del grupo cuyo **nombre, usuario o puesto** lo contiene (las que empiezan con eso, primero). Se elige con el ratón, o con **↑ ↓ y Enter/Tab**; **Esc** cierra solo la lista.
+- **En el mensaje** la mención se ve resaltada como «@Nombre» (más fuerte para quien fue mencionado); al pasar el cursor muestra el nombre completo y el usuario.
+- **Aviso:** a cada persona mencionada le llega «X te mencionó en <grupo>» en la campanita y como notificación del celular. Solo se mencionan **participantes de la conversación**: etiquetar a alguien que no está en el grupo no le avisa ni se revela. No distingue mayúsculas, no repite avisos si se menciona dos veces y un correo (`ana@empresa.com`) no cuenta como mención. Un mensaje borrado deja de mostrar a quién mencionaba.
+- Migración `chat.0009` (campo `menciones` del mensaje). 9 pruebas nuevas.
+
 ## 12.46 · 24/11/2026 · Tecnología recibe tareas de todas las jefaturas
 
 - **Corrección:** Enmanuel, Óscar, Omar, Danny y las demás jefaturas **no podían asignarle tareas a nadie de Tecnología**: los 4 integrantes del área tienen perfil de Dirección y la regla de «tareas entre áreas» (12.42) excluye a Dirección. Ahora **Tecnología es un «área de servicio»**: cualquier persona que pueda asignar tareas (supervisores y gerentes, no solo quienes tienen «Asignar tareas a otras áreas») puede pedirle trabajo a **cualquier integrante de Tecnología, incluidos los que tienen perfil de Dirección**.

@@ -37,13 +37,17 @@ function Pieza({ archivo, onQuitar }) {
 
 /** Caja para escribir. Enter envía; Mayús+Enter hace un salto de línea. El clip adjunta (varios a la vez) documentos, imágenes o videos;
  *  también se pueden pegar con Ctrl + V o arrastrar a la conversación. */
-export default function Compositor({ enviando, progreso, onEnviar, autoFoco }) {
+export default function Compositor({ enviando, progreso, onEnviar, autoFoco, participantes = [] }) {
   const [texto, setTexto] = useState("");
   const [archivos, setArchivos] = useState([]);
   const [aviso, setAviso] = useState("");
   const [arrastrando, setArrastrando] = useState(false);
   const ref = useRef(null);
   const entrada = useRef(null);
+  const [cursor, setCursor] = useState(0);     // dónde está el cursor: la mención que se escribe es la que queda justo antes
+  const [sel, setSel] = useState(0);           // sugerencia resaltada
+  const [cerrada, setCerrada] = useState(false); // Esc cierra la lista hasta que se siga escribiendo
+  const caretPendiente = useRef(null);
 
   useEffect(() => { if (autoFoco) ref.current?.focus(); }, [autoFoco]);
 
@@ -112,7 +116,33 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco }) {
     ref.current?.focus();
   };
 
+  // Mención en curso: «@bas» justo antes del cursor → personas cuyo nombre, usuario o puesto lo contienen (las que empiezan con eso, primero)
+  const sinTilde = (t) => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const consulta = (() => { const m = /(^|\s)@([\w.-]*)$/.exec(texto.slice(0, cursor)); return m ? sinTilde(m[2]) : null; })();
+  const sugeridos = consulta == null || cerrada ? [] : participantes
+    .map((p) => ({ p, c: [p.nombre, p.usuario, p.puesto].map(sinTilde) }))
+    .filter(({ c }) => c.some((x) => x.includes(consulta)))
+    .sort((a, b) => Number(b.c[0].startsWith(consulta) || b.c[1].startsWith(consulta)) - Number(a.c[0].startsWith(consulta) || a.c[1].startsWith(consulta)))
+    .slice(0, 6).map(({ p }) => p);
+  const mencionar = (p) => {
+    const antes = texto.slice(0, cursor).replace(/@([\w.-]*)$/, `@${p.usuario} `);
+    caretPendiente.current = antes.length;
+    setTexto(antes + texto.slice(cursor));
+    setCursor(antes.length);
+    setSel(0);
+    ref.current?.focus();
+  };
+  useEffect(() => {
+    if (caretPendiente.current != null && ref.current) { ref.current.setSelectionRange(caretPendiente.current, caretPendiente.current); caretPendiente.current = null; }
+  });
+
   const alTeclear = (e) => {
+    if (sugeridos.length) {
+      if (e.key === "ArrowDown") { e.preventDefault(); return setSel((s) => (s + 1) % sugeridos.length); }
+      if (e.key === "ArrowUp") { e.preventDefault(); return setSel((s) => (s - 1 + sugeridos.length) % sugeridos.length); }
+      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); return mencionar(sugeridos[Math.min(sel, sugeridos.length - 1)]); }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); return setCerrada(true); } // cierra solo la lista, no el chat
+    }
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); enviar(); }
   };
 
@@ -132,6 +162,21 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco }) {
           </p>
         </div>
       )}
+      {sugeridos.length > 0 && (
+        <ul className="mb-2 overflow-hidden rounded-xl border border-linea bg-white shadow-lg" role="listbox" aria-label="Mencionar a una persona">
+          <li className="border-b border-linea-suave bg-fondo/70 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-gris">Mencionar · le llega un aviso</li>
+          {sugeridos.map((p, i) => (
+            <li key={p.id} role="option" aria-selected={i === sel}>
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); mencionar(p); }} onMouseEnter={() => setSel(i)}
+                className={cx("flex w-full items-center gap-2.5 px-3 py-2 text-left", i === sel ? "bg-azul/10" : "hover:bg-fondo")}>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-azul/10 text-xs font-semibold text-azul" aria-hidden>{(p.nombre || "?").split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase()}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-tinta">{p.nombre}</span><span className="block truncate text-xs text-gris">{p.puesto || p.departamento || ""}</span></span>
+                <span className="shrink-0 text-xs text-gris">@{p.usuario}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {aviso && <p role="alert" className="mb-2 text-xs text-rojo">{aviso}</p>}
       {progreso && (
         <div className="mb-2 rounded-xl border border-azul/30 bg-azul/5 px-3 py-2" role="status" aria-live="polite">
@@ -149,7 +194,7 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco }) {
           className={cx("flex size-10 shrink-0 items-center justify-center rounded-lg text-gris transition-colors hover:bg-fondo hover:text-azul disabled:opacity-40", archivos.length > 0 && "text-azul")}>
           <Paperclip className="size-5" aria-hidden />
         </button>
-        <textarea ref={ref} value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={alTeclear} onPaste={alPegar} rows={2} maxLength={LIMITE}
+        <textarea ref={ref} value={texto} onChange={(e) => { setTexto(e.target.value); setCursor(e.target.selectionStart); setSel(0); setCerrada(false); }} onKeyDown={alTeclear} onKeyUp={(e) => setCursor(e.target.selectionStart)} onClick={(e) => setCursor(e.target.selectionStart)} onPaste={alPegar} rows={2} maxLength={LIMITE}
           placeholder={archivos.length ? "Agrega un mensaje (opcional)…" : "Escribe un mensaje o pega imágenes (Ctrl + V)…"} aria-label="Mensaje" enterKeyHint="send"
           className="campo min-h-[3.25rem] flex-1 resize-none !py-2.5" />
         <button type="submit" disabled={!puedeEnviar} aria-label="Enviar mensaje"

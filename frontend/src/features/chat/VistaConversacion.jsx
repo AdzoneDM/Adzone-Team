@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { chatGrupo, chatPersonas } from "@/lib/api";
 import Compositor from "./Compositor";
 import ListaMensajes from "./ListaMensajes";
 import { useMensajes } from "./useChat";
@@ -5,6 +7,15 @@ import { useMensajes } from "./useChat";
 /** Una conversación abierta. Se monta con `key` = id para empezar limpia en cada una. */
 export default function VistaConversacion({ conversacion, usuarioId, alLeer }) {
   const chat = useMensajes(conversacion.id, { alLeer, usuarioId });
+  // A quién se puede mencionar con @: los miembros del grupo, o todo el equipo en la sala de la empresa (en un chat privado no hace falta)
+  const [participantes, setParticipantes] = useState([]);
+  useEffect(() => {
+    let vivo = true;
+    const poner = (l) => vivo && setParticipantes((l || []).filter((p) => p.usuario && p.id !== usuarioId));
+    if (conversacion.tipo === "GRUPO") chatGrupo(conversacion.id).then((r) => poner(r.grupo?.miembros)).catch(() => {});
+    else if (conversacion.tipo !== "DIRECTA") chatPersonas().then(poner).catch(() => {});
+    return () => { vivo = false; };
+  }, [conversacion.id, conversacion.tipo, usuarioId]);
   return (
     <>
       {chat.error && (
@@ -16,7 +27,7 @@ export default function VistaConversacion({ conversacion, usuarioId, alLeer }) {
       <ListaMensajes mensajes={chat.mensajes} lectores={chat.lectores} usuarioId={usuarioId} hayMas={chat.hayMas} cargando={chat.cargando}
         privado={conversacion.tipo === "DIRECTA"} nombreOtro={conversacion.titulo}
         onMas={chat.cargarAnteriores} onBorrar={chat.borrar} />
-      <Compositor enviando={chat.enviando} progreso={chat.progreso} onEnviar={chat.enviar} autoFoco />
+      <Compositor participantes={participantes} enviando={chat.enviando} progreso={chat.progreso} onEnviar={chat.enviar} autoFoco />
     </>
   );
 }

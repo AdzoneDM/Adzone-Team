@@ -28,10 +28,11 @@ class MensajeSerializer(serializers.ModelSerializer):
     texto = serializers.SerializerMethodField()
     puede_borrar = serializers.SerializerMethodField()
     archivo = serializers.SerializerMethodField()
+    menciones = serializers.SerializerMethodField()
 
     class Meta:
         model = Mensaje
-        fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'creado', 'eliminado', 'puede_borrar']
+        fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'menciones', 'creado', 'eliminado', 'puede_borrar']
 
     def get_archivo(self, o):
         if o.eliminado:
@@ -52,6 +53,9 @@ class MensajeSerializer(serializers.ModelSerializer):
 
     def get_texto(self, o):
         return '' if o.eliminado else o.texto
+
+    def get_menciones(self, o):
+        return [] if o.eliminado else (o.menciones or [])
 
     def get_puede_borrar(self, o):
         return servicios.puede_borrar(self.context['request'].user, o)
@@ -239,6 +243,7 @@ def mensajes_view(request, pk):
                 m.archivo_items, m.archivo_escaneo = info['items'], info['escaneo']
             m.save(update_fields=['archivo', 'archivo_nombre', 'archivo_es_imagen', 'archivo_tamano', 'archivo_items', 'archivo_escaneo'])
         servicios.registrar(m)
+        servicios.avisar_menciones(m)
         servicios.marcar_leido(request.user, conv, m.id)
         return Response(MensajeSerializer(m, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
