@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ClipboardList, Mail, MapPin, Pencil, Phone, Plus, Trash2 } from "lucide-react";
-import { eliminarCliente, guardarCliente, obtenerCliente, resumenCliente } from "@/lib/api";
+import { obtenerCliente, resumenCliente } from "@/lib/api";
+import { eliminarClienteConfirmando } from "./eliminar";
 import { dinero, fechaCorta } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { Alerta, Boton, Cargando, Panel, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
@@ -22,19 +23,11 @@ export default function ClienteDetalle() {
   const [modal, setModal] = useState(null);
   const cargar = useCallback(() => Promise.all([obtenerCliente(id), resumenCliente(id)]).then(([a, b]) => { setC(a); setR(b); }).catch((e) => setError(e.message)), [id]);
   useEffect(() => { cargar(); }, [cargar]);
-  // Eliminar: solo un cliente sin historial. Si tiene órdenes, proyectos o facturas el servidor lo impide y se ofrece dejarlo inactivo.
+  // Eliminar: solo un cliente sin historial (si lo tiene, se ofrece dejarlo inactivo); la misma lógica que en la lista de clientes
   const eliminar = async () => {
-    if (!(await confirmar({ titulo: `¿Eliminar a ${c.nombre}?`, mensaje: "Se borra el cliente y sus enlaces del portal. No se puede deshacer. Si ya tiene órdenes, proyectos o facturas no se podrá borrar y te ofreceremos dejarlo inactivo.", boton: "Eliminar", peligro: true }))) return;
-    try {
-      await eliminarCliente(c.id);
-      avisar("Cliente eliminado.");
-      navigate("/clientes", { replace: true });
-    } catch (e) {
-      const protegido = /márcalo como inactivo/.test(e.message);
-      if (protegido && c.activo && await confirmar({ titulo: "No se puede eliminar", mensaje: `${e.message} ¿Lo dejo inactivo ahora?`, boton: "Dejar inactivo" })) {
-        try { await guardarCliente({ id: c.id, activo: false }); avisar("Cliente marcado como inactivo."); cargar(); } catch (e2) { avisar(e2.message, "rojo"); }
-      } else avisar(e.message, "rojo");
-    }
+    const r = await eliminarClienteConfirmando({ cliente: c, confirmar, avisar });
+    if (r === "eliminado") navigate("/clientes", { replace: true });
+    else if (r === "inactivo") cargar();
   };
   if (error) return <Alerta>{error}</Alerta>;
   if (!c || !r) return <Cargando />;

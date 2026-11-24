@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.45 · 24/11/2026 · Clientes: eliminar desde la lista y catálogo inicial
+
+- **Eliminar clientes desde la lista** de Clientes (icono de papelera por fila, para quien gestiona un departamento o Finanzas), con la misma confirmación y las mismas protecciones que en la ficha: un cliente con órdenes, proyectos o facturas no se borra (se ofrece dejarlo inactivo) y el cliente interno ADZONE no se puede eliminar.
+- **Catálogo inicial de clientes:** comando `python manage.py cargar_clientes` (por defecto solo muestra el plan; `--aplicar` crea lo que falta). Compara sin importar mayúsculas, acentos ni espacios, no crea duplicados, no toca los existentes y avisa de variantes dudosas. Carga: Falcondo, Destreza, Coopdemón, AdZone TV, Solymar, Merengue, Tavares, Cenllabo, Electro Centro Bonao, Dulcería Rodríguez, Cabinsa, Centro Médico Carolina de Jesús, Huellitas, AdZone y Plaza Merengue. AdZone y AdZone TV entran como «Interno» (sus órdenes no cuentan como ingreso en Finanzas); se pueden cambiar en «Editar».
+- **El campo «Cliente» de las tareas** sugiere los clientes del catálogo (se puede seguir escribiendo otro nombre).
+- **KPIs del mes:** revisado; los filtros y el avance **no son fijos** (nunca lo fueron en el código): se desplazan con el contenido. Evidencia en `evidencias/req7-kpis/`. Sin cambios de código en esa pantalla.
+- 8 pruebas nuevas del catálogo.
+
 ## 12.44 · 24/11/2026 · ZIP en el chat, con revisión de seguridad
 
 - **Enviar y recibir ZIP** en chats individuales y grupales (también varios a la vez), integrado en el clip de adjuntar. En la conversación se ve con **icono ZIP, nombre, tamaño, cuántos archivos trae** y «Revisado» (antivirus), junto a la hora y quien lo envió; se descarga con un clic sin salir del chat.

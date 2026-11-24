@@ -1,10 +1,12 @@
 // Clientes: directorio con buscador, y el formulario de alta y edición.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Building2, Plus, Search } from "lucide-react";
+import { Building2, Plus, Search, Trash2 } from "lucide-react";
 import { guardarCliente, listarClientes } from "@/lib/api";
 import { olvidarRecurso } from "@/lib/recursos";
-import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, Vacio, cx, useAviso } from "@/components/ui";
+import { useSesion } from "@/lib/sesion";
+import { eliminarClienteConfirmando } from "./eliminar";
+import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 
 export const TIPOS_CLIENTE = { EMPRESA: "Empresa", GOBIERNO: "Gobierno", ONG: "ONG / institución", PERSONA: "Persona", INTERNO: "Interno (ADZONE)" };
 
@@ -44,6 +46,9 @@ export function FormCliente({ abierto, onCerrar, inicial, onGuardado }) {
 
 export default function Clientes() {
   const avisar = useAviso();
+  const confirmar = useConfirmar();
+  const { usuario } = useSesion();
+  const puedeEliminar = !!(usuario?.gestiona || usuario?.es_finanzas); // el mismo permiso que para editar (también se valida en el servidor)
   const navigate = useNavigate();
   const [lista, setLista] = useState(null);
   const [error, setError] = useState("");
@@ -57,6 +62,7 @@ export default function Clientes() {
   const filtrada = useMemo(() => (lista || []).filter((c) => (inactivos || c.activo) &&
     (!buscar || `${c.nombre} ${c.contacto} ${c.rnc}`.toLowerCase().includes(buscar.toLowerCase()))), [lista, buscar, inactivos]);
 
+  const borrar = async (c) => { if (await eliminarClienteConfirmando({ cliente: c, confirmar, avisar })) cargar(); };
   if (error) return <Alerta>{error}</Alerta>;
   return (
     <div>
@@ -75,7 +81,7 @@ export default function Clientes() {
       ) : (
         <div className="overflow-x-auto rounded-xl border border-linea bg-white">
           <table className="tabla">
-            <thead><tr><th>Cliente</th><th className="hidden md:table-cell">Contacto</th><th className="hidden md:table-cell">Teléfono</th><th className="text-right">Órdenes abiertas</th><th className="hidden text-right md:table-cell">Proyectos activos</th></tr></thead>
+            <thead><tr><th>Cliente</th><th className="hidden md:table-cell">Contacto</th><th className="hidden md:table-cell">Teléfono</th><th className="text-right">Órdenes abiertas</th><th className="hidden text-right md:table-cell">Proyectos activos</th>{puedeEliminar && <th className="w-12"><span className="sr-only">Acciones</span></th>}</tr></thead>
             <tbody>
               {filtrada.map((c) => (
                 <tr key={c.id} className={cx("cursor-pointer", !c.activo && "opacity-60")} onClick={() => navigate(`/clientes/${c.id}`)}>
@@ -84,6 +90,14 @@ export default function Clientes() {
                   <td className="hidden text-sm md:table-cell">{c.telefono ? <a href={`tel:${c.telefono}`} onClick={(e) => e.stopPropagation()} className="hover:text-azul">{c.telefono}</a> : "—"}</td>
                   <td className="text-right num">{c.ordenes_abiertas || "—"}</td>
                   <td className="hidden text-right num md:table-cell">{c.proyectos_activos || "—"}</td>
+                  {puedeEliminar && (
+                    <td className="text-right">
+                      {!c.es_interno && (
+                        <button type="button" aria-label={`Eliminar a ${c.nombre}`} title="Eliminar cliente" onClick={(e) => { e.stopPropagation(); borrar(c); }}
+                          className="rounded-lg p-2 text-gris hover:bg-rojo-50 hover:text-rojo focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rojo/20"><Trash2 className="size-4" aria-hidden /></button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

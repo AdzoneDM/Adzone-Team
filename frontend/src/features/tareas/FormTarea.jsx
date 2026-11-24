@@ -1,7 +1,7 @@
 // Asignar o editar una tarea (también recurrente). Se usa en Mi equipo y en los proyectos.
 import { useEffect, useState } from "react";
 import { Repeat, Sparkles } from "lucide-react";
-import { guardarRecurrente, guardarTarea, listarProyectos, subirReferencias, sugerirAsignacion } from "@/lib/api";
+import { guardarRecurrente, guardarTarea, listarClientes, listarProyectos, subirReferencias, sugerirAsignacion } from "@/lib/api";
 import { SelectorArchivos } from "@/features/tareas/componentes";
 import { diasHasta, hoyISO, sumarDias } from "@/lib/formato";
 import { Alerta, Boton, Campo, Modal, cx } from "@/components/ui";
@@ -14,10 +14,13 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [proyectos, setProyectos] = useState([]);
+  const [clientes, setClientes] = useState([]); // catálogo de clientes: sugerencias para el campo «Cliente» (se puede escribir otro)
   const [sugeridos, setSugeridos] = useState([]);
   const [referencias, setReferencias] = useState([]); // bocetos o imágenes para que la persona tenga de guía
   const editando = !!inicial?.id;
   const esRecurrente = inicial?.tipo === "recurrente";
+
+  useEffect(() => { if (abierto) listarClientes({ activos: "1" }).then((l) => setClientes(Array.isArray(l) ? l : l?.results || [])).catch(() => {}); }, [abierto]);
 
   useEffect(() => {
     if (!abierto) return;
@@ -88,7 +91,8 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         {!f.repetir && (
           <SelectorArchivos archivos={referencias} onCambio={setReferencias} etiqueta="Adjuntar boceto, imagen o video de referencia" ayuda="Para que la persona tenga una guía visual." disabled={guardando} />
         )}
-        <Campo etiqueta="Cliente (opcional)">{(id) => <input id={id} className="campo" value={f.cliente || ""} onChange={cambiar("cliente")} maxLength={150} placeholder="Ej.: Plaza Bonao" />}</Campo>
+        <Campo etiqueta="Cliente (opcional)" ayuda="Elige uno de la lista o escribe otro.">{(id) => <input id={id} className="campo" list="clientes-catalogo" autoComplete="off" value={f.cliente || ""} onChange={cambiar("cliente")} maxLength={150} placeholder="Ej.: Plaza Bonao" />}</Campo>
+        <datalist id="clientes-catalogo">{clientes.map((c) => <option key={c.id} value={c.nombre} />)}</datalist>
         {!editando && !esRecurrente && <Sugerencias titulo={f.titulo} descripcion={f.descripcion} lista={sugeridos} setLista={setSugeridos}
           elegido={f.colaborador} onElegir={(id) => setF((x) => ({ ...x, colaborador: String(id), kpi_asignado: "" }))} />}
         <div className="grid gap-4 sm:grid-cols-2">
