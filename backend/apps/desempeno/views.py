@@ -10,7 +10,7 @@ from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
@@ -184,25 +184,33 @@ class TareaViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Una tarea validada no se edita: primero hay que reabrirla.")
         for companero in serializer.validated_data.get('companeros', []):
             self._exigir_gestion(companero)
+        # Cambiar fechas, prioridad o responsable exige decir por qué: queda en el historial junto con el antes y el después
+        previos_criticos = [c for c in servicios.CAMPOS_CON_MOTIVO if c in serializer.validated_data and getattr(serializer.instance, c, None) != serializer.validated_data[c]]
+        motivo = str(self.request.data.get('motivo') or '').strip()
+        if previos_criticos and len(motivo) < 5:
+            etiquetas = ', '.join(servicios.CAMPOS_CON_MOTIVO[c].lower() for c in previos_criticos)
+            raise ValidationError({'motivo': [f"Cuéntanos por qué cambias {etiquetas} (mínimo 5 letras): le llega a quienes participan y queda en el historial."]})
         anterior = serializer.instance.colaborador
         antes = set(serializer.instance.companeros.values_list('pk', flat=True))
-        previos = {c: getattr(serializer.instance, c, None) for c in servicios.CAMPOS_AVISO}
+        previos = {c: getattr(serializer.instance, c, None) for c in {*servicios.CAMPOS_AVISO, *servicios.CAMPOS_CON_MOTIVO}}
+        pasos_antes = list(serializer.instance.pasos.order_by('orden', 'id').values_list('texto', flat=True))
         tarea = serializer.save()
+        pasos_despues = list(tarea.pasos.order_by('orden', 'id').values_list('texto', flat=True))
         cambiados = [c for c, v in previos.items() if c in serializer.validated_data and getattr(tarea, c, None) != v]
         nuevos = [u for u in tarea.companeros.all() if u.pk not in antes]
         if nuevos:
             servicios.avisar(nuevos, 'ASIGNADA', f"Te sumaron a una tarea: {tarea.titulo}",
                              f"Responsable: {_nombre(tarea.colaborador)}.", tarea=tarea, enlace='/mis-tareas',
                              excepto=self.request.user)
-        cambios = ', '.join(sorted(serializer.validated_data.keys()))
-        servicios.registrar(tarea, self.request.user, 'EDITADA', f"Cambió: {cambios}")
+        detalle = servicios.detalle_de_cambios(previos, tarea, [c for c in serializer.validated_data if c in {*servicios.CAMPOS_DETALLE, *servicios.CAMPOS_LARGOS}], motivo if previos_criticos else '', pasos_antes, pasos_despues)
+        servicios.registrar(tarea, self.request.user, 'EDITADA', detalle or f"Cambió: {', '.join(sorted(serializer.validated_data.keys()))}")
         if nuevo and nuevo.pk != anterior.pk:
             servicios.avisar([nuevo], 'ASIGNADA', f"Nueva tarea: {tarea.titulo}",
                              f"{_nombre(self.request.user)} te la asignó.", tarea=tarea, enlace='/mis-tareas',
                              excepto=self.request.user)
             servicios.cerrar_esperas([nuevo], tarea)
         else:
-            servicios.al_modificar(tarea, self.request.user, cambiados)
+            servicios.al_modificar(tarea, self.request.user, cambiados, motivo if previos_criticos else '')
         if nuevos:
             servicios.cerrar_esperas(nuevos, tarea)
 

@@ -51,7 +51,7 @@ from apps.kpis.models import KPIAsignado
 
 from .models import ConfiguracionDesempeno, Tarea, ResultadoKPI
 
-PESO_PRIORIDAD = {'BAJA': 1, 'MEDIA': 2, 'ALTA': 3}
+PESO_PRIORIDAD = {'BAJA': 1, 'MEDIA': 2, 'ALTA': 3, 'URGENTE': 4}
 
 
 def rango_del_mes(periodo):

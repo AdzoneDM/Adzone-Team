@@ -79,10 +79,11 @@ class ModificacionTests(Base):
         t = self.tarea(self.erlin)
         self.como(self.vladi)
         nueva = (timezone.localdate() + timedelta(days=9)).isoformat()
-        r = self.c.patch(f'/api/desempeno/tareas/{t.id}/', {'fecha_limite': nueva}, format='json')
+        r = self.c.patch(f'/api/desempeno/tareas/{t.id}/', {'fecha_limite': nueva, 'motivo': 'El cliente movió el evento'}, format='json')
         self.assertEqual(r.status_code, 200, r.content)
         aviso = Notificacion.objects.get(destinatario=self.erlin, tipo='MODIFICADA')
         self.assertIn('fecha de entrega', aviso.mensaje)
+        self.assertIn('El cliente movió el evento', aviso.mensaje)
 
     def test_guardar_sin_cambios_no_avisa(self):
         t = self.tarea(self.erlin)

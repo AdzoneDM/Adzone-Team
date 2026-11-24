@@ -50,8 +50,8 @@ export function Insignia({ tono = "neutro", className, children }) {
 const TONO_ESTADO = { PENDIENTE: "neutro", EN_PROGRESO: "azul", BLOQUEADA: "rojo", EN_REVISION: "amarillo", COMPLETADA: "verde", CANCELADA: "neutro" };
 export const EstadoTarea = ({ estado }) => <Insignia tono={TONO_ESTADO[estado]}>{ESTADOS[estado] || estado}</Insignia>;
 
-const TONO_PRIORIDAD = { ALTA: "rojo", MEDIA: "amarillo", BAJA: "neutro" };
-export const PrioridadTarea = ({ prioridad }) => <Insignia tono={TONO_PRIORIDAD[prioridad]}>{PRIORIDADES[prioridad]}</Insignia>;
+const TONO_PRIORIDAD = { URGENTE: "rojo", ALTA: "rojo", MEDIA: "amarillo", BAJA: "neutro" };
+export const PrioridadTarea = ({ prioridad }) => <Insignia tono={TONO_PRIORIDAD[prioridad]}>{prioridad === "URGENTE" ? "⚡ Urgente" : PRIORIDADES[prioridad]}</Insignia>;
 
 // ---------------------------------------------------------------- Superficies
 export function Panel({ titulo, accion, className, cuerpo = "p-5", children }) {

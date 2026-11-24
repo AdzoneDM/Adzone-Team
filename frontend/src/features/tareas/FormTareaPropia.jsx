@@ -58,7 +58,7 @@ export default function FormTareaPropia({ abierto, onCerrar, onGuardada }) {
         <div className="grid gap-4 sm:grid-cols-3">
           <Campo etiqueta="Fecha límite">{(id) => <input id={id} type="date" className="campo" value={f.fecha_limite} onChange={cambiar("fecha_limite")} />}</Campo>
           <Campo etiqueta="Prioridad">
-            {(id) => <select id={id} className="campo" value={f.prioridad} onChange={cambiar("prioridad")}><option value="ALTA">Alta</option><option value="MEDIA">Media</option><option value="BAJA">Baja</option></select>}
+            {(id) => <select id={id} className="campo" value={f.prioridad} onChange={cambiar("prioridad")}><option value="URGENTE">Urgente</option><option value="ALTA">Alta</option><option value="MEDIA">Media</option><option value="BAJA">Baja</option></select>}
           </Campo>
           <Campo etiqueta="Horas estimadas">
             {(id) => <input id={id} type="number" min={0} step="0.5" inputMode="decimal" className="campo" value={f.horas_estimadas} onChange={cambiar("horas_estimadas")} />}

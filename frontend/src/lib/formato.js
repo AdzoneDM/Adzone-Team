@@ -73,7 +73,7 @@ export const ESTADOS = {
   CANCELADA: "Cancelada",
 };
 
-export const PRIORIDADES = { ALTA: "Alta", MEDIA: "Media", BAJA: "Baja" };
+export const PRIORIDADES = { URGENTE: "Urgente", ALTA: "Alta", MEDIA: "Media", BAJA: "Baja" };
 
 export const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 

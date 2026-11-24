@@ -43,12 +43,22 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
   const kpis = persona?.kpis_por_tareas || [];
   const cambiar = (campo) => (e) => setF((x) => ({ ...x, [campo]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
 
+  // Cambiar fechas, prioridad o responsable de una tarea ya creada exige decir por qué (queda en el historial y le llega a quien participa)
+  const cambiosCriticos = editando && !esRecurrente && !f.repetir ? [
+    String(f.fecha_limite || "") !== String(inicial.fecha_limite || "") && "la fecha de entrega",
+    String(f.fecha_inicio || "") !== String(inicial.fecha_inicio || "") && "la fecha de inicio",
+    f.prioridad !== inicial.prioridad && "la prioridad",
+    String(f.colaborador || "") !== String(inicial.colaborador || "") && "el responsable",
+  ].filter(Boolean) : [];
+  const pideMotivo = cambiosCriticos.length > 0;
+
   const guardar = async (e) => {
     e.preventDefault();
     setError("");
     if (!f.titulo?.trim()) return setError("Escribe qué hay que hacer.");
     if (!f.colaborador) return setError("Elige a quién se la asignas.");
     if (!f.repetir && !f.fecha_limite) return setError("Pon la fecha límite.");
+    if (pideMotivo && (f.motivo || "").trim().length < 5) return setError("Cuéntanos por qué cambias " + cambiosCriticos.join(", ") + " (mínimo 5 letras).");
     setGuardando(true);
     try {
       if (f.repetir) {
@@ -67,6 +77,7 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
           prioridad: f.prioridad, fecha_limite: f.fecha_limite, kpi_asignado: f.kpi_asignado || null,
           proyecto: f.proyecto ? Number(f.proyecto) : null, fecha_inicio: f.fecha_inicio || null,
           horas_estimadas: f.horas_estimadas === "" || f.horas_estimadas == null ? null : f.horas_estimadas,
+          ...(pideMotivo ? { motivo: f.motivo.trim() } : {}),
         });
         let sinReferencias = "";
         if (referencias.length) {
@@ -110,10 +121,15 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
               </select>
             )}
           </Campo>
-          <Campo etiqueta="Prioridad" ayuda="Alta pesa 3 veces en el puntaje; media 2; baja 1.">
-            {(id) => <select id={id} className="campo" value={f.prioridad} onChange={cambiar("prioridad")}><option value="ALTA">Alta</option><option value="MEDIA">Media</option><option value="BAJA">Baja</option></select>}
+          <Campo etiqueta="Prioridad" ayuda="Urgente pesa 4 veces en el puntaje; alta 3; media 2; baja 1.">
+            {(id) => <select id={id} className="campo" value={f.prioridad} onChange={cambiar("prioridad")}><option value="URGENTE">Urgente</option><option value="ALTA">Alta</option><option value="MEDIA">Media</option><option value="BAJA">Baja</option></select>}
           </Campo>
         </div>
+        {pideMotivo && (
+          <Campo etiqueta="Motivo del cambio" ayuda={`Cambias ${cambiosCriticos.join(", ")}. Le llega a quienes participan y queda en el historial.`}>
+            {(id) => <textarea id={id} rows={2} className="campo" required minLength={5} maxLength={300} value={f.motivo || ""} onChange={cambiar("motivo")} placeholder="Ej.: el cliente movió el evento" />}
+          </Campo>
+        )}
         {!f.repetir && gente.length > 1 && (
           <fieldset>
             <legend className="etiqueta">Trabaja con (opcional)</legend>

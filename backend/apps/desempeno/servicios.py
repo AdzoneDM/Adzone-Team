@@ -120,13 +120,49 @@ CAMPOS_AVISO = {'titulo': 'el título', 'descripcion': 'la descripción', 'fecha
                 'cliente': 'el cliente', 'proyecto': 'el proyecto', 'pasos_texto': 'los pasos'}
 
 
-def al_modificar(tarea, quien, campos):
+# Cambios que exigen un motivo y quedan con «antes → después» en el historial.
+CAMPOS_CON_MOTIVO = {'fecha_limite': 'Fecha de entrega', 'fecha_inicio': 'Fecha de inicio', 'prioridad': 'Prioridad', 'colaborador': 'Responsable'}
+CAMPOS_DETALLE = {**CAMPOS_CON_MOTIVO, 'titulo': 'Título', 'cliente': 'Cliente', 'horas_estimadas': 'Horas estimadas', 'proyecto': 'Proyecto'}
+CAMPOS_LARGOS = {'descripcion', 'pasos_texto'}   # se registra que cambiaron, sin copiar el texto
+
+
+def valor_legible(campo, valor):
+    if valor in (None, ''):
+        return 'sin definir'
+    if campo in ('fecha_limite', 'fecha_inicio'):
+        return valor.strftime('%d/%m/%Y') if hasattr(valor, 'strftime') else str(valor)
+    if campo == 'prioridad':
+        return dict(Tarea.PRIORIDAD_CHOICES).get(valor, str(valor))
+    if campo == 'colaborador':
+        return nombre(valor)
+    return str(valor)
+
+
+def detalle_de_cambios(previos, tarea, campos, motivo='', pasos_antes=None, pasos_despues=None):
+    """Texto del historial: una línea por campo con el valor anterior y el nuevo, y el motivo si lo hay."""
+    lineas = []
+    for c in campos:
+        if c in CAMPOS_DETALLE:
+            antes, ahora = valor_legible(c, previos.get(c)), valor_legible(c, getattr(tarea, c, None))
+            if antes != ahora:
+                lineas.append(f"{CAMPOS_DETALLE[c]}: {antes} → {ahora}")
+        elif c == 'descripcion' and (previos.get(c) or '') != (tarea.descripcion or ''):
+            lineas.append("Descripción: actualizada")
+        elif c == 'pasos_texto' and pasos_antes != pasos_despues:
+            lineas.append("Pasos: actualizados")
+    if motivo:
+        lineas.append(f"Motivo: {motivo}")
+    return '\n'.join(lineas)
+
+
+def al_modificar(tarea, quien, campos, motivo=''):
     """Aviso a los participantes cuando cambia algo que les importa (no por cada guardado sin cambios)."""
     cambios = [CAMPOS_AVISO[c] for c in campos if c in CAMPOS_AVISO]
     if not cambios or tarea.estado in ('COMPLETADA', 'CANCELADA'):
         return
     texto = ', '.join(cambios)
     extra = f" Nueva entrega: {tarea.fecha_limite:%d/%m/%Y}." if 'fecha_limite' in campos else ''
+    extra += f" Motivo: {motivo}" if motivo else ''
     avisar([tarea.colaborador, *tarea.companeros.all()], 'MODIFICADA', f"Cambió una tarea: {tarea.titulo}",
            f"{nombre(quien)} cambió {texto}.{extra}", tarea=tarea, enlace=f'/mis-tareas?tarea={tarea.pk}', excepto=quien)
 

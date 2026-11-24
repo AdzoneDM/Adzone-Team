@@ -23,6 +23,7 @@ class Tarea(models.Model):
         ('BAJA', 'Baja'),
         ('MEDIA', 'Media'),
         ('ALTA', 'Alta'),
+        ('URGENTE', 'Urgente'),
     ]
 
     titulo = models.CharField(max_length=255, verbose_name="Título")

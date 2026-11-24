@@ -1,5 +1,18 @@
 # Cambios
 
+## 12.54 · 24/11/2026 · Requerimiento #8, etapa 3: trazabilidad detallada, motivo obligatorio y prioridad Urgente
+
+- **Motivo obligatorio:** al cambiar de una tarea ya creada la **fecha de entrega, la fecha de inicio, la prioridad o el responsable**, el formulario muestra «Motivo del cambio» (mínimo 5 letras) y no deja guardar sin él; el servidor también lo exige (no se puede saltar llamando a la API). Si el valor no cambia, no se pide. Cambiar solo el título, el cliente, las horas, etc. no lo exige.
+- **Historial con «antes → después»:** cada edición queda con una línea por campo («Fecha de entrega: 27/11/2026 → 30/11/2026», «Prioridad: Media → Urgente», «Responsable: Erlin → Ashley») más el motivo. Descripción y pasos solo indican «actualizada/os» sin copiar el texto, y **solo si realmente cambiaron** (antes quedaba un «Cambió: …» genérico). Los movimientos anteriores se conservan como estaban.
+- **El motivo le llega a quienes participan** en el aviso «Cambió una tarea».
+- **Prioridad Urgente** (⚡, peso 4 en el puntaje; alta 3, media 2, baja 1) disponible al asignar y al crear una tarea propia; los puntajes ya calculados no cambian. La migración `desempeno.0029` solo amplía la lista de opciones.
+- Sin cambios para: tareas validadas (siguen sin poder editarse), tareas recurrentes y el resto de módulos. 12 pruebas nuevas.
+
+## 12.54b · Requerimiento #8, etapa 4: pruebas de regresión y documentación
+
+- Pruebas nuevas de las etapas 2 y 3: `tests_comentarios_tarea.py` (15) y `tests_trazabilidad.py` (12); se ajustó una prueba existente de fecha para enviar el motivo.
+- Documentación del módulo completo en `docs/TAREAS.md`.
+
 ## 12.53 · 24/11/2026 · Requerimiento #8, etapa 2: comentarios por tarea
 
 - **Conversación dentro de cada tarea** (en el detalle, entre la evidencia y el historial): se agregan comentarios, se **responden** (la respuesta muestra lo que cita) y se consultan los anteriores, todo vinculado a la tarea. Aparecen sin recargar la página. Máximo 2 000 caracteres por comentario.

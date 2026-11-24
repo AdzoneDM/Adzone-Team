@@ -354,14 +354,13 @@ export function Historial({ tareaId }) {
         <li key={h.id} className="relative">
           <span className={cx("absolute -left-[25px] top-1.5 size-2.5 rounded-full ring-4 ring-white", ICONO_HISTORIAL[h.accion] || "bg-linea")} />
           <p className="text-sm"><span className="font-medium">{h.accion_texto}</span> <span className="text-gris">por {h.usuario_nombre} · {fechaHora(h.fecha)}</span></p>
-          {h.comentario && h.accion !== "EDITADA" && <p className="mt-0.5 whitespace-pre-line text-sm text-gris">{h.comentario}</p>}
+          {h.comentario && !(h.accion === "EDITADA" && h.comentario.startsWith("Cambió:")) && <p className="mt-0.5 whitespace-pre-line text-sm text-gris">{h.comentario}</p>}
         </li>
       ))}
     </ol>
   );
 }
 
-/** Datos de una tarea; las acciones las pone cada pantalla en `pie`. */
 /** Conversación de la tarea: la ven y escriben solo quienes ven la tarea; se puede responder y mencionar con @; no se edita ni se borra. */
 function ConversacionTarea({ tareaId }) {
   const [lista, setLista] = useState(null);
@@ -379,6 +378,7 @@ function ConversacionTarea({ tareaId }) {
   );
 }
 
+/** Datos de una tarea; las acciones las pone cada pantalla en `pie`. */
 export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
   const avisar = useAviso();
   if (!tarea) return null;
