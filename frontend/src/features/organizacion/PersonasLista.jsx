@@ -3,6 +3,7 @@
 import { Pencil, Search, UserRound, X } from "lucide-react";
 import { hace } from "@/lib/formato";
 import { Avatar, Boton, Insignia, Vacio, cx } from "@/components/ui";
+import { InsigniaEstado } from "@/features/organizacion/EstadoCuenta";
 
 const SIN_DEPTO = "Sin departamento";
 const DIAS_ACTIVA = 7;
@@ -69,7 +70,7 @@ function agrupar(lista) {
 /** Filtros como botones con su conteo (una sola fila, se desplaza en el celular). */
 export function FiltrosPersonas({ filtro, onFiltro, conteos }) {
   const opciones = [
-    ["activos", "Activas"], ["sin_acceso", "Aún no entran"], ["sin_puesto", "Sin puesto"], ["inactivos", "Desactivadas"], ["todos", "Todas"],
+    ["activos", "Activas"], ["sin_acceso", "Aún no entran"], ["sin_puesto", "Sin puesto"], ["suspendidos", "Suspendidas"], ["inactivos", "De baja"], ["eliminados", "Eliminadas"], ["todos", "Todas"],
   ];
   return (
     <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0 [scrollbar-width:none]" role="tablist" aria-label="Mostrar personas">
@@ -127,7 +128,7 @@ export default function ListaPersonas({ personas, yo, veSalarios, onEditar, onLi
                 <tr key={u.id} className={cx("transition-colors hover:bg-fondo/60", !u.is_active && "opacity-60")}>
                   <td className="px-4 py-3"><Nombre u={u} yo={yo} /></td>
                   <td className="py-3 pr-3"><Puesto u={u} /></td>
-                  <td className="py-3"><Perfiles roles={u.roles} />{!u.is_active && <Insignia className="ml-1">Desactivada</Insignia>}</td>
+                  <td className="py-3"><Perfiles roles={u.roles} /><span className="ml-1"><InsigniaEstado u={u} /></span></td>
                   {veSalarios && <td className="whitespace-nowrap py-3 text-right text-sm">{u.salario_mensual != null ? <span className="num">{Number(u.salario_mensual).toLocaleString("es-DO", { maximumFractionDigits: 0 })}</span> : <span className="text-gris">—</span>}</td>}
                   <td className="py-3 pl-4"><Acceso fecha={u.last_login} /></td>
                   <td className="py-2 pr-3 text-right"><BotonEditar u={u} onEditar={onEditar} /></td>
@@ -145,7 +146,7 @@ export default function ListaPersonas({ personas, yo, veSalarios, onEditar, onLi
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-[44px]">
                     <Puesto u={u} />
                     <Perfiles roles={u.roles} />
-                    {!u.is_active && <Insignia>Desactivada</Insignia>}
+                    <InsigniaEstado u={u} />
                   </div>
                   <div className="pl-[44px]"><Acceso fecha={u.last_login} /></div>
                 </div>

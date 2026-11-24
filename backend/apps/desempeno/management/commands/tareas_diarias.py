@@ -27,6 +27,10 @@ class Command(BaseCommand):
         videos, bytes_liberados = videos + v_chat, bytes_liberados + b_chat
         if videos:
             self.stdout.write(f'Videos de tareas validadas borrados: {videos} ({bytes_liberados // 1024 // 1024} MB).')
+        from apps.organizacion.cuentas import reactivar_suspensiones_vencidas
+        reactivadas = reactivar_suspensiones_vencidas()
+        if reactivadas:
+            self.stdout.write(f'Suspensiones terminadas (cuentas reactivadas): {reactivadas}.')
         from apps.desempeno.inteligencia import avisar_resumen
         try:
             avisar_resumen()

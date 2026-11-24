@@ -92,6 +92,14 @@ class PerfilUsuario(models.Model):
     nomina = models.CharField(
         max_length=60, blank=True, default='', verbose_name="Nómina",
         help_text="En qué nómina cobra (ADZONE, Call Center, Iguala…).")
+    # Estado de la cuenta. «is_active» es lo que deja entrar (solo ACTIVA entra); este campo dice por qué no, desde cuándo y quién lo decidió.
+    # Nada se borra: la información (tareas, chats, evidencias, historial) se conserva en todos los estados.
+    ESTADOS_CUENTA = [('ACTIVA', 'Activa'), ('SUSPENDIDA', 'Suspendida'), ('INACTIVA', 'Inactiva (baja)'), ('ELIMINADA', 'Eliminada')]
+    estado_cuenta = models.CharField(max_length=10, choices=ESTADOS_CUENTA, default='ACTIVA', db_index=True)
+    estado_motivo = models.CharField(max_length=300, blank=True, default='')
+    estado_desde = models.DateTimeField(null=True, blank=True)
+    estado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    suspendida_hasta = models.DateField(null=True, blank=True, help_text="Si se indica, la suspensión termina sola ese día.")
     fecha_creacion_perfil = models.DateTimeField(auto_now_add=True)
     fecha_modificacion_perfil = models.DateTimeField(auto_now=True)
 

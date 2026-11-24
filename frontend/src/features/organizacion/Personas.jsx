@@ -5,6 +5,7 @@ import { guardarUsuario, puestos as cargarPuestos, usuarios as cargarUsuarios } 
 import { useSesion } from "@/lib/sesion";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, useAviso } from "@/components/ui";
 import ListaPersonas, { BuscadorPersonas, FiltrosPersonas } from "@/features/organizacion/PersonasLista";
+import EstadoCuenta, { InsigniaEstado } from "@/features/organizacion/EstadoCuenta";
 
 // Los perfiles de acceso (qué puede hacer cada persona) se manejan en «Accesos y permisos».
 const perfilesDe = (roles = []) => roles.filter((r) => r !== "Colaborador").join(", ") || "Colaborador";
@@ -16,7 +17,22 @@ function generarClave() {
   return "Adz-" + Array.from(arr, (n) => letras[n % letras.length]).join("");
 }
 
-function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
+/** Estado de la cuenta en la ficha: quién la tiene así y desde cuándo; el cambio se hace con confirmación en su propio modal. */
+function BloqueEstado({ persona, esMia, onEstado }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-linea bg-niebla/60 p-3 text-sm">
+      <p className="min-w-0 text-gris">
+        <span className="font-medium text-tinta">Cuenta: </span>
+        {persona?.estado_cuenta === "ACTIVA" || !persona?.estado_cuenta ? <span className="text-verde font-medium">Activa</span> : <InsigniaEstado u={persona} />}
+        {persona?.estado_motivo && <span> · {persona.estado_motivo}</span>}
+        {esMia && <span> · No puedes cambiar tu propia cuenta</span>}
+      </p>
+      {!esMia && <Boton variante="secundario" tam="sm" onClick={() => onEstado(persona)}>Cambiar estado…</Boton>}
+    </div>
+  );
+}
+
+function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado, onEstado }) {
   const { veSalarios, esAdmin, usuario: yo, soloDirectorio } = useSesion();
   const [f, setF] = useState({});
   const [error, setError] = useState("");
@@ -39,7 +55,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
     setError("");
     if (soloVer) {
       setGuardando(true);
-      try { const u = await guardarUsuario({ id: f.id, is_active: !!f.is_active }); onGuardado(u, ""); } catch (err) { setError(err.message); }
+      onCerrar(); // con «Personas» solo se ve la ficha: el estado se cambia con su propio botón
       setGuardando(false);
       return;
     }
@@ -49,7 +65,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
       const datos = {
         id: f.id, first_name: f.first_name.trim(), last_name: (f.last_name || "").trim(), username: f.username.trim().toLowerCase(),
         email: (f.email || "").trim().toLowerCase(), puesto_trabajo_id: f.puesto_trabajo_id ? Number(f.puesto_trabajo_id) : null,
-        is_active: !!f.is_active, horas_semana: f.horas_semana || 44,
+        ...(nuevo ? { is_active: true } : {}), horas_semana: f.horas_semana || 44, // el estado de una cuenta existente solo cambia con «Cambiar estado» (confirmación, motivo y pendientes)
       };
       // Solo la Dirección asigna puestos adicionales (dan el equipo de ese puesto)
       if (esAdmin) datos.puestos_adicionales_ids = (f.adicionales || []).filter((y) => String(y) !== String(f.puesto_trabajo_id));
@@ -79,8 +95,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
               ))}
             </dl>
             <p className="rounded-lg border border-linea bg-niebla/60 p-3 text-sm text-gris">Con tu permiso puedes ver a las personas, crear cuentas nuevas y desactivar o reactivar cuentas. Los correos, las contraseñas y los accesos los cambia quien tiene «Personas y accesos».</p>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!f.is_active} onChange={cambiar("is_active")} className="accent-azul" disabled={esMia} />
-              Cuenta activa (si la desactivas no puede entrar y sale del ranking){esMia && <span className="text-gris"> · No puedes desactivar tu propia cuenta</span>}</label>
+            <BloqueEstado persona={inicial} esMia={esMia} onEstado={onEstado} />
           </>
         ) : (<>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -147,7 +162,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
             </div>
           )}
         </Campo>
-        {!nuevo && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!f.is_active} onChange={cambiar("is_active")} className="accent-azul" disabled={esMia} />Cuenta activa (si la desactivas no puede entrar y sale del ranking)</label>}
+        {!nuevo && <BloqueEstado persona={inicial} esMia={esMia} onEstado={onEstado} />}
         </>)}
       </form>
     </Modal>
@@ -155,7 +170,7 @@ function FormPersona({ abierto, inicial, puestos, onCerrar, onGuardado }) {
 }
 
 export default function Personas() {
-  const { usuario, veSalarios } = useSesion();
+  const { usuario, veSalarios, soloDirectorio } = useSesion();
   const avisar = useAviso();
   const [lista, setLista] = useState(null);
   const [puestos, setPuestos] = useState([]);
@@ -166,14 +181,19 @@ export default function Personas() {
   const [params, setParams] = useSearchParams();
   const [form, setForm] = useState(() => (params.get("nuevo") ? {} : null));
   const [claveNueva, setClaveNueva] = useState(null);
+  const [cambiandoEstado, setCambiandoEstado] = useState(null);
   useEffect(() => { if (params.get("nuevo")) setParams({}, { replace: true }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cargar = useCallback(() => { cargarUsuarios().then(setLista).catch((e) => setError(e.message)); }, []);
   useEffect(() => { cargar(); cargarPuestos().then(setPuestos).catch(() => {}); }, [cargar]);
 
   const filtrada = useMemo(() => (lista || []).filter((u) => {
-    if (filtro === "activos" && !u.is_active) return false;
-    if (filtro === "inactivos" && u.is_active) return false;
+    const est = u.estado_cuenta || (u.is_active ? "ACTIVA" : "INACTIVA");
+    if (filtro === "activos" && est !== "ACTIVA") return false;
+    if (filtro === "suspendidos" && est !== "SUSPENDIDA") return false;
+    if (filtro === "inactivos" && est !== "INACTIVA") return false;
+    if (filtro === "eliminados" && est !== "ELIMINADA") return false;
+    if (filtro === "todos" && est === "ELIMINADA") return false; // las eliminadas solo se ven en su filtro
     if (filtro === "sin_puesto" && (u.puesto_id || !u.is_active)) return false;
     if (filtro === "sin_acceso" && (u.last_login || !u.is_active)) return false;
     if (depto && u.departamento !== depto) return false;
@@ -185,7 +205,9 @@ export default function Personas() {
   if (error) return <Alerta>{error}</Alerta>;
   if (!lista) return <Cargando />;
   const sinPuesto = lista.filter((u) => u.is_active && !u.puesto_id).length;
-  const conteos = { activos: lista.filter((u) => u.is_active).length, sin_acceso: lista.filter((u) => u.is_active && !u.last_login).length, sin_puesto: sinPuesto, inactivos: lista.filter((u) => !u.is_active).length, todos: lista.length };
+  const nEstado = (e) => lista.filter((u) => (u.estado_cuenta || (u.is_active ? "ACTIVA" : "INACTIVA")) === e).length;
+  const conteos = { activos: nEstado("ACTIVA"), sin_acceso: lista.filter((u) => u.is_active && !u.last_login).length, sin_puesto: sinPuesto,
+    suspendidos: nEstado("SUSPENDIDA"), inactivos: nEstado("INACTIVA"), eliminados: nEstado("ELIMINADA"), todos: lista.length - nEstado("ELIMINADA") };
 
   return (
     <div>
@@ -204,7 +226,7 @@ export default function Personas() {
       <ListaPersonas personas={filtrada} yo={usuario.id} veSalarios={veSalarios} onEditar={setForm}
         onLimpiar={() => { setBuscar(""); setDepto(""); setFiltro("todos"); }} />
 
-      <FormPersona abierto={!!form} inicial={form} puestos={puestos} onCerrar={() => setForm(null)}
+      <FormPersona abierto={!!form} inicial={form} puestos={puestos} onCerrar={() => setForm(null)} onEstado={(p) => { setForm(null); setCambiandoEstado(p); }}
         onGuardado={(u, clave) => {
           const nuevo = !form?.id;
           setForm(null);
@@ -212,6 +234,8 @@ export default function Personas() {
           if (clave) setClaveNueva({ nombre: u.nombre, usuario: u.username, clave });
           else avisar(nuevo ? "Cuenta creada." : "Cambios guardados.");
         }} />
+      <EstadoCuenta persona={cambiandoEstado} gente={lista} puedeEliminar={!soloDirectorio} onCerrar={() => setCambiandoEstado(null)}
+        onHecho={() => { setCambiandoEstado(null); cargar(); }} />
       <Modal abierto={!!claveNueva} onCerrar={() => setClaveNueva(null)} titulo="Datos para entrar" ancho="max-w-md"
         descripcion={`Compártelos con ${claveNueva?.nombre} por un medio privado. No se vuelven a mostrar.`}
         pie={<Boton onClick={() => { navigator.clipboard?.writeText(`Usuario: ${claveNueva.usuario}\nContraseña: ${claveNueva.clave}`); avisar("Copiado."); }}>Copiar</Boton>}>

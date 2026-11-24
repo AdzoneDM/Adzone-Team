@@ -103,6 +103,11 @@ class UserSerializer(serializers.ModelSerializer):
     salario_mensual = serializers.DecimalField(source='perfil.salario_mensual', max_digits=12, decimal_places=2,
                                                required=False, allow_null=True, min_value=0)
     nomina = serializers.CharField(source='perfil.nomina', required=False, allow_blank=True, max_length=60)
+    estado_cuenta = serializers.CharField(source='perfil.estado_cuenta', read_only=True)
+    estado_motivo = serializers.CharField(source='perfil.estado_motivo', read_only=True)
+    estado_desde = serializers.DateTimeField(source='perfil.estado_desde', read_only=True)
+    estado_por_nombre = serializers.SerializerMethodField()
+    suspendida_hasta = serializers.DateField(source='perfil.suspendida_hasta', read_only=True)
     puestos_adicionales = serializers.SerializerMethodField()
     puestos_adicionales_ids = serializers.PrimaryKeyRelatedField(
         queryset=PuestoDeTrabajo.objects.all(), many=True, write_only=True, required=False)
@@ -114,6 +119,7 @@ class UserSerializer(serializers.ModelSerializer):
             'password', 'puesto_trabajo_id', 'perfil', 'puesto', 'puesto_id', 'departamento',
             'groups', 'roles', 'roles_asignados', 'horas_semana', 'costo_hora', 'salario_mensual', 'nomina',
             'puestos_adicionales', 'puestos_adicionales_ids',
+            'estado_cuenta', 'estado_motivo', 'estado_desde', 'estado_por_nombre', 'suspendida_hasta',
         ]
         read_only_fields = ['last_login']
         extra_kwargs = {
@@ -123,6 +129,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_nombre(self, obj):
         return obj.get_full_name() or obj.username
+
+    def get_estado_por_nombre(self, obj):
+        quien = getattr(getattr(obj, 'perfil', None), 'estado_por', None)
+        return (quien.get_full_name() or quien.username) if quien else None
 
     def get_puestos_adicionales(self, obj):
         perfil = getattr(obj, 'perfil', None)

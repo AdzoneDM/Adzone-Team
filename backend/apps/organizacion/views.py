@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
+from django.utils import timezone
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
 from apps.desempeno.permisos import EsAdministrador, LecturaOAdministrador, TienePermiso, administradores
@@ -134,12 +135,83 @@ class UserViewSet(viewsets.ModelViewSet):
                 motivo = 'No puedes cambiar tu propio puesto: el organigrama decide sobre quién tienes permisos. Lo cambia la Dirección.'
         if motivo:
             return Response({"detail": motivo}, status=status.HTTP_400_BAD_REQUEST)
-        return super().update(request, *args, **kwargs)
+        antes = usuario.is_active
+        respuesta = super().update(request, *args, **kwargs)
+        usuario.refresh_from_db()
+        if usuario.is_active != antes:  # la casilla «Cuenta activa» del formulario: mismo registro (quién, cuándo) y cierre de sesiones
+            from . import cuentas
+            cuentas.cambiar_estado(usuario, 'ACTIVA' if usuario.is_active else 'INACTIVA', request.user, motivo='Cambio desde «Editar persona»')
+            respuesta.data['estado_cuenta'] = usuario.perfil.estado_cuenta
+        return respuesta
+
+    @action(detail=True, methods=['get'])
+    def pendientes(self, request, pk=None):
+        """Lo que la persona tiene a medias (tareas, compañera de tareas, revisiones, recurrentes, equipos): para decidir antes de apartarla."""
+        from . import cuentas
+        return Response(cuentas.pendientes(self.get_object()))
+
+    @action(detail=True, methods=['post'])
+    def estado(self, request, pk=None):
+        """Suspender (temporal), dar de baja (inactiva), eliminar (oculta, sin borrar nada) o reactivar una cuenta.
+        Con pendientes, hay que decir a quién pasarlos (`reasignar_a`) o confirmar que se quedan donde están (`dejar_pendientes`)."""
+        from . import cuentas
+        usuario = self.get_object()
+        nuevo = (request.data.get('estado') or '').upper()
+        if nuevo not in cuentas.ESTADOS:
+            return Response({"estado": ["Elige: activa, suspendida, inactiva o eliminada."]}, status=status.HTTP_400_BAD_REQUEST)
+        actual = usuario.perfil.estado_cuenta
+        if nuevo == actual:
+            return Response({"detail": f"La cuenta ya está {cuentas.ETIQUETA[actual].lower()}."}, status=status.HTTP_400_BAD_REQUEST)
+        # «Personas» (directorio) suspende y da de baja; eliminar y reactivar una cuenta eliminada es de «Personas y accesos»
+        if self._limitado() and (nuevo == 'ELIMINADA' or actual == 'ELIMINADA'):
+            return Response({"detail": "Con el permiso «Personas» puedes suspender, dar de baja o reactivar; eliminar lo hace «Personas y accesos»."},
+                            status=status.HTTP_403_FORBIDDEN)
+        if usuario.pk == request.user.pk:
+            return Response({"detail": "No puedes cambiar el estado de tu propia cuenta."}, status=status.HTTP_400_BAD_REQUEST)
+        if nuevo != 'ACTIVA':
+            motivo_bloqueo = self._proteger(usuario, activo=False)
+            if motivo_bloqueo:
+                return Response({"detail": motivo_bloqueo}, status=status.HTTP_400_BAD_REQUEST)
+            motivo = (request.data.get('motivo') or '').strip()
+            if len(motivo) < 3:
+                return Response({"motivo": ["Escribe el motivo (queda en el historial)."]}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            motivo = ''
+        hasta = None
+        if nuevo == 'SUSPENDIDA' and request.data.get('hasta'):
+            from django.utils.dateparse import parse_date
+            hasta = parse_date(str(request.data['hasta']))
+            if hasta is None or hasta <= timezone.localdate():
+                return Response({"hasta": ["Elige una fecha futura (o déjala vacía para suspender sin fecha de fin)."]}, status=status.HTTP_400_BAD_REQUEST)
+        reasignado = None
+        if actual == 'ACTIVA' and nuevo != 'ACTIVA':
+            p = cuentas.pendientes(usuario)
+            destino = None
+            if request.data.get('reasignar_a'):
+                destino = User.objects.filter(pk=request.data['reasignar_a'], is_active=True).exclude(pk=usuario.pk).first()
+                if destino is None:
+                    return Response({"reasignar_a": ["Elige a una persona activa para recibir sus pendientes."]}, status=status.HTTP_400_BAD_REQUEST)
+            if cuentas.hay_pendientes(p) and destino is None and not request.data.get('dejar_pendientes'):
+                return Response({"detail": "Esta persona tiene pendientes. Pásalos a otra persona o confirma que se queden como están.",
+                                 "pendientes": p, "requiere_decision": True}, status=status.HTTP_409_CONFLICT)
+            if destino is not None:
+                reasignado = cuentas.reasignar(usuario, destino, request.user)
+        cuentas.cambiar_estado(usuario, nuevo, request.user, motivo=motivo, hasta=hasta)
+        usuario.refresh_from_db()
+        datos = self.get_serializer(usuario).data
+        return Response({**datos, 'reasignado': reasignado})
 
     def destroy(self, request, *args, **kwargs):
         usuario = self.get_object()
         if self._limitado():
             return Response({"detail": "Con el permiso «Personas» solo puedes desactivar cuentas, no borrarlas."}, status=status.HTTP_403_FORBIDDEN)
+        # El borrado definitivo es solo de la Dirección, y solo de una cuenta que ya está «Eliminada» (dos pasos) y sin historial
+        from apps.desempeno.permisos import es_administrador
+        if not (request.user.is_superuser or es_administrador(request.user)):
+            return Response({"detail": "El borrado definitivo es solo de la Dirección. Puedes dejar la cuenta como eliminada (oculta, sin perder su historial)."},
+                            status=status.HTTP_403_FORBIDDEN)
+        if usuario.perfil.estado_cuenta != 'ELIMINADA':
+            return Response({"detail": "Primero deja la cuenta como «Eliminada»; el borrado definitivo es el último paso."}, status=status.HTTP_400_BAD_REQUEST)
         if usuario.pk == request.user.pk:
             return Response({"detail": "No puedes borrar tu propia cuenta."}, status=status.HTTP_400_BAD_REQUEST)
         motivo = self._proteger(usuario, activo=False)

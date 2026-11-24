@@ -214,6 +214,8 @@ export const eliminarPuesto = (id) => api(`/api/organizacion/puestos-trabajo/${i
 export const organigrama = () => api("/api/organizacion/organigrama/");
 export const usuarios = () => api("/api/organizacion/usuarios/");
 export const guardarUsuario = (u) => (u.id ? api(`/api/organizacion/usuarios/${u.id}/`, { method: "PATCH", body: u }) : api("/api/organizacion/usuarios/", { method: "POST", body: u }));
+export const usuarioPendientes = (id) => api(`/api/organizacion/usuarios/${id}/pendientes/`);
+export const usuarioEstado = (id, datos) => api(`/api/organizacion/usuarios/${id}/estado/`, { method: "POST", body: datos });
 export const eliminarUsuario = (id) => api(`/api/organizacion/usuarios/${id}/`, { method: "DELETE" });
 
 // KPIs

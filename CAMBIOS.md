@@ -1,5 +1,16 @@
 # Cambios
 
+## 12.43 · 24/11/2026 · Administración de personas: suspender, dar de baja, eliminar y reactivar sin perder nada
+
+- **Estados de cuenta:** cada cuenta está **Activa, Suspendida (temporal), De baja (inactiva) o Eliminada**. En **Personas → Editar → «Cambiar estado…»** se elige la acción, se escribe el **motivo** (obligatorio) y se **confirma**. Solo las cuentas activas pueden entrar: una cuenta apartada **no puede iniciar sesión y sus sesiones abiertas se cierran al instante** (también sus avisos del celular).
+- **Suspensión temporal:** con fecha de fin opcional; si la pones, la cuenta **se reactiva sola** ese día (cron diario). **Reactivar** devuelve la cuenta como estaba (misma contraseña y permisos).
+- **No se pierde nada:** tareas, asignaciones, chats, comentarios, evidencias e historial se conservan en todos los estados, con la trazabilidad de quién creó, asignó, modificó y validó cada cosa. **Eliminar** solo oculta la cuenta (filtro «Eliminadas», se puede restaurar). El **borrado definitivo** es solo de la **Dirección**, únicamente de una cuenta ya «Eliminada» y **sin historial** (si tiene tareas, no se borra).
+- **Pendientes antes de apartar a alguien:** el modal muestra sus **tareas abiertas, tareas donde colabora, entregas que debía validar, recurrentes y equipos a su cargo**, y deja **pasarlos a otra persona** en un paso (cada tarea deja en su historial «Reasignada de A a B por C» y la persona nueva recibe un aviso; se conserva quién la asignó) o confirmar que se queden como están.
+- **Quién y cuándo:** cada cambio guarda quién lo hizo, cuándo y el motivo (se ve en la ficha) y queda en la **auditoría**. Con el permiso «Personas» se puede suspender, dar de baja y reactivar; **eliminar** requiere «Personas y accesos». Nadie cambia su propia cuenta y siempre queda al menos un administrador activo.
+- **Filtros:** Activas, Aún no entran, Sin puesto, **Suspendidas, De baja, Eliminadas** y Todas, con su conteo e insignia de estado en la lista. Las cuentas que ya estaban desactivadas pasaron a «De baja».
+- **Chat:** el límite de mensajes ya es de 20 000 caracteres (versión 12.39).
+- Migración `organizacion.0007` (estado de cuenta en el perfil). 15 pruebas nuevas.
+
 ## 12.42 · 23/11/2026 · Tareas entre áreas y autovalidación
 
 - **Asignar tareas a otras áreas.** Nuevo permiso **«Asignar tareas a otras áreas»** (Accesos y permisos; por defecto en «Gerente de Departamento» y Dirección). Quien lo tiene (y puede asignar tareas) puede pedirle una tarea —como aporte o colaboración— a **cualquier persona de otra área**, sin pertenecer al departamento de esa persona. **Quedan fuera Call Center y Dirección**: no reciben tareas de otras áreas (el Call Center lo dirige su propia gerencia). Se valida en el servidor, no solo en la pantalla; el selector «Responsable» muestra a la gente agrupada por departamento.
