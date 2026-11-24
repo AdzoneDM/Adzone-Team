@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.48 · 24/11/2026 · «Quién está libre» e historial de tareas
+
+- **Quién está libre** (menú *Mi trabajo*, para todas las personas y de **todos los departamentos**): tablero de disponibilidad, agrupado por departamento, con estados **Libre** (sin tareas abiertas), **Poca carga** (1 a 2), **Ocupado/a** (3 o más) y **No disponible hoy** (permiso o vacaciones aprobados). Cada persona muestra cuántas tareas abiertas tiene, las horas estimadas y su próxima entrega; **nunca de qué son** las tareas. Lo ya entregado que espera validación no cuenta como carga. Filtros por estado, departamento y búsqueda; se actualiza solo.
+- **Para pedir ayuda:** botón **«Escribirle»** (abre el chat privado con esa persona desde cualquier pantalla), **«Pedir apoyo»** (el pedido formal de *Colaboración*, con aviso a la persona) y **«Asignar tarea»** para quien tiene permiso de asignarle. Se mantiene la regla de siempre: el apoyo formal entre departamentos lo piden las jefaturas; el resto puede escribir por chat o pedirlo por su supervisor.
+- **Historial de tareas** (menú *Mi trabajo*): quién **hizo** cada tarea (y con quién), quién la **asignó** y quién la **validó** (con la marca «Autovalidada»), con sus fechas, calidad e indicador de tarde. Filtros por tarea o cliente, quién la hizo, quién la validó, departamento, estado (validadas, canceladas o todas) y fechas; **descarga a Excel (CSV)**; al abrir una fila se ve el detalle con su historial completo. Cada persona ve lo que ya veía: lo suyo, lo de su equipo y lo que asignó (Dirección, todo).
+- Sin migraciones. 16 pruebas nuevas.
+
 ## 12.47 · 24/11/2026 · Mencionar con @ en el chat
 
 - **Etiquetar personas en el chat de grupo** (y en la sala de la empresa): al escribir `@` y unas letras (por ejemplo `@bas`) aparece la lista de personas del grupo cuyo **nombre, usuario o puesto** lo contiene (las que empiezan con eso, primero). Se elige con el ratón, o con **↑ ↓ y Enter/Tab**; **Esc** cierra solo la lista.

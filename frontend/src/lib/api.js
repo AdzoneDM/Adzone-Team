@@ -160,6 +160,9 @@ export const recordarTarea = (id, mensaje) => api(`${D}/tareas/${id}/recordar/`,
 export const pedirTrabajo = () => api(`${D}/pedir-trabajo/`, { method: "POST" });
 export const bloquearTarea = (id, motivo) => api(`${D}/tareas/${id}/bloquear/`, { method: "POST", body: { motivo } });
 export const desbloquearTarea = (id, nota) => api(`${D}/tareas/${id}/desbloquear/`, { method: "POST", body: { nota } });
+export const disponibilidad = () => api(`${D}/disponibilidad/`);
+export const historialTareas = (params = {}) => api(`${D}/historial-tareas/${q(params)}`);
+export const urlHistorialCsv = (params = {}) => `${D}/historial-tareas/${q({ ...params, formato: "csv", pagina: "" })}`;
 export const miDisponibilidad = () => api(`${D}/mi-disponibilidad/`);
 // Actividades adicionales y colaboración (12.4)
 export const listarActividades = (params = {}) => api(`${D}/actividades/${q(params)}`);

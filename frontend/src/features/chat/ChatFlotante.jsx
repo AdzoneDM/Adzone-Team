@@ -102,6 +102,13 @@ export default function ChatFlotante() {
   }, [abierto]);
 
   const abrirConversacion = (c) => { eligioAlgo.current = true; setError(""); setListaMovil(false); setConv(c); };
+  // Desde cualquier pantalla («Escribirle» en la disponibilidad, por ejemplo): window.dispatchEvent(new CustomEvent("adzone:abrir-chat", { detail: { id, nombre } }))
+  const abrirRef = useRef(null);
+  useEffect(() => {
+    const f = (e) => { if (e.detail?.id) { setAbierto(true); eligioAlgo.current = true; abrirRef.current?.(e.detail); } };
+    window.addEventListener("adzone:abrir-chat", f);
+    return () => window.removeEventListener("adzone:abrir-chat", f);
+  }, []);
   const abrirConPersona = async (persona) => {
     try {
       const c = await chatAbrir(persona.id);
@@ -110,6 +117,7 @@ export default function ChatFlotante() {
       setError(e.message);
     }
   };
+  abrirRef.current = abrirConPersona;
 
   if (!usuario) return null;
   const n = noLeidos;

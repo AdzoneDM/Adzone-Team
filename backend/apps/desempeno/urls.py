@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import departamentos, views, views_equipo
+from . import departamentos, views, views_equipo, views_disponibilidad
 
 router = DefaultRouter()
 router.register(r'tareas', views.TareaViewSet, basename='tarea')
@@ -36,5 +36,7 @@ urlpatterns = [
     path('equipo/carga/', views.carga_equipo_view, name='carga_equipo'),
     path('pedir-trabajo/', views.pedir_trabajo_view, name='pedir_trabajo'),
     path('mi-disponibilidad/', views_equipo.mi_disponibilidad_view, name='mi_disponibilidad'),
+    path('disponibilidad/', views_disponibilidad.disponibilidad_view, name='disponibilidad'),
+    path('historial-tareas/', views_disponibilidad.historial_tareas_view, name='historial_tareas'),
     path('personas/', views_equipo.personas_view, name='personas_colaborar'),
 ]
