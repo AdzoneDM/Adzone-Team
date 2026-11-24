@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Ban, CheckCircle2, CloudUpload, Copy, Download, FileText, ImagePlus, Paperclip, Plus, Printer, Receipt, RefreshCw, Send, Trash2, X } from "lucide-react";
-import { accionDocumento, borrarAdjuntoFactura, borrarPago, eliminarDocumento, guardarDocumento, listarProyectos, quitarComprobantePago, registrarPago, subirAdjuntosFactura, subirComprobantePago, urlAdjuntoFactura, urlComprobantePago } from "@/lib/api";
+import { accionDocumento, borrarAdjuntoFactura, cambiarAdjuntoFactura, reemplazarAdjuntoFactura, borrarPago, eliminarDocumento, guardarDocumento, listarProyectos, quitarComprobantePago, registrarPago, subirAdjuntosFactura, subirComprobantePago, urlAdjuntoFactura, urlComprobantePago } from "@/lib/api";
 import { dinero, fechaCorta, hoyISO, sumarDias } from "@/lib/formato";
 import { SelectorCliente } from "@/components/Selectores";
 import { Alerta, Boton, Campo, Modal, cx, useAviso, useConfirmar } from "@/components/ui";
@@ -35,9 +35,12 @@ export function EditorDocumento({ tipo, abierto, inicial, onCerrar, onGuardado }
   const [proyectos, setProyectos] = useState([]);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [pendientes, setPendientes] = useState([]);   // documentos que se suben al guardar (solo facturas)
+  const [tipoPendientes, setTipoPendientes] = useState("OTRO");
+  const avisar = useAviso();
   useEffect(() => {
     if (!abierto) return;
-    setError("");
+    setError(""); setPendientes([]); setTipoPendientes("OTRO");
     setF(inicial?.id ? { ...inicial, cliente: String(inicial.cliente), proyecto: inicial.proyecto ? String(inicial.proyecto) : "", lineas: inicial.lineas.map((l) => ({ ...l })) }
       : { cliente: inicial?.cliente ? String(inicial.cliente) : "", proyecto: "", titulo: "", fecha: hoyISO(), moneda: "DOP", notas: "",
         ...(esCot ? { valida_hasta: sumarDias(hoyISO(), 15), condiciones: "50% de anticipo para iniciar y 50% contra entrega." } : { vencimiento: sumarDias(hoyISO(), 30), ncf: "" }),
@@ -63,7 +66,13 @@ export function EditorDocumento({ tipo, abierto, inicial, onCerrar, onGuardado }
         moneda: f.moneda, notas: f.notas || "", ...(esCot ? { valida_hasta: f.valida_hasta || null, condiciones: f.condiciones || "" } : { vencimiento: f.vencimiento || null, ncf: f.ncf || "" }),
         lineas: lineas.map((l) => ({ descripcion: l.descripcion.trim(), cantidad: l.cantidad, precio: l.precio, aplica_itbis: !!l.aplica_itbis })),
       });
-      onGuardado(d);
+      let guardado = d;
+      if (!esCot && pendientes.length) {
+        try { guardado = await subirAdjuntosFactura(d.id, pendientes, tipoPendientes); } catch (err) {
+          avisar(`La factura se guardó, pero los archivos no se pudieron subir: ${err.message} Agrégalos desde el detalle.`, "rojo");
+        }
+      }
+      onGuardado(guardado);
     } catch (err) { setError(err.message); }
     setGuardando(false);
   };
@@ -114,59 +123,131 @@ export function EditorDocumento({ tipo, abierto, inicial, onCerrar, onGuardado }
             : <Campo etiqueta="NCF / e-CF (opcional)" ayuda="Si la emites en Cashflow, el NCF llega solo.">{(id) => <input id={id} className="campo" value={f.ncf || ""} onChange={(e) => setF({ ...f, ncf: e.target.value })} maxLength={20} />}</Campo>}
           <Campo etiqueta="Notas">{(id) => <textarea id={id} rows={2} className="campo" value={f.notas || ""} onChange={(e) => setF({ ...f, notas: e.target.value })} />}</Campo>
         </div>
+        {!esCot && (
+          <fieldset className="rounded-xl border border-linea p-3">
+            <legend className="px-1 text-sm font-medium">Imágenes y documentos de respaldo</legend>
+            <div className="flex flex-wrap items-center gap-2">
+              <select value={tipoPendientes} onChange={(e) => setTipoPendientes(e.target.value)} aria-label="Tipo de los documentos" className="campo h-10 w-auto py-0">
+                {TIPOS_ADJUNTO.map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+              </select>
+              <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm font-medium text-tinta hover:bg-fondo">
+                <Paperclip className="size-4" aria-hidden />Elegir archivos
+                <input type="file" multiple accept={ACEPTA_ADJUNTOS} className="sr-only" onChange={(e) => { const nuevos = [...e.target.files]; e.target.value = ""; setPendientes((p) => [...p, ...nuevos].slice(0, 10)); }} />
+              </label>
+              <span className="text-xs text-gris">{FORMATOS_ADJUNTOS}</span>
+            </div>
+            {pendientes.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {pendientes.map((a, i) => (
+                  <li key={`${a.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-full bg-fondo px-2.5 py-1 text-xs">
+                    <FileText className="size-3.5 text-gris" aria-hidden /><span className="max-w-48 truncate">{a.name}</span>
+                    <button type="button" onClick={() => setPendientes((p) => p.filter((_, j) => j !== i))} aria-label={`Quitar ${a.name}`} className="text-gris hover:text-rojo"><X className="size-3.5" /></button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </fieldset>
+        )}
       </form>
     </Modal>
   );
 }
 
 /** Detalle de una cotización o factura con sus acciones. */
-/** Imágenes y documentos de una factura: miniaturas que se abren en grande, descarga y borrado, y subida de varios a la vez. */
+// Tipos de documento de una factura (el mismo orden en que se muestran los grupos)
+export const TIPOS_ADJUNTO = [["FACTURA", "Factura"], ["COMPROBANTE", "Comprobante de pago"], ["COTIZACION", "Cotización"], ["ORDEN_COMPRA", "Orden de compra"], ["OTRO", "Otro"]];
+const ACEPTA_ADJUNTOS = "image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.csv,.txt";
+const FORMATOS_ADJUNTOS = "JPG, PNG, WEBP, PDF, Word, Excel, PowerPoint, CSV o texto · hasta 10 MB las fotos y PDF, 15 MB los documentos";
+
+/** Imágenes y documentos de una factura, agrupados por tipo: vista previa (imagen o PDF), descarga, reemplazo, cambio de tipo y borrado. */
 function AdjuntosFactura({ doc, onCambio }) {
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const entrada = useRef(null);
+  const reemplazo = useRef(null);
   const [subiendo, setSubiendo] = useState(false);
+  const [tipo, setTipo] = useState("OTRO");
+  const [ver, setVer] = useState(null);
+  const [cambiando, setCambiando] = useState(null);
   const subir = async (e) => {
     const archivos = e.target.files;
     if (!archivos?.length) return;
     setSubiendo(true);
-    try { onCambio(await subirAdjuntosFactura(doc.id, archivos)); avisar(archivos.length > 1 ? `${archivos.length} archivos agregados.` : "Archivo agregado."); } catch (err) { avisar(err.message, "rojo"); }
+    try { onCambio(await subirAdjuntosFactura(doc.id, archivos, tipo)); avisar(archivos.length > 1 ? `${archivos.length} archivos agregados.` : "Archivo agregado."); } catch (err) { avisar(err.message, "rojo"); }
     setSubiendo(false);
     e.target.value = "";
   };
+  const reemplazar = async (e) => {
+    const archivo = e.target.files?.[0];
+    const adjunto = cambiando;
+    e.target.value = "";
+    if (!archivo || !adjunto) return;
+    setSubiendo(true);
+    try { onCambio(await reemplazarAdjuntoFactura(doc.id, adjunto, archivo)); avisar("Archivo reemplazado."); } catch (err) { avisar(err.message, "rojo"); }
+    setSubiendo(false);
+  };
+  const grupos = TIPOS_ADJUNTO.map(([valor, etiqueta]) => ({ valor, etiqueta, items: doc.adjuntos.filter((a) => a.tipo === valor) })).filter((g) => g.items.length);
   return (
     <section>
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <h3 className="font-semibold">Imágenes y documentos</h3>
         {doc.adjuntos.length > 0 && <span className="text-sm text-gris">({doc.adjuntos.length})</span>}
-        <input ref={entrada} type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={subir} aria-label="Elegir imágenes o PDF" />
-        <Boton tam="sm" variante="secundario" icono={ImagePlus} cargando={subiendo} className="ml-auto" onClick={() => entrada.current?.click()}>Agregar</Boton>
+        <input ref={entrada} type="file" multiple accept={ACEPTA_ADJUNTOS} className="hidden" onChange={subir} aria-label="Elegir imágenes o documentos" />
+        <input ref={reemplazo} type="file" accept={ACEPTA_ADJUNTOS} className="hidden" onChange={reemplazar} aria-label="Elegir el archivo nuevo" />
+        <div className="ml-auto flex items-center gap-2">
+          <select value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo de lo que vas a agregar" className="campo h-9 w-auto py-0 text-sm">
+            {TIPOS_ADJUNTO.map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+          </select>
+          <Boton tam="sm" variante="secundario" icono={ImagePlus} cargando={subiendo} onClick={() => entrada.current?.click()}>Agregar</Boton>
+        </div>
       </div>
       {doc.adjuntos.length === 0 ? (
         <button type="button" onClick={() => entrada.current?.click()} className="flex w-full flex-col items-center gap-1 rounded-xl border-2 border-dashed border-linea px-4 py-6 text-sm text-gris hover:border-azul/50 hover:bg-fondo">
-          <ImagePlus className="size-6" aria-hidden />Agrega fotos del trabajo, la orden de compra del cliente o cualquier PDF
-          <span className="text-xs">JPG, PNG, WEBP o PDF · hasta 10 MB cada uno</span>
+          <ImagePlus className="size-6" aria-hidden />Agrega la factura, el comprobante de pago, la cotización, la orden de compra u otros documentos
+          <span className="text-center text-xs">{FORMATOS_ADJUNTOS}</span>
         </button>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {doc.adjuntos.map((a) => (
-            <li key={a.id} className="group relative overflow-hidden rounded-xl border border-linea bg-white">
-              <a href={urlAdjuntoFactura(doc.id, a.id)} target="_blank" rel="noopener" className="block" aria-label={`Abrir ${a.nombre}`}>
-                {a.es_imagen
-                  ? <img src={urlAdjuntoFactura(doc.id, a.id)} alt={a.nombre} loading="lazy" className="h-28 w-full object-cover" />
-                  : <span className="flex h-28 flex-col items-center justify-center gap-1 bg-fondo text-gris"><FileText className="size-8" aria-hidden /><span className="text-xs font-semibold">PDF</span></span>}
-                <span className="block truncate px-2 py-1.5 text-xs text-tinta" title={a.nombre}>{a.nombre}</span>
-              </a>
-              <div className="absolute right-1 top-1 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                <a href={urlAdjuntoFactura(doc.id, a.id, true)} aria-label={`Descargar ${a.nombre}`} title="Descargar" className="rounded-lg bg-white/95 p-1.5 text-tinta shadow hover:text-azul"><Download className="size-4" /></a>
-                <button type="button" aria-label={`Quitar ${a.nombre}`} title="Quitar" className="rounded-lg bg-white/95 p-1.5 text-tinta shadow hover:text-rojo" onClick={async () => {
-                  if (await confirmar({ titulo: `¿Quitar «${a.nombre}»?`, boton: "Quitar", peligro: true })) { try { onCambio(await borrarAdjuntoFactura(doc.id, a.id)); } catch (err) { avisar(err.message, "rojo"); } }
-                }}><Trash2 className="size-4" /></button>
-              </div>
-            </li>
+        <div className="space-y-4">
+          {grupos.map((g) => (
+            <div key={g.valor}>
+              <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gris">{g.etiqueta} <span className="font-normal">({g.items.length})</span></h4>
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {g.items.map((a) => (
+                  <li key={a.id} className="group relative overflow-hidden rounded-xl border border-linea bg-white">
+                    <button type="button" onClick={() => (a.vista_previa ? setVer(a) : window.open(urlAdjuntoFactura(doc.id, a.id, true), "_self"))} className="block w-full text-left" aria-label={a.vista_previa ? `Ver ${a.nombre}` : `Descargar ${a.nombre}`}>
+                      {a.es_imagen
+                        ? <img src={urlAdjuntoFactura(doc.id, a.id)} alt="" loading="lazy" className="h-28 w-full object-cover" />
+                        : <span className="flex h-28 flex-col items-center justify-center gap-1 bg-fondo text-gris"><FileText className="size-8" aria-hidden /><span className="text-xs font-semibold uppercase">{a.extension || "archivo"}</span></span>}
+                      <span className="block truncate px-2 pt-1.5 text-xs font-medium text-tinta" title={a.nombre}>{a.nombre}</span>
+                      <span className="block truncate px-2 pb-1.5 text-[11px] text-gris">{fechaCorta(a.fecha_creacion)}{a.subido_por_nombre ? ` · ${a.subido_por_nombre}` : ""}</span>
+                    </button>
+                    <div className="absolute right-1 top-1 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                      <a href={urlAdjuntoFactura(doc.id, a.id, true)} aria-label={`Descargar ${a.nombre}`} title="Descargar" className="rounded-lg bg-white/95 p-1.5 text-tinta shadow hover:text-azul"><Download className="size-4" /></a>
+                      <button type="button" aria-label={`Reemplazar ${a.nombre}`} title="Reemplazar por otro archivo" className="rounded-lg bg-white/95 p-1.5 text-tinta shadow hover:text-azul" onClick={() => { setCambiando(a.id); reemplazo.current?.click(); }}><RefreshCw className="size-4" /></button>
+                      <button type="button" aria-label={`Quitar ${a.nombre}`} title="Quitar" className="rounded-lg bg-white/95 p-1.5 text-tinta shadow hover:text-rojo" onClick={async () => {
+                        if (await confirmar({ titulo: `¿Quitar «${a.nombre}»?`, boton: "Quitar", peligro: true })) { try { onCambio(await borrarAdjuntoFactura(doc.id, a.id)); } catch (err) { avisar(err.message, "rojo"); } }
+                      }}><Trash2 className="size-4" /></button>
+                    </div>
+                    <label className="block border-t border-linea-suave px-2 py-1">
+                      <span className="sr-only">Tipo de {a.nombre}</span>
+                      <select value={a.tipo} onChange={async (e) => { try { onCambio(await cambiarAdjuntoFactura(doc.id, a.id, { tipo: e.target.value })); } catch (err) { avisar(err.message, "rojo"); } }}
+                        className="w-full cursor-pointer rounded bg-transparent text-[11px] text-gris focus:outline-none focus:ring-1 focus:ring-azul">
+                        {TIPOS_ADJUNTO.map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+                      </select>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
+      <Modal abierto={!!ver} onCerrar={() => setVer(null)} titulo={ver?.nombre || ""} ancho="md:max-w-4xl"
+        pie={ver && <><a href={urlAdjuntoFactura(doc.id, ver.id, true)} className="mr-auto inline-flex items-center gap-2 text-sm font-medium text-azul hover:underline"><Download className="size-4" aria-hidden />Descargar</a><Boton variante="secundario" onClick={() => setVer(null)}>Cerrar</Boton></>}>
+        {ver && (ver.vista_previa === "imagen"
+          ? <img src={urlAdjuntoFactura(doc.id, ver.id)} alt={ver.nombre} className="mx-auto max-h-[70vh] max-w-full rounded-lg object-contain" />
+          : <iframe src={urlAdjuntoFactura(doc.id, ver.id)} title={ver.nombre} className="h-[70vh] w-full rounded-lg border border-linea" />)}
+      </Modal>
     </section>
   );
 }

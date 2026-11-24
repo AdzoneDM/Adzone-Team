@@ -1,5 +1,15 @@
 # Cambios
 
+## 12.55 · 24/11/2026 · Requerimiento #10, etapa 1: documentos y adjuntos de las facturas
+
+- **Más formatos:** además de fotos y PDF, a una factura se le adjuntan **Word (DOC, DOCX), Excel (XLS, XLSX), PowerPoint, OpenDocument, CSV y texto**. Fotos y PDF hasta 10 MB; documentos hasta 15 MB; hasta 50 archivos por factura.
+- **Tipo de documento:** factura, comprobante de pago, cotización, orden de compra u otro. Se elige al subir, se puede cambiar después y la lista se muestra **agrupada por tipo**, con el nombre, la extensión, la fecha y quién lo subió.
+- **Vista previa** de fotos y PDF dentro de la propia factura (sin salir de la pantalla), con botón de descarga. Los demás documentos se descargan.
+- **Reemplazar** un archivo por otro conservando su lugar, su tipo y su nota (el anterior se borra del disco solo cuando el nuevo ya quedó guardado; si el nuevo es inválido, el original queda intacto).
+- **Adjuntar al registrar:** el formulario de factura nueva (y el de editar un borrador) permite elegir los documentos y su tipo; se suben al guardar. Si algo fallara en la subida, la factura igual queda guardada y se avisa para agregarlos desde el detalle.
+- **Seguridad:** el contenido debe corresponder a la extensión (un «.docx» que no lo es, se rechaza), los documentos pasan por el antivirus del servidor con la misma política que el chat, y se descargan siempre como archivo (sin que el navegador los interprete ni ejecute). Solo Finanzas y Dirección pueden ver, descargar, cambiar o quitar. Editar una factura no afecta sus archivos.
+- Migración `finanzas.0005` (una columna «tipo» con valor «Otro» para lo ya subido). 17 pruebas nuevas. Sin cambios en los registros ni en los pagos existentes.
+
 ## 12.54 · 24/11/2026 · Requerimiento #8, etapa 3: trazabilidad detallada, motivo obligatorio y prioridad Urgente
 
 - **Motivo obligatorio:** al cambiar de una tarea ya creada la **fecha de entrega, la fecha de inicio, la prioridad o el responsable**, el formulario muestra «Motivo del cambio» (mínimo 5 letras) y no deja guardar sin él; el servidor también lo exige (no se puede saltar llamando a la API). Si el valor no cambia, no se pide. Cambiar solo el título, el cliente, las horas, etc. no lo exige.

@@ -160,6 +160,9 @@ class Pago(models.Model):
 
 class AdjuntoFactura(models.Model):
     """Imágenes y documentos de una factura: la foto del trabajo entregado, la orden de compra del cliente, el acuse, etc."""
+    TIPOS = [('FACTURA', 'Factura'), ('COMPROBANTE', 'Comprobante de pago'), ('COTIZACION', 'Cotización'),
+             ('ORDEN_COMPRA', 'Orden de compra'), ('OTRO', 'Otro')]
+    tipo = models.CharField(max_length=14, choices=TIPOS, default='OTRO')
     factura = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name='adjuntos')
     archivo = models.FileField(upload_to=_ruta_adjunto)
     nombre = models.CharField(max_length=150)

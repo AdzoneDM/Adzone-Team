@@ -5,6 +5,7 @@ import os
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.db.models import Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
@@ -52,13 +53,47 @@ def _filtros(qs, p):
 
 EXTENSIONES_IMAGEN = ('.jpg', '.jpeg', '.png', '.webp')
 EXTENSIONES_ARCHIVO = EXTENSIONES_IMAGEN + ('.pdf',)
+# Documentos de oficina que se pueden adjuntar a una factura (además de fotos y PDF). Sin ZIP: aquí no hacen falta.
+EXTENSIONES_OFICINA = ('.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.csv', '.txt')
+MAX_DOCUMENTO_MB = 15
 
 
-def _revisar_archivo(f, que="El archivo", campo="comprobante"):
-    """Foto o PDF de hasta 10 MB. Devuelve si es una imagen. Una «foto» que no se puede abrir como imagen se rechaza."""
+def _revisar_documento(f, que, campo):
+    """Documento de oficina (Word, Excel, PowerPoint, OpenDocument, CSV, texto): hasta 15 MB, con el contenido que dice su extensión
+    y revisado con el antivirus (con la misma política que el chat: si no se puede revisar, no se acepta)."""
+    from apps.chat import antivirus
+    from apps.desempeno.serializers import FIRMAS_DOCUMENTO
     ext = os.path.splitext(f.name)[1].lower()
+    if f.size > MAX_DOCUMENTO_MB * 1024 * 1024:
+        raise serializers_error(f"{que} pesa más de {MAX_DOCUMENTO_MB} MB.", campo)
+    if ext in FIRMAS_DOCUMENTO:
+        f.seek(0)
+        cabeza = f.read(8)
+        f.seek(0)
+        if not any(cabeza.startswith(x) for x in FIRMAS_DOCUMENTO[ext]):
+            raise serializers_error(f"{que} no es un archivo {ext[1:].upper()} válido (aunque tenga ese nombre).", campo)
+    elif ext in ('.csv', '.txt'):
+        f.seek(0)
+        if b'\0' in f.read(4096):
+            raise serializers_error(f"{que} no es un archivo de texto válido.", campo)
+        f.seek(0)
+    if settings.CHAT_ANTIVIRUS != 'omitir':
+        estado, detalle = antivirus.escanear(f)
+        if estado == antivirus.INFECTADO:
+            raise serializers_error(f"El antivirus detectó una amenaza en {que} ({detalle}). No se guardó.", campo)
+        if estado == antivirus.NO_DISPONIBLE:
+            raise serializers_error(f"No se pudo revisar {que} con el antivirus en este momento. Inténtalo de nuevo en unos minutos.", campo)
+    return False
+
+
+def _revisar_archivo(f, que="El archivo", campo="comprobante", documentos=False):
+    """Foto o PDF de hasta 10 MB (con `documentos=True` también documentos de oficina, hasta 15 MB). Devuelve si es una imagen.
+    Una «foto» que no se puede abrir como imagen se rechaza."""
+    ext = os.path.splitext(f.name)[1].lower()
+    if documentos and ext in EXTENSIONES_OFICINA:
+        return _revisar_documento(f, que, campo)
     if ext not in EXTENSIONES_ARCHIVO:
-        raise serializers_error(f"{que} tiene que ser una foto (JPG, PNG, WEBP) o un PDF.", campo)
+        raise serializers_error(f"{que} tiene que ser una foto (JPG, PNG, WEBP), un PDF" + (" o un documento de oficina (Word, Excel, PowerPoint, CSV o texto)." if documentos else "."), campo)
     if f.size > 10 * 1024 * 1024:
         raise serializers_error(f"{que} pesa más de 10 MB.", campo)
     es_imagen = ext in EXTENSIONES_IMAGEN
@@ -73,10 +108,19 @@ def _revisar_archivo(f, que="El archivo", campo="comprobante"):
     return es_imagen
 
 
-def _enviar(campo, descargar=False):
-    """Un archivo guardado, para verlo en el navegador (foto, PDF) o descargarlo."""
+def _enviar(campo, descargar=False, nombre=None):
+    """Un archivo guardado: fotos y PDF se ven en el navegador (y en la vista previa de la propia plataforma); todo lo demás se descarga,
+    sin que el navegador lo interprete ni lo ejecute (`nosniff` + `sandbox`)."""
     tipo = mimetypes.guess_type(campo.name)[0] or 'application/octet-stream'
-    return FileResponse(campo.open('rb'), filename=os.path.basename(campo.name), content_type=tipo, as_attachment=descargar)
+    en_linea = tipo in ('image/jpeg', 'image/png', 'image/webp', 'application/pdf') and not descargar
+    r = FileResponse(campo.open('rb'), filename=nombre or os.path.basename(campo.name), as_attachment=not en_linea,
+                     content_type=tipo if en_linea else 'application/octet-stream')
+    r['X-Content-Type-Options'] = 'nosniff'
+    if en_linea:
+        r['X-Frame-Options'] = 'SAMEORIGIN'   # la vista previa de la factura la incrusta; desde otro sitio sigue sin poder
+    else:
+        r['Content-Security-Policy'] = "sandbox; default-src 'none'"
+    return r
 
 
 class CotizacionViewSet(viewsets.ModelViewSet):
@@ -300,31 +344,73 @@ class FacturaViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(self.get_queryset().get(pk=f.pk)).data, status=status.HTTP_201_CREATED)
 
 
+    MAX_ADJUNTOS = 50
+
+    def _tipo_adjunto(self, request, defecto='OTRO'):
+        tipo = str(request.data.get('tipo') or defecto).upper()
+        if tipo not in dict(AdjuntoFactura.TIPOS):
+            raise serializers_error("Elige qué tipo de documento es: " + ", ".join(n.lower() for _, n in AdjuntoFactura.TIPOS) + ".", 'tipo')
+        return tipo
+
     @action(detail=True, methods=['post'], url_path='adjuntos')
     def subir_adjuntos(self, request, pk=None):
-        """Agrega imágenes o PDF a la factura (varios a la vez, en el campo «archivos»)."""
+        """Agrega imágenes, PDF o documentos de oficina a la factura (varios a la vez, en el campo «archivos»; `tipo` y `nota` opcionales)."""
         f = self.get_object()
         archivos = request.FILES.getlist('archivos') or request.FILES.getlist('archivo')
         if not archivos:
-            raise serializers_error("Elige al menos una imagen o PDF.", 'archivos')
+            raise serializers_error("Elige al menos una imagen, PDF o documento.", 'archivos')
         if len(archivos) > 10:
             raise serializers_error("Sube hasta 10 archivos a la vez.", 'archivos')
-        revisados = [(a, _revisar_archivo(a, f"«{a.name}»", 'archivos')) for a in archivos]
+        if f.adjuntos.count() + len(archivos) > self.MAX_ADJUNTOS:
+            raise serializers_error(f"Una factura admite hasta {self.MAX_ADJUNTOS} archivos.", 'archivos')
+        tipo = self._tipo_adjunto(request)
+        revisados = [(a, _revisar_archivo(a, f"«{a.name}»", 'archivos', documentos=True)) for a in archivos]
         for a, es_imagen in revisados:
-            AdjuntoFactura.objects.create(factura=f, archivo=a, nombre=a.name[:150], es_imagen=es_imagen,
+            AdjuntoFactura.objects.create(factura=f, archivo=a, nombre=a.name[:150], es_imagen=es_imagen, tipo=tipo,
                                           nota=str(request.data.get('nota') or '')[:200], subido_por=request.user)
         return Response(self.get_serializer(self.get_queryset().get(pk=f.pk)).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['get', 'delete'], url_path=r'adjuntos/(?P<adjunto_id>[0-9]+)')
-    def adjunto(self, request, pk=None, adjunto_id=None):
+    def _adjunto(self, adjunto_id):
         a = AdjuntoFactura.objects.filter(factura=self.get_object(), pk=adjunto_id).first()
         if a is None:
             raise Http404
+        return a
+
+    @action(detail=True, methods=['get', 'delete', 'patch'], url_path=r'adjuntos/(?P<adjunto_id>[0-9]+)')
+    def adjunto(self, request, pk=None, adjunto_id=None):
+        """GET: ver o descargar (`?descargar=1`). PATCH: cambiar `tipo`, `nota` o `nombre`. DELETE: quitar el archivo."""
+        a = self._adjunto(adjunto_id)
         if request.method == 'DELETE':
             a.archivo.delete(save=False)
             a.delete()
             return Response(self.get_serializer(self.get_queryset().get(pk=pk)).data)
-        return _enviar(a.archivo, descargar=request.query_params.get('descargar') == '1')
+        if request.method == 'PATCH':
+            if 'tipo' in request.data:
+                a.tipo = self._tipo_adjunto(request)
+            if 'nota' in request.data:
+                a.nota = str(request.data.get('nota') or '')[:200]
+            if 'nombre' in request.data:
+                nombre = str(request.data.get('nombre') or '').strip()[:150]
+                if not nombre:
+                    raise serializers_error("El nombre no puede quedar vacío.", 'nombre')
+                a.nombre = nombre
+            a.save()
+            return Response(self.get_serializer(self.get_queryset().get(pk=pk)).data)
+        return _enviar(a.archivo, descargar=request.query_params.get('descargar') == '1', nombre=a.nombre)
+
+    @action(detail=True, methods=['post'], url_path=r'adjuntos/(?P<adjunto_id>[0-9]+)/reemplazar')
+    def reemplazar_adjunto(self, request, pk=None, adjunto_id=None):
+        """Cambia el archivo por otro, conservando su lugar en la factura (tipo, nota y quién lo subió originalmente se mantienen)."""
+        a = self._adjunto(adjunto_id)
+        nuevo = request.FILES.get('archivo')
+        if not nuevo:
+            raise serializers_error("Elige el archivo nuevo.", 'archivo')
+        es_imagen = _revisar_archivo(nuevo, f"«{nuevo.name}»", 'archivo', documentos=True)
+        viejo = a.archivo
+        a.archivo, a.nombre, a.es_imagen = nuevo, nuevo.name[:150], es_imagen
+        a.save()
+        viejo.delete(save=False)   # el anterior se borra del disco solo después de guardar el nuevo
+        return Response(self.get_serializer(self.get_queryset().get(pk=pk)).data)
 
     @action(detail=False, methods=['get'])
     def reporte(self, request):

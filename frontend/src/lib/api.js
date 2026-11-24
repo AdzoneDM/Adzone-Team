@@ -329,10 +329,18 @@ export const registrarPago = (factura, pago) => {
   return api(`${F}/facturas/${factura}/pagos/`, { method: "POST", body: f });
 };
 // Imágenes y documentos de una factura, comprobante de cada pago y reporte descargable
-export const subirAdjuntosFactura = (id, archivos) => {
+export const subirAdjuntosFactura = (id, archivos, tipo = "OTRO", nota = "") => {
   const f = new FormData();
   [...archivos].forEach((a) => f.append("archivos", a));
+  f.append("tipo", tipo);
+  if (nota) f.append("nota", nota);
   return api(`${F}/facturas/${id}/adjuntos/`, { method: "POST", body: f });
+};
+export const cambiarAdjuntoFactura = (id, adjunto, datos) => api(`${F}/facturas/${id}/adjuntos/${adjunto}/`, { method: "PATCH", body: datos });
+export const reemplazarAdjuntoFactura = (id, adjunto, archivo) => {
+  const f = new FormData();
+  f.append("archivo", archivo);
+  return api(`${F}/facturas/${id}/adjuntos/${adjunto}/reemplazar/`, { method: "POST", body: f });
 };
 export const borrarAdjuntoFactura = (id, adjunto) => api(`${F}/facturas/${id}/adjuntos/${adjunto}/`, { method: "DELETE" });
 export const urlAdjuntoFactura = (id, adjunto, descargar = false) => `${F}/facturas/${id}/adjuntos/${adjunto}/${descargar ? "?descargar=1" : ""}`;

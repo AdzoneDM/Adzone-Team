@@ -1,3 +1,4 @@
+import os
 from decimal import Decimal
 
 from django.db import transaction
@@ -96,10 +97,20 @@ class PagoSerializer(serializers.ModelSerializer):
 
 class AdjuntoSerializer(serializers.ModelSerializer):
     subido_por_nombre = serializers.SerializerMethodField()
+    tipo_nombre = serializers.CharField(source='get_tipo_display', read_only=True)
+    extension = serializers.SerializerMethodField()
+    vista_previa = serializers.SerializerMethodField()
 
     class Meta:
         model = AdjuntoFactura
-        fields = ['id', 'nombre', 'es_imagen', 'nota', 'subido_por_nombre', 'fecha_creacion']
+        fields = ['id', 'nombre', 'es_imagen', 'tipo', 'tipo_nombre', 'extension', 'vista_previa', 'nota', 'subido_por_nombre', 'fecha_creacion']
+
+    def get_extension(self, a):
+        return os.path.splitext(a.nombre or a.archivo.name)[1].lower().lstrip('.')
+
+    def get_vista_previa(self, a):
+        """Qué se puede mostrar en el navegador: la imagen, el PDF; los demás documentos solo se descargan."""
+        return 'imagen' if a.es_imagen else 'pdf' if self.get_extension(a) == 'pdf' else None
 
     def get_subido_por_nombre(self, a):
         return (a.subido_por.get_full_name() or a.subido_por.username) if a.subido_por else None
