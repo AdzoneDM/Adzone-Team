@@ -10,6 +10,8 @@ from unittest import mock
 from django.utils import timezone
 
 from apps.asistencia.models import Marcaje
+from apps.core.models import Departamento
+from apps.organizacion.models import PuestoDeTrabajo
 from .models import Notificacion, Tarea
 from .tests_mejoras import Base, foto
 
@@ -86,7 +88,9 @@ class DiaDeEmpresa(Base):
         r = self.llamar(self.vladi, 'post', T, {'titulo': 'Calendario de enero', 'colaborador': self.ashley.id, 'prioridad': 'MEDIA', 'fecha_limite': fin})
         self.chk('vladi', 'asigna tarea individual a Ashley', r.status_code == 201, r.content[:200])
         self.t_calendario = r.json()['id']
-        r = self.llamar(self.vladi, 'post', T, {'titulo': 'Informe', 'colaborador': self.dev.id, 'fecha_limite': fin})
+        otro = Departamento.objects.create(nombre='Impresión')       # un área que no es de servicio (Tecnología sí recibe tareas de las jefaturas)
+        externo = self._u('externo', PuestoDeTrabajo.objects.create(nombre='Operador', departamento=otro), 'Omar', 'Externo')
+        r = self.llamar(self.vladi, 'post', T, {'titulo': 'Informe', 'colaborador': externo.id, 'fecha_limite': fin})
         self.chk('vladi', 'NO puede asignar a otro departamento', r.status_code in (403, 400), str(r.status_code))
         r = self.llamar(self.erlin, 'post', T, {'titulo': 'Me la asigno', 'colaborador': self.ashley.id, 'fecha_limite': fin})
         self.chk('erlin', 'un empleado NO asigna tareas a compañeros', r.status_code == 403, str(r.status_code))

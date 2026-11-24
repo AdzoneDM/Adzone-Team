@@ -202,12 +202,16 @@ class FlujoValidacionTests(BaseDesempeno):
         self.client.force_authenticate(self.jefa)
         self.assertEqual(self.client.post(f'/api/desempeno/tareas/{tarea.id}/validar/',
                                           {'calificacion_calidad': 5}).status_code, 404)
+        # Otra área que NO es de servicio: no se le asigna (Tecnología sí recibe tareas de cualquier jefatura, ver tests_entre_areas)
+        otra = Departamento.objects.create(nombre='Impresión')
+        marta = self._usuario('marta', PuestoDeTrabajo.objects.create(nombre='Operadora', departamento=otra))
         crear = self.client.post('/api/desempeno/tareas/', {
-            'titulo': 'x', 'colaborador': self.luis.id, 'fecha_limite': '2026-09-10'})
+            'titulo': 'x', 'colaborador': marta.id, 'fecha_limite': '2026-09-10'})
         self.assertEqual(crear.status_code, 403)
         equipo = self.client.get('/api/desempeno/equipo/').data
-        # Su equipo (no el de otra persona) y ella misma: los supervisores pueden asignarse tareas
-        self.assertEqual(sorted(m['id'] for m in equipo), sorted([self.ana.id, self.jefa.id]))
+        # Su equipo, ella misma (los supervisores pueden asignarse tareas) y Tecnología (área de servicio); nunca el equipo de otra persona
+        self.assertEqual(sorted(m['id'] for m in equipo), sorted([self.ana.id, self.jefa.id, self.luis.id]))
+        self.assertNotIn(marta.id, [m['id'] for m in equipo])
 
     def test_kpi_automatico_se_llena_con_tareas_validadas(self):
         plantilla = PlantillaKPI.objects.create(nombre="Contenidos programados")

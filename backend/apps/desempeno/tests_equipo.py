@@ -35,7 +35,10 @@ class TareaCompartidaTests(Base):
         self.assertTrue(Notificacion.objects.filter(destinatario=self.erlin, tipo='ASIGNADA').exists())
 
     def test_no_se_suma_a_alguien_que_no_gestiona(self):
-        r = self.crear(companeros=[self.dev.id])
+        # Otra área que no es de servicio (Tecnología sí recibe tareas de cualquier jefatura)
+        impresion = Departamento.objects.create(nombre='Impresión')
+        operador = self._u('operador', PuestoDeTrabajo.objects.create(nombre='Operador', departamento=impresion), 'Omar', 'Operador')
+        r = self.crear(companeros=[operador.id])
         self.assertEqual(r.status_code, 403)
 
     def test_el_companero_ve_marca_pasos_y_entrega(self):
