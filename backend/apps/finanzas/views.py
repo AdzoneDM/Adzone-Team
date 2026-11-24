@@ -230,7 +230,16 @@ class FacturaViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(creada_por=self.request.user)
+        f = serializer.save(creada_por=self.request.user)
+        servicios.historial(f, self.request.user, 'CREADA', f"{f.numero} para {f.cliente}")
+
+    def perform_update(self, serializer):
+        antes = servicios.instantanea(serializer.instance)
+        f = serializer.save()
+        f = Factura.objects.select_related('cliente', 'proyecto').prefetch_related('lineas').get(pk=f.pk)
+        detalle = servicios.detalle_de_cambios(antes, servicios.instantanea(f))
+        if detalle:
+            servicios.historial(f, self.request.user, 'EDITADA', detalle)
 
     def destroy(self, request, *args, **kwargs):
         if self.get_object().estado != 'BORRADOR':
@@ -299,6 +308,8 @@ class FacturaViewSet(viewsets.ModelViewSet):
             emitir_factura(f, request.user)
         except CashflowError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        f.refresh_from_db()
+        servicios.historial(f, request.user, 'CASHFLOW', f"Emitida en Cashflow" + (f" · NCF {f.ncf}" if f.ncf else ''))
         return Response(self.get_serializer(self.get_queryset().get(pk=f.pk)).data)
 
     @action(detail=True, methods=['post'])
@@ -307,10 +318,14 @@ class FacturaViewSet(viewsets.ModelViewSet):
         from apps.integraciones.cashflow.cliente import CashflowError
         from apps.integraciones.cashflow.servicios import actualizar_factura
         f = self.get_object()
+        antes = (f.estado, f.ncf)
         try:
             nuevos = actualizar_factura(f, request.user)
         except CashflowError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        f.refresh_from_db()
+        if nuevos or antes != (f.estado, f.ncf):
+            servicios.historial(f, request.user, 'CASHFLOW', "Actualizada desde Cashflow" + (f" · {nuevos} pago(s) nuevo(s)" if nuevos else '') + (f" · estado {dict(Factura.ESTADOS)[antes[0]]} → {f.get_estado_display()}" if antes[0] != f.estado else '') + (f" · NCF {f.ncf}" if antes[1] != f.ncf and f.ncf else ''))
         datos = self.get_serializer(self.get_queryset().get(pk=f.pk)).data
         datos['pagos_nuevos'] = nuevos
         return Response(datos)
@@ -323,6 +338,7 @@ class FacturaViewSet(viewsets.ModelViewSet):
         f.estado = 'ANULADA'
         f.notas = (f.notas + f"\nAnulada: {request.data.get('motivo', '')}").strip()
         f.save(update_fields=['estado', 'notas'])
+        servicios.historial(f, request.user, 'ANULADA', str(request.data.get('motivo') or '').strip())
         return Response(self.get_serializer(f).data)
 
     @action(detail=True, methods=['post'])
@@ -341,8 +357,17 @@ class FacturaViewSet(viewsets.ModelViewSet):
         if comprobante:
             pago.comprobante = comprobante
             pago.save(update_fields=['comprobante'])
+            servicios.historial(f, request.user, 'COMPROBANTE', f"Adjuntó el comprobante del pago de {pago.monto:,.2f}")
         return Response(self.get_serializer(self.get_queryset().get(pk=f.pk)).data, status=status.HTTP_201_CREATED)
 
+
+    @action(detail=True, methods=['get'])
+    def historial(self, request, pk=None):
+        """Qué le pasó a la factura y quién lo hizo, lo más reciente primero (solo Finanzas y Dirección, como el resto del módulo)."""
+        f = self.get_object()
+        return Response([{'id': h.id, 'accion': h.accion, 'accion_texto': h.get_accion_display(), 'detalle': h.detalle, 'fecha': h.fecha,
+                          'usuario_nombre': (h.usuario.get_full_name() or h.usuario.username) if h.usuario else 'Sistema'}
+                         for h in f.historial.select_related('usuario')])
 
     MAX_ADJUNTOS = 50
 
@@ -368,6 +393,7 @@ class FacturaViewSet(viewsets.ModelViewSet):
         for a, es_imagen in revisados:
             AdjuntoFactura.objects.create(factura=f, archivo=a, nombre=a.name[:150], es_imagen=es_imagen, tipo=tipo,
                                           nota=str(request.data.get('nota') or '')[:200], subido_por=request.user)
+            servicios.historial(f, request.user, 'ADJUNTO', f"{a.name[:150]} · {dict(AdjuntoFactura.TIPOS)[tipo]}")
         return Response(self.get_serializer(self.get_queryset().get(pk=f.pk)).data, status=status.HTTP_201_CREATED)
 
     def _adjunto(self, adjunto_id):
@@ -381,10 +407,13 @@ class FacturaViewSet(viewsets.ModelViewSet):
         """GET: ver o descargar (`?descargar=1`). PATCH: cambiar `tipo`, `nota` o `nombre`. DELETE: quitar el archivo."""
         a = self._adjunto(adjunto_id)
         if request.method == 'DELETE':
+            nombre = a.nombre
             a.archivo.delete(save=False)
             a.delete()
+            servicios.historial(a.factura, request.user, 'ADJUNTO_QUITADO', nombre)
             return Response(self.get_serializer(self.get_queryset().get(pk=pk)).data)
         if request.method == 'PATCH':
+            antes = (a.tipo, a.nota, a.nombre)
             if 'tipo' in request.data:
                 a.tipo = self._tipo_adjunto(request)
             if 'nota' in request.data:
@@ -395,6 +424,9 @@ class FacturaViewSet(viewsets.ModelViewSet):
                     raise serializers_error("El nombre no puede quedar vacío.", 'nombre')
                 a.nombre = nombre
             a.save()
+            cambios = [x for x in (f"tipo: {dict(AdjuntoFactura.TIPOS)[antes[0]]} → {a.get_tipo_display()}" if antes[0] != a.tipo else '', f"nombre: {antes[2]} → {a.nombre}" if antes[2] != a.nombre else '', 'nota actualizada' if antes[1] != a.nota else '') if x]
+            if cambios:
+                servicios.historial(a.factura, request.user, 'ADJUNTO_EDITADO', f"{a.nombre} · " + ', '.join(cambios))
             return Response(self.get_serializer(self.get_queryset().get(pk=pk)).data)
         return _enviar(a.archivo, descargar=request.query_params.get('descargar') == '1', nombre=a.nombre)
 
@@ -406,10 +438,11 @@ class FacturaViewSet(viewsets.ModelViewSet):
         if not nuevo:
             raise serializers_error("Elige el archivo nuevo.", 'archivo')
         es_imagen = _revisar_archivo(nuevo, f"«{nuevo.name}»", 'archivo', documentos=True)
-        viejo = a.archivo
+        viejo, nombre_viejo = a.archivo, a.nombre
         a.archivo, a.nombre, a.es_imagen = nuevo, nuevo.name[:150], es_imagen
         a.save()
-        viejo.delete(save=False)   # el anterior se borra del disco solo después de guardar el nuevo
+        viejo.delete(save=False)
+        servicios.historial(a.factura, request.user, 'ADJUNTO_REEMPLAZADO', f"{nombre_viejo} → {a.nombre}")   # el anterior se borra del disco solo después de guardar el nuevo
         return Response(self.get_serializer(self.get_queryset().get(pk=pk)).data)
 
     @action(detail=False, methods=['get'])
@@ -488,10 +521,12 @@ def comprobante_pago_view(request, pk):
             pago.comprobante.delete(save=False)
         pago.comprobante = archivo
         pago.save(update_fields=['comprobante'])
+        servicios.historial(pago.factura, request.user, 'COMPROBANTE', f"Adjuntó el comprobante del pago de {pago.monto:,.2f}")
     elif pago.comprobante:
         pago.comprobante.delete(save=False)
         pago.comprobante = None
         pago.save(update_fields=['comprobante'])
+        servicios.historial(pago.factura, request.user, 'COMPROBANTE', f"Quitó el comprobante del pago de {pago.monto:,.2f}")
     return Response(FacturaSerializer(Factura.objects.prefetch_related('lineas', 'pagos', 'adjuntos').get(pk=pago.factura_id)).data)
 
 
@@ -502,8 +537,12 @@ def borrar_pago_view(request, pk):
     if pago is None:
         raise Http404
     factura = pago.factura
+    estado_antes, monto, metodo = factura.estado, pago.monto, pago.get_metodo_display()
     pago.delete()
     factura.actualizar_pagos()
+    servicios.historial(factura, request.user, 'PAGO_BORRADO', f"{monto:,.2f} {factura.moneda} · {metodo} · saldo {factura.saldo:,.2f}")
+    if factura.estado != estado_antes:
+        servicios.historial(factura, request.user, 'ESTADO', f"Estado: {dict(Factura.ESTADOS)[estado_antes]} → {factura.get_estado_display()}")
     return Response(FacturaSerializer(Factura.objects.prefetch_related('lineas', 'pagos', 'adjuntos').get(pk=factura.pk)).data)
 
 

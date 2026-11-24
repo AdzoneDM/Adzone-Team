@@ -95,7 +95,45 @@ def factura_desde(origen, quien, lineas=None, **campos):
                 LineaFactura.objects.create(documento=factura, descripcion=f"{origen.titulo}{nota}"[:255], cantidad=1,
                                             precio=max(Decimal('0'), (origen.monto or Decimal('0')) - ya))
     factura.recalcular()
+    de_donde = f"la cotización {origen.numero}" if isinstance(origen, Cotizacion) else f"la orden {origen.codigo}"
+    historial(factura, quien, 'CREADA', f"{'Anticipo generado' if factura.es_anticipo else 'Generada'} desde {de_donde}")
     return factura
+
+
+def historial(factura, quien, accion, detalle=''):
+    """Una línea en el historial de la factura (quién, qué y cuándo)."""
+    from .models import HistorialFactura
+    return HistorialFactura.objects.create(factura=factura, usuario=quien if getattr(quien, 'pk', None) else None, accion=accion, detalle=str(detalle)[:2000])
+
+
+def _fecha(d):
+    return d.strftime('%d/%m/%Y') if d else 'sin definir'
+
+
+def instantanea(f):
+    """Cómo está la factura ahora, en texto legible, para poder decir después qué cambió («antes → después»)."""
+    return {
+        'Título': f.titulo or 'sin título', 'Cliente': str(f.cliente), 'Proyecto': str(f.proyecto) if f.proyecto_id else 'ninguno',
+        'Fecha': _fecha(f.fecha), 'Vencimiento': _fecha(f.vencimiento), 'Moneda': f.moneda, 'NCF': f.ncf or 'sin NCF',
+        'Notas': f.notas or '', 'Líneas': [(l.descripcion, str(l.cantidad), str(l.precio), l.aplica_itbis) for l in f.lineas.all()],
+        'Total': f"{f.total:,.2f}",
+    }
+
+
+def detalle_de_cambios(antes, despues):
+    """Una línea por cada dato que cambió. Las notas y las líneas solo dicen que cambiaron (las líneas, con el total nuevo)."""
+    lineas = []
+    for campo, valor in despues.items():
+        previo = antes.get(campo)
+        if previo == valor or campo == 'Total':
+            continue
+        if campo == 'Notas':
+            lineas.append("Notas: actualizadas")
+        elif campo == 'Líneas':
+            lineas.append(f"Líneas: actualizadas (total {antes['Total']} → {despues['Total']})")
+        else:
+            lineas.append(f"{campo}: {previo} → {valor}")
+    return '\n'.join(lineas)
 
 
 def emitir(factura, quien, dias_credito=30):
@@ -103,12 +141,17 @@ def emitir(factura, quien, dias_credito=30):
     factura.vencimiento = factura.vencimiento or factura.fecha + timedelta(days=dias_credito)
     factura.save(update_fields=['estado', 'vencimiento'])
     factura.actualizar_pagos()
+    historial(factura, quien, 'EMITIDA', f"Vence: {_fecha(factura.vencimiento)}")
     disparar('FACTURA_EMITIDA', factura, quien)
 
 
 def registrar_pago(factura, quien, monto, **datos):
+    estado_antes = factura.estado
     pago = Pago.objects.create(factura=factura, monto=monto, registrado_por=quien, **datos)
     factura.actualizar_pagos()
+    historial(factura, quien, 'PAGO', f"{pago.monto:,.2f} {factura.moneda} · {pago.get_metodo_display()}" + (f" · ref. {pago.referencia}" if pago.referencia else '') + f" · saldo {factura.saldo:,.2f}")
+    if factura.estado != estado_antes:
+        historial(factura, quien, 'ESTADO', f"Estado: {dict(Factura.ESTADOS)[estado_antes]} → {factura.get_estado_display()}")
     disparar('PAGO_RECIBIDO', pago, quien)
     if factura.orden_id:
         from apps.operaciones.servicios_ot import revisar_anticipo

@@ -176,6 +176,24 @@ class AdjuntoFactura(models.Model):
         verbose_name = 'Adjunto de factura'
 
 
+class HistorialFactura(models.Model):
+    """Qué le pasó a una factura y quién lo hizo: creación, cambios (antes → después), estado, pagos, comprobantes y documentos."""
+    ACCIONES = [('CREADA', 'Creó la factura'), ('EDITADA', 'Modificó la factura'), ('EMITIDA', 'Emitió la factura'), ('ANULADA', 'Anuló la factura'),
+                ('ESTADO', 'Cambió el estado de pago'), ('PAGO', 'Registró un pago'), ('PAGO_BORRADO', 'Borró un pago'),
+                ('COMPROBANTE', 'Comprobante de pago'), ('ADJUNTO', 'Agregó un documento'), ('ADJUNTO_EDITADO', 'Modificó un documento'),
+                ('ADJUNTO_REEMPLAZADO', 'Reemplazó un documento'), ('ADJUNTO_QUITADO', 'Quitó un documento'), ('CASHFLOW', 'Cashflow')]
+    factura = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name='historial')
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    accion = models.CharField(max_length=20, choices=ACCIONES)
+    detalle = models.TextField(blank=True)
+    fecha = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-fecha', '-id']
+        verbose_name = 'Historial de factura'
+        verbose_name_plural = 'Historial de facturas'
+
+
 def _ruta_comprobante(instancia, nombre):
     ext = os.path.splitext(nombre)[1].lower()[:10]
     return f"comprobantes/{timezone.localdate():%Y/%m}/{uuid.uuid4().hex}{ext}"

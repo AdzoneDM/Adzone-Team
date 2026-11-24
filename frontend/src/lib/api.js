@@ -336,6 +336,7 @@ export const subirAdjuntosFactura = (id, archivos, tipo = "OTRO", nota = "") => 
   if (nota) f.append("nota", nota);
   return api(`${F}/facturas/${id}/adjuntos/`, { method: "POST", body: f });
 };
+export const historialFactura = (id) => api(`${F}/facturas/${id}/historial/`);
 export const cambiarAdjuntoFactura = (id, adjunto, datos) => api(`${F}/facturas/${id}/adjuntos/${adjunto}/`, { method: "PATCH", body: datos });
 export const reemplazarAdjuntoFactura = (id, adjunto, archivo) => {
   const f = new FormData();

@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Ban, CheckCircle2, CloudUpload, Copy, Download, FileText, ImagePlus, Paperclip, Plus, Printer, Receipt, RefreshCw, Send, Trash2, X } from "lucide-react";
-import { accionDocumento, borrarAdjuntoFactura, cambiarAdjuntoFactura, reemplazarAdjuntoFactura, borrarPago, eliminarDocumento, guardarDocumento, listarProyectos, quitarComprobantePago, registrarPago, subirAdjuntosFactura, subirComprobantePago, urlAdjuntoFactura, urlComprobantePago } from "@/lib/api";
-import { dinero, fechaCorta, hoyISO, sumarDias } from "@/lib/formato";
+import { historialFactura, accionDocumento, borrarAdjuntoFactura, cambiarAdjuntoFactura, reemplazarAdjuntoFactura, borrarPago, eliminarDocumento, guardarDocumento, listarProyectos, quitarComprobantePago, registrarPago, subirAdjuntosFactura, subirComprobantePago, urlAdjuntoFactura, urlComprobantePago } from "@/lib/api";
+import { dinero, fechaCorta, fechaHora, hoyISO, sumarDias } from "@/lib/formato";
 import { SelectorCliente } from "@/components/Selectores";
 import { Alerta, Boton, Campo, Modal, cx, useAviso, useConfirmar } from "@/components/ui";
 
@@ -252,6 +252,38 @@ function AdjuntosFactura({ doc, onCambio }) {
   );
 }
 
+const PUNTO_HISTORIAL = { CREADA: "bg-verde", EMITIDA: "bg-azul", ANULADA: "bg-rojo", ESTADO: "bg-amarillo", PAGO: "bg-verde", PAGO_BORRADO: "bg-rojo", ADJUNTO_QUITADO: "bg-rojo" };
+
+/** Qué le pasó a la factura y quién lo hizo: creación, cambios (antes → después), estado de pago, pagos, comprobantes y documentos. Se actualiza solo cuando algo cambia. */
+function HistorialFactura({ doc }) {
+  const [lista, setLista] = useState(null);
+  const [abierto, setAbierto] = useState(false);
+  // se vuelve a pedir cuando cambia algo que genera historial (estado, pagos, documentos, total, NCF)
+  const huella = [doc.estado, doc.pagos.length, doc.adjuntos.length, doc.total, doc.ncf, doc.vencimiento, doc.titulo].join("|");
+  useEffect(() => { if (abierto) historialFactura(doc.id).then(setLista).catch(() => setLista([])); }, [doc.id, huella, abierto]);
+  return (
+    <section>
+      <button type="button" onClick={() => setAbierto((v) => !v)} aria-expanded={abierto} className="flex w-full items-center gap-2 text-left">
+        <h3 className="font-semibold">Historial</h3>
+        <span className="text-sm text-gris">{abierto ? "Ocultar" : "Ver quién hizo qué"}</span>
+      </button>
+      {abierto && (!lista ? <p className="mt-2 text-sm text-gris">Cargando historial…</p>
+        : !lista.length ? <p className="mt-2 text-sm text-gris">Sin movimientos registrados todavía.</p>
+        : (
+          <ol className="relative mt-3 space-y-3 border-l border-linea pl-5">
+            {lista.map((h) => (
+              <li key={h.id} className="relative">
+                <span className={cx("absolute -left-[25px] top-1.5 size-2.5 rounded-full ring-4 ring-white", PUNTO_HISTORIAL[h.accion] || "bg-linea")} />
+                <p className="text-sm"><span className="font-medium">{h.accion_texto}</span> <span className="text-gris">por {h.usuario_nombre} · {fechaHora(h.fecha)}</span></p>
+                {h.detalle && <p className="mt-0.5 whitespace-pre-line break-words text-sm text-gris">{h.detalle}</p>}
+              </li>
+            ))}
+          </ol>
+        ))}
+    </section>
+  );
+}
+
 /** El comprobante de un pago: verlo, descargarlo, cambiarlo o quitarlo; o adjuntarlo si no se subió al cobrar. */
 function ComprobanteDePago({ pago, onCambio }) {
   const avisar = useAviso();
@@ -380,6 +412,7 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
           </section>
         )}
         {!esCot && <AdjuntosFactura doc={doc} onCambio={onCambio} />}
+        {!esCot && <HistorialFactura doc={doc} />}
         {doc.notas && <p className="whitespace-pre-line text-sm text-gris">{doc.notas}</p>}
         {pago && (
           <form className="space-y-3 rounded-xl border border-amarillo bg-amarillo-50/60 p-4" onSubmit={async (e) => {

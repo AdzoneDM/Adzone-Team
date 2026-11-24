@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.56 · 24/11/2026 · Requerimiento #10, etapa 2: historial y trazabilidad de las facturas
+
+- **Sección «Historial» en el detalle de cada factura** (se abre con «Ver quién hizo qué»): lo más reciente primero, con quién lo hizo y cuándo.
+- **Qué queda registrado:** quién creó la factura (y si viene de una orden o de una cotización); cada modificación con **«antes → después»** (título, cliente, proyecto, fecha, vencimiento, moneda, NCF, notas, y las líneas con el total anterior y el nuevo); la emisión; la anulación con su motivo; cada pago (monto, forma, referencia y saldo) y cada pago borrado; los **cambios de estado de pago** (Emitida → Pagada y de vuelta); los comprobantes de pago agregados o quitados; y los documentos agregados, modificados, reemplazados o quitados. Lo que llega desde Cashflow también queda anotado.
+- Guardar sin cambiar nada, o un archivo rechazado, **no** dejan rastro. El historial no se puede modificar ni borrar desde la plataforma, y se conserva aunque se edite la factura o se elimine la persona que hizo el cambio.
+- **Permisos:** lo ve solo quien ya tiene acceso al módulo de Finanzas (Finanzas y Dirección).
+- Las facturas que ya existían empiezan su historial desde ahora (no se inventan movimientos pasados). Migración `finanzas.0006` (tabla nueva). 18 pruebas nuevas.
+
 ## 12.55 · 24/11/2026 · Requerimiento #10, etapa 1: documentos y adjuntos de las facturas
 
 - **Más formatos:** además de fotos y PDF, a una factura se le adjuntan **Word (DOC, DOCX), Excel (XLS, XLSX), PowerPoint, OpenDocument, CSV y texto**. Fotos y PDF hasta 10 MB; documentos hasta 15 MB; hasta 50 archivos por factura.
