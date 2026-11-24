@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.52 · 24/11/2026 · «KPIs del mes» reorganizado: menos desplazamiento y herramientas siempre a la mano
+
+- **Barra de herramientas que te acompaña:** la búsqueda, el filtro por puesto, «Solo pendientes», «Expandir/Contraer todo» y el avance del mes se quedan **fijos debajo del encabezado** mientras bajas, así buscas sin volver arriba. (Antes quedaban atrás al desplazarte.)
+- **Tarjetas por persona compactas y desplegables:** cada persona se ve en una línea (nombre, «Faltan 4 de 6», avance 2/6 y «N sin guardar» si tiene cambios) y su tabla de indicadores se **despliega al tocarla**. Con todo cerrado, la pantalla de 12 personas mide ~1 900 px en vez de miles. Si buscas a una o dos personas, se abren solas; las tarjetas abiertas ocupan todo el ancho para que no queden apretadas; las cerradas se acomodan en 2 o 3 columnas.
+- **Filtro por puesto** (con cuántas personas tiene y cuántos resultados faltan por anotar) reemplaza la fila de etiquetas, que con 20 puestos ocupaba medio ancho de pantalla. Cada puesto tiene «Abrir este puesto / Contraer este puesto».
+- Todo lo demás igual: se anota Logrado y Meta como siempre, el guardado por lote, el aviso de cambios sin guardar, no se puede anotar el propio resultado y el filtro de departamento y mes. Solo cambios de pantalla: sin migraciones.
+
 ## 12.51 · 24/11/2026 · Chat: arrastrar archivos a cualquier parte y cerrar tocando fuera
 
 - **Soltar archivos en cualquier parte del chat:** ya no hace falta apuntar a la caja de escribir; se pueden **arrastrar fotos, videos, documentos o ZIP (varios a la vez)** sobre cualquier lugar de la ventana del chat (la lista de chats, el encabezado, los mensajes). Mientras se arrastra, la ventana muestra «Suelta aquí para adjuntar»; los archivos quedan con su vista previa y se envían con el mensaje. Si no hay una conversación abierta, avisa que primero hay que abrir una. Se siguen aplicando las mismas validaciones y límites (formato, tamaño, ZIP revisado).
