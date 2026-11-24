@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.53 · 24/11/2026 · Requerimiento #8, etapa 2: comentarios por tarea
+
+- **Conversación dentro de cada tarea** (en el detalle, entre la evidencia y el historial): se agregan comentarios, se **responden** (la respuesta muestra lo que cita) y se consultan los anteriores, todo vinculado a la tarea. Aparecen sin recargar la página. Máximo 2 000 caracteres por comentario.
+- **Privacidad:** la ven y escriben **solo quienes ven la tarea** (quien la hace, quienes colaboran, quien la asignó, su supervisor y Dirección). Cualquier otra persona recibe «no encontrada», aunque pruebe el número de la tarea; también en las respuestas. Se valida en el servidor.
+- **Menciones con @:** solo se puede mencionar a quien ve la tarea; esa persona recibe «X te mencionó en…». Mencionar a quien no la ve no le avisa ni lo revela.
+- **Avisos sin saturar:** cada comentario avisa a las demás personas involucradas (no a quien escribe); si la tarea está por validar, también a quienes la validan. Por persona queda **un solo aviso sin leer por tarea** (el más reciente), así una conversación larga no llena la campanita. El aviso lleva directo a la tarea.
+- **Trazabilidad:** cada comentario queda en el historial de la tarea («Comentó») con quién y cuándo. **No se editan ni se borran** (la conversación es parte de la trazabilidad) y se pueden hacer también sobre tareas ya validadas.
+- Migración `desempeno.0028` (tabla nueva de comentarios y dos opciones nuevas de tipo; no toca registros existentes). 15 pruebas nuevas.
+
 ## 12.52 · 24/11/2026 · «KPIs del mes» reorganizado: menos desplazamiento y herramientas siempre a la mano
 
 - **Barra de herramientas que te acompaña:** la búsqueda, el filtro por puesto, «Solo pendientes», «Expandir/Contraer todo» y el avance del mes se quedan **fijos debajo del encabezado** mientras bajas, así buscas sin volver arriba. (Antes quedaban atrás al desplazarte.)

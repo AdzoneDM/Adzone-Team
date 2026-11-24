@@ -14,7 +14,7 @@ FIRMAS_DOCUMENTO = {  # el contenido debe corresponder a la extensión (no basta
 }
 
 from .models import (
-    ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
+    ComentarioTarea, ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
     PasoTarea, ResultadoKPI, Tarea, TareaRecurrente,
 )
 from .permisos import puede_gestionar, puede_gestionar_tarea, puede_revisar_tarea
@@ -284,6 +284,33 @@ class EntregaSerializer(serializers.Serializer):
         if not (data.get('evidencia_nota', '').strip() or data.get('evidencia_enlace') or data.get('archivos')):
             raise serializers.ValidationError({"detail": "Agrega una nota, un enlace o una foto como evidencia."})
         return data
+
+
+class ComentarioTareaSerializer(serializers.ModelSerializer):
+    autor_nombre = serializers.SerializerMethodField()
+    es_mio = serializers.SerializerMethodField()
+    cita = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ComentarioTarea
+        fields = ['id', 'autor', 'autor_nombre', 'texto', 'responde_a', 'cita', 'menciones', 'creado', 'es_mio']
+
+    def get_autor_nombre(self, o):
+        return _nombre(o.autor) if o.autor_id else 'Persona eliminada'
+
+    def get_es_mio(self, o):
+        r = self.context.get('request')
+        return bool(r and r.user.pk == o.autor_id)
+
+    def get_cita(self, o):
+        """Si responde a otro comentario: de quién y un resumen."""
+        p = o.responde_a
+        return {'id': p.pk, 'autor_nombre': _nombre(p.autor) if p.autor_id else 'Persona eliminada', 'texto': p.texto[:140]} if p else None
+
+
+class NuevoComentarioSerializer(serializers.Serializer):
+    texto = serializers.CharField(max_length=2000, trim_whitespace=True)
+    responde_a = serializers.IntegerField(required=False, allow_null=True)
 
 
 class ReferenciasSerializer(serializers.Serializer):

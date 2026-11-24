@@ -1,8 +1,10 @@
 """Acciones que dejan rastro: historial de la tarea, avisos y tareas recurrentes."""
 import calendar
 import logging
+import re
 from datetime import date, timedelta
 
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -311,6 +313,47 @@ def pedir_trabajo(quien):
     avisar(jefes, 'PIDE_TRABAJO', f"{nombre(quien)} terminó sus tareas: en espera de asignación",
            f"No tiene tareas por hacer.{extra}", enlace=f'/equipo?colaborador={quien.id}', excepto=quien)
     return [nombre(j) for j in jefes]
+
+
+MENCION = re.compile(r'(?<![\w.@])@([\w.-]+)')
+
+
+def ven_la_tarea(u, tarea):
+    """Quién puede ver una tarea (y por tanto su conversación): quien la hace, quien colabora, quien la asignó, su supervisor y Dirección."""
+    from .permisos import es_administrador, puede_gestionar
+    return bool(u.is_active and (es_administrador(u) or u.pk in tarea.participantes_ids() or tarea.asignada_por_id == u.pk
+                                 or puede_gestionar(u, tarea.colaborador, 'equipo.ver')))
+
+
+def comentar_tarea(tarea, autor, texto, responde_a=None):
+    """Agrega un comentario a la tarea: queda en el historial, le avisa a las personas involucradas (y a quien se mencione) sin llenar la campanita."""
+    from .models import ComentarioTarea
+    texto = (texto or '').strip()
+    nombres = {m.rstrip('.-').lower() for m in MENCION.findall(texto)}
+    nombres.discard('')
+    mencionados = [u for u in User.objects.filter(is_active=True).exclude(pk=autor.pk) if u.username.lower() in nombres and ven_la_tarea(u, tarea)]
+    c = ComentarioTarea.objects.create(tarea=tarea, autor=autor, texto=texto, responde_a=responde_a,
+                                       menciones=[{'id': u.pk, 'username': u.username, 'nombre': nombre(u)} for u in mencionados])
+    registrar(tarea, autor, 'COMENTADA', texto[:300])
+    involucrados = {u.pk: u for u in [tarea.colaborador, *tarea.companeros.all(), tarea.asignada_por] if u and u.is_active}
+    if tarea.estado == 'EN_REVISION':
+        involucrados.update({u.pk: u for u in revisores_de_tarea(tarea)})
+    for u in mencionados:
+        involucrados.setdefault(u.pk, u)
+    ya_mencionados = {u.pk for u in mencionados}
+    for u in involucrados.values():
+        if u.pk == autor.pk or not ven_la_tarea(u, tarea):
+            continue
+        enlace = f'/mis-tareas?tarea={tarea.pk}' if u.pk in tarea.participantes_ids() else f'/equipo?tarea={tarea.pk}'
+        _avisar_comentario(u, tarea, autor, texto, enlace, mencion=u.pk in ya_mencionados)
+    return c
+
+
+def _avisar_comentario(u, tarea, autor, texto, enlace, mencion=False):
+    """Un solo aviso sin leer por tarea: si ya hay uno, se reemplaza por el más reciente (así una conversación larga no llena la campanita)."""
+    Notificacion.objects.filter(destinatario=u, tarea=tarea, tipo='COMENTARIO', leida=False).delete()
+    titulo = f"{nombre(autor)} te mencionó en: {tarea.titulo}" if mencion else f"Comentario nuevo en: {tarea.titulo}"
+    Notificacion.objects.create(destinatario=u, remitente=autor, tipo='COMENTARIO', titulo=titulo[:255], mensaje=f"{nombre(autor)}: {texto[:280]}", tarea=tarea, enlace=enlace)
 
 
 DIAS_AVISO_VENCIDA = 14   # solo se avisa de lo que venció hace poco (no de tareas viejas olvidadas)

@@ -1,7 +1,9 @@
 // Piezas de tareas que comparten Mis tareas, Por validar y Tareas del equipo.
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Briefcase, Camera, Check, ExternalLink, FileText, Film, ImagePlus, Link2, Paperclip, Repeat, Target, Trash2, Users, Video, X } from "lucide-react";
-import { entregarTarea, historialTarea, marcarPaso, obtenerTarea, quitarReferencia, subirReferencias } from "@/lib/api";
+import { comentarTarea, comentariosTarea, entregarTarea, historialTarea, marcarPaso, obtenerTarea, quitarReferencia, subirReferencias } from "@/lib/api";
+import Comentarios from "@/components/Comentarios";
+import { useNovedades } from "@/lib/novedades";
 import { MAX_FOTO_MB, limites } from "@/lib/archivos";
 import { fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
 import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx, useAviso } from "@/components/ui";
@@ -360,6 +362,23 @@ export function Historial({ tareaId }) {
 }
 
 /** Datos de una tarea; las acciones las pone cada pantalla en `pie`. */
+/** Conversación de la tarea: la ven y escriben solo quienes ven la tarea; se puede responder y mencionar con @; no se edita ni se borra. */
+function ConversacionTarea({ tareaId }) {
+  const [lista, setLista] = useState(null);
+  const [error, setError] = useState("");
+  const cargar = useCallback(() => comentariosTarea(tareaId).then((l) => { setLista(l); setError(""); }).catch((e) => setError(e.message)), [tareaId]);
+  useEffect(() => { setLista(null); cargar(); }, [cargar]);
+  useNovedades(cargar); // los comentarios nuevos aparecen sin recargar
+  return (
+    <section aria-label="Comentarios de la tarea">
+      <h3 className="mb-3 text-base font-semibold">Comentarios{lista?.length ? ` (${lista.length})` : ""}</h3>
+      {error ? <Alerta>{error}</Alerta> : !lista ? <p className="text-sm text-gris">Cargando…</p>
+        : <Comentarios lista={lista.map((c) => ({ ...c, fecha: c.creado }))} permiteResponder
+          onEnviar={async (texto, respondeA) => { await comentarTarea(tareaId, texto, respondeA); await cargar(); }} />}
+    </section>
+  );
+}
+
 export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
   const avisar = useAviso();
   if (!tarea) return null;
@@ -409,6 +428,8 @@ export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
             {tarea.comentario_evaluacion && <p className="mt-1 text-sm text-gris">{tarea.comentario_evaluacion}</p>}
           </section>
         )}
+
+        <ConversacionTarea tareaId={tarea.id} />
 
         <section>
           <h3 className="mb-3 text-base font-semibold">Historial</h3>

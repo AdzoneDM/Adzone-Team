@@ -1,6 +1,6 @@
 // Conversación de una orden o un proyecto. Escribe @ para mencionar a alguien: le llega el aviso.
 import { useMemo, useRef, useState } from "react";
-import { AtSign, Send } from "lucide-react";
+import { AtSign, CornerUpLeft, Send, X } from "lucide-react";
 import { hace } from "@/lib/formato";
 import { useRecurso } from "@/lib/recursos";
 import { Avatar, Boton, cx } from "@/components/ui";
@@ -10,7 +10,9 @@ function Texto({ texto }) {
     parte.startsWith("@") ? <span key={i} className="rounded bg-azul/10 px-1 font-medium text-azul">{parte}</span> : parte);
 }
 
-export default function Comentarios({ lista, onEnviar }) {
+/** Conversación. `onEnviar(texto, respondeA)`; si se pasa `permiteResponder`, cada comentario tiene «Responder» y las respuestas muestran lo que citan. */
+export default function Comentarios({ lista, onEnviar, permiteResponder = false }) {
+  const [respondiendo, setRespondiendo] = useState(null);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +35,7 @@ export default function Comentarios({ lista, onEnviar }) {
     e.preventDefault();
     if (!texto.trim()) return;
     setEnviando(true); setError("");
-    try { await onEnviar(texto.trim()); setTexto(""); } catch (err) { setError(err.message); }
+    try { await onEnviar(texto.trim(), respondiendo?.id ?? null); setTexto(""); setRespondiendo(null); } catch (err) { setError(err.message); }
     setEnviando(false);
   };
 
@@ -46,7 +48,9 @@ export default function Comentarios({ lista, onEnviar }) {
               <Avatar nombre={c.autor_nombre} tam="sm" />
               <div className={cx("max-w-[85%] rounded-2xl px-3.5 py-2.5", c.es_mio ? "rounded-tr-sm bg-azul/8" : "rounded-tl-sm bg-fondo")}>
                 <p className="text-xs text-gris"><span className="font-medium text-tinta">{c.autor_nombre}</span> · {hace(c.fecha)}</p>
+                {c.cita && <p className="mt-1 line-clamp-2 border-l-2 border-azul/40 pl-2 text-xs text-gris"><b className="font-medium text-tinta">{c.cita.autor_nombre}</b>: {c.cita.texto}</p>}
                 <p className="mt-0.5 whitespace-pre-line break-words text-[15px]"><Texto texto={c.texto} /></p>
+                {permiteResponder && <button type="button" onClick={() => { setRespondiendo(c); ref.current?.focus(); }} className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-azul hover:underline"><CornerUpLeft className="size-3" aria-hidden />Responder</button>}
               </div>
             </li>
           ))}
@@ -64,6 +68,12 @@ export default function Comentarios({ lista, onEnviar }) {
               </li>
             ))}
           </ul>
+        )}
+        {respondiendo && (
+          <p className="mb-1 flex items-center gap-2 rounded-lg bg-azul/5 px-3 py-1.5 text-xs text-azul">
+            <CornerUpLeft className="size-3.5 shrink-0" aria-hidden /><span className="min-w-0 flex-1 truncate">Respondiendo a <b>{respondiendo.autor_nombre}</b>: {respondiendo.texto}</span>
+            <button type="button" onClick={() => setRespondiendo(null)} aria-label="Cancelar la respuesta" className="rounded p-0.5 hover:bg-azul/10"><X className="size-3.5" aria-hidden /></button>
+          </p>
         )}
         <div className="flex items-end gap-2 rounded-xl border border-linea bg-white p-2 focus-within:border-azul focus-within:ring-2 focus-within:ring-azul/20">
           <textarea ref={ref} rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Escribe un comentario"

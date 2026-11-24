@@ -354,6 +354,24 @@ class ReferenciaArchivo(models.Model):
         ordering = ['fecha', 'id']
 
 
+class ComentarioTarea(models.Model):
+    """Conversación de una tarea: la ven y escriben solo quienes ven la tarea. Un comentario no se edita ni se borra (es parte de la trazabilidad)."""
+    tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name="comentarios")
+    autor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="+")
+    texto = models.TextField(max_length=2000)
+    responde_a = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name="respuestas")
+    menciones = models.JSONField(default=list, blank=True)   # [{'id', 'username', 'nombre'}]: personas que pueden ver la tarea y fueron mencionadas con @
+    creado = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Comentario de tarea"
+        verbose_name_plural = "Comentarios de tareas"
+        ordering = ['creado', 'id']
+
+    def __str__(self):
+        return f"{self.autor_id}: {self.texto[:40]}"
+
+
 class HistorialTarea(models.Model):
     """Quién hizo qué y cuándo: el resultado de cada tarea es verificable."""
     ACCIONES = [
@@ -367,6 +385,7 @@ class HistorialTarea(models.Model):
         ('CANCELADA', 'Cancelada'),
         ('BLOQUEADA', 'Bloqueada'),
         ('DESBLOQUEADA', 'Desbloqueada'),
+        ('COMENTADA', 'Comentó'),
     ]
     tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name="historial")
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
@@ -409,6 +428,7 @@ class Notificacion(models.Model):
         ('COLABORACION', 'Colaboración'),
         ('ACTIVIDAD', 'Actividad adicional'),
         ('DOCUMENTO', 'Documento compartido'),
+        ('COMENTARIO', 'Comentario en una tarea'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",

@@ -98,6 +98,14 @@ export default function Equipo() {
   // Desde el buscador: una persona muestra sus tareas; un texto busca en todas; una tarea se abre
   const verPersona = (p) => { const n = new URLSearchParams(params); n.set("ver", "tareas"); n.set("colaborador", String(p.id)); n.delete("buscar"); n.delete("vencidas"); setParams(n); };
   const buscarTexto = (texto) => { const n = new URLSearchParams(params); n.set("ver", "tareas"); n.set("buscar", texto); n.delete("colaborador"); n.delete("vencidas"); setParams(n); };
+  // Un aviso de comentario lleva aquí con ?tarea=ID: se abre esa tarea
+  useEffect(() => {
+    const id = params.get("tarea");
+    if (!id) return;
+    obtenerTarea(id).then(setDetalle).catch((e) => avisar(e.message, "rojo"));
+    params.delete("tarea");
+    setParams(params, { replace: true });
+  }, [params, setParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const abrirTarea = async (t) => { try { setDetalle(await obtenerTarea(t.id)); } catch (e) { avisar(e.message, "rojo"); } };
   const accionDetalle = async (accion) => {
     const t = detalle;

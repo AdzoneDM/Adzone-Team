@@ -33,6 +33,7 @@ from .serializers import (
     MAX_REFERENCIAS_POR_TAREA, ReaperturaSerializer, RechazoSerializer, ReferenciasSerializer, ResultadoKPISerializer,
     validar_archivos_referencia, TareaRecurrenteSerializer, TareaSerializer,
     ValidacionSerializer,
+    ComentarioTareaSerializer, NuevoComentarioSerializer,
 )
 
 
@@ -219,6 +220,24 @@ class TareaViewSet(viewsets.ModelViewSet):
     def historial(self, request, pk=None):
         tarea = self.get_object()
         return Response(HistorialSerializer(tarea.historial.select_related('usuario'), many=True).data)
+
+    @action(detail=True, methods=['get', 'post'])
+    def comentarios(self, request, pk=None):
+        """Conversación de la tarea: GET la lista; POST {texto, responde_a?} agrega un comentario. La ven y escriben solo quienes ven la tarea
+        (el resto recibe «no encontrada»). Los comentarios no se editan ni se borran."""
+        tarea = self.get_object()
+        if request.method == 'POST':
+            datos = NuevoComentarioSerializer(data=request.data)
+            datos.is_valid(raise_exception=True)
+            responde = None
+            if datos.validated_data.get('responde_a'):
+                responde = tarea.comentarios.filter(pk=datos.validated_data['responde_a']).first()
+                if responde is None:
+                    return Response({"responde_a": ["Ese comentario no es de esta tarea."]}, status=status.HTTP_400_BAD_REQUEST)
+            c = servicios.comentar_tarea(tarea, request.user, datos.validated_data['texto'], responde)
+            return Response(ComentarioTareaSerializer(c, context={'request': request}).data, status=status.HTTP_201_CREATED)
+        lista = tarea.comentarios.select_related('autor', 'responde_a__autor')
+        return Response(ComentarioTareaSerializer(lista, many=True, context={'request': request}).data)
 
     @action(detail=True, methods=['post'])
     def iniciar(self, request, pk=None):
