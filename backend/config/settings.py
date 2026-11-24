@@ -233,6 +233,11 @@ WHITENOISE_IMMUTABLE_FILE_TEST = _archivo_con_huella
 MEDIA_ROOT = Path(env('MEDIA_ROOT', str(BASE_DIR / 'media')))
 MEDIA_URL = '/media-privada/'
 EVIDENCIA_MAX_MB = int(env('EVIDENCIA_MAX_MB', '10'))
+# ZIP en el chat: tamaño máximo (el servidor tiene poco disco libre), antivirus (ClamAV del servidor por su socket) y ejecutables dentro del ZIP
+CHAT_ZIP_MAX_MB = int(env('CHAT_ZIP_MAX_MB', '50'))
+CHAT_ANTIVIRUS = env('CHAT_ANTIVIRUS', 'omitir' if DEBUG else 'exigir')   # «exigir»: sin antivirus, el ZIP se rechaza
+CLAMAV_SOCKET = env('CLAMAV_SOCKET', '/var/run/clamav/clamd.ctl')
+CHAT_ZIP_BLOQUEAR_EJECUTABLES = env('CHAT_ZIP_BLOQUEAR_EJECUTABLES', '1') == '1'
 EVIDENCIA_MAX_ARCHIVOS = int(env('EVIDENCIA_MAX_ARCHIVOS', '10'))  # fotos, videos o PDF por entrega, referencia o corrección
 # Un video pesa mucho más que una foto. Por defecto 60 MB: lo que cabe en el límite actual del nginx de Plesk (64 MB).
 # Para permitir videos más grandes, subir antes `client_max_body_size` del servidor y luego este valor (ver docs/DESPLIEGUE.md).

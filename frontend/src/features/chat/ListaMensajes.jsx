@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, Check, CheckCheck, Download, FileSpreadsheet, FileText, Film, Trash2 } from "lucide-react";
+import { ArrowDown, Check, CheckCheck, Download, FileArchive, FileSpreadsheet, FileText, Film, ShieldCheck, Trash2 } from "lucide-react";
 import { urlArchivoChat } from "@/lib/api";
 import { Avatar, cx } from "@/components/ui";
 
@@ -47,6 +47,25 @@ const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} K
 function Adjunto({ m, mio }) {
   const a = m.archivo;
   const abrir = urlArchivoChat(m.id), bajar = urlArchivoChat(m.id, true);
+  if (a.es_zip) {
+    if (a.purgado) {
+      return <span className={cx("mb-1 flex items-center gap-2 rounded-2xl px-3 py-2 text-xs italic", mio ? "bg-azul-700 text-white/80" : "bg-white text-gris ring-1 ring-linea")}><FileArchive className="size-4 shrink-0" aria-hidden />El ZIP «{a.nombre}» se borró solo para liberar espacio</span>;
+    }
+    return (
+      <a href={bajar} download className={cx("mb-1 flex min-w-56 items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors", mio ? "bg-azul-700 text-white hover:bg-azul-700/90" : "bg-white text-tinta ring-1 ring-linea hover:bg-fondo")}
+        aria-label={`Descargar ${a.nombre}`}>
+        <span className={cx("flex size-11 shrink-0 flex-col items-center justify-center rounded-lg", mio ? "bg-white/15" : "bg-amarillo-50 text-[#8a5a00]")}><FileArchive className="size-5" aria-hidden /><span className="text-[9px] font-bold leading-none">ZIP</span></span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{a.nombre}</span>
+          <span className={cx("flex flex-wrap items-center gap-x-1.5 text-xs", mio ? "text-white/70" : "text-gris")}>
+            {tamano(a.tamano)}{a.items != null && <> · {a.items} {a.items === 1 ? "archivo" : "archivos"}</>}
+            {a.revisado && <span className="inline-flex items-center gap-0.5" title="Revisado con el antivirus"><ShieldCheck className="size-3" aria-hidden />Revisado</span>}
+          </span>
+        </span>
+        <Download className="size-4 shrink-0 opacity-70" aria-hidden />
+      </a>
+    );
+  }
   if (a.es_video) {
     if (a.purgado) {
       return <span className={cx("mb-1 flex items-center gap-2 rounded-2xl px-3 py-2 text-xs italic", mio ? "bg-azul-700 text-white/80" : "bg-white text-gris ring-1 ring-linea")}><Film className="size-4 shrink-0" aria-hidden />El video se borró solo para liberar espacio</span>;

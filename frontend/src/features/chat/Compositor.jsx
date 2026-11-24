@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FileText, Paperclip, SendHorizontal, X } from "lucide-react";
+import { FileArchive, FileText, Paperclip, SendHorizontal, X } from "lucide-react";
 import { limites } from "@/lib/archivos";
 import { cx } from "@/components/ui";
 
@@ -8,6 +8,7 @@ const MAX_ARCHIVOS = 10;       // por envío; cada uno sale como su propio mensa
 const MAX_ARCHIVO = 15 * 1024 * 1024;
 const PERMITIDOS = /\.(jpe?g|png|webp|gif|pdf|docx?|xlsx?|pptx?|txt|csv|zip|odt|ods|mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i;
 const esVideo = (f) => (f.type || "").startsWith("video/") || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i.test(f.name);
+const esZip = (f) => /\.zip$/i.test(f.name);
 const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 const miles = (n) => n.toLocaleString("es-DO");
 
@@ -25,7 +26,7 @@ function Pieza({ archivo, onQuitar }) {
       {vista ? (esVideo(archivo)
         ? <video src={vista} muted playsInline preload="metadata" className="size-24 rounded-lg bg-black object-cover" aria-label={archivo.name} />
         : <img src={vista} alt={`Vista previa de ${archivo.name}`} className="size-24 rounded-lg object-cover" />)
-        : <span className="flex size-24 items-center justify-center rounded-lg bg-white text-azul ring-1 ring-linea"><FileText className="size-8" aria-hidden /></span>}
+        : <span className="flex size-24 flex-col items-center justify-center gap-1 rounded-lg bg-white text-azul ring-1 ring-linea">{esZip(archivo) ? <><FileArchive className="size-8" aria-hidden /><span className="rounded bg-azul/10 px-1.5 text-[10px] font-bold">ZIP</span></> : <FileText className="size-8" aria-hidden />}</span>}
       <button type="button" onClick={onQuitar} aria-label={`Quitar ${archivo.name}`}
         className="absolute -right-1.5 -top-1.5 flex size-6 items-center justify-center rounded-full border-2 border-white bg-tinta text-white hover:bg-rojo"><X className="size-3" aria-hidden /></button>
       <p className="mt-1 truncate text-[11px] leading-tight text-tinta" title={archivo.name}>{archivo.name}</p>
@@ -36,7 +37,7 @@ function Pieza({ archivo, onQuitar }) {
 
 /** Caja para escribir. Enter envía; Mayús+Enter hace un salto de línea. El clip adjunta (varios a la vez) documentos, imágenes o videos;
  *  también se pueden pegar con Ctrl + V o arrastrar a la conversación. */
-export default function Compositor({ enviando, onEnviar, autoFoco }) {
+export default function Compositor({ enviando, progreso, onEnviar, autoFoco }) {
   const [texto, setTexto] = useState("");
   const [archivos, setArchivos] = useState([]);
   const [aviso, setAviso] = useState("");
@@ -64,8 +65,10 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
       const f = /^image\.(png|jpe?g|gif|webp)$/i.test(f0.name)
         ? new File([f0], `captura-${new Date().toTimeString().slice(0, 8).replace(/:/g, "")}-${buenos.length + 1}.${f0.type.split("/")[1] === "jpeg" ? "jpg" : f0.type.split("/")[1] || "png"}`, { type: f0.type }) : f0;
       if (!PERMITIDOS.test(f.name)) { falla = "Solo imágenes, videos y documentos (PDF, Word, Excel, PowerPoint, texto, CSV o ZIP)."; continue; }
-      if (esVideo(f) ? f.size > limites.videoMB * 1024 * 1024 : f.size > MAX_ARCHIVO) {
-        falla = esVideo(f) ? `«${f.name}» pesa más de ${limites.videoMB} MB. Para uno más largo, súbelo a Drive y pega el enlace.` : `«${f.name}» pesa más de 15 MB.`;
+      const tope = esVideo(f) ? limites.videoMB : esZip(f) ? limites.zipMB : 15;
+      if (f.size > tope * 1024 * 1024) {
+        falla = esVideo(f) ? `«${f.name}» pesa más de ${limites.videoMB} MB. Para uno más largo, súbelo a Drive y pega el enlace.`
+          : esZip(f) ? `«${f.name}» pesa más de ${limites.zipMB} MB. Para uno más grande, súbelo a Drive y pega el enlace.` : `«${f.name}» pesa más de 15 MB.`;
         continue;
       }
       buenos.push(f);
@@ -102,7 +105,10 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
     // El texto y los archivos se quedan en pantalla mientras se envía; solo se limpian lo que ya salió
     const r = await onEnviar(limpio, archivos);
     if (r.ok) { setTexto(""); setArchivos([]); setAviso(""); }
-    else if (r.hechos > 0) { setTexto(""); setArchivos((l) => l.slice(r.hechos)); }
+    else {
+      if (r.hechos > 0) { setTexto(""); setArchivos((l) => l.slice(r.hechos)); }
+      setAviso(r.mensaje || "No se pudo enviar. Inténtalo de nuevo."); // se queda a la vista (la actualización automática del chat borra el error de arriba)
+    }
     ref.current?.focus();
   };
 
@@ -127,6 +133,15 @@ export default function Compositor({ enviando, onEnviar, autoFoco }) {
         </div>
       )}
       {aviso && <p role="alert" className="mb-2 text-xs text-rojo">{aviso}</p>}
+      {progreso && (
+        <div className="mb-2 rounded-xl border border-azul/30 bg-azul/5 px-3 py-2" role="status" aria-live="polite">
+          <p className="flex items-center justify-between gap-2 text-xs text-azul">
+            <span className="truncate font-medium">Enviando {progreso.total > 1 ? `${progreso.actual} de ${progreso.total}: ` : ""}{progreso.nombre}</span>
+            <span className="num shrink-0 font-semibold">{progreso.pct === 100 ? "Revisando…" : `${progreso.pct} %`}</span>
+          </p>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-azul/15"><div className="h-full rounded-full bg-azul transition-[width] duration-200" style={{ width: `${progreso.pct}%` }} /></div>
+        </div>
+      )}
       <div className="flex items-end gap-2">
         <input ref={entrada} type="file" multiple className="hidden" onChange={elegir} aria-label="Elegir archivos"
           accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.odt,.ods" />

@@ -17,7 +17,7 @@ function mensajeDeError(data, status, espera) {
     const partes = Object.entries(data).map(([clave, valor]) => {
       const texto = Array.isArray(valor) ? valor.join(" ")
         : valor && typeof valor === "object" ? Object.values(valor).flat().join(" ") : valor;
-      return ["detail", "non_field_errors", "error"].includes(clave) ? texto : `${CAMPOS[clave] || clave}: ${texto}`;
+      return ["detail", "non_field_errors", "error", "archivo"].includes(clave) ? texto : `${CAMPOS[clave] || clave}: ${texto}`;
     });
     if (partes.length) return partes.join(" ");
   }
@@ -537,12 +537,37 @@ export const chatConversaciones = (signal) => api("/api/chat/conversaciones/", {
 export const chatAbrir = (persona) => api("/api/chat/conversaciones/", { method: "POST", body: { persona } });
 export const chatPersonas = (texto = "", signal) => api(`/api/chat/personas/${q({ q: texto })}`, { signal });
 export const chatMensajes = (conversacion, params = {}, signal) => api(`/api/chat/conversaciones/${conversacion}/mensajes/${q(params)}`, { signal });
-export const chatEnviar = (conversacion, texto, archivo = null) => {
+/** Sube un formulario con archivos informando el avance (0 a 1): `fetch` no lo permite, por eso XMLHttpRequest. Mismos encabezados y errores que `api`. */
+function subirConProgreso(url, formulario, alAvanzar) {
+  return new Promise((resolver, rechazar) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", url);
+    x.withCredentials = true;
+    x.timeout = 20 * 60000;
+    x.setRequestHeader("Accept", "application/json");
+    x.setRequestHeader("X-CSRFToken", getCookie("csrftoken") || "");
+    if (Date.now() - ultimaInteraccion < 60000) x.setRequestHeader("X-Actividad", "1");
+    x.upload.onprogress = (e) => { if (e.lengthComputable) alAvanzar?.(e.loaded / e.total); };
+    x.onload = () => {
+      let datos = null;
+      try { datos = JSON.parse(x.responseText); } catch { /* sin cuerpo */ }
+      if (x.status >= 200 && x.status < 300) return resolver(datos);
+      if ((x.status === 401 && datos?.detail) || datos?.activar_dos_pasos) window.dispatchEvent(new CustomEvent(EVENTO_SESION, { detail: { estado: x.status, ...datos } }));
+      if (x.status === 413) return rechazar(new ApiError("El archivo es demasiado grande para el servidor.", 413, datos));
+      rechazar(new ApiError(mensajeDeError(datos, x.status, Number(x.getResponseHeader("Retry-After")) || 0), x.status, datos));
+    };
+    x.onerror = () => rechazar(new ApiError("Sin conexión. Revisa el internet e inténtalo de nuevo.", 0));
+    x.ontimeout = () => rechazar(new ApiError("Tardó demasiado en subir. Revisa tu internet e inténtalo de nuevo.", 0));
+    x.send(formulario);
+  });
+}
+
+export const chatEnviar = (conversacion, texto, archivo = null, alAvanzar = null) => {
   if (!archivo) return api(`/api/chat/conversaciones/${conversacion}/mensajes/`, { method: "POST", body: { texto } });
-  const f = new FormData(); // con archivo (documento o imagen) el mensaje va como formulario
+  const f = new FormData(); // con archivo (documento, imagen, video o ZIP) el mensaje va como formulario
   f.append("texto", texto || "");
   f.append("archivo", archivo);
-  return api(`/api/chat/conversaciones/${conversacion}/mensajes/`, { method: "POST", body: f });
+  return subirConProgreso(`/api/chat/conversaciones/${conversacion}/mensajes/`, f, alAvanzar);
 };
 export const urlArchivoChat = (mensaje, descargar = false) => `/api/chat/mensajes/${mensaje}/archivo/${descargar ? "?descargar=1" : ""}`;
 export const chatGrupoCrear = (datos) => api("/api/chat/grupos/", { method: "POST", body: datos });

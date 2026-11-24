@@ -1,5 +1,15 @@
 # Cambios
 
+## 12.44 · 24/11/2026 · ZIP en el chat, con revisión de seguridad
+
+- **Enviar y recibir ZIP** en chats individuales y grupales (también varios a la vez), integrado en el clip de adjuntar. En la conversación se ve con **icono ZIP, nombre, tamaño, cuántos archivos trae** y «Revisado» (antivirus), junto a la hora y quien lo envió; se descarga con un clic sin salir del chat.
+- **Validación real, no solo la extensión:** debe ser un ZIP de verdad y estar íntegro; se rechaza el ZIP **con contraseña** (no se puede revisar), con **ejecutables de Windows** dentro (.exe, .bat, .scr, .msi…), con **demasiados archivos** o **desproporcionado** (bomba de compresión). Nunca se extrae ni se ejecuta nada.
+- **Antivirus:** cada ZIP se revisa con ClamAV del servidor antes de guardarse. **Si el antivirus no responde, el ZIP no se envía** (mensaje claro para reintentar). Una amenaza detectada se rechaza diciendo su nombre.
+- **Límite configurable: 50 MB** (`CHAT_ZIP_MAX_MB`); la pantalla avisa antes de subir. **Barra de progreso** al enviar archivos y los errores de envío ahora **se quedan a la vista** junto a la caja de escribir (antes desaparecían en pocos segundos).
+- **Cuidado del disco:** los ZIP del chat se **borran solos a los 30 días** (se cambia en Reglas del puntaje); el mensaje queda con «El ZIP se borró solo». Documentos e imágenes no se borran.
+- **Seguridad de la descarga:** solo participantes de la conversación; siempre como descarga (`attachment`, `nosniff`, sin interpretar); se vuelve a comprobar que siga siendo un ZIP antes de entregarlo; nada público. Los demás formatos (PDF, Word, Excel, imágenes, videos) siguen igual y no pasan por el antivirus.
+- Migraciones `chat.0008` (campos de ficha del ZIP) y `desempeno.0027` (días de conservación). Requiere un cambio en el compose para que el contenedor alcance ClamAV: ver `docs/DESPLIEGUE.md`. 18 pruebas nuevas.
+
 ## 12.43 · 24/11/2026 · Administración de personas: suspender, dar de baja, eliminar y reactivar sin perder nada
 
 - **Estados de cuenta:** cada cuenta está **Activa, Suspendida (temporal), De baja (inactiva) o Eliminada**. En **Personas → Editar → «Cambiar estado…»** se elige la acción, se escribe el **motivo** (obligatorio) y se **confirma**. Solo las cuentas activas pueden entrar: una cuenta apartada **no puede iniciar sesión y sus sesiones abiertas se cierran al instante** (también sus avisos del celular).

@@ -16,7 +16,7 @@ export default function VistaConversacion({ conversacion, usuarioId, alLeer }) {
       <ListaMensajes mensajes={chat.mensajes} lectores={chat.lectores} usuarioId={usuarioId} hayMas={chat.hayMas} cargando={chat.cargando}
         privado={conversacion.tipo === "DIRECTA"} nombreOtro={conversacion.titulo}
         onMas={chat.cargarAnteriores} onBorrar={chat.borrar} />
-      <Compositor enviando={chat.enviando} onEnviar={chat.enviar} autoFoco />
+      <Compositor enviando={chat.enviando} progreso={chat.progreso} onEnviar={chat.enviar} autoFoco />
     </>
   );
 }

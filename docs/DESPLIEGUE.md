@@ -297,3 +297,20 @@ y después poner `EVIDENCIA_VIDEO_MAX_MB=300` (u otro valor menor que 400) en el
 
 
 **Hecho el 23/11/2026:** el nginx de Plesk de `kpi.adzone.marketing` ya tiene `client_max_body_size 400m` y los plazos de 600 s (archivo `vhost_nginx.conf` del dominio; copia anterior en `/root/vhost_nginx.conf.antes-300mb-*`), y el stack tiene `EVIDENCIA_VIDEO_MAX_MB=300` (el compose lo pasa al contenedor; copias anteriores en `/root/docker-compose.antes-300mb.yml` y `/root/stack.env.antes-300mb`). Para volver a 60 MB: restaurar esas copias, `nginx -t && systemctl reload nginx` y reiniciar `web` y `tareas` con `docker compose up -d --no-build --no-deps web tareas`.
+
+
+## ZIP en el chat y antivirus (ClamAV)
+
+Los ZIP del chat se validan en el servidor (firma real del ZIP, índice íntegro, sin contraseña, sin ejecutables de Windows, sin bomba de compresión) y se revisan con **ClamAV** (el demonio `clamd` del servidor) antes de guardarse; nunca se extraen. Si el antivirus no responde, **el ZIP se rechaza** (`CHAT_ANTIVIRUS=exigir`).
+
+Variables (en el `stack.env` y pasadas al contenedor `web`): `CHAT_ZIP_MAX_MB` (50), `CHAT_ANTIVIRUS` (`exigir`/`omitir`; en desarrollo `omitir`), `CLAMAV_SOCKET` (`/var/run/clamav/clamd.ctl`), `CHAT_ZIP_BLOQUEAR_EJECUTABLES` (1). Los ZIP viejos se borran solos a los 30 días (Reglas del puntaje → «Días que se conservan los ZIP del chat»).
+
+**Cambio en el compose del stack (servicio `web`)** para que el contenedor alcance el socket de clamd (es de `clamav:clamav`, modo 0660, y el contenedor corre como otro usuario):
+
+```yaml
+  web:
+    group_add: ["<gid del grupo clamav>"]   # id -g clamav
+    volumes:
+      - /var/run/clamav:/var/run/clamav     # la carpeta (no el archivo): sobrevive a reinicios de clamd
+```
+y en `environment`: `CHAT_ZIP_MAX_MB`, `CHAT_ANTIVIRUS`, `CLAMAV_SOCKET`. clamd ya acepta 100 MB por stream (`StreamMaxLength`), más que el límite del ZIP. Prueba: enviar el archivo EICAR dentro de un ZIP debe rechazarse con el nombre de la amenaza.

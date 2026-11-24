@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { EVENTO_SESION, entrar, entrarConCodigo, salir, sesion } from "@/lib/api";
 import { suscripcionActual } from "@/lib/push";
-import { fijarLimiteVideo } from "@/lib/archivos";
+import { fijarLimiteVideo, fijarLimiteZip } from "@/lib/archivos";
 
 const SesionCtx = createContext(null);
 
@@ -13,7 +13,7 @@ export function SesionProvider({ children }) {
   const recargar = useCallback(async () => {
     try {
       const datos = await sesion();
-      if (datos?.isAuthenticated) fijarLimiteVideo(datos.user?.limite_video_mb);
+      if (datos?.isAuthenticated) { fijarLimiteVideo(datos.user?.limite_video_mb); fijarLimiteZip(datos.user?.limite_zip_mb); }
       setUsuario(datos?.isAuthenticated ? datos.user : null);
     } catch {
       // Sin internet un momento no es lo mismo que sesión cerrada: se conserva a la persona y se vuelve a preguntar después

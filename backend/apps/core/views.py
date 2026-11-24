@@ -95,6 +95,7 @@ def datos_usuario(user):
         'es_finanzas': es_finanzas(user),
         'es_tecnologia': _es_tecnologia(user),
         'permisos': sorted(_permisos(user)),
+        'limite_zip_mb': settings.CHAT_ZIP_MAX_MB,  # el chat avisa antes de subir un ZIP demasiado pesado
         'limite_video_mb': settings.EVIDENCIA_VIDEO_MAX_MB,  # la pantalla avisa antes de subir un video demasiado pesado
         'puede_asignar': _puede_asignar(user),
         'puede_autoasignar': _tiene_permiso(user, 'tareas.propias'),

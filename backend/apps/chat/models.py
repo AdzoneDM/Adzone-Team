@@ -65,7 +65,10 @@ class Mensaje(models.Model):
     archivo_nombre = models.CharField(max_length=150, blank=True)
     archivo_es_imagen = models.BooleanField(default=False)
     archivo_tamano = models.PositiveIntegerField(default=0)
-    archivo_purgado = models.BooleanField(default=False, help_text="El video ya se borró (limpieza automática de videos del chat).")
+    archivo_purgado = models.BooleanField(default=False, help_text="El video o ZIP ya se borró (limpieza automática de archivos pesados del chat).")
+    # Solo ZIP: cuántos archivos trae y si el antivirus lo revisó (LIMPIO) o no (NO_REVISADO: ambiente de desarrollo)
+    archivo_items = models.PositiveIntegerField(null=True, blank=True)
+    archivo_escaneo = models.CharField(max_length=12, blank=True, default='')
     creado = models.DateTimeField(auto_now_add=True, db_index=True)
     # Un mensaje borrado no se elimina de la base (queda constancia), pero deja de mostrar su texto.
     eliminado = models.BooleanField(default=False)

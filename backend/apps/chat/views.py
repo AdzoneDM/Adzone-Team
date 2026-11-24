@@ -36,11 +36,16 @@ class MensajeSerializer(serializers.ModelSerializer):
     def get_archivo(self, o):
         if o.eliminado:
             return None
+        nombre = o.archivo_nombre or (o.archivo.name if o.archivo else '')
+        es_zip = nombre.lower().endswith('.zip')
         if o.archivo_purgado:
-            return {'nombre': o.archivo_nombre, 'es_imagen': False, 'es_video': True, 'purgado': True, 'tamano': o.archivo_tamano}
+            return {'nombre': o.archivo_nombre, 'es_imagen': False, 'es_video': not es_zip, 'es_zip': es_zip, 'purgado': True, 'tamano': o.archivo_tamano}
         if not o.archivo:
             return None
-        return {'nombre': o.archivo_nombre, 'es_imagen': o.archivo_es_imagen, 'es_video': es_video(o.archivo_nombre or o.archivo.name), 'tamano': o.archivo_tamano}
+        datos = {'nombre': o.archivo_nombre, 'es_imagen': o.archivo_es_imagen, 'es_video': es_video(nombre), 'tamano': o.archivo_tamano}
+        if es_zip:
+            datos.update({'es_zip': True, 'items': o.archivo_items, 'revisado': o.archivo_escaneo == 'LIMPIO'})
+        return datos
 
     def get_autor_nombre(self, o):
         return (o.autor.get_full_name() or o.autor.username) if o.autor else 'Persona eliminada'
@@ -196,6 +201,15 @@ def archivo_view(request, pk):
     tipo = mimetypes.guess_type(m.archivo.name)[0] or 'application/octet-stream'
     if es_video(m.archivo_nombre or m.archivo.name):  # los videos se entregan por tramos (se reproducen y avanzan sin bajarlos completos)
         return entregar(m.archivo.open('rb'), m.archivo_nombre or os.path.basename(m.archivo.name), tipo, request)
+    if (m.archivo_nombre or m.archivo.name).lower().endswith('.zip'):
+        # Se valida otra vez antes de entregarlo: siempre como descarga, sin que el navegador lo interprete ni lo abra
+        with m.archivo.open('rb') as f:
+            if f.read(4) not in (b'PK\x03\x04', b'PK\x05\x06'):
+                return Response({'detail': 'Este archivo ya no es un ZIP válido y no se entrega.'}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        resp = FileResponse(m.archivo.open('rb'), filename=m.archivo_nombre or 'archivo.zip', content_type='application/zip', as_attachment=True)
+        resp['X-Content-Type-Options'] = 'nosniff'
+        resp['Content-Security-Policy'] = "sandbox; default-src 'none'"
+        return resp
     resp = FileResponse(m.archivo.open('rb'), filename=m.archivo_nombre or os.path.basename(m.archivo.name), content_type=tipo,
                         as_attachment=request.query_params.get('descargar') == '1' or not m.archivo_es_imagen and tipo != 'application/pdf')
     resp['X-Content-Type-Options'] = 'nosniff'
@@ -220,7 +234,10 @@ def mensajes_view(request, pk):
         m = Mensaje.objects.create(conversacion=conv, autor=request.user, texto=datos.validated_data['texto'])
         if archivo:
             m.archivo, m.archivo_nombre, m.archivo_es_imagen, m.archivo_tamano = archivo, archivo.name[:150], es_imagen, archivo.size
-            m.save(update_fields=['archivo', 'archivo_nombre', 'archivo_es_imagen', 'archivo_tamano'])
+            info = getattr(archivo, '_zip_info', None)   # solo ZIP: cuántos archivos trae y si el antivirus lo revisó
+            if info:
+                m.archivo_items, m.archivo_escaneo = info['items'], info['escaneo']
+            m.save(update_fields=['archivo', 'archivo_nombre', 'archivo_es_imagen', 'archivo_tamano', 'archivo_items', 'archivo_escaneo'])
         servicios.registrar(m)
         servicios.marcar_leido(request.user, conv, m.id)
         return Response(MensajeSerializer(m, context={'request': request}).data, status=status.HTTP_201_CREATED)

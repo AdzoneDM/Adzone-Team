@@ -475,6 +475,8 @@ class ConfiguracionDesempeno(models.Model):
     minimo_tareas_evaluacion = models.PositiveSmallIntegerField(
         default=3, help_text="Tareas que ya cuentan en el mes para juzgar el mínimo. Con menos (y sin KPIs medidos), "
                              "la persona sale como «pocos datos» y no como incumplimiento.")
+    dias_conservar_zip_chat = models.PositiveSmallIntegerField(
+        default=30, help_text="Días que se conservan los archivos ZIP enviados por el chat; pasados se borran solos (el mensaje queda con el aviso).")
     dias_conservar_videos_chat = models.PositiveSmallIntegerField(
         default=14, help_text="Días que se conservan los videos enviados por el chat antes de borrarse solos para liberar espacio.")
     dias_conservar_videos = models.PositiveSmallIntegerField(

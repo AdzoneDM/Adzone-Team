@@ -98,6 +98,7 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
   const [cargado, setCargado] = useState(false);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [progreso, setProgreso] = useState(null); // {actual, total, nombre, pct}: avance de la subida de archivos
   const [lectores, setLectores] = useState({ lista: [], total: 0 }); // quién leyó hasta dónde: el «visto» de tus mensajes
   const ultimoId = useRef(0);
 
@@ -162,15 +163,17 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
     let hechos = 0;
     try {
       for (const a of lista) {
-        aplicar([await chatEnviar(conversacion, hechos === 0 ? texto : "", a)]);
+        if (a) setProgreso({ actual: hechos + 1, total: lista.length, nombre: a.name, pct: 0 });
+        aplicar([await chatEnviar(conversacion, hechos === 0 ? texto : "", a, (p) => setProgreso((x) => (x ? { ...x, pct: Math.round(p * 100) } : x)))]);
         hechos += 1;
       }
       return { ok: true, hechos };
     } catch (e) {
       setError(e.message);
-      return { ok: false, hechos };
+      return { ok: false, hechos, mensaje: e.message };
     } finally {
       setEnviando(false);
+      setProgreso(null);
     }
   }, [conversacion, aplicar]);
 
@@ -182,5 +185,5 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
     }
   }, [aplicar]);
 
-  return { mensajes, lectores, hayMas, cargando, error, enviando, enviar, borrar, cargarAnteriores, reintentar: cargarInicial, limpiarError: () => setError("") };
+  return { mensajes, lectores, progreso, hayMas, cargando, error, enviando, enviar, borrar, cargarAnteriores, reintentar: cargarInicial, limpiarError: () => setError("") };
 }

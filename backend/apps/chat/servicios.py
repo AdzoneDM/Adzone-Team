@@ -80,6 +80,10 @@ def revisar_archivo(archivo):
         if archivo.size > settings.EVIDENCIA_VIDEO_MAX_MB * 1024 * 1024:
             raise ValidationError({'archivo': [f'El video pesa más de {settings.EVIDENCIA_VIDEO_MAX_MB} MB. Para uno más largo, súbelo a Drive y pega el enlace.']})
         return False
+    if ext == '.zip':  # su propio límite (configurable) y validación real: firma, estructura, bomba, ejecutables y antivirus
+        from .zips import revisar_zip
+        archivo._zip_info = revisar_zip(archivo)
+        return False
     if archivo.size > MAX_ARCHIVO:
         raise ValidationError({'archivo': ['El archivo pesa más de 15 MB.']})
     es_imagen = ext in EXT_IMAGEN
@@ -121,15 +125,19 @@ def registrar(mensaje):
 
 
 def purgar_videos_del_chat(hoy=None):
-    """Borra los videos del chat de más de `dias_conservar_videos_chat` días (pesan mucho y un chat no «se valida»). El mensaje queda,
-    con el aviso de que el video se borró solo."""
+    """Borra los videos (`dias_conservar_videos_chat`) y los ZIP (`dias_conservar_zip_chat`) viejos del chat: pesan mucho y un chat no «se valida».
+    El mensaje queda, con el aviso de que el archivo se borró solo. Imágenes y documentos no se borran."""
     from datetime import timedelta
     from apps.desempeno.models import ConfiguracionDesempeno
-    dias = ConfiguracionDesempeno.actual().dias_conservar_videos_chat
-    corte = (hoy or timezone.now()) - timedelta(days=dias)
+    config = ConfiguracionDesempeno.actual()
+    ahora = hoy or timezone.now()
+    corte_video = ahora - timedelta(days=config.dias_conservar_videos_chat)
+    corte_zip = ahora - timedelta(days=config.dias_conservar_zip_chat)
     borrados = liberado = 0
-    for m in Mensaje.objects.filter(archivo_purgado=False, creado__lte=corte).exclude(archivo=''):
-        if not es_video(m.archivo_nombre or m.archivo.name):
+    for m in Mensaje.objects.filter(archivo_purgado=False, creado__lte=max(corte_video, corte_zip)).exclude(archivo=''):
+        nombre = m.archivo_nombre or m.archivo.name
+        es_zip = nombre.lower().endswith('.zip')
+        if not (es_zip and m.creado <= corte_zip) and not (es_video(nombre) and m.creado <= corte_video):
             continue
         liberado += m.archivo_tamano or 0
         try:
