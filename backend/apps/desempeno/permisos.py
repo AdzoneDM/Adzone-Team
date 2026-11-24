@@ -131,16 +131,27 @@ def puede_asignar(user, colaborador):
 # Quedan fuera Dirección y las áreas cerradas (Call Center: lo dirige su propia gerencia). La tarea guarda su área de origen.
 # ---------------------------------------------------------------------------------------------------------------------
 AREAS_CERRADAS = ('Call Center',)
+# Áreas de servicio: cualquier jefatura (quien puede asignar tareas) puede pedirle trabajo a cualquiera de sus integrantes, también a los que
+# tienen perfil de Dirección (Tecnología recibe solicitudes de todas las áreas).
+AREAS_DE_SERVICIO = ('Tecnología',)
 
 
 def _de_area_cerrada(colaborador):
     return any(p.departamento.nombre in AREAS_CERRADAS for p in puestos_de(colaborador) if p.departamento_id)
 
 
+def _de_area_de_servicio(colaborador):
+    return any(p.departamento.nombre in AREAS_DE_SERVICIO for p in puestos_de(colaborador) if p.departamento_id)
+
+
 def entre_areas(user, colaborador):
-    """¿Puede `user` asignarle una tarea a `colaborador` por el permiso de otras áreas (no por ser su supervisor)?"""
-    return bool(tiene(user, 'tareas.asignar') and tiene(user, 'tareas.otras_areas') and colaborador.is_active and colaborador.pk != user.pk
-                and not es_administrador(colaborador) and not _de_area_cerrada(colaborador))
+    """¿Puede `user` asignarle una tarea a `colaborador` sin ser su supervisor? Sí si es de un área de servicio (Tecnología) y `user` puede asignar
+    tareas, o con el permiso de otras áreas (menos Dirección y Call Center)."""
+    if not (tiene(user, 'tareas.asignar') and colaborador.is_active and colaborador.pk != user.pk) or _de_area_cerrada(colaborador):
+        return False
+    if _de_area_de_servicio(colaborador):
+        return True
+    return bool(tiene(user, 'tareas.otras_areas') and not es_administrador(colaborador))
 
 
 def puede_asignar_a(user, colaborador):
@@ -151,11 +162,17 @@ def puede_asignar_a(user, colaborador):
 def asignables(user):
     """Personas a las que `user` puede asignar tareas: su equipo (y él mismo si puede) más, con el permiso, las demás áreas."""
     base = equipo_gestionable(user, 'tareas.asignar')
-    if es_administrador(user) or not (tiene(user, 'tareas.asignar') and tiene(user, 'tareas.otras_areas')):
+    if es_administrador(user) or not tiene(user, 'tareas.asignar'):
         return base
-    otras = User.objects.filter(is_active=True).exclude(pk=user.pk).exclude(pk__in=administradores().values('pk')).exclude(
-        Q(perfil__puesto_trabajo__departamento__nombre__in=AREAS_CERRADAS) | Q(perfil__puestos_adicionales__departamento__nombre__in=AREAS_CERRADAS))
-    return User.objects.filter(Q(pk__in=base.values('pk')) | Q(pk__in=otras.values('pk')), is_active=True)
+    cerradas = Q(perfil__puesto_trabajo__departamento__nombre__in=AREAS_CERRADAS) | Q(perfil__puestos_adicionales__departamento__nombre__in=AREAS_CERRADAS)
+    servicio = User.objects.filter(is_active=True).exclude(pk=user.pk).filter(
+        Q(perfil__puesto_trabajo__departamento__nombre__in=AREAS_DE_SERVICIO) | Q(perfil__puestos_adicionales__departamento__nombre__in=AREAS_DE_SERVICIO)
+    ).exclude(cerradas)
+    ids = set(base.values_list('pk', flat=True)) | set(servicio.values_list('pk', flat=True))
+    if tiene(user, 'tareas.otras_areas'):
+        otras = User.objects.filter(is_active=True).exclude(pk=user.pk).exclude(pk__in=administradores().values('pk')).exclude(cerradas)
+        ids |= set(otras.values_list('pk', flat=True))
+    return User.objects.filter(pk__in=ids, is_active=True)
 
 
 def tiene_propias(user):
@@ -172,8 +189,12 @@ def por_validar(queryset, user):
     ajenas = Q(colaborador__in=equipo_gestionable(user, 'tareas.validar')) & ~Q(colaborador=user) & ~Q(companeros=user)
     if tiene(user, 'tareas.propias'):
         ajenas |= Q(colaborador=user, asignada_por=user)
-    if tiene_otras_areas(user) and tiene(user, 'tareas.validar'):
-        ajenas |= Q(asignada_por=user) & ~Q(colaborador=user)
+    if tiene(user, 'tareas.asignar') and tiene(user, 'tareas.validar'):
+        pedidas = Q(asignada_por=user) & ~Q(colaborador=user)
+        if not tiene_otras_areas(user):   # sin el permiso de otras áreas, solo lo que pidió a un área de servicio (Tecnología)
+            pedidas &= (Q(colaborador__perfil__puesto_trabajo__departamento__nombre__in=AREAS_DE_SERVICIO)
+                        | Q(colaborador__perfil__puestos_adicionales__departamento__nombre__in=AREAS_DE_SERVICIO))
+        ajenas |= pedidas
     return revisables(queryset.filter(estado='EN_REVISION').filter(ajenas).distinct(), user)
 
 

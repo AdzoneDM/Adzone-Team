@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.46 · 24/11/2026 · Tecnología recibe tareas de todas las jefaturas
+
+- **Corrección:** Enmanuel, Óscar, Omar, Danny y las demás jefaturas **no podían asignarle tareas a nadie de Tecnología**: los 4 integrantes del área tienen perfil de Dirección y la regla de «tareas entre áreas» (12.42) excluye a Dirección. Ahora **Tecnología es un «área de servicio»**: cualquier persona que pueda asignar tareas (supervisores y gerentes, no solo quienes tienen «Asignar tareas a otras áreas») puede pedirle trabajo a **cualquier integrante de Tecnología, incluidos los que tienen perfil de Dirección**.
+- Sigue igual: para las demás áreas hace falta el permiso «Asignar tareas a otras áreas»; Dirección fuera de Tecnología y **Call Center** no reciben tareas de otras áreas; un colaborador raso no asigna a nadie.
+- Quien pidió la tarea a Tecnología la ve en «Mi equipo», la puede editar y la **valida** al entregarse (le aparece en «Por validar»), además de quien supervisa a la persona. La tarea guarda el área de origen («Aporte: de Marketing → Tecnología»).
+- Las áreas de servicio se definen en `AREAS_DE_SERVICIO` (`desempeno/permisos.py`). Sin migraciones. 4 pruebas nuevas.
+
 ## 12.45 · 24/11/2026 · Clientes: eliminar desde la lista y catálogo inicial
 
 - **Eliminar clientes desde la lista** de Clientes (icono de papelera por fila, para quien gestiona un departamento o Finanzas), con la misma confirmación y las mismas protecciones que en la ficha: un cliente con órdenes, proyectos o facturas no se borra (se ofrece dejarlo inactivo) y el cliente interno ADZONE no se puede eliminar.
