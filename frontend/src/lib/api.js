@@ -1,5 +1,9 @@
 // Cliente de la API de Adzone Team. Misma sesión (cookie) y token CSRF en todas las llamadas.
 
+// Alguien (yo) validó, devolvió, reabrió o eliminó una tarea: las demás pestañas y ventanas abiertas se refrescan al instante
+import { anunciarCambioTareas } from "@/lib/recargaSuave";
+const tareasCambiaron = (r) => { anunciarCambioTareas(); return r; };
+
 export function getCookie(name) {
   const match = document.cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith(name + "="));
   return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
@@ -123,7 +127,10 @@ export const cambiarClave = (actual, nueva) => api("/api/auth/cambiar-clave/", {
 export const listarTareas = (params) => api(`${D}/tareas/${q(params)}`);
 export const obtenerTarea = (id) => api(`${D}/tareas/${id}/`);
 export const guardarTarea = (t) => (t.id ? api(`${D}/tareas/${t.id}/`, { method: "PATCH", body: t }) : api(`${D}/tareas/`, { method: "POST", body: t }));
-export const eliminarTarea = (id) => api(`${D}/tareas/${id}/`, { method: "DELETE" });
+// Eliminación lógica: con motivo; la tarea deja de contar pero se conserva (historial) y se puede recuperar
+export const eliminarTarea = (id, motivo) => api(`${D}/tareas/${id}/eliminar/`, { method: "POST", body: { motivo } }).then(tareasCambiaron);
+export const tareasEliminadas = () => api(`${D}/tareas/eliminadas/`);
+export const restaurarTarea = (id) => api(`${D}/tareas/${id}/restaurar/`, { method: "POST" }).then(tareasCambiaron);
 export const historialTarea = (id) => api(`${D}/tareas/${id}/historial/`);
 export const iniciarTarea = (id) => api(`${D}/tareas/${id}/iniciar/`, { method: "POST" });
 export const entregarTarea = (id, { nota, enlace, archivos = [] }) => {
@@ -134,15 +141,15 @@ export const entregarTarea = (id, { nota, enlace, archivos = [] }) => {
   return api(`${D}/tareas/${id}/entregar/`, { method: "POST", body: f });
 };
 export const validarTarea = (id, calificacion_calidad, comentario_evaluacion, extra = {}) =>
-  api(`${D}/tareas/${id}/validar/`, { method: "POST", body: { calificacion_calidad, comentario_evaluacion, ...extra } });
+  api(`${D}/tareas/${id}/validar/`, { method: "POST", body: { calificacion_calidad, comentario_evaluacion, ...extra } }).then(tareasCambiaron);
 // Devolver una tarea; con «archivos» (bocetos, imágenes, PDF) viaja como formulario y quedan de referencia para la corrección
 export const devolverTarea = (id, comentario_revision, extra = {}, archivos = []) => {
-  if (!archivos.length) return api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: { comentario_revision, ...extra } });
+  if (!archivos.length) return api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: { comentario_revision, ...extra } }).then(tareasCambiaron);
   const f = new FormData();
   f.append("comentario_revision", comentario_revision);
   Object.entries(extra).forEach(([k, v]) => { if (v != null) f.append(k, typeof v === "object" ? JSON.stringify(v) : v); });
   archivos.forEach((a) => f.append("archivos", a, a.name));
-  return api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: f });
+  return api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: f }).then(tareasCambiaron);
 };
 // Referencias de una tarea: bocetos o imágenes que adjunta quien supervisa (al asignar o al corregir)
 export const subirReferencias = (id, archivos, { nota = "", momento = "ASIGNACION" } = {}) => {
@@ -154,7 +161,8 @@ export const subirReferencias = (id, archivos, { nota = "", momento = "ASIGNACIO
 };
 export const misRevisores = () => api(`${D}/mis-revisores/`);
 export const quitarReferencia = (url) => api(url, { method: "DELETE" });
-export const reabrirTarea = (id, motivo) => api(`${D}/tareas/${id}/reabrir/`, { method: "POST", body: { motivo } });
+// Reabrir en cualquier estado: { motivo, a: "REVISION" | "CORREGIR", fecha_limite?, descripcion? }
+export const reabrirTarea = (id, datos) => api(`${D}/tareas/${id}/reabrir/`, { method: "POST", body: typeof datos === "string" ? { motivo: datos } : datos }).then(tareasCambiaron);
 export const cancelarTarea = (id, motivo) => api(`${D}/tareas/${id}/cancelar/`, { method: "POST", body: { motivo } });
 export const recordarTarea = (id, mensaje) => api(`${D}/tareas/${id}/recordar/`, { method: "POST", body: { mensaje } });
 export const pedirTrabajo = () => api(`${D}/pedir-trabajo/`, { method: "POST" });
@@ -419,7 +427,10 @@ export const eliminarCampana = (id) => api(`${CC}/campanas/${id}/`, { method: "D
 // Control de horario
 const AS = "/api/asistencia";
 export const estadoJornada = () => api(`${AS}/estado/`);
-export const elegirAlmuerzo = (hora) => api(`${AS}/mi-almuerzo/`, { method: "POST", body: { hora } });
+// Hora de almuerzo: fija (todos los días) o solo hoy; «más tarde» la pospone unos minutos; «visto» evita repetir el aviso
+export const elegirAlmuerzo = (hora, soloHoy = false) => api(`${AS}/mi-almuerzo/`, { method: "POST", body: { hora, solo_hoy: soloHoy } });
+export const posponerAlmuerzo = (minutos) => api(`${AS}/mi-almuerzo/`, { method: "POST", body: { posponer: minutos } });
+export const almuerzoVisto = () => api(`${AS}/mi-almuerzo/`, { method: "POST", body: { visto: true } });
 export const marcarJornada = (tipo, extra = {}) => api(`${AS}/marcar/`, { method: "POST", body: { tipo, ...extra } });
 // Señal de vida: la plataforma sigue abierta (si deja de llegar 5 min en todos tus dispositivos, la jornada se cierra sola)
 export const senalPresencia = () => api(`${AS}/presencia/`, { method: "POST" });

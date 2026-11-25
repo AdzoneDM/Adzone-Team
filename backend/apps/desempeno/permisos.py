@@ -199,21 +199,44 @@ def por_validar(queryset, user):
 
 
 def puede_gestionar_tarea(user, tarea):
-    """Editar, reasignar o adjuntar referencias a una tarea ya creada: su supervisor o quien la asignó entre áreas."""
-    return puede_gestionar(user, tarea.colaborador, 'tareas.asignar') or (
-        tarea.asignada_por_id == user.pk and entre_areas(user, tarea.colaborador))
+    """Editar, reasignar o adjuntar referencias a una tarea ya creada (permiso «Editar tareas»)."""
+    return puede_editar_tarea(user, tarea)
 
 
-def puede_eliminar_tarea(user, tarea):
-    """Borrar del todo (con historial y archivos) solo con el permiso «Eliminar tareas», sobre su equipo o lo propio. Dirección siempre.
-    Sin el permiso, quien gestiona la tarea puede cancelarla (queda registrada)."""
-    if not (user and user.is_authenticated) or tarea.estado == 'COMPLETADA':
+def _alcance_tarea(user, tarea, permiso):
+    """¿Puede `user` ejercer `permiso` (editar, eliminar, reabrir) sobre esta tarea? Dirección siempre. Con el permiso: las tareas de su
+    equipo (según el organigrama), las que pidió a otras áreas y las que se asignó a sí mismo (con «Asignarse tareas a sí mismo»)."""
+    if not (user and user.is_authenticated):
         return False
     if es_administrador(user):
         return True
-    if not tiene(user, 'tareas.eliminar'):
+    if not tiene(user, permiso):
         return False
-    return tarea.colaborador_id == user.pk or equipo_base(user).filter(pk=tarea.colaborador_id).exists()
+    if tarea.colaborador_id == user.pk:
+        return tarea.asignada_por_id == user.pk and tiene(user, 'tareas.propias')
+    if equipo_base(user).filter(pk=tarea.colaborador_id).exists():
+        return True
+    return tarea.asignada_por_id == user.pk and entre_areas(user, tarea.colaborador)
+
+
+def puede_editar_tarea(user, tarea):
+    """Editar cualquier dato de una tarea, en cualquier estado (también validada): permiso «Editar tareas»."""
+    return _alcance_tarea(user, tarea, 'tareas.editar')
+
+
+def puede_eliminar_tarea(user, tarea):
+    """Eliminación lógica (con motivo; se puede recuperar), en cualquier estado: permiso «Eliminar tareas»."""
+    return _alcance_tarea(user, tarea, 'tareas.eliminar')
+
+
+def puede_reabrir_tarea(user, tarea):
+    """Reabrir en cualquier estado: permiso «Reabrir tareas». Nunca la propia.
+    El revisor designado de una tarea también puede reabrirla."""
+    if not (user and user.is_authenticated) or user.pk in tarea.participantes_ids():
+        return False
+    if _alcance_tarea(user, tarea, 'tareas.reabrir'):
+        return True
+    return bool(tarea.revisor_id and tarea.estado == 'COMPLETADA' and puede_revisar_tarea(user, tarea))
 
 
 def puede_autovalidar(user, tarea):

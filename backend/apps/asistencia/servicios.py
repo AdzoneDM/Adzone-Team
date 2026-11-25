@@ -60,12 +60,36 @@ def horario_de(usuario):
     return Horario.objects.filter(por_defecto=True, activo=True).first(), True
 
 
-def almuerzo_inicio_de(usuario, horario=None):
-    """Hora de almuerzo de la persona: la que ella eligió o, si no, la del horario («HH:MM» o None)."""
-    propia = AlmuerzoPersonal.objects.filter(usuario=usuario).values_list('hora', flat=True).first()
-    if propia:
-        return propia
+def almuerzo_inicio_de(usuario, horario=None, dia=None):
+    """Hora de almuerzo de la persona («HH:MM» o None): la que eligió solo para hoy; si no, su hora fija; si no, la del horario."""
+    dia = dia or timezone.localdate()
+    propia = AlmuerzoPersonal.objects.filter(usuario=usuario).first()
+    if propia and propia.fecha_hoy == dia and propia.hora_hoy:
+        return propia.hora_hoy
+    if propia and propia.hora:
+        return propia.hora
     return (horario.almuerzo_inicio or None) if horario else None
+
+
+def clave_aviso_almuerzo(dia, hora):
+    return f'almuerzo-hora-{dia:%Y%m%d}-{hora.replace(":", "")}'
+
+
+def elegir_almuerzo(usuario, hora, solo_hoy=False, dia=None):
+    """Guarda la hora de almuerzo: fija (todos los días) o solo para hoy. Hora vacía: quita esa elección."""
+    dia = dia or timezone.localdate()
+    a, _ = AlmuerzoPersonal.objects.get_or_create(usuario=usuario)
+    if solo_hoy:
+        a.fecha_hoy, a.hora_hoy = (dia, hora) if hora else (None, '')
+    else:
+        a.hora = hora or ''
+        if a.fecha_hoy == dia:   # la fija nueva manda también hoy
+            a.fecha_hoy, a.hora_hoy = None, ''
+    if not a.hora and not a.hora_hoy:
+        a.delete()
+        return None
+    a.save()
+    return a
 
 
 def _hora(texto):
@@ -436,10 +460,10 @@ def revisar_almuerzos(ahora=None):
             desde, hasta = rango(hoy)
             if Marcaje.objects.filter(usuario=u, es_almuerzo=True, momento__gte=min(desde, ahora - TURNO_MAXIMO), momento__lte=ahora).exists():
                 continue  # ya salió a almorzar hoy
-            if _una_vez(u, f'almuerzo-hora-{hoy:%Y%m%d}-{hora_almuerzo.replace(":", "")}', 'ALMUERZO_HORA'):
-                avisar([u], 'ALMUERZO_HORA', 'Es tu hora de almuerzo',
-                       f'Tu almuerzo es a las {hora_almuerzo} y dura {horario.almuerzo_minutos} min. Marca «Almuerzo» al salir: '
-                       f'te avisamos cuando falten 5 minutos y cuando se cumpla tu tiempo.')
+            if _una_vez(u, clave_aviso_almuerzo(hoy, hora_almuerzo), 'ALMUERZO_HORA'):
+                avisar([u], 'ALMUERZO_HORA', 'Es tu hora de comer',
+                       f'Tu almuerzo es a las {hora_almuerzo} y dura {horario.almuerzo_minutos} min. Abre la plataforma y toca «Salir a comer» '
+                       f'(o «Más tarde»): te avisamos cuando falten 5 minutos y cuando se cumpla tu tiempo.', enlace='/?almuerzo=1')
                 enviados += 1
     return enviados
 

@@ -8,6 +8,17 @@ let excluidas = 0;   // pantallas que ya se actualizan solas con cuidado (p. ej.
 
 export const pedirRecargaSuave = () => window.dispatchEvent(new Event(EVENTO));
 
+// Las otras pestañas y ventanas (la app instalada y el navegador) de este equipo se enteran al instante, sin esperar al servidor
+const canal = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("adzone-tareas") : null;
+if (canal) canal.onmessage = () => { pedirRecargaSuave(); window.dispatchEvent(new Event("adzone:refrescar-avisos")); };
+
+/** Llamar después de validar, devolver, reabrir o eliminar: refresca esta pantalla y las demás ventanas abiertas. */
+export function anunciarCambioTareas() {
+  pedirRecargaSuave();
+  window.dispatchEvent(new Event("adzone:refrescar-avisos"));
+  try { canal?.postMessage("cambio"); } catch { /* sin canal: llegará con el siguiente aviso del servidor */ }
+}
+
 /** Para pantallas que no deben volver a montarse (guardan lo que estás revisando y ya se refrescan solas). */
 export function useSinRecargaSuave() {
   useEffect(() => { excluidas += 1; return () => { excluidas -= 1; }; }, []);

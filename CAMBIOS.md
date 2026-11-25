@@ -1,5 +1,25 @@
 # Cambios
 
+## 12.63 · 25/11/2026 · Editar, eliminar y reabrir tareas en cualquier estado, hora de almuerzo a elección y app que se actualiza sola
+
+**Editar, eliminar y reabrir tareas (requerimiento de mejora)**
+- Tres permisos nuevos que se dan o quitan por separado en **Accesos y permisos → «Su equipo»**: **Editar tareas**, **Eliminar tareas** y **Reabrir tareas**. Funcionan sobre el equipo de cada quien según el organigrama y sobre las tareas que pidió a otras áreas («Asignar tareas a otras áreas» ahora también cubre gestionarlas). No hace falta ser administrador.
+- Los tienen de entrada **Supervisor, Gerente de Departamento, Coordinación** y el perfil nuevo **Operaciones** (además de Dirección). Nadie pierde nada: quien tenía «Asignar tareas» conserva editar y quien tenía «Validar tareas» conserva reabrir.
+- **Editar** en cualquier estado, también **validadas**: nombre, descripción e instrucciones, responsable (y con él el área), compañeros, fechas, prioridad, proyecto, KPI, horas, pasos, archivos de referencia y, en una validada, **la calificación de calidad y su comentario** (el puntaje se recalcula). El historial guarda el antes y el después; cambiar responsable, fechas o prioridad sigue pidiendo motivo. A la persona le llega el aviso.
+- **Eliminar** en cualquier estado, con **confirmación y motivo obligatorio**. Es una **eliminación lógica**: la tarea deja de aparecer y de contar para avance, puntaje y KPIs, pero se conserva con su historial, evidencias y archivos. Nueva pestaña **Mi equipo → Eliminadas** con quién, cuándo, por qué, en qué estado estaba y su historial, y el botón **Recuperar** (vuelve tal como estaba). Si alguien la cronometraba, el cronómetro se detiene. A la persona le llega el aviso.
+- **Reabrir** en cualquier estado (pendiente, en curso, bloqueada, entregada, validada o cancelada), con motivo: se elige si **la corrige y la entrega de nuevo** o si **se revisa otra vez la misma entrega**, y se puede poner **fecha e instrucciones nuevas**. Una validada deja de contar como completada hasta que se valide otra vez. Reabrir no cuenta como devolución. Evidencias y comentarios anteriores se conservan. Nadie reabre su propia tarea.
+- **Historial**: cada acción guarda quién, cuándo, el detalle, el motivo y el **estado antes → después**, y se ve en la tarea (también en las eliminadas).
+- Migraciones `core.0015` (permisos y perfil Operaciones) y `desempeno.0031` (eliminación lógica e historial con estados).
+
+**Hora de almuerzo a elección**
+- En la jornada (arriba, junto al reloj): **«¿A qué hora sales a comer?»** con dos botones: **Solo hoy** o **Todos los días**. Al día siguiente vuelve a valer la fija (o la del horario).
+- **Justo a esa hora y minuto** sale el aviso **«Es tu hora de comer»** con sonido: **Salir a comer** (marca «Pausa - Almuerzo» al instante), **En 10 / 15 / 30 min** (vuelve a avisar a esa hora) o **Cerrar**. Si la app no está a la vista, llega como notificación.
+- **Para el servidor:** nueva tarea programada **cada minuto de 7:00 a 20:59** (`python manage.py avisar_almuerzos`, ya en `docker/crontab`). Migración `asistencia.0008`.
+
+**La app instalada se actualiza sola**
+- La app instalada (PWA) y las pestañas abiertas revisan cada 5 minutos, al volver a la app y al recuperar internet si hay una versión nueva; si la hay, se recargan solas en un momento tranquilo (sin texto a medio escribir ni ventanas abiertas). El service worker se pide siempre fresco.
+- **Refresco al validar**: además del refresco de la 12.61 (unos 10 s para los demás), al validar, devolver, reabrir o eliminar se refrescan **al instante** las demás pestañas y ventanas de ese mismo equipo.
+
 ## 12.62 · 25/11/2026 · Borrar tareas solo con permiso y jornada automática
 
 **Eliminar tareas, solo con permiso**

@@ -162,7 +162,7 @@ export default function ProyectoDetalle() {
             <BotonCronometro tarea={tarea.id} />
             <Link to={`/mis-tareas?tarea=${tarea.id}`} className="inline-flex h-11 items-center rounded-lg bg-amarillo px-4 text-[15px] font-medium">Entregar</Link>
           </>}
-          {tarea.puedo_gestionar && !["COMPLETADA", "CANCELADA"].includes(tarea.estado) && <Boton variante="secundario" icono={Pencil} onClick={() => { setModal("editarTarea"); }}>Editar</Boton>}
+          {tarea.puedo_gestionar && <Boton variante="secundario" icono={Pencil} onClick={() => { setModal("editarTarea"); }}>Editar</Boton>}
         </div>} />
       <FormTarea abierto={modal === "editarTarea"} inicial={tarea} gente={gente} onCerrar={() => setModal(null)}
         onGuardada={(msg) => { setModal(null); setTarea(null); avisar(msg); cargar(); }} />

@@ -204,8 +204,7 @@ class FlujoTests(Base):
         self.assertFalse(r.data['a_la_primera'])
         historial = [h['accion'] for h in self.c.get(f'/api/desempeno/tareas/{tid}/historial/').data]
         self.assertEqual(historial, ['CREADA', 'INICIADA', 'ENTREGADA', 'DEVUELTA', 'ENTREGADA', 'VALIDADA'])
-        self.assertEqual(self.c.patch(f'/api/desempeno/tareas/{tid}/', {'titulo': 'x'}).status_code, 403)
-        self.assertEqual(self.c.delete(f'/api/desempeno/tareas/{tid}/').status_code, 403)
+        self.assertEqual(self.c.delete(f'/api/desempeno/tareas/{tid}/').status_code, 400)   # eliminar exige un motivo
 
         # Reabrir por error de validación: deja de contar y vuelve a revisión
         self.assertEqual(self.c.post(f'/api/desempeno/tareas/{tid}/reabrir/', {}).status_code, 400)

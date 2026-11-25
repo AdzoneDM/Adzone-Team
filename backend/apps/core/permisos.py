@@ -13,14 +13,16 @@ from django.utils import timezone
 
 # código, nombre, grupo (para la pantalla), alcance ('equipo' o 'empresa'), descripción
 PERMISOS = [
-    ('tareas.asignar', 'Asignar tareas', 'Su equipo', 'equipo', 'Crear, editar y reasignar tareas a las personas de su equipo.'),
-    ('tareas.eliminar', 'Eliminar tareas', 'Su equipo', 'equipo', 'Borrar del todo tareas de su equipo (con su historial y archivos). Sin este permiso solo se pueden cancelar, que deja registro.'),
-    ('tareas.validar', 'Validar tareas', 'Su equipo', 'equipo', 'Validar, devolver o reabrir las entregas de su equipo y calificar su calidad.'),
+    ('tareas.asignar', 'Asignar tareas', 'Su equipo', 'equipo', 'Crear tareas y asignarlas a las personas de su equipo.'),
+    ('tareas.editar', 'Editar tareas', 'Su equipo', 'equipo', 'Cambiar cualquier dato de las tareas de su equipo (responsable, fechas, prioridad, instrucciones, archivos y la calificación), en cualquier estado, también validadas. Queda en el historial con el antes y el después.'),
+    ('tareas.eliminar', 'Eliminar tareas', 'Su equipo', 'equipo', 'Eliminar tareas de su equipo en cualquier estado, con un motivo: dejan de contar para el avance, el puntaje y los KPIs, pero se conservan con su historial y se pueden recuperar.'),
+    ('tareas.reabrir', 'Reabrir tareas', 'Su equipo', 'equipo', 'Reabrir tareas de su equipo en cualquier estado, también validadas o canceladas, con un motivo: vuelven al flujo de entrega y validación y dejan de contar hasta que se validen otra vez.'),
+    ('tareas.validar', 'Validar tareas', 'Su equipo', 'equipo', 'Validar o devolver las entregas de su equipo y calificar su calidad.'),
     ('equipo.ver', 'Ver a su equipo', 'Su equipo', 'equipo', 'Ver las tareas, la ficha, los KPIs y la carga de trabajo de su equipo.'),
     ('equipo.evaluar', 'Evaluar a su equipo', 'Su equipo', 'equipo', 'Hacer la evaluación 360° de su equipo como supervisor y ver sus resultados.'),
     ('equipo.expediente', 'Expediente y planes de mejora', 'Su equipo', 'equipo', 'Registrar reconocimientos, observaciones e incidencias y abrir planes de mejora a su equipo.'),
     ('tareas.propias', 'Asignarse tareas a sí mismo', 'Su equipo', 'equipo', 'Crear y programar tareas para sí mismo, y validar esas mismas tareas (queda registrado en su historial como autovalidación).'),
-    ('tareas.otras_areas', 'Asignar tareas a otras áreas', 'Su equipo', 'empresa', 'Asignar tareas a personas de cualquier otra área (menos Call Center y Dirección) como aporte o colaboración; la tarea conserva su área de origen.'),
+    ('tareas.otras_areas', 'Asignar tareas a otras áreas', 'Su equipo', 'empresa', 'Asignar tareas a personas de cualquier otra área (menos Call Center y Dirección) como aporte o colaboración, y gestionar las que pidió (editarlas, eliminarlas o reabrirlas, si tiene esos permisos); la tarea conserva su área de origen.'),
     ('asistencia.ver', 'Asistencia del equipo', 'Su equipo', 'equipo', 'Ver la asistencia de su equipo, recibir sus avisos de tardanza y aprobar permisos.'),
     ('asistencia.corregir', 'Corregir marcajes', 'Su equipo', 'equipo', 'Agregar o borrar marcajes de su equipo (con nota y auditoría).'),
     ('equipo.todos', 'Supervisar a toda la empresa', 'Empresa', 'empresa', 'Su equipo pasa a ser todo el personal (menos Dirección): los permisos de equipo que tenga se ejercen sobre todos, y recibe sus avisos de entregas y tardanzas.'),
@@ -37,7 +39,8 @@ PERMISOS = [
 CODIGOS = {p[0] for p in PERMISOS}
 DE_EQUIPO = {p[0] for p in PERMISOS if p[3] == 'equipo'}
 
-SUPERVISOR = ['tareas.asignar', 'tareas.propias', 'tareas.validar', 'equipo.ver', 'equipo.evaluar', 'asistencia.ver']
+GESTION_TAREAS = ['tareas.editar', 'tareas.eliminar', 'tareas.reabrir']
+SUPERVISOR = ['tareas.asignar', 'tareas.propias', 'tareas.validar', 'equipo.ver', 'equipo.evaluar', 'asistencia.ver'] + GESTION_TAREAS
 # perfil: (descripción, permisos, orden). «Administrador» es el nombre histórico del grupo de Dirección.
 PERFILES = {
     'Colaborador': ('Cumple sus tareas y ve solo lo suyo.', [], 10),
@@ -51,7 +54,9 @@ PERFILES = {
     'Gestión del Talento': ('Políticas, documentos, evaluaciones, expedientes, personas y salarios.',
                             ['talento.rrhh', 'personal.usuarios', 'personal.salarios'], 70),
     'Finanzas': ('Facturación, gastos, rentabilidad y costo por hora.', ['personal.salarios'], 65),
-    'Coordinación': ('Recibe y libera OT, emite órdenes de área y autoriza vales.', [], 40),
+    'Coordinación': ('Recibe y libera OT, emite órdenes de área y autoriza vales.', GESTION_TAREAS, 40),
+    'Operaciones': ('Asigna, edita, elimina, reabre y valida las tareas de su equipo y las que pide a otras áreas.',
+                    SUPERVISOR + ['tareas.otras_areas'], 35),
     'Almacén': ('Inventario, vales de materiales y activos.', [], 45),
     'Agente Call Center': ('Su pantalla de call center y lo suyo.', [], 15),
 }

@@ -1,7 +1,8 @@
 // Marcar entrada, pausa, regreso y salida desde cualquier pantalla (arriba, junto al buscador).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Coffee, LogIn, LogOut, Play, Utensils } from "lucide-react";
-import { estadoJornada, marcarJornada, elegirAlmuerzo } from "@/lib/api";
+import { almuerzoVisto, elegirAlmuerzo, estadoJornada, marcarJornada, posponerAlmuerzo } from "@/lib/api";
+import { sonarAlerta } from "@/lib/sonido";
 import { horaExacta, relojSeg } from "@/lib/formato";
 import { datosDeLugar } from "@/lib/ubicacion";
 import { Boton, Modal, cx, useAviso } from "@/components/ui";
@@ -13,17 +14,19 @@ const MOTIVOS = ["Diligencia personal", "Reunión fuera", "Descanso", "Otro"]; /
 /** «17:00» → «5:00 p. m.» */
 const hhmm = (t) => { const [h, m] = String(t).split(":").map(Number); return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "a. m." : "p. m."}`; };
 
-/** La hora de almuerzo de cada persona: no todos comen a las 12. Si no elige una, vale la del horario (si la tiene). */
+/** La hora de almuerzo de cada persona: no todos comen a las 12, ni siempre a la misma hora. Puede dejar una hora fija para todos
+ * los días o elegir solo la de hoy. Si no elige nada, vale la del horario (si la tiene). A esa hora exacta le sale el aviso. */
 function HoraAlmuerzo({ limites, onCambio }) {
   const avisar = useAviso();
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(limites.almuerzo_inicio || "12:00");
   const [guardando, setGuardando] = useState(false);
-  const guardar = async (hora) => {
+  const guardar = async (hora, soloHoy) => {
     setGuardando(true);
     try {
-      await elegirAlmuerzo(hora);
-      avisar(hora ? `Tu almuerzo quedó a las ${hhmm(hora)}. Te avisamos a esa hora.` : "Vuelve a valer la hora de tu horario.");
+      await elegirAlmuerzo(hora, soloHoy);
+      avisar(!hora ? (soloHoy ? "Hoy vale tu hora de siempre." : "Vuelve a valer la hora de tu horario.")
+        : soloHoy ? `Te avisamos justo a la hora: hoy sales a comer a las ${hhmm(hora)}` : `Te avisamos justo a la hora: comes a las ${hhmm(hora)} todos los días`);
       setEditando(false);
       await onCambio();
     } catch (e) { avisar(e.message, "rojo"); }
@@ -32,24 +35,82 @@ function HoraAlmuerzo({ limites, onCambio }) {
   if (editando) {
     return (
       <div className="mt-2 rounded-md bg-azul/5 px-2 py-2 text-sm text-azul">
-        <label className="block font-medium" htmlFor="hora-almuerzo">¿A qué hora almuerzas?</label>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <input id="hora-almuerzo" type="time" min="09:00" max="18:00" value={valor} onChange={(e) => setValor(e.target.value)} className="campo !h-9 !w-32 !py-1" />
-          <Boton tam="sm" cargando={guardando} onClick={() => valor && guardar(valor)}>Guardar</Boton>
+        <label className="block font-medium" htmlFor="hora-almuerzo">¿A qué hora sales a comer?</label>
+        <input id="hora-almuerzo" type="time" min="09:00" max="18:00" value={valor} onChange={(e) => setValor(e.target.value)} className="campo mt-1 !h-9 !w-32 !py-1" />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <Boton tam="sm" cargando={guardando} onClick={() => valor && guardar(valor, true)}>Solo hoy</Boton>
+          <Boton tam="sm" variante="secundario" cargando={guardando} onClick={() => valor && guardar(valor, false)}>Todos los días</Boton>
+        </div>
+        <p className="mt-1 text-xs text-gris">Entre las 9:00 a. m. y las 6:00 p. m. A esa hora te sale el aviso «Es tu hora de comer».</p>
+        <div className="mt-1 flex flex-wrap gap-x-3">
+          {limites.almuerzo_hoy && <button type="button" onClick={() => guardar("", true)} className="text-xs font-medium text-azul hover:underline">Hoy, mi hora de siempre</button>}
+          {limites.almuerzo_propio && <button type="button" onClick={() => guardar("", false)} className="text-xs font-medium text-azul hover:underline">Quitar mi hora fija{limites.almuerzo_horario ? ` (vale la del horario: ${hhmm(limites.almuerzo_horario)})` : ""}</button>}
           <button type="button" onClick={() => setEditando(false)} className="text-xs font-medium text-gris hover:text-tinta">Cancelar</button>
         </div>
-        <p className="mt-1 text-xs text-gris">Entre las 9:00 a. m. y las 6:00 p. m. Te avisamos a esa hora.</p>
-        {limites.almuerzo_propio && <button type="button" onClick={() => guardar("")} className="mt-1 text-xs font-medium text-azul hover:underline">Usar la hora de mi horario{limites.almuerzo_horario ? ` (${hhmm(limites.almuerzo_horario)})` : " (ninguna)"}</button>}
       </div>
     );
   }
   return (
     <p className="mt-2 flex flex-wrap items-center gap-x-2 rounded-md bg-azul/5 px-2 py-1 text-sm text-azul">
       {limites.almuerzo_inicio
-        ? <span>Tu almuerzo: <strong>{hhmm(limites.almuerzo_inicio)}</strong> · {limites.almuerzo_min} min.</span>
+        ? <span>Hoy comes a las <strong>{hhmm(limites.almuerzo_inicio)}</strong>{limites.almuerzo_hoy ? " (solo hoy)" : ""} · {limites.almuerzo_min} min.</span>
         : <span>No has elegido tu hora de almuerzo.</span>}
       <button type="button" onClick={() => { setValor(limites.almuerzo_inicio || "12:00"); setEditando(true); }} className="text-xs font-semibold underline underline-offset-2">{limites.almuerzo_inicio ? "Cambiar" : "Elegir"}</button>
     </p>
+  );
+}
+
+const VENTANA_AVISO_MS = 2 * 3600 * 1000;   // pasado este tiempo desde su hora, ya no se avisa
+const claveAviso = (fecha, hora) => `adzone:almuerzo-aviso:${fecha}-${hora}`;
+
+/** «Es tu hora de comer»: sale justo a la hora y minuto elegidos (hora oficial del servidor). Salir a comer marca la pausa de almuerzo;
+ * «Más tarde» lo pospone unos minutos y vuelve a avisar; «Cerrar» no lo vuelve a mostrar hoy. */
+function AvisoAlmuerzo({ estado, horaOficial, enviando, onSalir, onCambio }) {
+  const avisar = useAviso();
+  const [atendido, setAtendido] = useState("");
+  const [posponiendo, setPosponiendo] = useState(false);
+  const hora = estado.limites?.almuerzo_inicio;
+  const ahora = new Date(horaOficial);
+  const fecha = `${ahora.getFullYear()}-${ahora.getMonth() + 1}-${ahora.getDate()}`;
+  const clave = hora ? claveAviso(fecha, hora) : "";
+  let toca = false;
+  if (hora && estado.estado === "TRABAJANDO" && !estado.hoy?.almuerzo_inicio && clave !== atendido) {
+    const [h, m] = hora.split(":").map(Number);
+    const objetivo = new Date(horaOficial); objetivo.setHours(h, m, 0, 0);
+    const desde = horaOficial - objetivo.getTime();
+    toca = desde >= 0 && desde < VENTANA_AVISO_MS && localStorage.getItem(clave) !== "1";
+  }
+  const visto = useRef("");
+  useEffect(() => {
+    if (!toca || visto.current === clave) return;
+    visto.current = clave;
+    sonarAlerta();
+    almuerzoVisto().catch(() => {});   // ya lo vio en pantalla: no le llega repetido como notificación
+  }, [toca, clave]);
+  if (!toca) return null;
+  const listo = () => { localStorage.setItem(clave, "1"); setAtendido(clave); };
+  const posponer = async (min) => {
+    setPosponiendo(true);
+    try {
+      const r = await posponerAlmuerzo(min);
+      listo();
+      avisar(`Listo: te avisamos otra vez a las ${hhmm(r.almuerzo_inicio)}`);
+      await onCambio();
+    } catch (e) { avisar(e.message, "rojo"); }
+    setPosponiendo(false);
+  };
+  return (
+    <Modal abierto onCerrar={listo} titulo="Es tu hora de comer" ancho="md:max-w-sm"
+      descripcion={`Son las ${hhmm(hora)} y tu almuerzo dura ${estado.limites?.almuerzo_min ?? 60} min. Al salir, tu jornada pasa a «Pausa - Almuerzo».`}>
+      <div className="grid gap-2">
+        <Boton icono={Utensils} cargando={enviando} onClick={async () => { listo(); await onSalir(); }}>Salir a comer</Boton>
+        <p className="mt-1 text-sm font-medium">¿Sales un poco más tarde?</p>
+        <div className="grid grid-cols-3 gap-2">
+          {[10, 15, 30].map((n) => <Boton key={n} tam="sm" variante="secundario" cargando={posponiendo} onClick={() => posponer(n)}>En {n} min</Boton>)}
+        </div>
+        <Boton variante="fantasma" onClick={listo}>Cerrar</Boton>
+      </div>
+    </Modal>
   );
 }
 
@@ -178,6 +239,7 @@ export default function BotonJornada() {
           </div>
         </div>
       )}
+      <AvisoAlmuerzo estado={estado} horaOficial={horaOficial} enviando={enviando} onCambio={cargar} onSalir={() => marcar("ALMUERZO", "Almuerzo")} />
       <Modal abierto={pidiendoMotivo} onCerrar={() => setPidiendoMotivo(false)} titulo="¿Por qué la pausa?" descripcion={`Si pasa de ${estado.limites?.pausa_min ?? 60} minutos sin que marques el regreso, se avisa a tu supervisor.`} ancho="max-w-sm">
         <div className="grid gap-2">
           {MOTIVOS.map((m) => <Boton key={m} variante="secundario" cargando={enviando} onClick={() => marcar("PAUSA", m)}>{m}</Boton>)}

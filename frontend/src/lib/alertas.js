@@ -1,5 +1,5 @@
 // Avisos de tareas que se muestran como alerta emergente en toda la pantalla (los demás quedan en la campanita).
-import { AlarmClock, BellRing, ClipboardPlus, Lock, PencilLine, RotateCcw, Timer, Undo2, Utensils } from "lucide-react";
+import { AlarmClock, BellRing, ClipboardPlus, Lock, PencilLine, RotateCcw, Timer, Trash2, Undo2, Utensils } from "lucide-react";
 
 // tipo → cómo se presenta. «tono» elige los colores; «insiste» repite el sonido hasta que se atiende.
 export const ALERTAS_TAREA = {
@@ -10,6 +10,7 @@ export const ALERTAS_TAREA = {
   DEVUELTA: { etiqueta: "Tu entrega fue devuelta", icono: Undo2, tono: "rojo", insiste: true, boton: "Corregir ahora" },
   REABIERTA: { etiqueta: "Tarea reabierta", icono: RotateCcw, tono: "rojo", boton: "Ver tarea" },
   MODIFICADA: { etiqueta: "Tu tarea cambió", icono: PencilLine, tono: "azul", boton: "Ver cambios" },
+  ELIMINADA: { etiqueta: "Se eliminó una de tus tareas", icono: Trash2, tono: "rojo", boton: "Ver mis tareas" },
   BLOQUEADA: { etiqueta: "Tarea bloqueada", icono: Lock, tono: "amarillo", boton: "Ver tarea" },
   VENCE: { etiqueta: "Tarea por vencer", icono: AlarmClock, tono: "rojo", insiste: true, boton: "Ir a la tarea" },
   // Almuerzo: salen igual que las alertas de tareas (con sonido); la de pasarse insiste hasta que marcas tu regreso

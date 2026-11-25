@@ -19,6 +19,7 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
   const [referencias, setReferencias] = useState([]); // bocetos o imágenes para que la persona tenga de guía
   const editando = !!inicial?.id;
   const esRecurrente = inicial?.tipo === "recurrente";
+  const validada = editando && !esRecurrente && inicial?.estado === "COMPLETADA";
 
   useEffect(() => { if (abierto) listarClientes({ activos: "1" }).then((l) => setClientes(Array.isArray(l) ? l : l?.results || [])).catch(() => {}); }, [abierto]);
 
@@ -78,6 +79,9 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
           proyecto: f.proyecto ? Number(f.proyecto) : null, fecha_inicio: f.fecha_inicio || null,
           horas_estimadas: f.horas_estimadas === "" || f.horas_estimadas == null ? null : f.horas_estimadas,
           ...(pideMotivo ? { motivo: f.motivo.trim() } : {}),
+          // Tarea ya validada: se puede ajustar la evaluación (recalcula el puntaje)
+          ...(validada && (Number(f.calificacion_calidad) !== Number(inicial.calificacion_calidad) || (f.comentario_evaluacion || "") !== (inicial.comentario_evaluacion || ""))
+            ? { calificacion_calidad: Number(f.calificacion_calidad), comentario_evaluacion: f.comentario_evaluacion || "" } : {}),
         });
         let sinReferencias = "";
         if (referencias.length) {
@@ -97,6 +101,19 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
       pie={<><Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton><Boton type="submit" form="form-tarea" cargando={guardando}>{editando ? "Guardar cambios" : f.repetir ? "Programar" : "Asignar tarea"}</Boton></>}>
       <form id="form-tarea" onSubmit={guardar} className="space-y-4">
         {error && <Alerta>{error}</Alerta>}
+        {validada && (
+          <div className="rounded-lg border border-amarillo/40 bg-amarillo/10 p-3">
+            <p className="text-sm">Esta tarea ya está <b>validada</b>. Los cambios quedan en el historial con el antes y el después, y el puntaje se recalcula.</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-[auto_1fr]">
+              <Campo etiqueta="Calidad">{(id) => (
+                <select id={id} className="campo" value={f.calificacion_calidad ?? ""} onChange={cambiar("calificacion_calidad")}>
+                  {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)} {n}/5</option>)}
+                </select>
+              )}</Campo>
+              <Campo etiqueta="Comentario de la evaluación">{(id) => <input id={id} className="campo" value={f.comentario_evaluacion || ""} onChange={cambiar("comentario_evaluacion")} maxLength={2000} />}</Campo>
+            </div>
+          </div>
+        )}
         <Campo etiqueta="Qué hay que hacer">{(id) => <input id={id} className="campo" value={f.titulo || ""} onChange={cambiar("titulo")} maxLength={255} autoFocus />}</Campo>
         <Campo etiqueta="Detalles (opcional)">{(id) => <textarea id={id} className="campo" rows={3} value={f.descripcion || ""} onChange={cambiar("descripcion")} />}</Campo>
         {!f.repetir && (

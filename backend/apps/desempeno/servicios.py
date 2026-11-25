@@ -19,8 +19,11 @@ def nombre(usuario):
     return (usuario.get_full_name() or usuario.username) if usuario else 'Alguien'
 
 
-def registrar(tarea, usuario, accion, comentario=''):
-    HistorialTarea.objects.create(tarea=tarea, usuario=usuario, accion=accion, comentario=comentario or '')
+def registrar(tarea, usuario, accion, comentario='', antes=None):
+    """Deja la acción en el historial con quién, cuándo, el detalle y el estado de la tarea antes y después."""
+    antes = getattr(tarea, '_estado_leido', '') if antes is None else antes
+    HistorialTarea.objects.create(tarea=tarea, usuario=usuario, accion=accion, comentario=comentario or '',
+                                  estado_antes=antes or '', estado_despues=tarea.estado or '')
 
 
 def avisar(destinatarios, tipo, titulo, mensaje='', tarea=None, enlace='', excepto=None):
@@ -117,12 +120,14 @@ def al_referenciar(tarea, quien, n):
 
 CAMPOS_AVISO = {'titulo': 'el título', 'descripcion': 'la descripción', 'fecha_limite': 'la fecha de entrega',
                 'prioridad': 'la prioridad', 'fecha_inicio': 'la fecha de inicio', 'horas_estimadas': 'las horas estimadas',
-                'cliente': 'el cliente', 'proyecto': 'el proyecto', 'pasos_texto': 'los pasos'}
+                'cliente': 'el cliente', 'proyecto': 'el proyecto', 'pasos_texto': 'los pasos', 'kpi_asignado': 'el KPI',
+                'calificacion_calidad': 'la calificación de calidad', 'comentario_evaluacion': 'el comentario de la evaluación'}
 
 
 # Cambios que exigen un motivo y quedan con «antes → después» en el historial.
 CAMPOS_CON_MOTIVO = {'fecha_limite': 'Fecha de entrega', 'fecha_inicio': 'Fecha de inicio', 'prioridad': 'Prioridad', 'colaborador': 'Responsable'}
-CAMPOS_DETALLE = {**CAMPOS_CON_MOTIVO, 'titulo': 'Título', 'cliente': 'Cliente', 'horas_estimadas': 'Horas estimadas', 'proyecto': 'Proyecto'}
+CAMPOS_DETALLE = {**CAMPOS_CON_MOTIVO, 'titulo': 'Título', 'cliente': 'Cliente', 'horas_estimadas': 'Horas estimadas', 'proyecto': 'Proyecto',
+                  'kpi_asignado': 'KPI', 'calificacion_calidad': 'Calidad', 'comentario_evaluacion': 'Comentario de la evaluación'}
 CAMPOS_LARGOS = {'descripcion', 'pasos_texto'}   # se registra que cambiaron, sin copiar el texto
 
 
@@ -135,6 +140,10 @@ def valor_legible(campo, valor):
         return dict(Tarea.PRIORIDAD_CHOICES).get(valor, str(valor))
     if campo == 'colaborador':
         return nombre(valor)
+    if campo == 'calificacion_calidad':
+        return f"{valor}/5"
+    if campo == 'kpi_asignado':
+        return getattr(getattr(valor, 'plantilla_kpi', None), 'nombre', None) or str(valor)
     return str(valor)
 
 
@@ -158,7 +167,7 @@ def detalle_de_cambios(previos, tarea, campos, motivo='', pasos_antes=None, paso
 def al_modificar(tarea, quien, campos, motivo=''):
     """Aviso a los participantes cuando cambia algo que les importa (no por cada guardado sin cambios)."""
     cambios = [CAMPOS_AVISO[c] for c in campos if c in CAMPOS_AVISO]
-    if not cambios or tarea.estado in ('COMPLETADA', 'CANCELADA'):
+    if not cambios or tarea.estado == 'CANCELADA':
         return
     texto = ', '.join(cambios)
     extra = f" Nueva entrega: {tarea.fecha_limite:%d/%m/%Y}." if 'fecha_limite' in campos else ''
@@ -203,10 +212,28 @@ def avisar_bloqueadas(ahora=None):
     return n
 
 
-def al_reabrir(tarea, quien, motivo):
-    registrar(tarea, quien, 'REABIERTA', motivo)
+def al_reabrir(tarea, quien, motivo, antes=None, cambios=''):
+    registrar(tarea, quien, 'REABIERTA', '\n'.join(x for x in [f"Motivo: {motivo}" if motivo else '', cambios] if x), antes=antes)
+    destino = ('Vuelve a «En revisión»: tu entrega se revisa de nuevo.' if tarea.estado == 'EN_REVISION'
+               else 'Vuelve a tus tareas para que la corrijas y la entregues otra vez.')
     avisar([tarea.colaborador, *tarea.companeros.all()], 'REABIERTA', f"Reabierta: {tarea.titulo}",
-           motivo or f"{nombre(quien)} la volvió a poner en revisión.", tarea=tarea, enlace='/mis-tareas', excepto=quien)
+           f"{nombre(quien)} la reabrió. {destino}" + (f" Motivo: {motivo}" if motivo else '') + (f"\n{cambios}" if cambios else ''),
+           tarea=tarea, enlace=f'/mis-tareas?tarea={tarea.pk}', excepto=quien)
+    tras_cambio(tarea, quien)
+
+
+def al_eliminar(tarea, quien, motivo, antes):
+    registrar(tarea, quien, 'ELIMINADA', f"Motivo: {motivo}", antes=antes)
+    avisar([tarea.colaborador, *tarea.companeros.all()], 'ELIMINADA', f"Eliminada: {tarea.titulo}",
+           f"{nombre(quien)} eliminó esta tarea: ya no está en tus tareas ni cuenta para tu puntaje. Motivo: {motivo}",
+           tarea=tarea, enlace='/mis-tareas', excepto=quien)
+
+
+def al_restaurar(tarea, quien):
+    registrar(tarea, quien, 'RESTAURADA', 'La tarea volvió con su historial y sus archivos.', antes=tarea.estado)
+    avisar([tarea.colaborador, *tarea.companeros.all()], 'ASIGNADA', f"Recuperada: {tarea.titulo}",
+           f"{nombre(quien)} recuperó esta tarea que se había eliminado: vuelve a estar en tus tareas.",
+           tarea=tarea, enlace=f'/mis-tareas?tarea={tarea.pk}', excepto=quien)
     tras_cambio(tarea, quien)
 
 

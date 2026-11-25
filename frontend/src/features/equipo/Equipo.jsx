@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BellRing, Ban, ClipboardList, Pencil, Plus, Repeat, RotateCcw, Search, Target, Trash2, X } from "lucide-react";
+import { ArchiveRestore, BellRing, Ban, ClipboardList, History, Pencil, Plus, Repeat, RotateCcw, Search, Target, Trash2, X } from "lucide-react";
 import {
   cancelarTarea, eliminarRecurrente, eliminarTarea, equipo as cargarEquipo, guardarRecurrente,
-  listarRecurrentes, listarTareas, obtenerTarea, reabrirTarea, recordarTarea,
+  listarRecurrentes, listarTareas, obtenerTarea, reabrirTarea, recordarTarea, restaurarTarea, tareasEliminadas,
 } from "@/lib/api";
-import { ESTADOS, fechaCorta, hoyISO, mesActual } from "@/lib/formato";
+import { ESTADOS, fechaCorta, fechaHora, hoyISO, mesActual } from "@/lib/formato";
 import {
   Alerta, Boton, Cabecera, Campo, Cargando, EstadoTarea, Estrellas, Insignia, Modal, Panel, Pestanas, PrioridadTarea,
   SelectorMes, Vacio, useAviso, useConfirmar,
@@ -56,6 +56,117 @@ function Recurrentes({ gente, onEditar, recargar, version }) {
   );
 }
 
+/** Tareas eliminadas (auditoría): quién, cuándo, por qué, en qué estado estaban y su historial. Se pueden recuperar. */
+function Eliminadas({ version, recargar }) {
+  const [lista, setLista] = useState(null);
+  const [abierta, setAbierta] = useState(null);
+  const avisar = useAviso();
+  const confirmar = useConfirmar();
+  useEffect(() => { tareasEliminadas().then(setLista).catch((e) => { setLista([]); avisar(e.message, "rojo"); }); }, [version, avisar]);
+  if (!lista) return <Cargando />;
+  if (!lista.length) return <Vacio icono={Trash2} titulo="No hay tareas eliminadas">Las tareas que se eliminen quedan aquí con su motivo y su historial, y se pueden recuperar.</Vacio>;
+  const recuperar = async (t) => {
+    if (!(await confirmar({ titulo: "¿Recuperar esta tarea?", mensaje: `«${t.titulo}» vuelve tal como estaba (${ESTADOS[t.estado] || t.estado}), con su historial y sus archivos, y vuelve a contar.`, boton: "Recuperar" }))) return;
+    try { await restaurarTarea(t.id); avisar("Tarea recuperada."); recargar(); } catch (e) { avisar(e.message, "rojo"); }
+  };
+  return (
+    <ul className="space-y-2">
+      {lista.map((t) => (
+        <li key={t.id} className="rounded-xl border border-linea bg-white p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">{t.titulo}</p>
+              <p className="text-sm text-gris">{t.colaborador_nombre} · estaba <EstadoTarea estado={t.estado} /> · entrega {fechaCorta(t.fecha_limite)}</p>
+              <p className="mt-1 text-sm"><span className="font-medium">Eliminada por {t.eliminada_por_nombre || "—"}</span> <span className="text-gris">· {fechaHora(t.eliminada_en)}</span></p>
+              {t.motivo_eliminacion && <p className="mt-0.5 whitespace-pre-line text-sm text-gris">Motivo: {t.motivo_eliminacion}</p>}
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Boton variante="secundario" tam="sm" icono={History} onClick={() => setAbierta(abierta === t.id ? null : t.id)} aria-expanded={abierta === t.id}>Historial</Boton>
+              {t.puedo_restaurar && <Boton tam="sm" icono={ArchiveRestore} onClick={() => recuperar(t)}>Recuperar</Boton>}
+            </div>
+          </div>
+          {abierta === t.id && (
+            <ol className="mt-3 space-y-2 border-l border-linea pl-4">
+              {t.historial.map((h) => (
+                <li key={h.id} className="text-sm">
+                  <span className="font-medium">{h.accion_texto}</span> <span className="text-gris">por {h.usuario_nombre} · {fechaHora(h.fecha)}</span>
+                  {h.estado_antes && h.estado_despues && h.estado_antes !== h.estado_despues && <span className="text-gris"> · {ESTADOS[h.estado_antes] || h.estado_antes} → {ESTADOS[h.estado_despues] || h.estado_despues}</span>}
+                  {h.comentario && !h.comentario.startsWith("Cambió:") && <p className="whitespace-pre-line text-gris">{h.comentario}</p>}
+                </li>
+              ))}
+            </ol>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Reabrir en cualquier estado: motivo, a dónde vuelve (revisar otra vez o corregir) y, si hace falta, fecha e instrucciones nuevas. */
+function ModalReabrir({ tarea, onCerrar, onHecho }) {
+  const avisar = useAviso();
+  const [d, setD] = useState({});
+  const [enviando, setEnviando] = useState(false);
+  useEffect(() => { if (tarea) setD({ motivo: "", a: "CORREGIR", fecha_limite: tarea.fecha_limite || "", descripcion: tarea.descripcion || "" }); }, [tarea]);
+  if (!tarea) return null;
+  const entregada = ["EN_REVISION", "COMPLETADA"].includes(tarea.estado) || !!tarea.fecha_entrega_real;
+  const elegirDestino = entregada && tarea.estado !== "EN_REVISION";
+  const enviar = async () => {
+    setEnviando(true);
+    try {
+      await reabrirTarea(tarea.id, {
+        motivo: d.motivo.trim(), a: elegirDestino ? d.a : "CORREGIR",
+        ...(d.fecha_limite && d.fecha_limite !== tarea.fecha_limite ? { fecha_limite: d.fecha_limite } : {}),
+        ...(d.descripcion !== (tarea.descripcion || "") ? { descripcion: d.descripcion } : {}),
+      });
+      avisar(tarea.estado === "COMPLETADA" ? "Reabierta: dejó de contar como validada hasta que se valide otra vez. Le llegó el aviso." : "Reabierta. Le llegó el aviso.");
+      onHecho();
+    } catch (e) { avisar(e.message, "rojo"); }
+    setEnviando(false);
+  };
+  return (
+    <Modal abierto onCerrar={onCerrar} titulo="Reabrir tarea" ancho="md:max-w-lg"
+      descripcion={tarea.estado === "COMPLETADA" ? "Deja de contar para el puntaje, el avance y los KPIs hasta que se valide otra vez. Las entregas y comentarios anteriores se conservan." : "Vuelve al flujo de entrega y validación. Las entregas y comentarios anteriores se conservan."}
+      pie={<><Boton variante="secundario" onClick={onCerrar}>Volver</Boton><Boton icono={RotateCcw} cargando={enviando} onClick={enviar} disabled={(d.motivo || "").trim().length < 5}>Reabrir</Boton></>}>
+      <div className="space-y-4">
+        <Campo etiqueta="Motivo" ayuda="Mínimo 5 letras. Le llega a la persona y queda en el historial.">{(id) => <textarea id={id} className="campo" rows={3} value={d.motivo || ""} onChange={(e) => setD({ ...d, motivo: e.target.value })} autoFocus />}</Campo>
+        {elegirDestino && (
+          <fieldset>
+            <legend className="mb-1.5 text-sm font-medium">¿Qué pasa ahora?</legend>
+            <div className="space-y-1.5">
+              <label className="flex items-start gap-2 text-sm"><input type="radio" name="destino" className="mt-1 accent-azul" checked={d.a === "CORREGIR"} onChange={() => setD({ ...d, a: "CORREGIR" })} /><span><b>Que la corrija</b> y la entregue de nuevo</span></label>
+              <label className="flex items-start gap-2 text-sm"><input type="radio" name="destino" className="mt-1 accent-azul" checked={d.a === "REVISION"} onChange={() => setD({ ...d, a: "REVISION" })} /><span><b>Revisar otra vez</b> la misma entrega</span></label>
+            </div>
+          </fieldset>
+        )}
+        <Campo etiqueta="Nueva fecha de entrega" ayuda="Opcional.">{(id) => <input id={id} type="date" className="campo" value={d.fecha_limite || ""} onChange={(e) => setD({ ...d, fecha_limite: e.target.value })} />}</Campo>
+        <Campo etiqueta="Instrucciones" ayuda="Opcional: actualízalas si cambió lo que hay que hacer.">{(id) => <textarea id={id} className="campo" rows={4} value={d.descripcion || ""} onChange={(e) => setD({ ...d, descripcion: e.target.value })} />}</Campo>
+      </div>
+    </Modal>
+  );
+}
+
+/** Eliminar con confirmación y motivo obligatorio. Se conserva (auditoría) y se puede recuperar desde «Eliminadas». */
+function ModalEliminar({ tarea, onCerrar, onHecho }) {
+  const avisar = useAviso();
+  const [motivo, setMotivo] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  useEffect(() => { setMotivo(""); }, [tarea]);
+  if (!tarea) return null;
+  const enviar = async () => {
+    setEnviando(true);
+    try { await eliminarTarea(tarea.id, motivo.trim()); avisar("Tarea eliminada. Puedes recuperarla en «Eliminadas»."); onHecho(); } catch (e) { avisar(e.message, "rojo"); }
+    setEnviando(false);
+  };
+  return (
+    <Modal abierto onCerrar={onCerrar} titulo="¿Eliminar esta tarea?" ancho="md:max-w-md"
+      descripcion={`«${tarea.titulo}» deja de aparecer y de contar para el avance, el puntaje y los KPIs. Se conserva con su historial y se puede recuperar.`}
+      pie={<><Boton variante="secundario" onClick={onCerrar}>Volver</Boton><Boton variante="peligro" icono={Trash2} cargando={enviando} onClick={enviar} disabled={motivo.trim().length < 5}>Eliminar</Boton></>}>
+      <Campo etiqueta="Motivo" ayuda="Obligatorio (mínimo 5 letras): creada por error, duplicada, ya no hace falta…">{(id) => <textarea id={id} className="campo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />}</Campo>
+    </Modal>
+  );
+}
+
 export default function Equipo() {
   const { usuario } = useSesion();
   const avisar = useAviso();
@@ -67,8 +178,8 @@ export default function Equipo() {
   const [form, setForm] = useState(null);
   const [detalle, setDetalle] = useState(null);
   const [version, setVersion] = useState(0);
-  const [reabriendo, setReabriendo] = useState(false);
-  const [motivo, setMotivo] = useState("");
+  const [reabriendo, setReabriendo] = useState(null);
+  const [eliminando, setEliminando] = useState(null);
   const vista = params.get("ver") || "ahora";
   const mes = params.get("mes") || mesActual();
   const colaborador = params.get("colaborador") || "";
@@ -110,12 +221,7 @@ export default function Equipo() {
   const accionDetalle = async (accion) => {
     const t = detalle;
     try {
-      if (accion === "reabrir") {
-        await reabrirTarea(t.id, motivo.trim());
-        setReabriendo(false);
-        setMotivo("");
-        avisar("Reabierta: volvió a «En revisión» y dejó de contar.");
-      } else if (accion === "recordar") {
+      if (accion === "recordar") {
         const r = await recordarTarea(t.id, "");
         avisar(r.message);
         return;
@@ -123,10 +229,6 @@ export default function Equipo() {
         if (!(await confirmar({ titulo: "¿Cancelar esta tarea?", mensaje: "No contará para el puntaje de nadie. Queda en el historial.", boton: "Cancelar tarea", peligro: true }))) return;
         await cancelarTarea(t.id, "");
         avisar("Tarea cancelada.");
-      } else if (accion === "eliminar") {
-        if (!(await confirmar({ titulo: "¿Borrar esta tarea?", mensaje: "Se borra con su historial y sus archivos. Si solo ya no hace falta, mejor cancélala.", boton: "Borrar", peligro: true }))) return;
-        await eliminarTarea(t.id);
-        avisar("Tarea borrada.");
       }
       setDetalle(null);
       recargar();
@@ -142,14 +244,16 @@ export default function Equipo() {
 
       <BuscadorEquipo gente={gente} onPersona={verPersona} onTarea={abrirTarea} onBuscar={buscarTexto} className="mb-4 max-w-2xl" />
 
-      <Pestanas className="mb-5 max-w-md" valor={vista} onCambio={(v) => poner("ver", v === "ahora" ? "" : v)}
-        opciones={[{ valor: "ahora", etiqueta: "Ahora" }, { valor: "tareas", etiqueta: "Tareas" }, { valor: "recurrentes", etiqueta: "Recurrentes" }]} />
+      <Pestanas className="mb-5 max-w-xl" valor={vista} onCambio={(v) => poner("ver", v === "ahora" ? "" : v)}
+        opciones={[{ valor: "ahora", etiqueta: "Ahora" }, { valor: "tareas", etiqueta: "Tareas" }, { valor: "recurrentes", etiqueta: "Recurrentes" }, { valor: "eliminadas", etiqueta: "Eliminadas" }]} />
 
       {vista === "ahora" ? (
         <Ahora version={version} onAbrirTarea={async (id) => { try { setDetalle(await obtenerTarea(id)); } catch (e) { avisar(e.message, "rojo"); } }}
           onAsignar={(persona) => setForm({ colaborador: String(persona.id) })} />
       ) : vista === "recurrentes" ? (
         <Recurrentes gente={gente} version={version} recargar={recargar} onEditar={setForm} />
+      ) : vista === "eliminadas" ? (
+        <Eliminadas version={version} recargar={recargar} />
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -240,23 +344,18 @@ export default function Equipo() {
         onCambio={(t) => { setDetalle(t); cargar(true); }}  // al enviar una referencia (foto, video o PDF) o marcar un paso, la ventana se actualiza al instante
         pie={detalle && (
           <div className="flex w-full flex-wrap justify-end gap-2">
-            {detalle.estado === "COMPLETADA" && detalle.puedo_revisar && <Boton variante="secundario" icono={RotateCcw} onClick={() => setReabriendo(true)}>Reabrir</Boton>}
-            {!["COMPLETADA", "CANCELADA"].includes(detalle.estado) && detalle.puedo_gestionar && (<>
-              {detalle.puedo_eliminar && <Boton variante="peligro" icono={Trash2} onClick={() => accionDetalle("eliminar")} className="mr-auto">Borrar</Boton>}
-              <Boton variante="secundario" icono={Ban} onClick={() => accionDetalle("cancelar")}>Cancelar tarea</Boton>
-              {["PENDIENTE", "EN_PROGRESO"].includes(detalle.estado) && detalle.puedo_revisar && <Boton variante="secundario" icono={BellRing} onClick={() => accionDetalle("recordar")}>Recordar</Boton>}
-              <Boton icono={Pencil} onClick={() => { setForm(detalle); setDetalle(null); }}>Editar</Boton>
-            </>)}
+            {detalle.puedo_eliminar && <Boton variante="peligro" icono={Trash2} onClick={() => setEliminando(detalle)} className="mr-auto">Eliminar</Boton>}
+            {!["COMPLETADA", "CANCELADA"].includes(detalle.estado) && detalle.puedo_gestionar && <Boton variante="secundario" icono={Ban} onClick={() => accionDetalle("cancelar")}>Cancelar tarea</Boton>}
+            {["PENDIENTE", "EN_PROGRESO"].includes(detalle.estado) && detalle.puedo_revisar && <Boton variante="secundario" icono={BellRing} onClick={() => accionDetalle("recordar")}>Recordar</Boton>}
+            {detalle.puedo_reabrir && <Boton variante="secundario" icono={RotateCcw} onClick={() => setReabriendo(detalle)}>Reabrir</Boton>}
+            {detalle.puedo_gestionar && <Boton icono={Pencil} onClick={() => { setForm(detalle); setDetalle(null); }}>Editar</Boton>}
           </div>
         )} />
 
       <FormTarea abierto={!!form} inicial={form} gente={gente} onCerrar={() => setForm(null)}
         onGuardada={(msg) => { setForm(null); avisar(msg); recargar(); }} />
-      <Modal abierto={reabriendo} onCerrar={() => setReabriendo(false)} titulo="Reabrir tarea validada" ancho="max-w-md"
-        descripcion="Vuelve a «En revisión» y deja de contar para el puntaje hasta que la valides otra vez."
-        pie={<><Boton variante="secundario" onClick={() => setReabriendo(false)}>Volver</Boton><Boton icono={RotateCcw} onClick={() => accionDetalle("reabrir")} disabled={motivo.trim().length < 3}>Reabrir</Boton></>}>
-        <Campo etiqueta="Motivo" ayuda="Le llega a la persona.">{(id) => <textarea id={id} className="campo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />}</Campo>
-      </Modal>
+      <ModalReabrir tarea={reabriendo} onCerrar={() => setReabriendo(null)} onHecho={() => { setReabriendo(null); setDetalle(null); recargar(); }} />
+      <ModalEliminar tarea={eliminando} onCerrar={() => setEliminando(null)} onHecho={() => { setEliminando(null); setDetalle(null); recargar(); }} />
     </div>
   );
 }

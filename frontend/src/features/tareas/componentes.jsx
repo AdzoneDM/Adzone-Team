@@ -5,7 +5,7 @@ import { comentarTarea, comentariosTarea, entregarTarea, historialTarea, marcarP
 import Comentarios from "@/components/Comentarios";
 import { useNovedades } from "@/lib/novedades";
 import { MAX_FOTO_MB, limites } from "@/lib/archivos";
-import { fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
+import { ESTADOS, fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
 import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx, useAviso } from "@/components/ui";
 
 const MAX_LADO = 1600;
@@ -121,8 +121,8 @@ export function Referencias({ tarea, onCambio, avisar }) {
   const [nuevos, setNuevos] = useState([]);
   const [subiendo, setSubiendo] = useState(false);
   const lista = tarea.referencias || [];
-  const abierta = !["COMPLETADA", "CANCELADA"].includes(tarea.estado);
-  const puedeAgregar = tarea.puedo_gestionar && abierta;
+  // Quien puede editar la tarea agrega o quita referencias en cualquier estado (también validada)
+  const puedeAgregar = !!tarea.puedo_gestionar;
   if (!lista.length && !puedeAgregar) return null;
 
   // Agrupadas: lo de la asignación primero, luego cada corrección
@@ -341,7 +341,7 @@ export function Evidencias({ tarea, compacto }) {
   );
 }
 
-const ICONO_HISTORIAL = { DEVUELTA: "bg-rojo", VALIDADA: "bg-amarillo", REABIERTA: "bg-rojo", ENTREGADA: "bg-azul", CANCELADA: "bg-gris" };
+const ICONO_HISTORIAL = { DEVUELTA: "bg-rojo", VALIDADA: "bg-amarillo", REABIERTA: "bg-rojo", ENTREGADA: "bg-azul", CANCELADA: "bg-gris", ELIMINADA: "bg-rojo", RESTAURADA: "bg-verde" };
 
 export function Historial({ tareaId }) {
   const [lista, setLista] = useState(null);
@@ -353,7 +353,8 @@ export function Historial({ tareaId }) {
       {lista.map((h) => (
         <li key={h.id} className="relative">
           <span className={cx("absolute -left-[25px] top-1.5 size-2.5 rounded-full ring-4 ring-white", ICONO_HISTORIAL[h.accion] || "bg-linea")} />
-          <p className="text-sm"><span className="font-medium">{h.accion_texto}</span> <span className="text-gris">por {h.usuario_nombre} · {fechaHora(h.fecha)}</span></p>
+          <p className="text-sm"><span className="font-medium">{h.accion_texto}</span> <span className="text-gris">por {h.usuario_nombre} · {fechaHora(h.fecha)}</span>
+            {h.estado_antes && h.estado_despues && h.estado_antes !== h.estado_despues && <span className="text-gris"> · {ESTADOS[h.estado_antes] || h.estado_antes} → {ESTADOS[h.estado_despues] || h.estado_despues}</span>}</p>
           {h.comentario && !(h.accion === "EDITADA" && h.comentario.startsWith("Cambió:")) && <p className="mt-0.5 whitespace-pre-line text-sm text-gris">{h.comentario}</p>}
         </li>
       ))}

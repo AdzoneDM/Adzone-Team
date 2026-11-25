@@ -152,7 +152,10 @@ class Feriado(models.Model):
 class AlmuerzoPersonal(models.Model):
     """La hora de almuerzo que cada persona elige para sí (no todos almuerzan a las 12). Si no la elige, vale la del horario."""
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='almuerzo_personal')
-    hora = models.CharField(max_length=5, help_text="«15:00»: a esta hora se le avisa que es su almuerzo.")
+    hora = models.CharField(max_length=5, blank=True, help_text="«15:00»: su hora fija de todos los días (vacía = la del horario).")
+    # Solo por un día: «hoy salgo a comer a las 2:30» o «avísame en 15 minutos». Al día siguiente vuelve a valer la fija.
+    fecha_hoy = models.DateField(null=True, blank=True)
+    hora_hoy = models.CharField(max_length=5, blank=True, help_text="Hora de almuerzo solo para `fecha_hoy`.")
     actualizado = models.DateTimeField(auto_now=True)
 
     class Meta:

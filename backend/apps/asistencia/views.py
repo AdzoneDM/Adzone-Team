@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
 from django.http import HttpResponse
@@ -58,7 +58,9 @@ def estado_view(request):
         'en_almuerzo': estado == 'EN_PAUSA' and bool(ultimo and ultimo.es_almuerzo),
         'limites': {'pausa_min': horario.pausa_max_minutos if horario else 60, 'almuerzo_min': horario.almuerzo_minutos if horario else 60,
                     'almuerzo_inicio': servicios.almuerzo_inicio_de(request.user, horario),   # la que eligió la persona o, si no, la del horario
-                    'almuerzo_propio': AlmuerzoPersonal.objects.filter(usuario=request.user).values_list('hora', flat=True).first(),
+                    'almuerzo_propio': AlmuerzoPersonal.objects.filter(usuario=request.user).values_list('hora', flat=True).first() or None,
+                    'almuerzo_hoy': AlmuerzoPersonal.objects.filter(usuario=request.user, fecha_hoy=timezone.localdate()).exclude(hora_hoy='')
+                                                            .values_list('hora_hoy', flat=True).first(),
                     'almuerzo_horario': (horario.almuerzo_inicio or None) if horario else None},
         'hoy': hoy,
         'horario': {'id': horario.id, 'nombre': horario.nombre} if horario else None,
@@ -67,23 +69,54 @@ def estado_view(request):
 
 
 HORA_ALMUERZO_MIN, HORA_ALMUERZO_MAX = '09:00', '18:00'
+POSPONER_MAX = 120
+
+
+def _respuesta_almuerzo(user):
+    hoy = timezone.localdate()
+    a = AlmuerzoPersonal.objects.filter(usuario=user).first()
+    return Response({'almuerzo_propio': (a.hora or None) if a else None,
+                     'almuerzo_hoy': a.hora_hoy if a and a.fecha_hoy == hoy and a.hora_hoy else None,
+                     'almuerzo_inicio': servicios.almuerzo_inicio_de(user, servicios.horario_de(user)[0])})
 
 
 @api_view(['POST'])
 def mi_almuerzo_view(request):
-    """Cada persona elige la hora a la que almuerza (para que se le avise). Vacía = vuelve a valer la del horario."""
+    """Cada persona elige a qué hora almuerza, para que se le avise justo a esa hora:
+    - `{hora}`: fija, todos los días (vacía = vuelve a valer la del horario).
+    - `{hora, solo_hoy: true}`: solo hoy (vacía = hoy vale la fija).
+    - `{posponer: 15}`: «más tarde»: hoy se le vuelve a avisar dentro de esos minutos.
+    - `{visto: true}`: ya vio el aviso en pantalla (no se le repite como notificación)."""
+    ahora = timezone.localtime()
+    hoy = ahora.date()
+    if request.data.get('visto'):
+        hora = servicios.almuerzo_inicio_de(request.user, servicios.horario_de(request.user)[0])
+        if hora:
+            servicios._una_vez(request.user, servicios.clave_aviso_almuerzo(hoy, hora), 'ALMUERZO_HORA', 'visto en pantalla')
+        return _respuesta_almuerzo(request.user)
+    if request.data.get('posponer') not in (None, ''):
+        try:
+            minutos = int(request.data.get('posponer'))
+        except (TypeError, ValueError):
+            minutos = 0
+        if not 1 <= minutos <= POSPONER_MAX:
+            return Response({'posponer': [f'Pospón entre 1 y {POSPONER_MAX} minutos.']}, status=status.HTTP_400_BAD_REQUEST)
+        nueva = (ahora + timedelta(minutes=minutos)).strftime('%H:%M')
+        if nueva < ahora.strftime('%H:%M'):   # pasaría a mañana
+            return Response({'posponer': ['Ya es muy tarde para posponerlo.']}, status=status.HTTP_400_BAD_REQUEST)
+        servicios.elegir_almuerzo(request.user, nueva, solo_hoy=True, dia=hoy)
+        return _respuesta_almuerzo(request.user)
     hora = (request.data.get('hora') or '').strip()
-    if not hora:
-        AlmuerzoPersonal.objects.filter(usuario=request.user).delete()
-        return Response({'almuerzo_propio': None, 'almuerzo_inicio': servicios.almuerzo_inicio_de(request.user, servicios.horario_de(request.user)[0])})
-    try:
-        hora = datetime.strptime(hora, '%H:%M').strftime('%H:%M')
-    except ValueError:
-        return Response({'hora': ['Usa una hora como «15:00».']}, status=status.HTTP_400_BAD_REQUEST)
-    if not (HORA_ALMUERZO_MIN <= hora <= HORA_ALMUERZO_MAX):
-        return Response({'hora': ['Elige una hora entre las 9:00 a. m. y las 6:00 p. m.']}, status=status.HTTP_400_BAD_REQUEST)
-    AlmuerzoPersonal.objects.update_or_create(usuario=request.user, defaults={'hora': hora})
-    return Response({'almuerzo_propio': hora, 'almuerzo_inicio': hora})
+    solo_hoy = bool(request.data.get('solo_hoy'))
+    if hora:
+        try:
+            hora = datetime.strptime(hora, '%H:%M').strftime('%H:%M')
+        except ValueError:
+            return Response({'hora': ['Usa una hora como «15:00».']}, status=status.HTTP_400_BAD_REQUEST)
+        if not (HORA_ALMUERZO_MIN <= hora <= HORA_ALMUERZO_MAX):
+            return Response({'hora': ['Elige una hora entre las 9:00 a. m. y las 6:00 p. m.']}, status=status.HTTP_400_BAD_REQUEST)
+    servicios.elegir_almuerzo(request.user, hora, solo_hoy=solo_hoy, dia=hoy)
+    return _respuesta_almuerzo(request.user)
 
 
 def _donde(user):

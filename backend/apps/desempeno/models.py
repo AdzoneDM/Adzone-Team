@@ -7,6 +7,13 @@ from apps.core.models import Departamento
 from apps.kpis.models import KPIAsignado
 
 
+class TareasVigentes(models.Manager):
+    """Las tareas eliminadas (eliminación lógica) no aparecen en ninguna lista, puntaje, KPI ni indicador.
+    Para verlas o recuperarlas: `Tarea.todas`."""
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminada_en__isnull=True)
+
+
 class Tarea(models.Model):
     # Flujo: PENDIENTE → EN_PROGRESO → EN_REVISION (entregada) → COMPLETADA (validada).
     # Si el supervisor rechaza la entrega, vuelve a EN_PROGRESO con un comentario.
@@ -129,6 +136,20 @@ class Tarea(models.Model):
     fecha_entrega_real = models.DateTimeField(null=True, blank=True, verbose_name="Entregada (fecha y hora)")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
+    # Eliminación lógica: la tarea deja de existir para todo (listas, puntaje, KPIs) pero se conserva con su historial y se puede recuperar
+    eliminada_en = models.DateTimeField(null=True, blank=True, db_index=True, verbose_name="Eliminada el")
+    eliminada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="Eliminada por")
+    motivo_eliminacion = models.TextField(blank=True, verbose_name="Motivo de la eliminación")
+
+    objects = TareasVigentes()
+    todas = models.Manager()
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        # El estado con que se leyó: el historial guarda «estado antes → estado después» de cada acción
+        instancia = super().from_db(db, field_names, values)
+        instancia._estado_leido = instancia.__dict__.get('estado', '')
+        return instancia
 
     def participantes_ids(self):
         """Responsable y compañeros (ids). Usa el prefetch si existe."""
@@ -411,11 +432,15 @@ class HistorialTarea(models.Model):
         ('BLOQUEADA', 'Bloqueada'),
         ('DESBLOQUEADA', 'Desbloqueada'),
         ('COMENTADA', 'Comentó'),
+        ('ELIMINADA', 'Eliminada'),
+        ('RESTAURADA', 'Recuperada'),
     ]
     tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name="historial")
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     accion = models.CharField(max_length=20, choices=ACCIONES)
     comentario = models.TextField(blank=True)
+    estado_antes = models.CharField(max_length=20, blank=True, help_text="Estado de la tarea antes de la acción.")
+    estado_despues = models.CharField(max_length=20, blank=True, help_text="Estado de la tarea después de la acción.")
     fecha = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -455,6 +480,7 @@ class Notificacion(models.Model):
         ('DOCUMENTO', 'Documento compartido'),
         ('COMENTARIO', 'Comentario en una tarea'),
         ('MI_RECORDATORIO', 'Tu recordatorio'),
+        ('ELIMINADA', 'Tarea eliminada'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",

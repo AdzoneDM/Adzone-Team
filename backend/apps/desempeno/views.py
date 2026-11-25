@@ -24,8 +24,8 @@ from .models import (
 )
 from .permisos import (
     EsAdministrador, tiene_otras_areas, tiene_propias, asignables, equipo_gestionable, es_administrador, por_validar, puede_asignar_a, puede_autovalidar, puede_gestionar,
-    puede_eliminar_tarea, puede_gestionar_tarea, puede_revisar, puede_revisar_tarea, puede_validar, puesto_de, revisables, revisores_posibles,
-    revisores_propias_ids, subordinados,
+    puede_editar_tarea, puede_eliminar_tarea, puede_gestionar_tarea, puede_reabrir_tarea, puede_revisar, puede_revisar_tarea, puede_validar, puesto_de, revisables, revisores_posibles,
+    revisores_propias_ids, subordinados, tiene,
 )
 from .puntaje import calcular_ranking, filtrar_grupo, rango_del_mes, sin_evaluar
 from .serializers import (
@@ -135,9 +135,8 @@ class TareaViewSet(viewsets.ModelViewSet):
     def referencias(self, request, pk=None):
         """Quien asigna o supervisa adjunta un boceto, una imagen o un PDF de referencia (al asignar o al corregir)."""
         tarea = self.get_object()
-        self._exigir_gestion(tarea.colaborador, tarea)
-        if tarea.estado in ('COMPLETADA', 'CANCELADA'):
-            return Response({"detail": "Esta tarea ya terminó: no se le agregan referencias."}, status=status.HTTP_400_BAD_REQUEST)
+        if not puede_editar_tarea(request.user, tarea):
+            raise PermissionDenied("Para adjuntar referencias a esta tarea hace falta el permiso «Editar tareas» sobre ella.")
         datos = ReferenciasSerializer(data={'archivos': request.FILES.getlist('archivos'), 'nota': request.data.get('nota', ''),
                                             'momento': request.data.get('momento') or 'ASIGNACION'})
         datos.is_valid(raise_exception=True)
@@ -176,14 +175,18 @@ class TareaViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.validated_data.pop('revisor', None)  # el revisor se elige al crear la tarea propia y no cambia
-        self._exigir_gestion(serializer.instance.colaborador, serializer.instance)
+        if not puede_editar_tarea(self.request.user, serializer.instance):
+            raise PermissionDenied("Para editar esta tarea hace falta el permiso «Editar tareas» sobre la persona que la tiene.")
         nuevo = serializer.validated_data.get('colaborador')
-        if nuevo:
+        if nuevo and nuevo.pk != serializer.instance.colaborador_id:
             self._exigir_gestion(nuevo)
-        if serializer.instance.estado == 'COMPLETADA':
-            raise PermissionDenied("Una tarea validada no se edita: primero hay que reabrirla.")
+        antes_companeros = set(serializer.instance.companeros.values_list('pk', flat=True))
         for companero in serializer.validated_data.get('companeros', []):
-            self._exigir_gestion(companero)
+            if companero.pk not in antes_companeros:
+                self._exigir_gestion(companero)
+        # Ajustar la evaluación de una tarea ya validada (calidad y comentario): recalcula el puntaje
+        evaluacion = self._evaluacion_editada(serializer.instance)
+        serializer.validated_data.update(evaluacion)
         # Cambiar fechas, prioridad o responsable exige decir por qué: queda en el historial junto con el antes y el después
         previos_criticos = [c for c in servicios.CAMPOS_CON_MOTIVO if c in serializer.validated_data and getattr(serializer.instance, c, None) != serializer.validated_data[c]]
         motivo = str(self.request.data.get('motivo') or '').strip()
@@ -192,7 +195,7 @@ class TareaViewSet(viewsets.ModelViewSet):
             raise ValidationError({'motivo': [f"Cuéntanos por qué cambias {etiquetas} (mínimo 5 letras): le llega a quienes participan y queda en el historial."]})
         anterior = serializer.instance.colaborador
         antes = set(serializer.instance.companeros.values_list('pk', flat=True))
-        previos = {c: getattr(serializer.instance, c, None) for c in {*servicios.CAMPOS_AVISO, *servicios.CAMPOS_CON_MOTIVO}}
+        previos = {c: getattr(serializer.instance, c, None) for c in {*servicios.CAMPOS_AVISO, *servicios.CAMPOS_CON_MOTIVO, *servicios.CAMPOS_DETALLE}}
         pasos_antes = list(serializer.instance.pasos.order_by('orden', 'id').values_list('texto', flat=True))
         tarea = serializer.save()
         pasos_despues = list(tarea.pasos.order_by('orden', 'id').values_list('texto', flat=True))
@@ -214,12 +217,91 @@ class TareaViewSet(viewsets.ModelViewSet):
         if nuevos:
             servicios.cerrar_esperas(nuevos, tarea)
 
+    def _evaluacion_editada(self, tarea):
+        """Calidad (1 a 5) y comentario de la evaluación: solo se ajustan en una tarea ya validada."""
+        cambios = {}
+        if 'calificacion_calidad' in self.request.data or 'comentario_evaluacion' in self.request.data:
+            if tarea.estado != 'COMPLETADA':
+                raise ValidationError({'calificacion_calidad': ["La calificación se ajusta solo en tareas validadas."]})
+            if 'calificacion_calidad' in self.request.data:
+                try:
+                    nota = int(self.request.data.get('calificacion_calidad'))
+                except (TypeError, ValueError):
+                    nota = 0
+                if not 1 <= nota <= 5:
+                    raise ValidationError({'calificacion_calidad': ["La calidad va de 1 a 5 estrellas."]})
+                cambios['calificacion_calidad'] = nota
+            if 'comentario_evaluacion' in self.request.data:
+                cambios['comentario_evaluacion'] = str(self.request.data.get('comentario_evaluacion') or '')[:2000]
+        return cambios
+
     def perform_destroy(self, instance):
-        if instance.estado == 'COMPLETADA':
-            raise PermissionDenied("Una tarea validada no se borra: ya cuenta en el historial. Puedes reabrirla o cancelarla.")
-        if not puede_eliminar_tarea(self.request.user, instance):
-            raise PermissionDenied("Para borrar tareas hace falta el permiso «Eliminar tareas». Puedes cancelarla: queda registrada.")
-        instance.delete()
+        """Eliminación lógica: la tarea deja de contar en todo, pero se conserva con su historial y se puede recuperar."""
+        self._eliminar(instance, self.request.data.get('motivo') or self.request.query_params.get('motivo'))
+
+    def destroy(self, request, *args, **kwargs):
+        self.perform_destroy(self.get_object())
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _eliminar(self, tarea, motivo):
+        if not puede_eliminar_tarea(self.request.user, tarea):
+            raise PermissionDenied("Para eliminar tareas hace falta el permiso «Eliminar tareas» sobre la persona que la tiene.")
+        motivo = str(motivo or '').strip()
+        if len(motivo) < 5:
+            raise ValidationError({'motivo': ["Escribe por qué se elimina (mínimo 5 letras): queda en el historial y le llega a la persona."]})
+        antes = tarea.estado
+        with transaction.atomic():
+            # Si alguien la estaba cronometrando, el cronómetro se detiene (el tiempo ya trabajado se conserva)
+            from apps.tiempo.models import RegistroTiempo
+            for registro in RegistroTiempo.objects.filter(tarea=tarea, fin__isnull=True):
+                cronometro.detener(registro)
+            tarea.eliminada_en = timezone.now()
+            tarea.eliminada_por = self.request.user
+            tarea.motivo_eliminacion = motivo[:2000]
+            tarea.save(update_fields=['eliminada_en', 'eliminada_por', 'motivo_eliminacion', 'fecha_modificacion'])
+            servicios.al_eliminar(tarea, self.request.user, motivo, antes)
+
+    @action(detail=True, methods=['post'])
+    def eliminar(self, request, pk=None):
+        self._eliminar(self.get_object(), request.data.get('motivo'))
+        return Response({'ok': True})
+
+    def _eliminadas_visibles(self):
+        user = self.request.user
+        qs = Tarea.todas.filter(eliminada_en__isnull=False).select_related('colaborador', 'eliminada_por', 'asignada_por')
+        if es_administrador(user) or tiene(user, 'auditoria.ver'):
+            return qs
+        candidatas = qs.filter(Q(colaborador__in=equipo_gestionable(user, 'tareas.eliminar')) | Q(asignada_por=user) | Q(eliminada_por=user)
+                               | Q(colaborador=user))
+        return Tarea.todas.filter(pk__in=[t.pk for t in candidatas if puede_eliminar_tarea(user, t) or t.eliminada_por_id == user.pk])
+
+    @action(detail=False, methods=['get'])
+    def eliminadas(self, request):
+        """Tareas eliminadas que esta persona puede consultar (auditoría): quién, cuándo, por qué, en qué estado estaba y su historial."""
+        lista = list(self._eliminadas_visibles().order_by('-eliminada_en')[:200])
+        historiales = {}
+        for h in HistorialTarea.objects.filter(tarea__in=lista).select_related('usuario'):
+            historiales.setdefault(h.tarea_id, []).append(h)
+        return Response([{
+            'id': t.pk, 'titulo': t.titulo, 'colaborador_nombre': _nombre(t.colaborador), 'asignada_por_nombre': _nombre(t.asignada_por) if t.asignada_por_id else '',
+            'estado': t.estado, 'fecha_limite': t.fecha_limite, 'eliminada_en': t.eliminada_en,
+            'eliminada_por_nombre': _nombre(t.eliminada_por) if t.eliminada_por_id else '',
+            'motivo_eliminacion': t.motivo_eliminacion, 'puedo_restaurar': puede_eliminar_tarea(request.user, t),
+            'historial': HistorialSerializer(historiales.get(t.pk, []), many=True).data,
+        } for t in lista])
+
+    @action(detail=True, methods=['post'])
+    def restaurar(self, request, pk=None):
+        """Recupera una tarea eliminada tal como estaba (con su historial, evidencias y archivos)."""
+        tarea = Tarea.todas.filter(pk=pk, eliminada_en__isnull=False).first()
+        if tarea is None or not puede_eliminar_tarea(request.user, tarea):
+            raise Http404
+        tarea.eliminada_en = None
+        tarea.eliminada_por = None
+        tarea.motivo_eliminacion = ''
+        tarea.save(update_fields=['eliminada_en', 'eliminada_por', 'motivo_eliminacion', 'fecha_modificacion'])
+        servicios.al_restaurar(tarea, request.user)
+        return self._respuesta(tarea)
 
     def _respuesta(self, tarea):
         tarea = self.get_queryset().get(pk=tarea.pk)
@@ -359,19 +441,47 @@ class TareaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def reabrir(self, request, pk=None):
-        """Corrige una validación hecha por error: la tarea vuelve a «En revisión» y deja de contar."""
+        """Reabre una tarea en cualquier estado (permiso «Reabrir tareas»), con motivo. Vuelve al flujo de entrega y validación:
+        - `a: "REVISION"`: su entrega se revisa otra vez (solo si ya fue entregada). Es lo que pasa por defecto con una validada.
+        - `a: "CORREGIR"`: vuelve a la persona para que la corrija y la entregue de nuevo.
+        Puede traer `fecha_limite` y `descripcion` (instrucciones) nuevas. Las evidencias y comentarios anteriores se conservan.
+        Una validada deja de contar (puntaje, KPIs, avance) hasta que se valide otra vez."""
         tarea = self.get_object()
-        self._exigir_revision(tarea)
-        if tarea.estado != 'COMPLETADA':
-            return Response({"detail": "Solo se reabren tareas validadas."}, status=status.HTTP_400_BAD_REQUEST)
+        if request.user.pk in tarea.participantes_ids():
+            raise PermissionDenied("Nadie puede reabrir su propia tarea.")
+        if not puede_reabrir_tarea(request.user, tarea):
+            raise PermissionDenied("Para reabrir esta tarea hace falta el permiso «Reabrir tareas» sobre la persona que la tiene.")
         datos = ReaperturaSerializer(data=request.data)
         datos.is_valid(raise_exception=True)
-        tarea.estado = 'EN_REVISION'
-        tarea.calificacion_calidad = None
-        tarea.validada_por = None
-        tarea.fecha_validacion = None
-        tarea.save()
-        servicios.al_reabrir(tarea, request.user, datos.validated_data['motivo'])
+        motivo = datos.validated_data['motivo'].strip()
+        antes = tarea.estado
+        entregada = antes in ('EN_REVISION', 'COMPLETADA') or bool(tarea.fecha_entrega_real)
+        a = datos.validated_data.get('a') or ('REVISION' if antes == 'COMPLETADA' else 'CORREGIR')
+        if a == 'REVISION' and not entregada:
+            return Response({"a": ["Esta tarea no tiene una entrega que revisar: reábrela para que la persona la trabaje."]}, status=status.HTTP_400_BAD_REQUEST)
+        if a == 'REVISION' and antes == 'EN_REVISION':
+            return Response({"a": ["Ya está en revisión."]}, status=status.HTTP_400_BAD_REQUEST)
+        previos = {'fecha_limite': tarea.fecha_limite, 'descripcion': tarea.descripcion}
+        with transaction.atomic():
+            if a == 'REVISION':
+                tarea.estado = 'EN_REVISION'
+            else:
+                tarea.estado = 'EN_PROGRESO' if (tarea.fecha_inicio_trabajo or entregada or antes == 'BLOQUEADA') else 'PENDIENTE'
+                tarea.fecha_completada = None
+            if antes == 'BLOQUEADA':
+                tarea.motivo_bloqueo, tarea.bloqueada_desde = '', None
+            # Deja de contar como validada hasta que se valide otra vez
+            tarea.calificacion_calidad = None
+            tarea.validada_por = None
+            tarea.fecha_validacion = None
+            campos = []
+            for campo in ('fecha_limite', 'descripcion'):
+                if campo in datos.validated_data and datos.validated_data[campo] not in (None, '') and datos.validated_data[campo] != getattr(tarea, campo):
+                    setattr(tarea, campo, datos.validated_data[campo])
+                    campos.append(campo)
+            tarea.save()
+        cambios = servicios.detalle_de_cambios(previos, tarea, campos)
+        servicios.al_reabrir(tarea, request.user, motivo, antes=antes, cambios=cambios)
         return self._respuesta(tarea)
 
     @action(detail=True, methods=['post'], url_path=r'pasos/(?P<paso_id>\d+)')
@@ -475,11 +585,11 @@ def referencia_view(request, pk):
         raise Http404
     tarea = ref.tarea
     es_participante = request.user.pk in tarea.participantes_ids()
-    gestiona = puede_gestionar(request.user, tarea.colaborador, 'tareas.asignar') or puede_gestionar(request.user, tarea.colaborador)
+    gestiona = puede_editar_tarea(request.user, tarea) or puede_gestionar(request.user, tarea.colaborador)
     if not (es_participante or gestiona):
         raise Http404
     if request.method == 'DELETE':
-        if not (ref.subido_por_id == request.user.pk or puede_gestionar(request.user, tarea.colaborador, 'tareas.asignar')):
+        if not (ref.subido_por_id == request.user.pk or puede_editar_tarea(request.user, tarea)):
             raise PermissionDenied("Solo quien la subió o quien asigna la tarea puede quitar esta referencia.")
         ref.archivo.delete(save=False)
         ref.delete()

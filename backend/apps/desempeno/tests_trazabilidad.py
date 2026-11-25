@@ -93,9 +93,11 @@ class TrazabilidadTests(Base):
         self.como(self.dev)
         self.assertEqual(self.c.get(f'{T}{self.t.id}/historial/').status_code, 404)
 
-    def test_una_tarea_validada_sigue_sin_poder_editarse(self):
+    def test_una_tarea_validada_se_edita_con_permiso_y_deja_rastro(self):
         Tarea.objects.filter(pk=self.t.pk).update(estado='COMPLETADA')
-        self.assertEqual(self.editar(self.vladi, prioridad='ALTA', motivo='Cambio de plan').status_code, 403)
+        self.assertEqual(self.editar(self.vladi, prioridad='ALTA', motivo='Cambio de plan').status_code, 200)
+        self.assertIn('Prioridad: Media → Alta', self.ultimo().comentario)
+        self.assertEqual(Tarea.objects.get(pk=self.t.pk).estado, 'COMPLETADA')
 
     # ---------------------------------------------------------------- prioridad urgente
     def test_urgente_es_una_prioridad_valida_con_peso_4(self):

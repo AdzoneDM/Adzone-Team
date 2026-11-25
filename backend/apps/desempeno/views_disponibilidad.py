@@ -57,7 +57,7 @@ def disponibilidad_view(request):
         sumar(colab, fecha)
         if colab in carga:
             carga[colab]['horas'] += float(horas or 0)
-    for uid, fecha in Tarea.companeros.through.objects.filter(tarea__estado__in=ABIERTAS).values_list('user_id', 'tarea__fecha_limite'):
+    for uid, fecha in Tarea.companeros.through.objects.filter(tarea__estado__in=ABIERTAS, tarea__eliminada_en__isnull=True).values_list('user_id', 'tarea__fecha_limite'):
         sumar(uid, fecha)
     ausentes = set(Ausencia.objects.filter(estado='APROBADA', desde__lte=hoy, hasta__gte=hoy).values_list('usuario_id', flat=True))
     puedo_asignar = set(asignables(u).values_list('pk', flat=True))

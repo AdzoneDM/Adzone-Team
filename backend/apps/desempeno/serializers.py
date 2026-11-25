@@ -17,7 +17,7 @@ from .models import (
     ComentarioTarea, ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
     PasoTarea, ResultadoKPI, Tarea, TareaRecurrente,
 )
-from .permisos import puede_eliminar_tarea, puede_gestionar, puede_gestionar_tarea, puede_revisar_tarea
+from .permisos import puede_eliminar_tarea, puede_gestionar, puede_gestionar_tarea, puede_reabrir_tarea, puede_revisar_tarea
 
 
 def _nombre(usuario):
@@ -72,7 +72,7 @@ class HistorialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HistorialTarea
-        fields = ['id', 'accion', 'accion_texto', 'usuario_nombre', 'comentario', 'fecha']
+        fields = ['id', 'accion', 'accion_texto', 'usuario_nombre', 'comentario', 'fecha', 'estado_antes', 'estado_despues']
 
     def get_usuario_nombre(self, obj):
         return _nombre(obj.usuario) or 'Sistema'
@@ -108,6 +108,7 @@ class TareaSerializer(serializers.ModelSerializer):
     es_recurrente = serializers.SerializerMethodField()
     puedo_gestionar = serializers.SerializerMethodField()
     puedo_eliminar = serializers.SerializerMethodField()
+    puedo_reabrir = serializers.SerializerMethodField()
     puedo_revisar = serializers.SerializerMethodField()
     revisor_nombre = serializers.SerializerMethodField()
     soy_participante = serializers.SerializerMethodField()
@@ -147,7 +148,7 @@ class TareaSerializer(serializers.ModelSerializer):
             'evidencia_nota', 'evidencia_enlace', 'evidencias', 'referencias',
             'validada_por', 'validada_por_nombre', 'fecha_validacion', 'comentario_revision',
             'calificacion_calidad', 'comentario_evaluacion', 'rondas_revision', 'es_recurrente',
-            'puedo_gestionar', 'puedo_eliminar', 'puedo_revisar', 'soy_participante',
+            'puedo_gestionar', 'puedo_eliminar', 'puedo_reabrir', 'puedo_revisar', 'soy_participante',
             'motivo_bloqueo', 'bloqueada_desde', 'fecha_inicio_trabajo', 'fecha_entrega_real',
             'fecha_creacion', 'fecha_modificacion',
         ]
@@ -194,6 +195,10 @@ class TareaSerializer(serializers.ModelSerializer):
     def get_puedo_eliminar(self, obj):
         user = self._usuario()
         return bool(user and puede_eliminar_tarea(user, obj))
+
+    def get_puedo_reabrir(self, obj):
+        user = self._usuario()
+        return bool(user and puede_reabrir_tarea(user, obj))
 
     def get_puedo_revisar(self, obj):
         user = self._usuario()
@@ -381,7 +386,10 @@ class RechazoSerializer(serializers.Serializer):
 
 
 class ReaperturaSerializer(serializers.Serializer):
-    motivo = serializers.CharField(max_length=2000)
+    motivo = serializers.CharField(max_length=2000, min_length=5, error_messages={'min_length': 'Cuenta el motivo (mínimo 5 letras): le llega a la persona.'})
+    a = serializers.ChoiceField(choices=['REVISION', 'CORREGIR'], required=False)
+    fecha_limite = serializers.DateField(required=False, allow_null=True)
+    descripcion = serializers.CharField(required=False, allow_blank=True, max_length=10000)
 
 
 class ResultadoKPISerializer(serializers.ModelSerializer):
