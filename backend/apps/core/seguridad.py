@@ -178,7 +178,8 @@ def registrar_dispositivo(request, response, user):
     valor = request.COOKIES.get(COOKIE) or secrets.token_urlsafe(24)
     huella = hashlib.sha256((settings.SECRET_KEY + valor).encode()).hexdigest()
     navegador = (request.META.get('HTTP_USER_AGENT') or '')[:200]
-    ip = request.META.get('REMOTE_ADDR')
+    from .accesos import ip_de
+    ip = ip_de(request)
     tenia = DispositivoConocido.objects.filter(usuario=user).exists()
     d, nuevo = DispositivoConocido.objects.get_or_create(usuario=user, huella=huella, defaults={'navegador': navegador, 'ip': ip})
     if not nuevo:
@@ -191,6 +192,7 @@ def registrar_dispositivo(request, response, user):
                enlace='/mi-cuenta')
     response.set_cookie(COOKIE, valor, max_age=5 * 365 * 24 * 3600, httponly=True, samesite='Lax',
                         secure=not settings.DEBUG)
+    return nuevo
 
 
 def _describir(ua):
@@ -203,9 +205,15 @@ def _describir(ua):
 
 
 # ------------------------------------------------------------------ Middleware
+CSP_APP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+           "media-src 'self' blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob:; worker-src 'self'; "
+           "manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+
 # Lo que se permite mientras falta activar la verificación en dos pasos
 PERMITIDO_SIN_DOS_PASOS = ('/api/auth/login/', '/api/auth/logout/', '/api/auth/session/', '/api/auth/dos-pasos/',
                            '/api/cuenta/dos-pasos/')
+# Lo que se permite mientras la persona siga con la contraseña base de las cuentas nuevas (tiene que cambiarla primero)
+PERMITIDO_CON_CLAVE_BASE = ('/api/auth/', '/api/cuenta/dos-pasos/', '/api/cuenta/push/')
 
 
 class SeguridadMiddleware:
@@ -214,6 +222,10 @@ class SeguridadMiddleware:
 
     def __call__(self, request):
         user = getattr(request, 'user', None)
+        if request.path.startswith('/admin'):
+            salida = self._admin_por_ip(request)
+            if salida is not None:
+                return salida
         if request.method == 'POST' and request.path.startswith('/admin/login'):
             salida = self._limite_admin(request)
             if salida is not None:
@@ -222,7 +234,44 @@ class SeguridadMiddleware:
             salida = self._revisar(request, user)
             if salida is not None:
                 return salida
-        return self.get_response(request)
+        respuesta = self.get_response(request)
+        self._cabeceras(request, respuesta)
+        if user is not None and user.is_authenticated and respuesta.status_code == 200:
+            self._exportacion(request, user, respuesta)
+        return respuesta
+
+    @staticmethod
+    def _cabeceras(request, respuesta):
+        """La app web: Content-Security-Policy (solo se cargan scripts, estilos y archivos de la propia plataforma) y permisos
+        del navegador acotados. /admin usa su propio HTML de Django y queda con las cabeceras de siempre."""
+        tipo = respuesta.get('Content-Type', '')
+        if tipo.startswith('text/html') and not request.path.startswith('/admin') and 'Content-Security-Policy' not in respuesta:
+            respuesta['Content-Security-Policy'] = CSP_APP
+        respuesta.setdefault('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(self), payment=(), usb=(), interest-cohort=()')
+
+    @staticmethod
+    def _exportacion(request, user, respuesta):
+        """Exportaciones (CSV, Excel, PDF de reportes): quién sacó qué información y cuándo."""
+        tipo = respuesta.get('Content-Type', '')
+        if not request.path.startswith('/api/'):
+            return
+        if any(t in tipo for t in ('text/csv', 'spreadsheetml', 'ms-excel')) or ('pdf' in tipo and 'export' in request.path):
+            try:
+                from apps.talento.auditoria import auditar
+                consulta = request.META.get('QUERY_STRING', '')[:120]
+                auditar('Exportó información', f"{request.path}{'?' + consulta if consulta else ''}", usuario=user)
+            except Exception:  # noqa: BLE001 (la bitácora nunca rompe una descarga)
+                pass
+
+    @staticmethod
+    def _admin_por_ip(request):
+        from . import accesos
+        redes = accesos.redes_admin()
+        if redes and not accesos.ip_permitida(accesos.ip_de(request), redes):
+            accesos.registrar('IP_BLOQUEADA', request, motivo='/admin desde una red no permitida')
+            from django.http import HttpResponse
+            return HttpResponse('No disponible desde esta red.', status=404)
+        return None
 
     @staticmethod
     def _limite_admin(request):
@@ -258,7 +307,17 @@ class SeguridadMiddleware:
             return JsonResponse({'detail': 'Tu sesión se cerró por inactividad. Entra de nuevo.', 'inactividad': True}, status=401)
         if not ultima or request.method != 'GET' or request.headers.get('X-Actividad') == '1':
             s[SESION_ACTIVIDAD] = ahora
-        # 3) Cuentas que la exigen y aún no la activaron: solo pueden activarla
+        # 3) Cuenta de empresa fuera de las redes permitidas (IPS_ADMIN): se cierra la sesión
+        from . import accesos
+        redes = accesos.redes_admin()
+        if redes and cuenta_de_empresa(user) and not accesos.ip_permitida(accesos.ip_de(request), redes):
+            accesos.registrar('IP_BLOQUEADA', request, user, motivo='Sesión de cuenta de empresa usada desde una red no permitida', riesgo=3)
+            logout(request)
+            return JsonResponse({'detail': 'Tu cuenta solo puede usarse desde la red de la empresa.'}, status=403)
+        # 4) Contraseña base de las cuentas nuevas: antes de usar la plataforma hay que cambiarla
+        if s.get('clave_base') and ruta.startswith('/api/') and not ruta.startswith(PERMITIDO_CON_CLAVE_BASE):
+            return JsonResponse({'detail': 'Cambia tu contraseña base para seguir.', 'cambiar_clave': True}, status=403)
+        # 5) Cuentas que la exigen y aún no la activaron: solo pueden activarla
         if exige_dos_pasos(user) and not s.get(SESION_OK) and not ruta.startswith(PERMITIDO_SIN_DOS_PASOS):
             if ruta.startswith('/admin'):
                 logout(request)

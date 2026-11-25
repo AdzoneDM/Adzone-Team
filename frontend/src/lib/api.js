@@ -478,6 +478,11 @@ export const guardarEvento = (e) => (e.id ? api(`${TA}/expediente/${e.id}/`, { m
 export const borrarEvento = (id) => api(`${TA}/expediente/${id}/`, { method: "DELETE" });
 export const historialSalarios = (usuario) => api(`${TA}/salarios/${q({ usuario })}`);
 export const auditoria = (params) => api(`${TA}/auditoria/${q(params)}`);
+// Seguridad: sesiones abiertas propias (verlas y cerrarlas) y bitácora de accesos (quien tiene «Ver la auditoría»)
+export const misSesiones = () => api("/api/cuenta/sesiones/");
+export const cerrarSesion = (id) => api(`/api/cuenta/sesiones/${id}/`, { method: "DELETE" });
+export const cerrarOtrasSesiones = () => api("/api/cuenta/sesiones/cerrar-otras/", { method: "POST" });
+export const bitacoraAccesos = (params) => api(`/api/seguridad/accesos/${q(params)}`);
 
 // Políticas y documentos del expediente
 export const politicas = () => api(`${TA}/politicas/`);

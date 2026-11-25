@@ -9,6 +9,7 @@ from .models import (
     SolicitudCambio, TiempoEstandar, Traspaso,
 )
 from .permisos import (
+    ve_datos_de_clientes,
     es_coordinacion, es_finanzas, gestiona_algo, puede_gestionar_orden, puede_gestionar_proyecto, supervisa_area, ve_montos,
 )
 
@@ -43,6 +44,17 @@ class ClienteSerializer(serializers.ModelSerializer):
         model = Cliente
         fields = ['id', 'nombre', 'tipo', 'tipo_nombre', 'rnc', 'cashflow_id', 'contacto', 'telefono', 'correo', 'direccion', 'notas',
                   'activo', 'ordenes_abiertas', 'proyectos_activos', 'fecha_creacion', 'es_interno']
+
+    PRIVADOS = ('rnc', 'contacto', 'telefono', 'correo', 'direccion', 'notas', 'cashflow_id')
+
+    def to_representation(self, obj):
+        # RNC, contacto, teléfono, correo, dirección y notas internas: solo quien gestiona, vende o factura (no toda la empresa)
+        datos = super().to_representation(obj)
+        request = self.context.get('request')
+        if request is not None and not ve_datos_de_clientes(request.user):
+            for campo in self.PRIVADOS:
+                datos[campo] = None
+        return datos
 
     def validate_nombre(self, v):
         v = ' '.join(v.split())

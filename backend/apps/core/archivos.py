@@ -3,6 +3,7 @@ import os
 import re
 
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
+from django.utils.http import content_disposition_header
 
 EN_LINEA = {'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf'}
 # Videos que el navegador reproduce dentro de la página; los demás formatos (AVI, MKV, 3GP…) se descargan
@@ -54,10 +55,47 @@ def _video(f, nombre, tipo, request):
         r = StreamingHttpResponse(_trozos(f, 0, total - 1), content_type=tipo)
         r['Content-Length'] = str(total)
     r['Accept-Ranges'] = 'bytes'
-    r['Content-Disposition'] = f'inline; filename="{os.path.basename(nombre)}"'
+    r['Content-Disposition'] = content_disposition_header(False, os.path.basename(nombre))
     r['Content-Security-Policy'] = CSP
     r['X-Content-Type-Options'] = 'nosniff'
     return r
+
+
+# Lo que nunca se acepta, se llame como se llame: programas de Windows, Linux y Mac, y scripts
+_EJECUTABLES = (b'MZ', b'\x7fELF', b'#!', b'\xca\xfe\xba\xbe', b'\xcf\xfa\xed\xfe', b'\xce\xfa\xed\xfe')
+_FIRMAS = {
+    '.pdf': (b'%PDF-',),
+    '.png': (b'\x89PNG',), '.jpg': (b'\xff\xd8\xff',), '.jpeg': (b'\xff\xd8\xff',), '.gif': (b'GIF8',),
+    '.webp': (b'RIFF',),
+}
+
+
+def revisar_contenido(archivo):
+    """Revisa el contenido real del archivo (no solo su nombre): rechaza programas y scripts, y que un PDF o una imagen lo sean de
+    verdad. Devuelve el motivo del rechazo o None si está bien."""
+    ext = os.path.splitext(getattr(archivo, 'name', '') or '')[1].lower()
+    try:
+        archivo.seek(0)
+        cabeza = archivo.read(2048)
+    finally:
+        try:
+            archivo.seek(0)
+        except Exception:  # noqa: BLE001
+            pass
+    if any(cabeza.startswith(f) for f in _EJECUTABLES):
+        return 'es un programa o un script: no se aceptan archivos ejecutables'
+    if ext == '.pdf':
+        if b'%PDF-' not in cabeza[:1024]:
+            return 'no es un PDF válido (aunque tenga ese nombre)'
+    elif ext in _FIRMAS and not any(cabeza.startswith(f) for f in _FIRMAS[ext]):
+        return f'no es un archivo {ext[1:].upper()} válido (aunque tenga ese nombre)'
+    return None
+
+
+def tipo_por_extension(nombre):
+    """El tipo del archivo según su extensión guardada (nunca el que dice el navegador: lo controla quien sube el archivo)."""
+    import mimetypes
+    return (mimetypes.guess_type(nombre or '')[0] or 'application/octet-stream')[:100]
 
 
 def entregar(f, nombre, tipo, request=None):

@@ -569,6 +569,11 @@ class TareaViewSet(viewsets.ModelViewSet):
         return self._respuesta(tarea)
 
 
+def _ve_eliminada(user, tarea):
+    """Los archivos de una tarea eliminada: solo quien audita o quien puede recuperarla."""
+    return tiene(user, 'auditoria.ver') or puede_eliminar_tarea(user, tarea)
+
+
 @api_view(['GET'])
 def mis_revisores_view(request):
     """Quién puede validar las tareas que yo me asigno (para elegir al crear una tarea propia)."""
@@ -584,6 +589,8 @@ def referencia_view(request, pk):
     except ReferenciaArchivo.DoesNotExist:
         raise Http404
     tarea = ref.tarea
+    if tarea.eliminada_en and (request.method == 'DELETE' or not _ve_eliminada(request.user, tarea)):
+        raise Http404   # la tarea está en la papelera: sus archivos quedan para la auditoría, sin tocarse
     es_participante = request.user.pk in tarea.participantes_ids()
     gestiona = puede_editar_tarea(request.user, tarea) or puede_gestionar(request.user, tarea.colaborador)
     if not (es_participante or gestiona):
@@ -628,6 +635,8 @@ def evidencia_archivo_view(request, pk):
         raise Http404
     tarea = evidencia.tarea
     if not (tarea.colaborador_id == request.user.pk or puede_gestionar(request.user, tarea.colaborador)):
+        raise Http404
+    if tarea.eliminada_en and not _ve_eliminada(request.user, tarea):
         raise Http404
     if evidencia.purgado:
         return Response({'detail': 'Este video se borró solo para liberar espacio (pasaron los días de conservación después de validada la tarea).'}, status=status.HTTP_410_GONE)

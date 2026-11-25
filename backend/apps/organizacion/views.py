@@ -136,8 +136,20 @@ class UserViewSet(viewsets.ModelViewSet):
         if motivo:
             return Response({"detail": motivo}, status=status.HTTP_400_BAD_REQUEST)
         antes = usuario.is_active
+        nueva_clave = bool(request.data.get('password'))
         respuesta = super().update(request, *args, **kwargs)
         usuario.refresh_from_db()
+        if nueva_clave and respuesta.status_code < 300:
+            # Contraseña restablecida por otra persona: queda en la bitácora (sin la clave) y la persona se entera
+            from apps.core import accesos
+            from apps.talento.auditoria import auditar
+            auditar('Restableció la contraseña', f'{usuario.get_full_name() or usuario.username} ({usuario.username})', usuario=request.user)
+            accesos.registrar('CLAVE', request, usuario, motivo=f'Restablecida por {request.user.get_full_name() or request.user.username}')
+            if usuario.pk != request.user.pk:
+                from apps.desempeno.servicios import avisar
+                avisar([usuario], 'SEGURIDAD', 'Tu contraseña fue restablecida',
+                       f'{request.user.get_full_name() or request.user.username} te puso una contraseña nueva el {timezone.localtime():%d/%m a las %H:%M}. '
+                       'Si no lo pediste, avísale a la Dirección.', enlace='/mi-cuenta')
         if usuario.is_active != antes:  # la casilla «Cuenta activa» del formulario: mismo registro (quién, cuándo) y cierre de sesiones
             from . import cuentas
             cuentas.cambiar_estado(usuario, 'ACTIVA' if usuario.is_active else 'INACTIVA', request.user, motivo='Cambio desde «Editar persona»')

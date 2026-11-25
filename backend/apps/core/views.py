@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login as django_login, logout as d
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -16,6 +16,7 @@ from apps.operaciones.permisos import areas_que_supervisa, es_almacen, es_coordi
 from apps.organizacion.models import PerfilUsuario, PuestoDeTrabajo
 import time  # noqa: E402
 
+from . import accesos
 from . import seguridad as seg
 from .acceso import SESION_EQUIPO, clave_configurada, clave_valida, equipo_abierto, fijar_clave
 from .models import Departamento
@@ -118,8 +119,34 @@ class LoginUsuarioThrottle(SimpleRateThrottle):
     scope = 'login_usuario'
 
     def get_cache_key(self, request, view):
-        quien = str(request.data.get('username') or request.data.get('user_id') or '').strip().lower()[:150]
+        # La cuenta ya resuelta (por user_id, correo o usuario): mandar otro «username» junto al user_id no salta el límite
+        quien = cuenta_de(request)
         return self.cache_format % {'scope': self.scope, 'ident': f'{self.get_ident(request)}|{quien}'}
+
+
+def cuenta_de(request):
+    """La cuenta a la que apunta un intento de entrada, resuelta igual que la usa el login (minúsculas)."""
+    user_id = request.data.get('user_id')
+    if user_id:
+        try:
+            nombre = User.objects.filter(pk=int(user_id)).values_list('username', flat=True).first()
+        except (TypeError, ValueError):
+            nombre = None
+        return (nombre or f'id:{str(user_id)[:20]}').lower()
+    ident = str(request.data.get('username') or '').strip()[:150]
+    if '@' in ident:
+        nombre = User.objects.filter(email__iexact=ident, is_active=True).values_list('username', flat=True).first()
+        if nombre:
+            return nombre.lower()
+    return ident.lower()
+
+
+class EquipoThrottle(SimpleRateThrottle):
+    """La clave general del equipo: pocos intentos por conexión (adivinarla abriría el directorio del personal)."""
+    scope = 'equipo'
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': self.scope, 'ident': self.get_ident(request)}
 
 
 class LoginThrottle(AnonRateThrottle):
@@ -130,6 +157,7 @@ class LoginThrottle(AnonRateThrottle):
         return self.cache_format % {'scope': self.scope, 'ident': self.get_ident(request)}
 
 
+@csrf_protect
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([LoginThrottle, LoginUsuarioThrottle])
@@ -141,6 +169,11 @@ def login_view(request):
     password = request.data.get('password') or ''
     remember_me = bool(request.data.get('remember_me', False))
 
+    cuenta = cuenta_de(request)
+    if cuenta and accesos.cuenta_bloqueada(cuenta):
+        accesos.registrar('BLOQUEO', request, texto=cuenta, motivo='Intento mientras la cuenta estaba bloqueada')
+        return Response({'error': 'Demasiados intentos con contraseña equivocada en esta cuenta. Espera 15 minutos e inténtalo de nuevo.'},
+                        status=status.HTTP_429_TOO_MANY_REQUESTS)
     username = identificador
     if user_id:
         if not equipo_abierto(request):
@@ -153,8 +186,21 @@ def login_view(request):
     user = authenticate(request, username=username, password=password)
 
     if user is None:
+        victima = User.objects.filter(username__iexact=cuenta).first() if cuenta else None
+        if cuenta and accesos.anotar_fallo(request, cuenta, victima):
+            return Response({'error': 'Demasiados intentos con contraseña equivocada en esta cuenta. Espera 15 minutos e inténtalo de nuevo.'},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
         error = 'Contraseña incorrecta.' if user_id else 'Usuario o contraseña incorrectos.'
         return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Cuentas de empresa: si hay lista de IPs permitidas (IPS_ADMIN), solo desde esas redes
+    redes = accesos.redes_admin()
+    if redes and seg.cuenta_de_empresa(user) and not accesos.ip_permitida(accesos.ip_de(request), redes):
+        accesos.registrar('IP_BLOQUEADA', request, user, motivo='Cuenta de empresa desde una red no permitida', riesgo=3)
+        accesos.alertar_seguridad(user, 'Intento de entrar a tu cuenta desde una red no permitida',
+                                  f'Desde {accesos.ip_de(request) or "IP desconocida"}. La contraseña era correcta: si no fuiste tú, cámbiala ya.',
+                                  a_seguridad=f'Cuenta de empresa desde red no permitida: {user.get_full_name() or user.username}')
+        return Response({'error': 'Tu cuenta solo puede entrar desde la red de la empresa.'}, status=status.HTTP_403_FORBIDDEN)
 
     if request.user.is_authenticated and request.user.pk != user.pk:
         django_logout(request)  # otra cuenta en este navegador: se cierra antes de seguir
@@ -178,8 +224,10 @@ def _abrir_sesion(request, user, remember_me, dos_pasos_ok):
     request.session[seg.SESION_OK] = dos_pasos_ok
     request.session[seg.SESION_ACTIVIDAD] = int(time.time())
     request.session.set_expiry(settings.SESSION_COOKIE_AGE if remember_me else 0)
+    request.session.save()   # que la sesión tenga su clave ya (queda en la bitácora para listarla y cerrarla)
     r = Response({'message': 'Inicio de sesión exitoso.', 'user': datos_sesion(request, user)}, status=status.HTTP_200_OK)
-    seg.registrar_dispositivo(request, r, user)
+    nuevo = seg.registrar_dispositivo(request, r, user)
+    accesos.al_entrar(request, user, nuevo)
     return r
 
 
@@ -194,6 +242,7 @@ def datos_sesion(request, user):
     return d
 
 
+@csrf_protect
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([LoginThrottle])
@@ -211,6 +260,7 @@ def dos_pasos_login_view(request):
         return Response({'error': 'Demasiados códigos equivocados: espera 15 minutos e inténtalo de nuevo.', 'reiniciar': True},
                         status=status.HTTP_429_TOO_MANY_REQUESTS)
     if dp is None or not seg.verificar(dp, request.data.get('codigo')):
+        accesos.registrar('FALLO_CODIGO', request, user)
         p['intentos'] += 1
         request.session[PENDIENTE] = p
         return Response({'error': 'Código incorrecto o vencido.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -227,6 +277,7 @@ def logout_view(request):
     if endpoint:  # este dispositivo deja de recibir los avisos de esta persona
         from .models import SuscripcionPush
         SuscripcionPush.objects.filter(usuario=request.user, endpoint=endpoint).delete()
+    accesos.registrar('SALIDA', request, request.user, sesion=request.session.session_key or '')
     django_logout(request)
     if seguia_abierto:
         request.session[SESION_EQUIPO] = True
@@ -243,15 +294,17 @@ def session_view(request):
     return Response({'isAuthenticated': True, 'user': datos_sesion(request, request.user)}, status=status.HTTP_200_OK)
 
 
+@csrf_protect
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([LoginThrottle])
+@throttle_classes([LoginThrottle, EquipoThrottle])
 def equipo_view(request):
     """Primer paso de la entrada: la clave general del equipo. Desbloquea el directorio en este dispositivo."""
     if not clave_configurada():
         return Response({'error': 'El administrador todavía no definió la clave general del equipo.'},
                         status=status.HTTP_400_BAD_REQUEST)
     if not clave_valida(request.data.get('clave') or ''):
+        accesos.registrar('FALLO', request, texto='(clave general del equipo)')
         return Response({'error': 'Clave del equipo incorrecta.'}, status=status.HTTP_400_BAD_REQUEST)
     request.session[SESION_EQUIPO] = True
     return Response({'areas': directorio()})
@@ -329,6 +382,9 @@ def cambiar_clave_view(request):
         return Response({'nueva': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
     request.user.set_password(nueva)
     request.user.save()
-    update_session_auth_hash(request, request.user)  # no lo saca de la sesión
+    update_session_auth_hash(request, request.user)  # no lo saca de la sesión; las demás sesiones quedan cerradas
     request.session[SESION_CLAVE_BASE] = False
+    accesos.registrar('CLAVE', request, request.user, motivo='Cambió su contraseña (se cerraron sus otras sesiones)')
+    from apps.talento.auditoria import auditar
+    auditar('Cambió su contraseña', request.user, usuario=request.user)
     return Response({'message': 'Contraseña cambiada.'})

@@ -11,6 +11,9 @@ class AuditoriaAdmin(admin.ModelAdmin):
     list_display = ('fecha', 'usuario', 'accion', 'objeto')
     search_fields = ('accion', 'objeto')
 
+    def has_add_permission(self, request):
+        return False   # nadie puede inventar registros en la bitácora
+
     def has_change_permission(self, request, obj=None):
         return False
 

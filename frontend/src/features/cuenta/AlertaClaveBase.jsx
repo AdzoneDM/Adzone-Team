@@ -8,7 +8,6 @@ const CLAVE_BASE = "usuarios";
 
 export default function AlertaClaveBase() {
   const { usuario, recargar } = useSesion();
-  const [abierto, setAbierto] = useState(false);
   const [nueva, setNueva] = useState("");
   const [repetir, setRepetir] = useState("");
   const [error, setError] = useState("");
@@ -30,21 +29,21 @@ export default function AlertaClaveBase() {
     }
   };
 
+  // Obligatorio: mientras tenga la contraseña base, el servidor no deja usar nada más (cualquiera que conozca la base podría entrar)
   return (
-    <div role="alert" className="border-b border-amarillo-600/40 bg-amarillo-50 px-4 py-3 text-sm text-[#7a5000]">
-      <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-x-3 gap-y-2">
-        <KeyRound className="size-5 shrink-0" aria-hidden />
-        <p className="min-w-0 flex-1"><b>Cambia tu contraseña base.</b> Sigues usando la contraseña que te dieron al crear tu cuenta; elige una propia para proteger tu acceso.</p>
-        {!abierto && <button type="button" onClick={() => setAbierto(true)} className="rounded-lg bg-azul px-3 py-1.5 font-semibold text-white hover:bg-azul-700">Cambiarla ahora</button>}
-      </div>
-      {abierto && (
-        <form onSubmit={guardar} className="mx-auto mt-3 flex max-w-[1320px] flex-wrap items-start gap-2">
-          <input type="password" className="campo !w-auto min-w-48 flex-1" placeholder="Contraseña nueva (mín. 8)" aria-label="Contraseña nueva" autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} required minLength={8} />
-          <input type="password" className="campo !w-auto min-w-48 flex-1" placeholder="Repítela" aria-label="Repite la contraseña nueva" autoComplete="new-password" value={repetir} onChange={(e) => setRepetir(e.target.value)} required />
-          <button type="submit" disabled={guardando} className="h-10 rounded-lg bg-azul px-4 font-semibold text-white hover:bg-azul-700 disabled:opacity-50">{guardando ? "Guardando…" : "Guardar"}</button>
-          {error && <p className="basis-full text-rojo">{error}</p>}
-        </form>
-      )}
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-noche/95 p-4" role="dialog" aria-modal="true" aria-labelledby="clave-base-titulo">
+      <form onSubmit={guardar} className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amarillo-50 text-[#a86a00]"><KeyRound className="size-6" aria-hidden /></span>
+          <h2 id="clave-base-titulo" className="text-xl font-semibold">Crea tu contraseña</h2>
+        </div>
+        <p className="text-sm text-gris">Entraste con la contraseña que se le da a todas las cuentas nuevas. Para proteger tu cuenta, elige una propia: sin esto no se puede usar la plataforma.</p>
+        <input type="password" className="campo" placeholder="Contraseña nueva (mín. 8)" aria-label="Contraseña nueva" autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} required minLength={8} autoFocus />
+        <input type="password" className="campo" placeholder="Repítela" aria-label="Repite la contraseña nueva" autoComplete="new-password" value={repetir} onChange={(e) => setRepetir(e.target.value)} required />
+        <p className="text-xs text-gris">Al menos 8 caracteres, que no sea solo números ni se parezca a tu nombre.</p>
+        {error && <p className="text-sm text-rojo">{error}</p>}
+        <button type="submit" disabled={guardando} className="h-11 w-full rounded-lg bg-azul font-semibold text-white hover:bg-azul-700 disabled:opacity-50">{guardando ? "Guardando…" : "Guardar y entrar"}</button>
+      </form>
     </div>
   );
 }

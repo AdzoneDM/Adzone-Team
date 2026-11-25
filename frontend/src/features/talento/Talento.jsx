@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { useSesion } from "@/lib/sesion";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Insignia, Modal, Panel, Pestanas, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
+import Accesos from "@/features/talento/Accesos";
 import { SelectorPersona } from "@/components/Selectores";
 
 const TIPO_EVAL = { AUTO: "Autoevaluación", SUPERVISOR: "Como supervisor", PAR: "Como compañero" };
@@ -31,7 +32,7 @@ export default function Talento() {
     { valor: "expediente", etiqueta: "Expediente" },
     ...(supervisa ? [{ valor: "avance", etiqueta: "Avance" }] : []),
     ...(esAdmin || esRRHH ? [{ valor: "revisar", etiqueta: "Por validar" }, { valor: "ciclos", etiqueta: "Ciclos" }] : []),
-    ...(veAuditoria ? [{ valor: "auditoria", etiqueta: "Auditoría" }] : []),
+    ...(veAuditoria ? [{ valor: "auditoria", etiqueta: "Auditoría" }, { valor: "accesos", etiqueta: "Accesos" }] : []),
   ];
   const ver = opciones.some((o) => o.valor === params.get("ver")) ? params.get("ver") : "evaluar";
   const usuario = params.get("usuario") || "";
@@ -47,6 +48,7 @@ export default function Talento() {
       {ver === "revisar" && <Revisar />}
       {ver === "ciclos" && <Ciclos />}
       {ver === "auditoria" && <Auditoria />}
+      {ver === "accesos" && <Accesos />}
     </div>
   );
 }

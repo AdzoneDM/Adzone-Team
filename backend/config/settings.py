@@ -165,7 +165,10 @@ REST_FRAMEWORK = {
     # «login»: tope por conexión (red de la oficina: todo el equipo sale por la misma IP, así que es amplio).
     # «login_usuario»: intentos por conexión y por cuenta, uno cada ~5 s: frena adivinar una contraseña sin trabar a los demás.
     'DEFAULT_THROTTLE_RATES': {'login': None if DEBUG else env('LOGIN_LIMITE', '240/min'),
-                               'login_usuario': None if DEBUG else env('LOGIN_USUARIO_LIMITE', '12/min')},
+                               'login_usuario': None if DEBUG else env('LOGIN_USUARIO_LIMITE', '12/min'),
+                               'equipo': None if DEBUG else env('EQUIPO_LIMITE', '20/min')},
+    # Los 403 de la API quedan en la bitácora de accesos («Acceso denegado»)
+    'EXCEPTION_HANDLER': 'apps.core.excepciones.manejar',
     # Detrás del proxy de Plesk (nginx) hay 1 salto: la IP real es la que agrega el proxy, no la que manda el navegador
     'NUM_PROXIES': None if DEBUG else int(env('NUM_PROXIES', '1')),
 }
@@ -178,6 +181,17 @@ INACTIVIDAD_MIN = int(env('INACTIVIDAD_MIN', str(12 * 60)))
 # Verificación en dos pasos: opcional para todos (se activa en Mi cuenta). Con 1, obligatoria para quien
 # maneja datos de la empresa (Dirección, personas y accesos, talento, salarios, configuración).
 DOS_PASOS_OBLIGATORIA = env('DOS_PASOS_OBLIGATORIA', '0') == '1'
+# Redes desde donde pueden entrar las cuentas de empresa y /admin (p. ej. «200.215.233.121/32 10.0.0.0/8»). Vacío = sin restricción.
+IPS_ADMIN = env('IPS_ADMIN', '')
+# Contraseñas con Argon2id (las guardadas con PBKDF2 se convierten solas la próxima vez que la persona entra)
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
+]
+# Caché compartida entre los procesos del servidor (los límites de intentos y el bloqueo por cuenta valen para todos)
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.db.DatabaseCache', 'LOCATION': 'cache_adzone'}}
 # Inteligencia con la API de Claude (resumen semanal, borrador de evaluación). Sin clave: versión automática sin IA.
 ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY')
 IA_MODELO = env('IA_MODELO', 'claude-sonnet-5-5')

@@ -24,7 +24,7 @@ def gestiona_call_center(user):
         return True
     if es_agente(user):
         return False
-    puesto = puesto_de(user)
-    if puesto and puesto.departamento_id and puesto.departamento.nombre == DEPARTAMENTO:
+    from apps.core.permisos import tiene
+    if tiene(user, 'callcenter.gestionar'):   # permiso de Accesos y permisos (antes: cualquiera del área de Call Center)
         return True
     return subordinados(user).filter(groups__name=GRUPO_AGENTE).exists()

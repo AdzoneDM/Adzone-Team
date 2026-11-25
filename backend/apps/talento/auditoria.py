@@ -63,7 +63,26 @@ VIGILADOS = {
     'talento.DocumentoEmpleado': ('Documento del expediente', ['tipo', 'titulo', 'vence', 'visible_al_colaborador']),
     'activos.Activo': ('Activo', ['nombre', 'estado', 'asignado_a_id', 'costo', 'ubicacion']),
     'finanzas.TasaCambio': ('Tasa de cambio', ['fecha', 'usd_dop']),
+    # Cuentas: alta, datos, activación y privilegios de Django (la contraseña se registra aparte, sin su valor)
+    'auth.User': ('Cuenta de usuario', ['username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser']),
+    'core.PermisosDePerfil': ('Permisos de un perfil', ['permisos', 'descripcion']),
 }
+
+
+def _grupos(sender, instance, action, pk_set, **kwargs):
+    """Perfiles de acceso que se dan o se quitan a una persona (relación muchos a muchos: no la ven las señales de guardado)."""
+    if action not in ('post_add', 'post_remove', 'post_clear') or usuario_actual() is None:
+        return
+    from django.contrib.auth.models import Group, User
+    if not isinstance(instance, User):
+        return
+    nombres = sorted(Group.objects.filter(pk__in=pk_set or []).values_list('name', flat=True))
+    verbo = {'post_add': 'Dio perfiles de acceso', 'post_remove': 'Quitó perfiles de acceso', 'post_clear': 'Quitó todos los perfiles'}[action]
+    auditar(verbo, _descripcion_usuario(instance), None, {'perfiles': nombres})
+
+
+def _descripcion_usuario(u):
+    return f'{u.get_full_name() or u.username} ({u.username})'
 
 
 def _clave(instancia):
@@ -114,6 +133,8 @@ def _borrado(sender, instance, **kwargs):
 
 
 def _descripcion(instance):
+    if instance.__class__.__name__ == 'User' and hasattr(instance, 'get_full_name'):
+        return _descripcion_usuario(instance)
     for attr in ('usuario', 'user', 'evaluado', 'colaborador'):
         persona = getattr(instance, attr, None)
         if persona is not None and hasattr(persona, 'get_full_name'):
@@ -132,3 +153,6 @@ def conectar():
         pre_save.connect(_antes, sender=modelo, dispatch_uid=f'aud-pre-{clave}')
         post_save.connect(_despues, sender=modelo, dispatch_uid=f'aud-post-{clave}')
         post_delete.connect(_borrado, sender=modelo, dispatch_uid=f'aud-del-{clave}')
+    from django.contrib.auth.models import User
+    from django.db.models.signals import m2m_changed
+    m2m_changed.connect(_grupos, sender=User.groups.through, dispatch_uid='aud-grupos-usuario')

@@ -57,7 +57,7 @@ class DocumentosEnEvidenciasTests(Base):
         falso = SimpleUploadedFile('virus.docx', b'MZ\x90\x00 ejecutable disfrazado', content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         r = self.entregar(t, falso)
         self.assertEqual(r.status_code, 400)
-        self.assertIn('no es un archivo DOCX válido', str(r.json()))
+        self.assertRegex(str(r.json()), 'no es un archivo DOCX válido|ejecutable')   # se rechaza por su contenido real
         self.assertFalse(EvidenciaArchivo.objects.exists())
         self.assertEqual(self.entregar(t, SimpleUploadedFile('macro.exe', b'MZ')).status_code, 400)               # lo ejecutable sigue prohibido
 

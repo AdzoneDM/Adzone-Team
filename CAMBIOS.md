@@ -1,5 +1,34 @@
 # Cambios
 
+## 12.67 · 25/11/2026 · Auditoría de seguridad: correcciones y nuevos controles
+
+Informe completo (confidencial): `docs/SEGURIDAD_AUDITORIA_2026-11.md`.
+
+**Cuentas y entrada**
+- **Contraseña base obligatoria de cambiar**: quien entra con la contraseña de las cuentas nuevas solo puede cambiarla (pantalla obligatoria; el servidor bloquea todo lo demás).
+- **Bloqueo por cuenta**: 10 contraseñas equivocadas en 15 minutos (desde cualquier IP) bloquean esa cuenta 15 minutos; se avisa a la persona y a quien tiene «Ver la auditoría».
+- Se cerró un hueco que permitía saltarse el límite de intentos por cuenta mandando la persona por su número.
+- Contraseñas guardadas con **Argon2id** (se convierten solas al entrar). CSRF exigido también en la entrada. Límite propio para la clave general del equipo.
+- **Evaluación de riesgo al entrar** (dispositivo nuevo, red nunca usada, otra sesión desde otra red, hora poco habitual, fallos recientes): con riesgo alto se avisa; un cambio de IP nunca bloquea por sí solo.
+- **IPs permitidas** para cuentas de empresa y /admin (`IPS_ADMIN`, opcional).
+- **Mi cuenta → Sesiones abiertas**: dispositivo, IP y hora de cada sesión; cerrar una o todas las demás.
+
+**Bitácora**
+- **Talento → Accesos** (permiso «Ver la auditoría»): entradas, fallos, bloqueos, entradas poco habituales, sesiones cerradas, accesos denegados (403) e IPs no permitidas, con IP real, dispositivo y resumen de 24 h.
+- La bitácora de cambios ahora registra alta y cambios de cuentas, perfiles dados o quitados, cambios y restablecimientos de contraseña (sin la clave; la persona recibe un aviso), exportaciones (CSV, Excel, PDF) y descargas de documentos del expediente, de Finanzas y del portal. No se pueden inventar filas desde /admin.
+
+**Permisos**
+- **Finanzas, Coordinación de producción, Almacén y Campañas de Call Center ahora son permisos** de Accesos y permisos (antes bastaba con estar en el área «Administración» o en un grupo, lo que daba Finanzas y el costo por hora de cada persona a quien no debía, y se escapaba del control contra la escalada). Nadie perdió acceso: quien lo tenía solo por su área quedó con una excepción «Lo tenía por su área antes de la 12.67».
+- La mano de obra de las órdenes (de la que se deduce el costo por hora) solo la ven Finanzas, Coordinación y quien tiene «Salarios».
+- RNC, contacto, teléfono, correo, dirección y notas de los clientes: solo quien gestiona, vende o factura.
+- Compensación variable y beneficios de los puestos: quien ocupa el puesto, Talento, Salarios y Dirección. Anotaciones internas del expediente: con «Expediente y planes de mejora».
+
+**Archivos y navegador**
+- Se revisa el **contenido real** de cada archivo subido (chat, documentos, Finanzas, expediente, evidencias y órdenes): se rechazan programas y scripts disfrazados, y PDF o imágenes falsos. Los ZIP de las órdenes pasan la revisión del chat (antivirus).
+- Los archivos de una tarea eliminada ya no se descargan ni se borran (salvo quien audita o puede recuperarla).
+- **Content-Security-Policy** estricta y Permissions-Policy en la app.
+- **Para el servidor:** dependencia nueva `argon2-cffi` (en el Dockerfile de capa); migraciones `core.0016` (permisos de roles) y `core.0017` (bitácora de accesos y caché compartida). 15 pruebas nuevas.
+
 ## 12.66 · 25/11/2026 · Chat: quién vio cada mensaje, y la plataforma se ve como app en el celular
 
 **Chat: confirmación de lectura con nombres, fecha y hora (requerimiento de mejora)**

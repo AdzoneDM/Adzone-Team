@@ -87,6 +87,10 @@ def revisar_archivo(archivo):
         return False
     if archivo.size > MAX_ARCHIVO:
         raise ValidationError({'archivo': ['El archivo pesa más de 15 MB.']})
+    from apps.core.archivos import revisar_contenido
+    problema = revisar_contenido(archivo)
+    if problema:
+        raise ValidationError({'archivo': [f'Ese archivo {problema}.']})
     es_imagen = ext in EXT_IMAGEN
     if es_imagen:
         from PIL import Image

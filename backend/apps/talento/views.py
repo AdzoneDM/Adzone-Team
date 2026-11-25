@@ -268,11 +268,18 @@ class ExpedienteViewSet(viewsets.ModelViewSet):
             base = EventoExpediente.objects.select_related('registrado_por')
             if _rrhh(u):
                 return base
-            return base.filter(Q(colaborador=u, visible_al_colaborador=True) | Q(colaborador__in=equipo_gestionable(u, 'equipo.ver')))
+            # Las anotaciones internas (no visibles a la persona) son de quien gestiona el expediente («Expediente y planes de mejora»)
+            return base.filter(Q(colaborador=u, visible_al_colaborador=True)
+                               | Q(colaborador__in=equipo_gestionable(u, 'equipo.expediente'))
+                               | Q(colaborador__in=equipo_gestionable(u, 'equipo.ver'), visible_al_colaborador=True))
         persona = _persona_param(self.request) or u
         _puede_ver(self.request, persona)
         qs = EventoExpediente.objects.filter(colaborador=persona).select_related('registrado_por')
-        return qs.filter(visible_al_colaborador=True) if persona.pk == u.pk and not es_administrador(u) else qs
+        if persona.pk == u.pk and not es_administrador(u):
+            return qs.filter(visible_al_colaborador=True)
+        if not (_rrhh(u) or puede_gestionar(u, persona, 'equipo.expediente')):
+            return qs.filter(visible_al_colaborador=True)
+        return qs
 
     def _registra(self, colaborador):
         return _rrhh(self.request.user) or puede_gestionar(self.request.user, colaborador, 'equipo.expediente')
@@ -543,6 +550,10 @@ class DocumentoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Máximo 15 MB.')
         if os.path.splitext(f.name)[1].lower() not in ('.pdf', '.jpg', '.jpeg', '.png', '.webp', '.docx', '.doc'):
             raise serializers.ValidationError('Sube un PDF, una imagen o un documento de Word.')
+        from apps.core.archivos import revisar_contenido
+        problema = revisar_contenido(f)
+        if problema:
+            raise serializers.ValidationError(f'Ese archivo {problema}.')
         return f
 
 
@@ -601,6 +612,8 @@ class DocumentoViewSet(viewsets.ModelViewSet):
             raise Http404
         tipo = mimetypes.guess_type(d.archivo.name)[0] or 'application/octet-stream'
         from apps.core.archivos import entregar
+        from .auditoria import auditar
+        auditar('Abrió/descargó documento', f'{d.titulo} · {d.colaborador.get_full_name() or d.colaborador.username}', usuario=request.user)
         r = entregar(f, f'{d.titulo}{__import__("os").path.splitext(d.archivo.name)[1]}', tipo)
         r['Cache-Control'] = 'private, no-store'
         return r

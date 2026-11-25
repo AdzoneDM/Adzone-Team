@@ -357,8 +357,8 @@ class LimiteDeEntradaTests(TestCase):
     @mock.patch.object(LoginUsuarioThrottle, 'THROTTLE_RATES', {'login_usuario': '12/min'})
     @mock.patch.object(LoginThrottle, 'THROTTLE_RATES', {'login': '240/min'})
     def test_varias_personas_entran_a_la_vez_y_una_cuenta_no_se_adivina_a_ritmo_de_maquina(self):
-        # Una cuenta: 12 intentos por minuto y después espera
-        for _ in range(12):
+        # Una cuenta: a los 10 fallos se bloquea (bloqueo por cuenta, 12.67), antes incluso del límite de 12 por minuto
+        for _ in range(9):
             self.assertEqual(self.entrar('a', 'mala').status_code, 400)
         self.assertEqual(self.entrar('a', 'mala').status_code, 429)
         self.assertEqual(self.entrar('a').status_code, 429)           # ni siquiera con la clave correcta, hasta que pase la espera

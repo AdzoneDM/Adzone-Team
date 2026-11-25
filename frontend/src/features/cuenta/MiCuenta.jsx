@@ -3,6 +3,7 @@ import { cambiarClave, cambiarClaveEquipo } from "@/lib/api";
 import { useSesion } from "@/lib/sesion";
 import { Alerta, Avatar, Boton, Cabecera, Campo, Panel, useAviso } from "@/components/ui";
 import DosPasosPanel from "@/features/cuenta/DosPasos";
+import Sesiones from "@/features/cuenta/Sesiones";
 import AvisosCelularPanel from "@/features/cuenta/AvisosCelular";
 
 export default function MiCuenta() {
@@ -50,6 +51,7 @@ export default function MiCuenta() {
           <Boton type="submit" cargando={guardando}>Cambiar contraseña</Boton>
         </form>
       </Panel>
+      <Sesiones />
       <AvisosCelularPanel />
       <DosPasosPanel />
       {esAdmin && <ClaveEquipo />}

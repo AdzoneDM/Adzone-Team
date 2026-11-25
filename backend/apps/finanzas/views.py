@@ -174,6 +174,10 @@ def _revisar_archivo(f, que="El archivo", campo="comprobante", documentos=False)
         raise serializers_error(f"{que} tiene que ser una foto (JPG, PNG, WEBP), un PDF" + (" o un documento de oficina (Word, Excel, PowerPoint, CSV o texto)." if documentos else "."), campo)
     if f.size > 10 * 1024 * 1024:
         raise serializers_error(f"{que} pesa más de 10 MB.", campo)
+    from apps.core.archivos import revisar_contenido
+    problema = revisar_contenido(f)
+    if problema:
+        raise serializers_error(f"{que} {problema}.", campo)
     es_imagen = ext in EXTENSIONES_IMAGEN
     if es_imagen:
         from PIL import Image
@@ -189,6 +193,8 @@ def _revisar_archivo(f, que="El archivo", campo="comprobante", documentos=False)
 def _enviar(campo, descargar=False, nombre=None):
     """Un archivo guardado: fotos y PDF se ven en el navegador (y en la vista previa de la propia plataforma); todo lo demás se descarga,
     sin que el navegador lo interprete ni lo ejecute (`nosniff` + `sandbox`)."""
+    from apps.talento.auditoria import auditar
+    auditar('Abrió/descargó archivo de Finanzas', nombre or os.path.basename(campo.name))
     tipo = mimetypes.guess_type(campo.name)[0] or 'application/octet-stream'
     en_linea = tipo in ('image/jpeg', 'image/png', 'image/webp', 'application/pdf') and not descargar
     r = FileResponse(campo.open('rb'), filename=nombre or os.path.basename(campo.name), as_attachment=not en_linea,

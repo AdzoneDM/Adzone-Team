@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import views, views_accesos as acc, views_dos_pasos as dp, views_respaldos as resp, views_push
+from . import views, views_accesos as acc, views_dos_pasos as dp, views_respaldos as resp, views_push, views_seguridad as vs
 
 router = DefaultRouter()
 router.register(r'departamentos', views.DepartamentoViewSet, basename='departamento')
@@ -17,6 +17,11 @@ urlpatterns = [
     path('auth/clave-equipo/', views.clave_equipo_view, name='api_clave_equipo'),
     path('auth/dos-pasos/', views.dos_pasos_login_view, name='api_dos_pasos_login'),
     path('respaldos/', resp.respaldos_view, name='respaldos'),
+    path('cuenta/sesiones/', vs.mis_sesiones_view, name='mis_sesiones'),
+    path('cuenta/sesiones/cerrar-otras/', vs.cerrar_otras_view, name='cerrar_otras_sesiones'),
+    path('cuenta/sesiones/<int:pk>/', vs.mi_sesion_view, name='mi_sesion'),
+    path('seguridad/accesos/', vs.bitacora_accesos_view, name='bitacora_accesos'),
+    path('seguridad/personas/<int:pk>/sesiones/', vs.sesiones_de_persona_view, name='sesiones_de_persona'),
     path('cuenta/push/', views_push.push_view, name='push'),
     path('respaldos/<str:nombre>/', resp.descargar_view, name='respaldo_descargar'),
     path('cuenta/dos-pasos/', dp.estado_view, name='dos_pasos_estado'),

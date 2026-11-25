@@ -20,9 +20,10 @@ from .formatos import AREA_CHOICES, G4_CANALES, catalogo
 from .models import (
     Acta, ArchivoOrden, AreaConfig, Cliente, Firma, OrdenArea, OrdenTrabajo, Proyecto, SolicitudCambio, TiempoEstandar, Traspaso,
 )
+from apps.core.archivos import revisar_contenido, tipo_por_extension
 from .permisos import (
     areas_que_supervisa, departamentos_a_cargo, es_almacen, es_coordinacion, es_finanzas, es_gerencia, filtro_ordenes,
-    filtro_proyectos, gestiona_algo, puede_gestionar_orden, puede_gestionar_proyecto, supervisa_area, ve_montos,
+    filtro_proyectos, gestiona_algo, puede_gestionar_orden, puede_gestionar_proyecto, sin_mano_obra, supervisa_area, ve_mano_obra, ve_montos,
 )
 from .serializers import (
     ActaSerializer, ArchivoSerializer, AreaConfigSerializer, CambioSerializer, ClienteSerializer, ComentarioSerializer,
@@ -486,6 +487,9 @@ class OrdenViewSet(viewsets.ModelViewSet):
         if not ve_montos(request.user, orden):
             raise PermissionDenied("Los costos y el margen los ven Administración, Coordinación y quien vendió.")
         datos = ot.costos_orden(orden)
+        if not ve_mano_obra(request.user):
+            # Quien vendió o pidió la OT ve el costo total y el margen, no la mano de obra de cada área (revela el costo por hora)
+            sin_mano_obra(datos)
         datos['saldo'] = ot.saldo_de(orden)
         datos['pagado'] = ot.pagado_de(orden)
         return Response(datos)
@@ -572,10 +576,20 @@ class OrdenViewSet(viewsets.ModelViewSet):
                 return _error(f"«{f.name}»: ese tipo de archivo no se acepta.")
             if f.size > MAX_MB * 1024 * 1024:
                 return _error(f"«{f.name}» pesa más de {MAX_MB} MB. Compártelo por enlace en un comentario.")
+            problema = revisar_contenido(f)
+            if problema:
+                return _error(f"«{f.name}» {problema}.")
+            if ext == '.zip':   # el ZIP pasa la misma revisión que en el chat (estructura, ejecutables dentro y antivirus)
+                from apps.chat.zips import revisar_zip
+                from rest_framework.exceptions import ValidationError as ErrorDRF
+                try:
+                    revisar_zip(f)
+                except ErrorDRF as e:
+                    return _error(f"«{f.name}»: {e.detail['archivo'][0]}")
         oa = orden.areas.filter(pk=request.data.get('oa')).first() if request.data.get('oa') else None
         categoria = request.data.get('categoria') if request.data.get('categoria') in dict(ArchivoOrden.CATEGORIAS) else 'OTRO'
         nuevos = [ArchivoOrden.objects.create(orden=orden, oa=oa, categoria=categoria, archivo=f, nombre_original=f.name[:255],
-                                              tipo=(f.content_type or mimetypes.guess_type(f.name)[0] or '')[:100],
+                                              tipo=tipo_por_extension(f.name),
                                               tamano=f.size, subido_por=request.user) for f in archivos]
         servicios.registrar(orden, request.user, f"Subió {len(nuevos)} archivo(s)" + (f" a {oa.numero}" if oa else ''),
                             ", ".join(a.nombre_original for a in nuevos))
@@ -762,6 +776,8 @@ class OrdenAreaViewSet(viewsets.mixins.ListModelMixin, viewsets.mixins.RetrieveM
         if not self.get_serializer().get_puedo(oa).get('costos'):
             raise PermissionDenied("Los costos los ven el supervisor del área, Coordinación y Administración.")
         datos = ot.costos_oa(oa)
+        if not ve_mano_obra(request.user):
+            sin_mano_obra(datos)
         datos['vales'] = [{'id': v.id, 'numero': v.numero, 'estado': v.estado, 'costo': v.costo_total}
                           for v in oa.vales.prefetch_related('lineas')]
         return Response(datos)

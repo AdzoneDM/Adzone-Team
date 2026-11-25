@@ -40,6 +40,24 @@ class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
             'supervisor': {'required': False, 'allow_null': True},
         }
 
+    def to_representation(self, obj):
+        # Compensación variable y beneficios: los ve quien ocupa el puesto, Gestión del Talento, salarios y Dirección
+        datos = super().to_representation(obj)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user is not None and user.is_authenticated:
+            # Se calcula una vez por petición (no por cada puesto de la lista)
+            acceso = getattr(user, '_ve_compensacion', None)
+            if acceso is None:
+                from apps.core.permisos import tiene
+                from apps.desempeno.permisos import puestos_de
+                todos = tiene(user, 'talento.rrhh') or tiene(user, 'personal.salarios') or tiene(user, 'direccion')
+                acceso = user._ve_compensacion = (todos, {p.pk for p in puestos_de(user)})
+            if not (acceso[0] or obj.pk in acceso[1]):
+                datos['compensacion_variable'] = None
+                datos['beneficios'] = None
+        return datos
+
     def get_personas(self, obj):
         return [
             {'id': p.user_id, 'nombre': p.user.get_full_name() or p.user.username}

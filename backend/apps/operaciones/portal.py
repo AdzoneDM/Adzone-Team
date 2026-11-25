@@ -172,8 +172,10 @@ def archivo_view(request, token, pk):
         f = a.archivo.open('rb')
     except FileNotFoundError:
         raise Http404
-    from apps.core.archivos import entregar
-    return entregar(f, a.nombre_original, a.tipo)
+    from apps.core.archivos import entregar, tipo_por_extension
+    from apps.talento.auditoria import auditar
+    auditar('Cliente descargó desde el portal', f'{a.nombre_original} · {a.orden}', usuario=None)
+    return entregar(f, a.nombre_original, tipo_por_extension(a.nombre_original))
 
 
 archivo_view.metodos = ['GET']

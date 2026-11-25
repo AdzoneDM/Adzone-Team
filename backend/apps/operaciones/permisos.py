@@ -23,13 +23,19 @@ def es_gerencia(user):
     return es_administrador(user)
 
 
+def _permiso(user, codigo):
+    from apps.core.permisos import tiene
+    return bool(user and user.is_authenticated and tiene(user, codigo))
+
+
 def es_coordinacion(user):
-    """Coordinación de Producción: recibe y numera las OT (G0), emite las OA y autoriza vales."""
-    return es_administrador(user) or _en_grupo(user, 'Coordinación')
+    """Coordinación de Producción: recibe y numera las OT (G0), emite las OA y autoriza vales. Es un permiso de Accesos y permisos
+    (antes bastaba con estar en el grupo; ahora el control contra la escalada también lo cubre)."""
+    return es_administrador(user) or _permiso(user, 'operaciones.coordinar')
 
 
 def es_almacen(user):
-    return es_administrador(user) or _en_grupo(user, 'Almacén')
+    return es_administrador(user) or _permiso(user, 'almacen.gestionar')
 
 
 def areas_que_supervisa(user):
@@ -64,12 +70,9 @@ def supervisa_area(user, codigo):
 
 
 def es_finanzas(user):
-    if not (user and user.is_authenticated):
-        return False
-    if es_administrador(user) or user.groups.filter(name='Finanzas').exists():
-        return True
-    puesto = puesto_de(user)
-    return bool(puesto and puesto.departamento and puesto.departamento.nombre == DEPARTAMENTO_FINANZAS)
+    """Finanzas: el permiso «Finanzas» de Accesos y permisos. Antes bastaba con tener un puesto en el área «Administración»,
+    lo que daba facturas, gastos y el costo por hora de cada persona a cualquiera de esa área sin ningún permiso."""
+    return bool(user and user.is_authenticated) and (es_administrador(user) or _permiso(user, 'finanzas.gestionar'))
 
 
 def departamentos_a_cargo(user):
@@ -135,6 +138,26 @@ def puede_gestionar_proyecto(user, proyecto):
     return bool(proyecto.departamento_id) and gestiona_departamento(user, proyecto.departamento_id)
 
 
+def ve_mano_obra(user):
+    """El costo de mano de obra (horas × costo por hora de cada persona) deja deducir salarios: solo Finanzas, Coordinación,
+    Dirección o quien tiene «Salarios y costo por hora»."""
+    from apps.core.permisos import tiene
+    return bool(user and user.is_authenticated) and (es_finanzas(user) or es_coordinacion(user) or tiene(user, 'personal.salarios'))
+
+
+def sin_mano_obra(datos):
+    """Quita la mano de obra (y lo que permite deducirla) de un resumen de costos."""
+    def limpiar(fila):
+        if isinstance(fila, dict) and 'mano_obra' in fila:
+            fila['mano_obra'] = None
+            fila['total'] = None
+    limpiar(datos)
+    for fila in (datos.get('areas') or {}).values():
+        limpiar(fila)
+    datos['mano_obra_oculta'] = True
+    return datos
+
+
 def ve_montos(user, objeto=None):
     """Precios y presupuestos: Finanzas, administradores y quien gestiona ese departamento o proyecto."""
     if es_finanzas(user):
@@ -151,3 +174,17 @@ def ve_montos(user, objeto=None):
 
 def gestiona_algo(user):
     return es_administrador(user) or bool(departamentos_a_cargo(user))
+
+
+def ve_datos_de_clientes(user):
+    """Datos de contacto y notas internas de los clientes: Finanzas, Coordinación, quien gestiona un área o proyecto y quien vende
+    (asesor comercial de alguna orden). El resto de la empresa ve solo el nombre."""
+    if not (user and user.is_authenticated):
+        return False
+    cache = getattr(user, '_ve_clientes', None)
+    if cache is None:
+        from .models import OrdenTrabajo
+        cache = bool(es_finanzas(user) or es_coordinacion(user) or gestiona_algo(user)
+                     or OrdenTrabajo.objects.filter(asesor_comercial=user).exists())
+        user._ve_clientes = cache
+    return cache

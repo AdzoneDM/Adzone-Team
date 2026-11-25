@@ -159,3 +159,32 @@ class DocumentoArea(models.Model):
     class Meta:
         ordering = ['tipo', 'titulo']
         verbose_name = 'Documento del área'
+
+
+class EventoAcceso(models.Model):
+    """Bitácora de accesos (no se edita ni se borra desde la plataforma): entradas buenas y fallidas, salidas, bloqueos,
+    accesos sospechosos, sesiones cerradas a distancia y accesos denegados, con IP real, navegador y dispositivo."""
+    TIPOS = [
+        ('ENTRADA', 'Entrada'), ('FALLO', 'Contraseña incorrecta'), ('FALLO_CODIGO', 'Código de verificación incorrecto'),
+        ('BLOQUEO', 'Cuenta bloqueada por intentos fallidos'), ('SALIDA', 'Salida'), ('SOSPECHOSO', 'Entrada sospechosa'),
+        ('SESION_CERRADA', 'Sesión cerrada a distancia'), ('DENEGADO', 'Acceso denegado'), ('IP_BLOQUEADA', 'IP no permitida'),
+        ('CLAVE', 'Cambio de contraseña'),
+    ]
+    tipo = models.CharField(max_length=16, choices=TIPOS, db_index=True)
+    usuario = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='eventos_acceso')
+    usuario_texto = models.CharField(max_length=150, blank=True, help_text="Lo que se escribió o el usuario (queda aunque se borre la cuenta).")
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    navegador = models.CharField(max_length=255, blank=True)
+    dispositivo = models.CharField(max_length=80, blank=True)
+    dispositivo_nuevo = models.BooleanField(default=False)
+    sesion = models.CharField(max_length=64, blank=True, db_index=True, help_text="Clave de la sesión abierta (para listarla y cerrarla).")
+    riesgo = models.PositiveSmallIntegerField(default=0)
+    motivo = models.CharField(max_length=255, blank=True)
+    ruta = models.CharField(max_length=255, blank=True)
+    fecha = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-fecha', '-id']
+        indexes = [models.Index(fields=['usuario', 'tipo', 'fecha']), models.Index(fields=['ip', 'fecha'])]
+        verbose_name = 'Evento de acceso'
+        verbose_name_plural = 'Eventos de acceso'

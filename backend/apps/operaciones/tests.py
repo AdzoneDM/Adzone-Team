@@ -49,7 +49,7 @@ class Base(TestCase):
         self.vladi = self._u('vladi', p_vladi)
         self.erlin = self._u('erlin', p_erlin)
         self.ashley = self._u('ashley', p_erlin)  # compañera de Erlin, sin relación con la orden
-        self.willian = self._u('willian', p_cont)
+        self.willian = self._u('willian', p_cont, grupo='Finanzas')   # Finanzas es un permiso (perfil), no el área
         p_coord = PuestoDeTrabajo.objects.create(nombre='Coordinadora de Producción', departamento=d('Producción'), supervisor=p_dir)
         self.yokasta = self._u('yokasta', p_coord, grupo='Coordinación')
         self.pedro = self._u('pedro', p_coord, grupo='Almacén')

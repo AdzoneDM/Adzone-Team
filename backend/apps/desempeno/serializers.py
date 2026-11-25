@@ -348,6 +348,10 @@ def validar_tamano_y_tipo(archivos, tipos):
         tope = settings.EVIDENCIA_VIDEO_MAX_MB if video else settings.EVIDENCIA_DOC_MAX_MB if documento else settings.EVIDENCIA_MAX_MB
         if archivo.size > tope * 1024 * 1024:
             raise serializers.ValidationError(f"«{archivo.name}» pesa más de {tope} MB" + (" (para un video largo, súbelo a Drive y pega el enlace)." if video else "."))
+        from apps.core.archivos import revisar_contenido
+        problema = None if video else revisar_contenido(archivo)
+        if problema:
+            raise serializers.ValidationError(f"«{archivo.name}» {problema}.")
         if ext == '.zip':
             from apps.chat.zips import revisar_zip
             from rest_framework.exceptions import ValidationError as ErrorDRF

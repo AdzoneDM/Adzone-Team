@@ -133,7 +133,7 @@ class RevisionV10Tests(PoliticasTests.__bases__[0]):
         c = self.como(self.luis)
         self.assertEqual(c.get(f'/api/talento/documentos/?usuario={self.luis.pk}').json(), [])
         self.assertEqual(c.delete(f'/api/talento/documentos/{oculto.pk}/').status_code, 404)
-        f = SimpleUploadedFile('c.pdf', b'%PDF', content_type='application/pdf')
+        f = SimpleUploadedFile('c.pdf', b'%PDF-1.4', content_type='application/pdf')
         r = c.post('/api/talento/documentos/', {'colaborador': self.luis.pk, 'tipo': 'OTRO', 'titulo': 'x', 'archivo': f}, format='multipart')
         self.assertEqual(r.status_code, 403)
         self.assertTrue(DocumentoEmpleado.objects.filter(pk=oculto.pk).exists())
