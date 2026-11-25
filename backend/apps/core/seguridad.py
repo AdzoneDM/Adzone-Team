@@ -278,10 +278,10 @@ class SeguridadMiddleware:
         """El formulario de /admin no pasa por la API: 10 intentos por minuto por conexión."""
         from django.core.cache import cache
         from rest_framework.settings import api_settings
-        from rest_framework.throttling import SimpleRateThrottle
+        from rest_framework.throttling import BaseThrottle
         if settings.DEBUG:
             return None
-        ip = SimpleRateThrottle().get_ident(request) if api_settings.NUM_PROXIES is not None else request.META.get('REMOTE_ADDR')
+        ip = BaseThrottle().get_ident(request) if api_settings.NUM_PROXIES is not None else request.META.get('REMOTE_ADDR')
         clave = f'admin-login:{ip}:{int(time.time() // 60)}'
         n = cache.get_or_set(clave, 0, 70)
         cache.incr(clave)

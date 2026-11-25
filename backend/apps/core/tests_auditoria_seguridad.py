@@ -188,3 +188,24 @@ class ArchivosYCabecerasTests(Base):
         self.assertEqual(r.status_code, 200, r.content)
         self.assertTrue(AuditoriaCambio.objects.filter(accion='Restableció la contraseña').exists())
         self.assertTrue(Notificacion.objects.filter(destinatario=self.ana, titulo__icontains='restablecida').exists())
+
+
+class DetrasDelProxyTests(Base):
+    """Como en producción: detrás del proxy de Plesk (NUM_PROXIES=1). En la 12.67 inicial esto daba error 500 al entrar."""
+
+    def setUp(self):
+        super().setUp()
+        from unittest import mock
+        from rest_framework.settings import api_settings
+        parche = mock.patch.object(api_settings, 'NUM_PROXIES', 1)
+        parche.start()
+        self.addCleanup(parche.stop)
+
+    def test_entrar_y_fallar_detras_del_proxy(self):
+        c = APIClient(REMOTE_ADDR='172.18.0.1', HTTP_X_FORWARDED_FOR='190.80.9.9')
+        r = c.post('/api/auth/login/', {'username': 'ana', 'password': 'mala'}, format='json')
+        self.assertEqual(r.status_code, 400)
+        r = c.post('/api/auth/login/', {'username': 'ana', 'password': CLAVE}, format='json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(EventoAcceso.objects.get(tipo='ENTRADA').ip, '190.80.9.9')   # la IP real, no la del proxy
+        self.assertEqual(EventoAcceso.objects.get(tipo='FALLO').ip, '190.80.9.9')

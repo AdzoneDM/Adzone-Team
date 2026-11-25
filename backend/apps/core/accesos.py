@@ -26,9 +26,9 @@ RIESGO_ALERTA = 2
 def ip_de(request):
     """La IP real del cliente: con proxy, la que agrega el proxy (NUM_PROXIES), igual que el límite de intentos de la API."""
     from rest_framework.settings import api_settings
-    from rest_framework.throttling import SimpleRateThrottle
+    from rest_framework.throttling import BaseThrottle   # (SimpleRateThrottle() exige un límite configurado: falla fuera de un límite)
     if api_settings.NUM_PROXIES is not None:
-        ip = SimpleRateThrottle().get_ident(request)
+        ip = BaseThrottle().get_ident(request)
     else:
         ip = request.META.get('REMOTE_ADDR')
     try:
