@@ -105,6 +105,7 @@ def datos_usuario(user):
         'gestiona_activos': _activos(user),
         'politicas_pendientes': _pendientes(user),
         'gestiona': gestiona_algo(user),
+        'edita_clientes': bool(gestiona_algo(user) or es_finanzas(user) or _tiene_permiso(user, 'clientes.gestionar')),
         'es_coordinacion': es_coordinacion(user),
         'es_almacen': es_almacen(user),
         'mis_areas': areas_que_supervisa(user),

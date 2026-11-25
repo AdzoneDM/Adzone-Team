@@ -33,7 +33,8 @@ export default function ClienteDetalle() {
   if (!c || !r) return <Cargando />;
   const abiertas = r.ordenes.filter((o) => !["ENTREGADA", "CANCELADA"].includes(o.estado));
   const cerradas = r.ordenes.filter((o) => ["ENTREGADA", "CANCELADA"].includes(o.estado));
-  const puedeEditar = usuario.gestiona || usuario.es_finanzas;
+  const puedeEditar = usuario.gestiona || usuario.es_finanzas;   // proyectos y borrar
+  const editaCliente = puedeEditar || usuario.edita_clientes;     // editar y completar los datos («Gestión de clientes»)
   return (
     <div>
       <Link to="/clientes" className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-azul hover:underline"><ArrowLeft className="size-4" />Clientes</Link>
@@ -53,7 +54,7 @@ export default function ClienteDetalle() {
             <div className="mt-4 flex flex-wrap gap-2">
               <Boton tam="sm" icono={Plus} onClick={() => setModal("orden")}>Orden</Boton>
               {puedeEditar && <Boton tam="sm" variante="secundario" icono={Plus} onClick={() => setModal("proyecto")}>Proyecto</Boton>}
-              {puedeEditar && <Boton tam="sm" variante="secundario" icono={Pencil} onClick={() => setModal("editar")}>Editar</Boton>}
+              {editaCliente && <Boton tam="sm" variante="secundario" icono={Pencil} onClick={() => setModal("editar")}>Editar</Boton>}
               {puedeEditar && !c.es_interno && <Boton tam="sm" variante="peligro" icono={Trash2} onClick={eliminar}>Eliminar</Boton>}
             </div>
           </Panel>

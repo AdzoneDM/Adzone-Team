@@ -1,5 +1,9 @@
 # Cambios
 
+## 12.68.1 · 25/11/2026 · Corrección: «Gestión de clientes» no mostraba el botón Editar
+
+- En la 12.68 el servidor ya dejaba editar clientes con «Gestión de clientes», pero la ficha del cliente mostraba el botón **Editar** solo a quien gestiona un área o a Finanzas. Ahora sale a quien tiene el permiso. Borrar clientes sigue siendo de quien gestiona o de Finanzas (el requerimiento pide consultar, crear y editar).
+
 ## 12.68 · 25/11/2026 · Alcance por áreas, clientes para Marketing, edición de mensajes y filtro por departamento
 
 **Alcance por áreas (por persona)**

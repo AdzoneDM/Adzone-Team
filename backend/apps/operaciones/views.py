@@ -60,8 +60,13 @@ class ClienteViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(creado_por=self.request.user)
 
-    def _exigir(self):
+    def _exigir(self, borrar=False):
+        """Editar: quien gestiona, Finanzas o «Gestión de clientes». Borrar: solo quien gestiona o Finanzas."""
         from apps.core.permisos import tiene
+        if borrar:
+            if not (gestiona_algo(self.request.user) or es_finanzas(self.request.user)):
+                raise PermissionDenied("Borrar clientes es de quien gestiona un departamento o de Finanzas.")
+            return
         if not (gestiona_algo(self.request.user) or es_finanzas(self.request.user) or tiene(self.request.user, 'clientes.gestionar')):
             raise PermissionDenied("Solo quien gestiona un departamento, Finanzas o quien tiene «Gestión de clientes» puede cambiar clientes.")
 
@@ -72,7 +77,7 @@ class ClienteViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """Se borra solo un cliente sin historial. Si ya tiene órdenes, proyectos o documentos de Finanzas, se conserva (se marca inactivo)
         para no perder la trazabilidad de lo que se hizo y se cobró."""
-        self._exigir()
+        self._exigir(borrar=True)
         cliente = self.get_object()
         if cliente.es_interno:
             return Response({"detail": "ADZONE (cliente interno) no se puede eliminar: lo usan las órdenes internas."}, status=status.HTTP_400_BAD_REQUEST)

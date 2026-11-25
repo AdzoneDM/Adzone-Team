@@ -104,6 +104,10 @@ class ClientesTests(Base):
         r = sesion.patch(f'/api/operaciones/clientes/{cli.pk}/', {'telefono': '809-555-0101', 'correo': 'cfo@banco.test'}, format='json')
         self.assertEqual(r.status_code, 200, r.content)
         self.assertEqual(r.json()['telefono'], '809-555-0101')   # y ve los datos de contacto que mantiene
+        # La pantalla recibe que puede editar (antes el botón solo salía a quien gestiona un área o a Finanzas)
+        self.assertTrue(sesion.get('/api/auth/session/').json()['user']['edita_clientes'])
+        # Borrar sigue siendo de quien gestiona o de Finanzas
+        self.assertEqual(sesion.delete(f'/api/operaciones/clientes/{cli.pk}/').status_code, 403)
         a = AuditoriaCambio.objects.get(accion='Cambió cliente')
         self.assertEqual(a.usuario, erlyn)
         self.assertEqual(a.despues['telefono'], '809-555-0101')
