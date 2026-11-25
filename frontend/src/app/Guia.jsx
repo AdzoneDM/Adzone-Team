@@ -282,10 +282,10 @@ function Ayuda({ abierto, onCerrar, sesion, memoria, guardar, iniciar }) {
 /** Invitación discreta la primera vez que se entra a una pantalla con guía. */
 function Sugerencia({ guia, onVer, onDescartar }) {
   return (
-    <div className="fixed inset-x-3 top-[4.25rem] z-30 flex items-center gap-3 rounded-xl border border-linea bg-white py-2.5 pl-4 pr-2 shadow-lg lg:inset-x-auto lg:bottom-6 lg:left-[17rem] lg:top-auto lg:max-w-sm" role="status">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amarillo-50 text-[#a86a00]"><Lightbulb className="size-5" aria-hidden /></span>
-      <p className="min-w-0 flex-1 text-sm">¿Primera vez en <span className="font-semibold text-noche">{guia.nombre}</span>? <span className="text-gris">Te lo explicamos en un minuto.</span></p>
-      <button type="button" onClick={onVer} className="h-9 shrink-0 rounded-lg bg-amarillo px-3 text-sm font-semibold text-tinta hover:bg-amarillo-600">Muéstrame</button>
+    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-3 right-20 z-30 flex items-center gap-2 rounded-xl border border-linea bg-white py-2 pl-3 pr-1.5 shadow-lg sm:right-24 lg:inset-x-auto lg:bottom-6 lg:left-[17rem] lg:max-w-sm lg:gap-3 lg:py-2.5 lg:pl-4 lg:pr-2" role="status">
+      <span className="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-amarillo-50 text-[#a86a00] sm:flex"><Lightbulb className="size-5" aria-hidden /></span>
+      <p className="min-w-0 flex-1 text-[13px] leading-snug sm:text-sm">¿Primera vez en <span className="font-semibold text-noche">{guia.nombre}</span>? <span className="hidden text-gris sm:inline">Te lo explicamos en un minuto.</span></p>
+      <button type="button" onClick={onVer} className="h-8 shrink-0 rounded-lg bg-amarillo px-2.5 text-[13px] font-semibold text-tinta hover:bg-amarillo-600 lg:h-9 lg:px-3 lg:text-sm">Muéstrame</button>
       <button type="button" onClick={onDescartar} className="rounded-lg p-2 text-gris hover:bg-fondo" aria-label="Ahora no"><X className="size-4" /></button>
     </div>
   );

@@ -6,6 +6,7 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, parser_classes
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
@@ -27,12 +28,13 @@ class MensajeSerializer(serializers.ModelSerializer):
     autor_nombre = serializers.SerializerMethodField()
     texto = serializers.SerializerMethodField()
     puede_borrar = serializers.SerializerMethodField()
+    puede_ver_vistos = serializers.SerializerMethodField()
     archivo = serializers.SerializerMethodField()
     menciones = serializers.SerializerMethodField()
 
     class Meta:
         model = Mensaje
-        fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'menciones', 'creado', 'eliminado', 'puede_borrar']
+        fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'menciones', 'creado', 'eliminado', 'puede_borrar', 'puede_ver_vistos']
 
     def get_archivo(self, o):
         if o.eliminado:
@@ -56,6 +58,9 @@ class MensajeSerializer(serializers.ModelSerializer):
 
     def get_menciones(self, o):
         return [] if o.eliminado else (o.menciones or [])
+
+    def get_puede_ver_vistos(self, o):
+        return servicios.puede_ver_vistos(self.context['request'].user, o)
 
     def get_puede_borrar(self, o):
         return servicios.puede_borrar(self.context['request'].user, o)
@@ -203,6 +208,8 @@ def archivo_view(request, pk):
         from django.http import Http404
         raise Http404
     tipo = mimetypes.guess_type(m.archivo.name)[0] or 'application/octet-stream'
+    if request.query_params.get('descargar') == '1':
+        servicios.registrar_abierto(request.user, m)   # descargarlo cuenta como abrirlo
     if es_video(m.archivo_nombre or m.archivo.name):  # los videos se entregan por tramos (se reproducen y avanzan sin bajarlos completos)
         return entregar(m.archivo.open('rb'), m.archivo_nombre or os.path.basename(m.archivo.name), tipo, request)
     if (m.archivo_nombre or m.archivo.name).lower().endswith('.zip'):
@@ -254,11 +261,15 @@ def mensajes_view(request, pk):
     if despues is not None:
         # Lo nuevo, en orden; el cliente reconcilia por id (así se reflejan también los borrados)
         ids = list(qs.filter(id__gt=despues).values_list('id', flat=True)[:servicios.PAGINA_MAX * 2])
-        return Response(_con_lectores(request, conv, {'mensajes': _serializar(request, Mensaje.objects.filter(id__in=ids)), 'hay_mas': False}))
+        nuevos = Mensaje.objects.filter(id__in=ids)
+        servicios.registrar_entregados(request.user, nuevos)
+        return Response(_con_lectores(request, conv, {'mensajes': _serializar(request, nuevos), 'hay_mas': False}))
     if antes is not None:
         qs = qs.filter(id__lt=antes)
     ids = list(qs.order_by('-id').values_list('id', flat=True)[:limite + 1])
-    return Response(_con_lectores(request, conv, {'mensajes': _serializar(request, Mensaje.objects.filter(id__in=ids[:limite])), 'hay_mas': len(ids) > limite}))
+    pagina = Mensaje.objects.filter(id__in=ids[:limite])
+    servicios.registrar_entregados(request.user, pagina)
+    return Response(_con_lectores(request, conv, {'mensajes': _serializar(request, pagina), 'hay_mas': len(ids) > limite}))
 
 
 @api_view(['DELETE'])
@@ -287,3 +298,23 @@ def leido_view(request, pk):
     conv = _conversacion_o_404(request, pk)
     servicios.marcar_leido(request.user, conv, max(_entero(request.data.get('hasta'), 0), 0))
     return Response({'no_leidos': servicios.no_leidos_por_conversacion(request.user, [conv]).get(conv.id, 0)})
+
+
+@api_view(['GET'])
+def vistos_view(request, pk):
+    """Quién vio el mensaje (con fecha y hora), quién lo tiene pendiente y, si trae archivo, quién lo abrió.
+    Lo consulta quien lo envió, quien administra el grupo y Dirección."""
+    m = get_object_or_404(Mensaje.objects.select_related('conversacion'), pk=pk)
+    _conversacion_o_404(request, m.conversacion_id)
+    if not servicios.puede_ver_vistos(request.user, m):
+        raise PermissionDenied('Solo quien envió el mensaje (o quien administra el grupo) ve quién lo leyó.')
+    return Response(servicios.vistos_de(m))
+
+
+@api_view(['POST'])
+def abierto_view(request, pk):
+    """La persona abrió, reprodujo o descargó el archivo de este mensaje: queda como evidencia."""
+    m = get_object_or_404(Mensaje.objects.select_related('conversacion'), pk=pk)
+    _conversacion_o_404(request, m.conversacion_id)
+    servicios.registrar_abierto(request.user, m)
+    return Response({'ok': True})

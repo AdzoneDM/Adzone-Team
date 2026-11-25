@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowDown, Check, CheckCheck, Download, FileArchive, FileSpreadsheet, FileText, Film, ShieldCheck, Trash2 } from "lucide-react";
-import { urlArchivoChat } from "@/lib/api";
+import { chatAbierto, urlArchivoChat } from "@/lib/api";
+import { BotonVistos, ModalVistos } from "./Vistos";
 import { Avatar, cx } from "@/components/ui";
 
 const MINUTOS_AGRUPAR = 5;
@@ -81,12 +82,14 @@ const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} K
 function Adjunto({ m, mio }) {
   const a = m.archivo;
   const abrir = urlArchivoChat(m.id), bajar = urlArchivoChat(m.id, true);
+  // Abrir, reproducir o descargar el archivo queda como evidencia («quién lo abrió»)
+  const abierto = () => { if (!mio) chatAbierto(m.id); };
   if (a.es_zip) {
     if (a.purgado) {
       return <span className={cx("mb-1 flex items-center gap-2 rounded-2xl px-3 py-2 text-xs italic", mio ? "bg-azul-700 text-white/80" : "bg-white text-gris ring-1 ring-linea")}><FileArchive className="size-4 shrink-0" aria-hidden />El ZIP «{a.nombre}» se borró solo para liberar espacio</span>;
     }
     return (
-      <a href={bajar} download className={cx("mb-1 flex min-w-56 items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors", mio ? "bg-azul-700 text-white hover:bg-azul-700/90" : "bg-white text-tinta ring-1 ring-linea hover:bg-fondo")}
+      <a href={bajar} download onClick={abierto} className={cx("mb-1 flex min-w-56 items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors", mio ? "bg-azul-700 text-white hover:bg-azul-700/90" : "bg-white text-tinta ring-1 ring-linea hover:bg-fondo")}
         aria-label={`Descargar ${a.nombre}`}>
         <span className={cx("flex size-11 shrink-0 flex-col items-center justify-center rounded-lg", mio ? "bg-white/15" : "bg-amarillo-50 text-[#8a5a00]")}><FileArchive className="size-5" aria-hidden /><span className="text-[9px] font-bold leading-none">ZIP</span></span>
         <span className="min-w-0 flex-1">
@@ -106,7 +109,7 @@ function Adjunto({ m, mio }) {
     }
     return (
       <span className="mb-1 block max-w-full overflow-hidden rounded-2xl ring-1 ring-linea">
-        <video controls preload="metadata" playsInline src={abrir} className="max-h-[22rem] w-full min-w-[16rem] bg-black" aria-label={a.nombre}>
+        <video controls preload="metadata" playsInline src={abrir} onPlay={abierto} className="max-h-[22rem] w-full min-w-[16rem] bg-black" aria-label={a.nombre}>
           <a href={bajar}>Descargar el video</a>
         </video>
         <a href={bajar} className={cx("flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs", mio ? "bg-azul-700 text-white/90" : "bg-white text-gris")}><span className="truncate">{a.nombre} · {tamano(a.tamano)}</span><Download className="size-3.5 shrink-0" aria-hidden /></a>
@@ -116,14 +119,14 @@ function Adjunto({ m, mio }) {
   if (a.es_imagen) {
     return (
       <span className="group/img relative mb-1 block overflow-hidden rounded-2xl ring-1 ring-linea">
-        <a href={abrir} target="_blank" rel="noopener" aria-label={`Abrir ${a.nombre}`}><img src={abrir} alt={a.nombre} loading="lazy" className="max-h-[22rem] max-w-full object-cover" /></a>
+        <a href={abrir} target="_blank" rel="noopener" onClick={abierto} aria-label={`Abrir ${a.nombre}`}><img src={abrir} alt={a.nombre} loading="lazy" className="max-h-[22rem] max-w-full object-cover" /></a>
         <a href={bajar} aria-label={`Descargar ${a.nombre}`} title="Descargar" className="absolute right-1.5 top-1.5 rounded-lg bg-white/90 p-1.5 text-tinta opacity-100 shadow hover:text-azul sm:opacity-0 sm:group-hover/img:opacity-100"><Download className="size-4" /></a>
       </span>
     );
   }
   const Icono = /\.(xlsx?|csv|ods)$/i.test(a.nombre) ? FileSpreadsheet : FileText;
   return (
-    <a href={bajar} className={cx("mb-1 flex min-w-48 items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors", mio ? "bg-azul-700 text-white hover:bg-azul-700/90" : "bg-white text-tinta ring-1 ring-linea hover:bg-fondo")}
+    <a href={bajar} onClick={abierto} className={cx("mb-1 flex min-w-48 items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors", mio ? "bg-azul-700 text-white hover:bg-azul-700/90" : "bg-white text-tinta ring-1 ring-linea hover:bg-fondo")}
       aria-label={`Descargar ${a.nombre}`}>
       <span className={cx("flex size-10 shrink-0 items-center justify-center rounded-lg", mio ? "bg-white/15" : "bg-azul/10 text-azul")}><Icono className="size-5" aria-hidden /></span>
       <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{a.nombre}</span><span className={cx("block text-xs", mio ? "text-white/70" : "text-gris")}>{tamano(a.tamano)} · Descargar</span></span>
@@ -132,24 +135,30 @@ function Adjunto({ m, mio }) {
   );
 }
 
-/** El «visto» de un mensaje tuyo: una palomita = enviado; dos azules = ya lo leyeron. En grupos, cuántas personas lo leyeron (con sus nombres). */
-function Visto({ m, lectores, privado, detalle }) {
+/** El «visto» de un mensaje tuyo: una palomita = enviado; dos azules = ya lo leyeron. En grupos, en cada mensaje, cuántos lo vieron
+ *  (12/15); tocarlo abre quién lo vio y quién no, con fecha y hora. */
+function Visto({ m, lectores, privado, detalle, onVer }) {
   const vistos = lectores.lista.filter((l) => l.hasta >= m.id);
   const total = lectores.total;
   const todos = total > 0 && vistos.length >= total;
   const algunos = vistos.length > 0;
-  const nombres = vistos.map((l) => l.nombre).join(", ");
   const texto = privado ? (algunos ? "Visto" : "Enviado") : algunos ? `Visto por ${todos ? "todos" : `${vistos.length} de ${total}`}` : "Enviado";
   const Icono = algunos ? CheckCheck : Check;
-  return (
-    <span className={cx("inline-flex items-center gap-1", algunos ? "text-azul" : "text-gris")} title={algunos && !privado ? `Lo vieron: ${nombres}` : texto}>
+  const contenido = (
+    <>
       <Icono className="size-3.5" aria-hidden />
-      {detalle ? <span className="font-medium">{texto}</span> : <span className="sr-only">{texto}</span>}
-    </span>
+      {detalle ? <span className="font-medium">{texto}</span>
+        : !privado && total > 0 ? <span className="num font-medium" aria-label={texto}>{vistos.length}/{total}</span>
+          : <span className="sr-only">{texto}</span>}
+    </>
   );
+  const clase = cx("inline-flex items-center gap-1", algunos ? "text-azul" : "text-gris");
+  return onVer
+    ? <button type="button" onClick={onVer} className={cx(clase, "rounded px-0.5 hover:underline")} title="Ver quién lo vio">{contenido}</button>
+    : <span className={clase} title={texto}>{contenido}</span>;
 }
 
-function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo }) {
+function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo, onVer }) {
   const [confirmar, setConfirmar] = useState(false);
   if (m.eliminado) {
     return <p className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : privado ? "" : "pl-10")}>Mensaje eliminado</p>;
@@ -160,6 +169,7 @@ function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo }
       <div className={cx("flex max-w-[85%] flex-col lg:max-w-[75%]", mio ? "items-end" : "items-start")}>
         {primero && !mio && !privado && <span className="mb-0.5 px-1 text-xs font-medium text-gris">{m.autor_nombre}</span>}
         <div className="flex items-center gap-1.5">
+          {m.puede_ver_vistos && <BotonVistos onClick={() => onVer(m)} className={cx("sm:opacity-0 sm:group-hover:opacity-100", mio ? "order-first" : "order-last")} />}
           {m.puede_borrar && (
             <button type="button" onClick={() => (confirmar ? onBorrar(m.id) : setConfirmar(true))} onBlur={() => setConfirmar(false)}
               aria-label={confirmar ? "Confirmar: borrar mensaje" : "Borrar mensaje"}
@@ -180,7 +190,7 @@ function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo }
         </div>
         <div className="flex items-center gap-1.5 px-1 pt-0.5 text-[11px] text-gris">
           <time dateTime={m.creado}>{hora(m.creado)}</time>
-          {mio && <Visto m={m} lectores={lectores} privado={privado} detalle={ultimoMio} />}
+          {mio && <Visto m={m} lectores={lectores} privado={privado} detalle={ultimoMio} onVer={m.puede_ver_vistos ? () => onVer(m) : null} />}
         </div>
       </div>
     </div>
@@ -193,6 +203,7 @@ export default function ListaMensajes({ mensajes, lectores = { lista: [], total:
   const alFinal = useRef(true);
   const previo = useRef({ n: 0, primero: null, alto: 0 });
   const [nuevos, setNuevos] = useState(false);
+  const [viendo, setViendo] = useState(null);   // mensaje del que se consulta quién lo vio
 
   const irAlFinal = (suave) => {
     const el = caja.current;
@@ -250,11 +261,12 @@ export default function ListaMensajes({ mensajes, lectores = { lista: [], total:
           return (
             <Fragment key={m.id}>
               {nuevoDia && <p className="my-3 text-center text-xs font-medium capitalize text-gris">{dia}</p>}
-              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} lectores={lectores} ultimoMio={m.id === ultimoPropio} yo={usuarioId} />
+              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} lectores={lectores} ultimoMio={m.id === ultimoPropio} yo={usuarioId} onVer={setViendo} />
             </Fragment>
           );
         })}
       </div>
+      <ModalVistos mensaje={viendo} onCerrar={() => setViendo(null)} />
       {nuevos && (
         <button type="button" onClick={() => irAlFinal(true)}
           className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-azul px-3 py-1.5 text-xs font-medium text-white shadow-lg">

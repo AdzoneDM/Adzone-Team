@@ -14,7 +14,7 @@ from apps.core.archivos import EXTENSIONES_VIDEO, es_video
 from apps.core.permisos import tiene
 from apps.desempeno.permisos import es_administrador
 
-from .models import Conversacion, Lectura, Mensaje
+from .models import Conversacion, Lectura, Mensaje, VistaMensaje
 
 MAX_POR_MINUTO = 20   # contra spam y ráfagas accidentales
 PAGINA = 40
@@ -190,8 +190,76 @@ def marcar_leido(usuario, conv, hasta):
     lectura, _ = Lectura.objects.get_or_create(usuario=usuario, conversacion=conv)
     tope = min(hasta, conv.ultimo_id)
     if tope > lectura.ultimo_leido:
+        desde = lectura.ultimo_leido
         lectura.ultimo_leido = tope
         lectura.save(update_fields=['ultimo_leido', 'actualizado'])
+        registrar_vistos(usuario, conv, desde, tope)
+
+
+def _ajenos(usuario, ids):
+    return list(Mensaje.objects.filter(id__in=ids, eliminado=False).exclude(autor=usuario).values_list('id', flat=True))
+
+
+def registrar_entregados(usuario, mensajes):
+    """Los mensajes llegaron a la pantalla de `usuario` (todavía no los ha visto). Una sola fila por persona y mensaje."""
+    ids = [m.id for m in mensajes if m.autor_id != usuario.id and not m.eliminado]
+    if ids:
+        ahora = timezone.now()
+        VistaMensaje.objects.bulk_create([VistaMensaje(mensaje_id=i, usuario=usuario, entregado=ahora) for i in ids], ignore_conflicts=True)
+
+
+def registrar_vistos(usuario, conv, desde, hasta):
+    """Vio los mensajes de la conversación con id en (desde, hasta]: guarda la fecha y hora (solo la primera vez)."""
+    ids = _ajenos(usuario, Mensaje.objects.filter(conversacion=conv, id__gt=desde, id__lte=hasta).values_list('id', flat=True))
+    if not ids:
+        return
+    ahora = timezone.now()
+    VistaMensaje.objects.bulk_create([VistaMensaje(mensaje_id=i, usuario=usuario, entregado=ahora, visto=ahora) for i in ids], ignore_conflicts=True)
+    VistaMensaje.objects.filter(usuario=usuario, mensaje_id__in=ids, visto__isnull=True).update(visto=ahora)
+
+
+def registrar_abierto(usuario, mensaje):
+    """Abrió, reprodujo o descargó el archivo del mensaje (abrirlo también cuenta como verlo)."""
+    if mensaje.autor_id == usuario.id or not mensaje.archivo_nombre:
+        return
+    ahora = timezone.now()
+    v, creada = VistaMensaje.objects.get_or_create(mensaje=mensaje, usuario=usuario, defaults={'entregado': ahora, 'visto': ahora, 'abierto': ahora})
+    if not creada and not v.abierto:
+        v.abierto, v.visto = ahora, v.visto or ahora
+        v.save(update_fields=['abierto', 'visto'])
+
+
+def puede_ver_vistos(usuario, mensaje):
+    """Quién vio un mensaje lo consulta quien lo envió, quien administra el grupo y Dirección."""
+    if mensaje.eliminado:
+        return False
+    return mensaje.autor_id == usuario.id or es_administrador(usuario) or puede_gestionar_grupo(usuario, mensaje.conversacion)
+
+
+def vistos_de(mensaje):
+    """Detalle de lectura de un mensaje: cada integrante (menos quien lo envió) con su estado y sus fechas.
+    Los mensajes anteriores a este registro se dan por vistos si la persona ya había leído hasta ahí (sin hora exacta)."""
+    conv = mensaje.conversacion
+    integrantes = list(participantes_activos(conv).exclude(pk=mensaje.autor_id).select_related('perfil__puesto_trabajo__departamento'))
+    filas = {v.usuario_id: v for v in VistaMensaje.objects.filter(mensaje=mensaje)}
+    hasta = dict(Lectura.objects.filter(conversacion=conv, usuario__in=integrantes).values_list('usuario_id', 'ultimo_leido'))
+    vistos, pendientes = [], []
+    for u in integrantes:
+        v = filas.get(u.pk)
+        fila = persona(u) | {'entregado': v.entregado if v else None, 'visto': v.visto if v else None, 'abierto': v.abierto if v else None,
+                              'sin_hora': False}
+        if (v and v.visto) or hasta.get(u.pk, 0) >= mensaje.id:
+            fila['sin_hora'] = not (v and v.visto)
+            fila['estado'] = 'ABIERTO' if v and v.abierto else 'VISTO'
+            vistos.append(fila)
+        else:
+            fila['estado'] = 'ENTREGADO' if v else 'ENVIADO'
+            pendientes.append(fila)
+    vistos.sort(key=lambda f: (f['visto'] is None, f['visto'] or timezone.now()))
+    pendientes.sort(key=lambda f: f['nombre'])
+    total = len(integrantes)
+    return {'mensaje': mensaje.id, 'tiene_archivo': bool(mensaje.archivo_nombre), 'integrantes': total, 'vistos': vistos, 'pendientes': pendientes,
+            'abiertos': sum(1 for f in vistos if f['estado'] == 'ABIERTO'), 'porcentaje': round(len(vistos) * 100 / total) if total else 0}
 
 
 def participantes_activos(conv):

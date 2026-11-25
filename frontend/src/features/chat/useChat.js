@@ -138,10 +138,19 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
     } catch { setError("Sin conexión. Reintentando…"); }
   }, CADA_MENSAJES_MS, cargado);
 
-  // Mientras la conversación está abierta, lo que llega se da por leído
+  // Visto real: solo cuenta lo que llega mientras la conversación está abierta y a la vista (pestaña visible y ventana activa).
+  // Si la persona está en otra ventana, se marca cuando vuelve.
   const ultimo = mensajes.length ? mensajes[mensajes.length - 1].id : 0;
   useEffect(() => {
-    if (ultimo) chatLeido(conversacion, ultimo).then(() => alLeer?.()).catch(() => {});
+    if (!ultimo) return undefined;
+    const marcar = () => {
+      if (document.visibilityState !== "visible" || !document.hasFocus()) return;
+      chatLeido(conversacion, ultimo).then(() => alLeer?.()).catch(() => {});
+    };
+    marcar();
+    document.addEventListener("visibilitychange", marcar);
+    window.addEventListener("focus", marcar);
+    return () => { document.removeEventListener("visibilitychange", marcar); window.removeEventListener("focus", marcar); };
   }, [conversacion, ultimo, alLeer]);
 
   const cargarAnteriores = useCallback(async () => {

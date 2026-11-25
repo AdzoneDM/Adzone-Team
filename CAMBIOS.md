@@ -1,5 +1,22 @@
 # Cambios
 
+## 12.66 · 25/11/2026 · Chat: quién vio cada mensaje, y la plataforma se ve como app en el celular
+
+**Chat: confirmación de lectura con nombres, fecha y hora (requerimiento de mejora)**
+- **Ícono del ojo** («¿Quién lo vio?») junto a cada mensaje, al lado de borrar. Abre un panel con el resumen (**integrantes, visto, pendiente y % de lectura**, con barra) y dos listas: **Visto** (nombre, puesto y área, fecha y hora exacta) y **Pendiente**.
+- **Contador en cada mensaje tuyo** del grupo («2/4»; el último dice «Visto por 2 de 4»). Tocarlo abre el mismo panel.
+- Se distingue **enviado** (no le ha llegado: no ha abierto la plataforma), **entregado** (le llegó a la pantalla pero no lo ha visto), **visto** (lo tuvo a la vista) y **archivo abierto** (abrió, reprodujo o descargó la imagen, el video, el PDF o el documento).
+- **Visto real**: cuenta solo si la conversación está abierta **y la ventana está activa**; si la persona tiene el chat abierto en otra pestaña o la app en segundo plano, no se marca hasta que vuelve.
+- Se guarda una sola vez por persona y mensaje (la primera hora no cambia), queda asociado al mensaje aunque lleguen otros, y lo consultan **quien envió el mensaje, quien administra el grupo y Dirección**. Funciona en grupos, chats privados y la sala de todos. Los mensajes anteriores a esta versión salen como vistos «sin hora exacta» si la persona ya los había leído.
+- Migración `chat.0010`. 4 pruebas nuevas.
+
+**La plataforma en el celular, como una app**
+- Nada se sale de la pantalla: antes la barra de arriba no cabía y **toda la página se deslizaba de lado y se veía achicada**. Ahora la barra de arriba respeta el ancho (la ayuda pasó al menú «Más») y la barra de estado del teléfono en la app instalada.
+- **Barra inferior** como en las apps: ícono activo dentro de una píldora, más alta y fácil de tocar, translúcida.
+- Pestañas con más de 3 opciones en **una fila que se desliza** (antes se partían en dos filas). Títulos y descripciones más compactos.
+- El aviso «¿Primera vez en…?» ahora sale **abajo y pequeño**, sin tapar el contenido.
+- Toques inmediatos, sin el resaltado azul de navegador, sin el rebote que deja ver el fondo blanco y sin seleccionar los menús como texto (app instalada).
+
 ## 12.65 · 25/11/2026 · Editar, reabrir y eliminar desde todas las pantallas
 
 - En la 12.63 los botones **Editar, Reabrir y Eliminar** solo salían en **Mi equipo**. Ahora salen en la ventana de cualquier tarea, se abra desde donde se abra: **Historial de tareas** (donde están las validadas), **Mis tareas**, **Proyectos**, **Mi equipo** y en el panel de revisión de **Por validar**. Como siempre, cada botón sale solo a quien tiene ese permiso sobre la tarea.

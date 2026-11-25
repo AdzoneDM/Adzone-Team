@@ -70,10 +70,10 @@ export function Panel({ titulo, accion, className, cuerpo = "p-5", children }) {
 
 export function Cabecera({ titulo, descripcion, children }) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <header className="mb-4 flex flex-wrap items-end justify-between gap-3 md:mb-6 md:gap-4">
       <div className="min-w-0">
-        <h1 className="text-[26px] font-semibold leading-tight md:text-3xl">{titulo}</h1>
-        {descripcion && <p className="mt-1 max-w-[70ch] text-gris">{descripcion}</p>}
+        <h1 className="text-[24px] font-semibold leading-tight md:text-3xl">{titulo}</h1>
+        {descripcion && <p className="mt-1 max-w-[70ch] text-[14px] leading-snug text-gris md:text-base md:leading-normal">{descripcion}</p>}
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </header>
@@ -216,15 +216,19 @@ export function AvisosProvider({ children }) {
 export const useAviso = () => useContext(AvisoCtx);
 
 // ---------------------------------------------------------------- Pestañas
-// En el celular las pestañas se acomodan en filas (2 o 3 por fila) en vez de quedar cortadas a la derecha.
-const COLUMNAS_PESTANAS = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-2" };
+// En el celular: hasta 3 pestañas reparten el ancho; con más, van en una sola fila que se desliza con el dedo (como en las apps),
+// en vez de partirse en dos filas. La pestaña elegida se trae a la vista.
+const COLUMNAS_PESTANAS = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" };
 
 export function Pestanas({ opciones, valor, onCambio, className }) {
+  const fila = opciones.length > 3;
   return (
-    <div role="tablist" className={cx("grid gap-1 rounded-xl border border-linea bg-white p-1 md:flex md:overflow-x-auto md:[scrollbar-width:none]", COLUMNAS_PESTANAS[opciones.length] || "grid-cols-3", className)}>
+    <div role="tablist" className={cx("gap-1 rounded-xl border border-linea bg-white p-1 md:flex md:overflow-x-auto md:[scrollbar-width:none]",
+      fila ? "flex snap-x overflow-x-auto [scrollbar-width:none]" : cx("grid", COLUMNAS_PESTANAS[opciones.length]), className)}>
       {opciones.map((o) => (
-        <button key={o.valor} role="tab" type="button" aria-selected={valor === o.valor} onClick={() => onCambio(o.valor)}
-          className={cx("flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 md:min-w-fit rounded-lg px-2 py-1.5 text-center text-sm font-medium leading-tight transition-colors md:gap-2 md:whitespace-nowrap md:px-3 md:py-0",
+        <button key={o.valor} role="tab" type="button" aria-selected={valor === o.valor} onClick={(e) => { onCambio(o.valor); e.currentTarget.scrollIntoView?.({ block: "nearest", inline: "nearest", behavior: "smooth" }); }}
+          className={cx("flex min-h-10 items-center justify-center gap-1.5 rounded-lg py-1.5 text-center text-sm font-medium leading-tight transition-colors md:min-w-fit md:flex-1 md:gap-2 md:whitespace-nowrap md:px-3 md:py-0",
+            fila ? "shrink-0 snap-start whitespace-nowrap px-3.5" : "min-w-0 flex-1 px-2",
             valor === o.valor ? "bg-azul text-white" : "text-gris hover:bg-fondo hover:text-tinta")}>
           {o.etiqueta}
           {o.cuenta != null && <span className={cx("rounded-full px-1.5 text-xs num", valor === o.valor ? "bg-white/20" : "bg-linea-suave")}>{o.cuenta}</span>}

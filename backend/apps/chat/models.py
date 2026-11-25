@@ -95,3 +95,21 @@ class Lectura(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['usuario', 'conversacion'], name='chat_lectura_unica')]
+
+
+class VistaMensaje(models.Model):
+    """Evidencia de lectura de cada mensaje, por persona (una sola fila por persona y mensaje):
+    - entregado: el mensaje llegó a su pantalla (la app lo descargó);
+    - visto: lo tuvo a la vista con la conversación abierta y la ventana activa;
+    - abierto: abrió, reprodujo o descargó el archivo adjunto."""
+    mensaje = models.ForeignKey(Mensaje, on_delete=models.CASCADE, related_name='vistas')
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vistas_chat')
+    entregado = models.DateTimeField()
+    visto = models.DateTimeField(null=True, blank=True)
+    abierto = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['mensaje', 'usuario'], name='chat_vista_unica')]
+        indexes = [models.Index(fields=['usuario', 'mensaje'])]
+        verbose_name = 'Lectura de un mensaje'
+        verbose_name_plural = 'Lecturas de mensajes'

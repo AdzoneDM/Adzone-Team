@@ -63,7 +63,16 @@
 }
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+  /* Que nada empuje la pantalla hacia los lados: en el celular la app no se desliza ni se achica (clip no rompe la cabecera fija) */
+  html, body { overflow-x: clip; }
+  /* Toques inmediatos (sin la espera del doble toque para hacer zoom) */
+  a, button, [role="button"], label, summary { touch-action: manipulation; }
+  /* Instalada como app: sin el rebote elástico que deja ver el fondo blanco, y los menús no se seleccionan como texto */
+  @media (display-mode: standalone) {
+    html, body { overscroll-behavior-y: none; }
+    nav a, nav button, header a, header button { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  }
   body {
     @apply bg-fondo text-tinta font-sans antialiased;
     font-feature-settings: "cv11", "ss01";

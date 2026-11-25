@@ -413,12 +413,13 @@ function EstructuraInterna() {
       </aside>
 
       {/* Barra superior: campanita (PC) y marca + campanita (celular) */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-linea bg-fondo/90 px-4 backdrop-blur lg:h-16 lg:px-8">
-        <Link to="/" className="lg:hidden" aria-label="Inicio"><Marca oscuro={false} className="text-[15px] max-[430px]:[&>span:last-child]:hidden" /></Link>
+      {/* En el celular respeta la barra de estado del teléfono (app instalada) y nunca es más ancha que la pantalla: la marca se encoge primero */}
+      <header className="sticky top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between gap-2 border-b border-linea bg-fondo/90 px-3 pt-[env(safe-area-inset-top)] backdrop-blur sm:px-4 lg:h-16 lg:px-8 lg:pt-0">
+        <Link to="/" className="min-w-0 shrink overflow-hidden lg:hidden" aria-label="Inicio"><Marca oscuro={false} className="text-[15px] max-[430px]:[&>span:last-child]:hidden" /></Link>
         <button type="button" onClick={() => setBuscando(true)} data-guia="buscar" className="hidden h-10 w-full max-w-sm items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm text-gris hover:border-azul/40 lg:flex">
           <Search className="size-4" /> <span className="truncate">Buscar órdenes, clientes, tareas…</span><kbd className="ml-auto hidden shrink-0 whitespace-nowrap rounded border border-linea px-1.5 text-xs xl:inline">Ctrl K</kbd>
         </button>
-        <div className="flex items-center gap-1.5 lg:gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5 lg:gap-2">
           <BotonJornada />
           <CronometroBarra />
           <button type="button" onClick={() => setBuscando(true)} data-guia="buscar-movil" className="flex size-10 items-center justify-center rounded-lg text-gris hover:bg-white lg:hidden" aria-label="Buscar"><Search className="size-5" /></button>
@@ -426,8 +427,9 @@ function EstructuraInterna() {
           {!sesion.esAgente && (sesion.esAdmin || sesion.puedeValidar || sesion.puedeAsignar || sesion.gestiona || sesion.esFinanzas || sesion.esCoordinacion || sesion.gestionaCallCenter) && <Crear sesion={sesion} />}
           <BotonInstalar />
           <Campanita datos={datos} refrescar={refrescar} />
+          {/* En el celular la ayuda está en «Más» (la barra de arriba no da para todo) */}
           <button type="button" onClick={guia.abrirAyuda} data-guia="ayuda" aria-label="Ayuda: guía paso a paso" title="Ayuda"
-            className="flex size-10 items-center justify-center rounded-lg text-gris hover:bg-white hover:text-azul">
+            className="hidden size-10 items-center justify-center rounded-lg text-gris hover:bg-white hover:text-azul lg:flex">
             <CircleHelp className="size-5" />
           </button>
         </div>
@@ -457,24 +459,24 @@ function EstructuraInterna() {
       <ChatFlotante />
 
       {/* Celular: barra inferior tipo app */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-linea bg-white lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Menú" data-guia="menu-movil">
-        <div className="flex">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-linea bg-white/95 backdrop-blur lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Menú" data-guia="menu-movil">
+        <div className="mx-auto flex max-w-xl">
           {inferior.map((i) => {
             const n = i.cuenta ? datos[i.cuenta] : 0;
             return (
-              <NavLink key={i.a} to={i.a} end={i.fin} className={({ isActive }) => cx("relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", isActive ? "text-azul" : "text-gris")}>
+              <NavLink key={i.a} to={i.a} end={i.fin} className={({ isActive }) => cx("relative flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium active:opacity-70", isActive ? "text-azul" : "text-gris")}>
                 {({ isActive }) => (<>
-                  <span className={cx("absolute top-0 h-0.5 w-8 rounded-b", isActive ? "bg-amarillo" : "bg-transparent")} />
-                  <span className="relative"><i.icono className="size-6" aria-hidden />
-                    {n > 0 && <span className="absolute -right-2.5 -top-1 rounded-full bg-rojo px-1 text-[10px] leading-4 text-white num">{n}</span>}
+                  {/* Como en las apps del teléfono: el ícono activo va dentro de una píldora */}
+                  <span className={cx("relative flex h-8 w-14 items-center justify-center rounded-full transition-colors", isActive ? "bg-azul/10" : "bg-transparent")}><i.icono className="size-[22px]" aria-hidden strokeWidth={isActive ? 2.4 : 2} />
+                    {n > 0 && <span className="absolute right-1.5 -top-0.5 min-w-4 rounded-full bg-rojo px-1 text-center text-[10px] leading-4 text-white num">{n > 99 ? "99+" : n}</span>}
                   </span>
-                  {i.texto}
+                  <span className={isActive ? "font-semibold" : undefined}>{i.texto}</span>
                 </>)}
               </NavLink>
             );
           })}
-          <button type="button" onClick={() => setMas(true)} className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-gris">
-            <Ellipsis className="size-6" aria-hidden /> Más
+          <button type="button" onClick={() => setMas(true)} className="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium text-gris active:opacity-70">
+            <span className="flex h-8 w-14 items-center justify-center rounded-full"><Ellipsis className="size-[22px]" aria-hidden /></span> Más
           </button>
         </div>
       </nav>
@@ -485,7 +487,12 @@ function EstructuraInterna() {
           <button type="button" className="absolute inset-0 bg-noche-900/50" aria-label="Cerrar" onClick={() => setMas(false)} />
           <div className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-noche pb-[env(safe-area-inset-bottom)]">
             <div className="flex items-center justify-between px-5 pt-4"><Marca /><button type="button" onClick={() => setMas(false)} className="rounded-lg p-2 text-white/70" aria-label="Cerrar"><X className="size-5" /></button></div>
-            <nav className="max-h-[60dvh] space-y-0.5 overflow-y-auto px-3 py-3">{resto.map((i) => <Enlace key={i.a} item={i} cuentas={datos} />)}</nav>
+            <nav className="max-h-[60dvh] space-y-0.5 overflow-y-auto px-3 py-3">
+              {resto.map((i) => <Enlace key={i.a} item={i} cuentas={datos} />)}
+              <button type="button" onClick={() => { setMas(false); guia.abrirAyuda(); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[15px] text-white/80 hover:bg-white/10 hover:text-white">
+                <CircleHelp className="size-5" aria-hidden /> Ayuda: guía paso a paso
+              </button>
+            </nav>
             <MenuUsuario usuario={usuario} logout={logout} />
           </div>
         </div>

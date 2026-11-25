@@ -628,5 +628,8 @@ export const chatGrupo = (id) => api(`/api/chat/grupos/${id}/`);
 export const chatGrupoEditar = (id, datos) => api(`/api/chat/grupos/${id}/`, { method: "PATCH", body: datos });
 export const chatGrupoEliminar = (id) => api(`/api/chat/grupos/${id}/`, { method: "DELETE" });
 export const chatBorrar = (id) => api(`/api/chat/mensajes/${id}/`, { method: "DELETE" });
+// Evidencia de lectura: quién vio el mensaje (y cuándo), quién lo tiene pendiente y quién abrió el archivo
+export const chatVistos = (id) => api(`/api/chat/mensajes/${id}/vistos/`);
+export const chatAbierto = (id) => api(`/api/chat/mensajes/${id}/abierto/`, { method: "POST" }).catch(() => {});
 export const chatResumen = () => api("/api/chat/resumen/");
 export const chatLeido = (conversacion, hasta) => api(`/api/chat/conversaciones/${conversacion}/leido/`, { method: "POST", body: { hasta } });
