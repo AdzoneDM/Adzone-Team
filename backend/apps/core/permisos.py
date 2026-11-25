@@ -26,6 +26,7 @@ PERMISOS = [
     ('asistencia.ver', 'Asistencia del equipo', 'Su equipo', 'equipo', 'Ver la asistencia de su equipo, recibir sus avisos de tardanza y aprobar permisos.'),
     ('asistencia.corregir', 'Corregir marcajes', 'Su equipo', 'equipo', 'Agregar o borrar marcajes de su equipo (con nota y auditoría).'),
     ('equipo.todos', 'Supervisar a toda la empresa', 'Empresa', 'empresa', 'Su equipo pasa a ser todo el personal (menos Dirección): los permisos de equipo que tenga se ejercen sobre todos, y recibe sus avisos de entregas y tardanzas.'),
+    ('clientes.gestionar', 'Gestión de clientes', 'Empresa', 'empresa', 'Consultar, crear, editar y completar los datos de los clientes (contacto, RNC, dirección, notas). Cada cambio queda en la bitácora.'),
     ('finanzas.gestionar', 'Finanzas', 'Empresa', 'empresa', 'Facturas, gastos, pagos, cotizaciones, rentabilidad (con el costo de cada persona) y Cashflow.'),
     ('operaciones.coordinar', 'Coordinación de producción', 'Empresa', 'empresa', 'Recibe y numera las órdenes de trabajo, emite las órdenes de área y autoriza vales.'),
     ('almacen.gestionar', 'Almacén', 'Empresa', 'empresa', 'Inventario, vales de materiales y despacho.'),
@@ -62,6 +63,7 @@ PERFILES = {
     'Operaciones': ('Asigna, edita, elimina, reabre y valida las tareas de su equipo y las que pide a otras áreas.',
                     SUPERVISOR + ['tareas.otras_areas'], 35),
     'Almacén': ('Inventario, vales de materiales y activos.', ['almacen.gestionar'], 45),
+    'Gestión de clientes': ('Consulta, crea, edita y completa los datos de los clientes (Marketing).', ['clientes.gestionar'], 42),
     'Agente Call Center': ('Su pantalla de call center y lo suyo.', [], 15),
 }
 
@@ -154,3 +156,43 @@ def revisar_cambio(quien, persona, permisos_en_juego):
     if persona is not None and not efectivos(persona) <= mios:
         return "Esta persona tiene permisos que tú no tienes: sus accesos los cambia la Dirección."
     return None
+
+
+
+# ------------------------------------------------------------------ Alcance por áreas (por persona)
+def _alcance(user):
+    """(áreas a las que puede pedir trabajo o None si no hay límite, áreas que no ve). Se calcula una vez por petición."""
+    if not (user and getattr(user, 'pk', None)):
+        return None, set()
+    if getattr(user, '_alcance_areas', None) is not None:
+        return user._alcance_areas
+    from .models import AlcanceAreas
+    a = AlcanceAreas.objects.filter(usuario=user).prefetch_related('asignar_a', 'ocultas').first()
+    valor = (None, set()) if a is None else (({d.pk for d in a.asignar_a.all()} or None), {d.pk for d in a.ocultas.all()})
+    user._alcance_areas = valor
+    return valor
+
+
+def areas_para_asignar(user):
+    """Ids de las áreas a las que `user` puede pedir trabajo fuera de su equipo, o None si no tiene límite."""
+    return _alcance(user)[0]
+
+
+def areas_ocultas(user):
+    return _alcance(user)[1]
+
+
+def sin_areas_ocultas(user, personas):
+    """Quita de un queryset de personas a las de las áreas que `user` no debe ver (por su puesto principal o adicional)."""
+    ocultas = areas_ocultas(user)
+    if not ocultas:
+        return personas
+    return personas.exclude(Q(perfil__puesto_trabajo__departamento_id__in=ocultas) | Q(perfil__puestos_adicionales__departamento_id__in=ocultas))
+
+
+def ve_a(user, persona):
+    """¿Puede `user` ver o elegir a `persona`? (No, si es de un área que tiene oculta.)"""
+    ocultas = areas_ocultas(user)
+    if not ocultas or persona is None:
+        return True
+    return sin_areas_ocultas(user, User.objects.filter(pk=persona.pk)).exists()

@@ -46,6 +46,7 @@ def catalogo_view(request):
         'permisos': [{'codigo': c, 'nombre': n, 'grupo': g, 'alcance': a, 'descripcion': d} for c, n, g, a, d in PERMISOS],
         'perfiles': [_perfil(p, cuantos) for p in PermisosDePerfil.objects.select_related('grupo').order_by('-orden', 'grupo__name')],
         'mios': sorted(permisos(request.user)),
+        'departamentos': [{'id': d.pk, 'nombre': d.nombre} for d in __import__('apps.core.models', fromlist=['Departamento']).Departamento.objects.order_by('nombre')],
         'edita_perfiles': tiene(request.user, 'direccion'),
     })
 
@@ -118,7 +119,17 @@ def _persona(u, jefes):
         'permisos': sorted(efectivos(u)),
         'superusuario': u.is_superuser,
         'dos_pasos': bool(getattr(u, 'dos_pasos', None) and u.dos_pasos.activo),
+        'alcance': _alcance_de(u),
     }
+
+
+def _alcance_de(u):
+    from .models import AlcanceAreas
+    try:
+        a = u.alcance_areas
+    except AlcanceAreas.DoesNotExist:
+        return {'asignar_a': [], 'ocultas': []}
+    return {'asignar_a': sorted(d.pk for d in a.asignar_a.all()), 'ocultas': sorted(d.pk for d in a.ocultas.all())}
 
 
 def _jefes():
@@ -130,7 +141,8 @@ def _jefes():
 
 def _usuarios():
     return (User.objects.filter(is_active=True).select_related('perfil__puesto_trabajo__departamento', 'dos_pasos')
-            .prefetch_related('groups', 'excepciones_permiso', 'equipo_extra__colaborador').order_by('first_name', 'last_name', 'username'))
+            .prefetch_related('groups', 'excepciones_permiso', 'equipo_extra__colaborador', 'alcance_areas__asignar_a', 'alcance_areas__ocultas')
+            .order_by('first_name', 'last_name', 'username'))
 
 
 def _con_permisos_calculados(usuarios):
@@ -280,3 +292,31 @@ def reiniciar_dos_pasos_view(request, pk):
         seguridad.cerrar_sesiones(persona)
         auditar('Reinició la verificación en dos pasos', _nombre(persona))
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+def persona_alcance_view(request, pk):
+    """A qué áreas puede pedir trabajo (con «Asignar tareas a otras áreas») y qué áreas no ve. Vacío = sin límite."""
+    from .models import AlcanceAreas, Departamento
+    _gestiona(request.user)
+    persona = get_object_or_404(User, pk=pk, is_active=True)
+    _rechazar(revisar_cambio(request.user, persona, []))
+    ids = lambda clave: [int(i) for i in (request.data.get(clave) or []) if str(i).isdigit()]  # noqa: E731
+    asignar, ocultas = ids('asignar_a'), ids('ocultas')
+    validos = set(Departamento.objects.filter(pk__in=asignar + ocultas).values_list('pk', flat=True))
+    if set(asignar + ocultas) - validos:
+        raise exceptions.ValidationError('Hay un área que no existe.')
+    if set(asignar) & set(ocultas):
+        raise exceptions.ValidationError('Un área no puede estar a la vez entre las que pide trabajo y las ocultas.')
+    antes = _alcance_de(persona)
+    a, _ = AlcanceAreas.objects.get_or_create(usuario=persona)
+    a.asignar_a.set(asignar)
+    a.ocultas.set(ocultas)
+    a.actualizado_por = request.user
+    a.save(update_fields=['actualizado_por', 'actualizado'])
+    nombres = dict(Departamento.objects.values_list('pk', 'nombre'))
+    legible = lambda d: {k: sorted(nombres.get(i, i) for i in v) for k, v in d.items()}  # noqa: E731
+    despues = _alcance_de(persona)
+    if antes != despues:
+        auditar('Alcance por áreas', _nombre(persona), legible(antes), legible(despues))
+    return Response(_persona(_usuarios().get(pk=persona.pk), _jefes()))

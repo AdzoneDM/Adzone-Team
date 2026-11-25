@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Minus, Plus, Search, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import {
-  accesos as cargarCatalogo, accesosPersonas, borrarEquipoExtra, borrarExcepcion, borrarPerfilAcceso, crearEquipoExtra,
+  accesos as cargarCatalogo, accesosPersonas, alcanceDePersona, borrarEquipoExtra, borrarExcepcion, borrarPerfilAcceso, crearEquipoExtra,
   crearExcepcion, crearPerfilAcceso, guardarPerfilAcceso, perfilesDePersona, reiniciarDosPasos,
 } from "@/lib/api";
 import { fechaCorta } from "@/lib/formato";
@@ -143,6 +143,49 @@ function Perfiles({ catalogo, setCatalogo }) {
 }
 
 // ---------------------------------------------------------------- Personas
+/** Límites por áreas: a qué áreas pide trabajo (con «Asignar tareas a otras áreas») y qué áreas no ve en ningún listado. */
+function AlcancePorAreas({ persona, catalogo, propio, intentar }) {
+  const [a, setA] = useState({ asignar_a: [], ocultas: [] });
+  useEffect(() => { setA(persona.alcance || { asignar_a: [], ocultas: [] }); }, [persona]);
+  const deptos = catalogo.departamentos || [];
+  const cambiado = JSON.stringify([...a.asignar_a].sort()) !== JSON.stringify([...(persona.alcance?.asignar_a || [])].sort())
+    || JSON.stringify([...a.ocultas].sort()) !== JSON.stringify([...(persona.alcance?.ocultas || [])].sort());
+  const alternar = (clave, id) => setA((x) => {
+    const otra = clave === "asignar_a" ? "ocultas" : "asignar_a";
+    const lista = x[clave].includes(id) ? x[clave].filter((i) => i !== id) : [...x[clave], id];
+    return { ...x, [clave]: lista, [otra]: x[otra].filter((i) => i !== id) };
+  });
+  const Lista = ({ clave, tono }) => (
+    <div className="flex flex-wrap gap-1.5">
+      {deptos.map((d) => {
+        const si = a[clave].includes(d.id);
+        return (
+          <button key={d.id} type="button" disabled={propio} onClick={() => alternar(clave, d.id)} aria-pressed={si}
+            className={cx("rounded-full border px-3 py-1 text-sm", si ? (tono === "rojo" ? "border-rojo/40 bg-rojo-50 text-rojo" : "border-azul/40 bg-azul/10 text-azul") : "border-linea text-gris hover:bg-fondo")}>
+            {d.nombre}
+          </button>
+        );
+      })}
+    </div>
+  );
+  return (
+    <section className="space-y-3">
+      <h3 className="font-display font-semibold">Alcance por áreas</h3>
+      <div>
+        <p className="text-sm font-medium">Puede pedir trabajo solo a estas áreas</p>
+        <p className="mb-1.5 text-sm text-gris">Con «Asignar tareas a otras áreas». Ninguna marcada = a todas las permitidas (como siempre). Su propio equipo no cambia.</p>
+        <Lista clave="asignar_a" tono="azul" />
+      </div>
+      <div>
+        <p className="text-sm font-medium">No ve al personal de estas áreas</p>
+        <p className="mb-1.5 text-sm text-gris">No aparecen al asignar tareas, en el chat, el buscador, el organigrama ni en «Quién está libre», y no puede elegirlas aunque lo intente.</p>
+        <Lista clave="ocultas" tono="rojo" />
+      </div>
+      {!propio && <Boton variante="secundario" disabled={!cambiado} onClick={() => intentar(() => alcanceDePersona(persona.id, a), "Alcance guardado")}>Guardar alcance</Boton>}
+    </section>
+  );
+}
+
 function AccesosDePersona({ persona, catalogo, personas, onCerrar, onCambio }) {
   const { usuario } = useSesion();
   const [perfiles, setPerfiles] = useState(new Set());
@@ -236,6 +279,8 @@ function AccesosDePersona({ persona, catalogo, personas, onCerrar, onCambio }) {
             </form>
           )}
         </section>
+
+        <AlcancePorAreas persona={persona} catalogo={catalogo} propio={propio} intentar={intentar} />
 
         <section className="space-y-2">
           <h3 className="font-display font-semibold">Equipo adicional</h3>

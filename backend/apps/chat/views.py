@@ -29,12 +29,14 @@ class MensajeSerializer(serializers.ModelSerializer):
     texto = serializers.SerializerMethodField()
     puede_borrar = serializers.SerializerMethodField()
     puede_ver_vistos = serializers.SerializerMethodField()
+    editable_hasta = serializers.SerializerMethodField()
     archivo = serializers.SerializerMethodField()
     menciones = serializers.SerializerMethodField()
 
     class Meta:
         model = Mensaje
-        fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'menciones', 'creado', 'eliminado', 'puede_borrar', 'puede_ver_vistos']
+        fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'menciones', 'creado', 'eliminado', 'puede_borrar', 'puede_ver_vistos',
+                  'editado_en', 'editable_hasta']
 
     def get_archivo(self, o):
         if o.eliminado:
@@ -58,6 +60,13 @@ class MensajeSerializer(serializers.ModelSerializer):
 
     def get_menciones(self, o):
         return [] if o.eliminado else (o.menciones or [])
+
+    def get_editable_hasta(self, o):
+        """Hasta cuándo puede editarlo quien lo pidió (None si no puede): la pantalla esconde «Editar» a esa hora."""
+        if o.eliminado or o.autor_id != self.context['request'].user.id:
+            return None
+        from datetime import timedelta
+        return o.creado + timedelta(minutes=servicios.MINUTOS_EDITAR)
 
     def get_puede_ver_vistos(self, o):
         return servicios.puede_ver_vistos(self.context['request'].user, o)
@@ -121,6 +130,9 @@ def conversaciones_view(request):
         otro = get_object_or_404(User, pk=_entero(request.data.get('persona'), 0), is_active=True)
         if otro.id == request.user.id:
             return Response({'detail': 'No puedes abrir un chat contigo mismo.'}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.core.permisos import ve_a
+        if not ve_a(request.user, otro):
+            raise PermissionDenied('No puedes escribirle a esa persona.')
         c = servicios.privado_con(request.user, otro)
         return Response(_ficha(request.user, c, servicios.no_leidos_por_conversacion(request.user, [c])))
     servicios.sala_global()
@@ -260,7 +272,11 @@ def mensajes_view(request, pk):
     qs = Mensaje.objects.filter(conversacion=conv)
     if despues is not None:
         # Lo nuevo, en orden; el cliente reconcilia por id (así se reflejan también los borrados)
-        ids = list(qs.filter(id__gt=despues).values_list('id', flat=True)[:servicios.PAGINA_MAX * 2])
+        from datetime import timedelta
+        from django.db.models import Q
+        from django.utils import timezone as tz
+        ids = list(qs.filter(Q(id__gt=despues) | Q(editado_en__gte=tz.now() - timedelta(minutes=servicios.MINUTOS_EDITAR + 2)))
+                   .values_list('id', flat=True)[:servicios.PAGINA_MAX * 2])
         nuevos = Mensaje.objects.filter(id__in=ids)
         servicios.registrar_entregados(request.user, nuevos)
         return Response(_con_lectores(request, conv, {'mensajes': _serializar(request, nuevos), 'hay_mas': False}))
@@ -272,10 +288,24 @@ def mensajes_view(request, pk):
     return Response(_con_lectores(request, conv, {'mensajes': _serializar(request, pagina), 'hay_mas': len(ids) > limite}))
 
 
-@api_view(['DELETE'])
+@api_view(['DELETE', 'PATCH'])
 def mensaje_view(request, pk):
+    """DELETE: borra tu mensaje. PATCH {texto}: lo edita (solo el tuyo y solo durante 5 minutos desde que lo enviaste)."""
     m = get_object_or_404(Mensaje.objects.select_related('conversacion'), pk=pk)
     _conversacion_o_404(request, m.conversacion_id)
+    if request.method == 'PATCH':
+        if m.autor_id != request.user.id:
+            return Response({'detail': 'Solo puedes editar tus propios mensajes.'}, status=status.HTTP_403_FORBIDDEN)
+        if not servicios.puede_editar(request.user, m):
+            return Response({'detail': f'Ya pasaron los {servicios.MINUTOS_EDITAR} minutos para editar este mensaje.'}, status=status.HTTP_403_FORBIDDEN)
+        datos = NuevoMensaje(data=request.data)
+        datos.is_valid(raise_exception=True)
+        texto = datos.validated_data['texto']
+        if not texto and not m.archivo_nombre:
+            return Response({'texto': ['El mensaje no puede quedar vacío (si ya no hace falta, bórralo).']}, status=status.HTTP_400_BAD_REQUEST)
+        if texto != m.texto:
+            servicios.editar(m, texto)
+        return Response(MensajeSerializer(m, context={'request': request}).data)
     if not servicios.puede_borrar(request.user, m):
         return Response({'detail': 'Solo puedes borrar tus propios mensajes.'}, status=status.HTTP_403_FORBIDDEN)
     m.eliminado, m.eliminado_por = True, request.user

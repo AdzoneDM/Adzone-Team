@@ -61,8 +61,9 @@ class ClienteViewSet(viewsets.ModelViewSet):
         serializer.save(creado_por=self.request.user)
 
     def _exigir(self):
-        if not (gestiona_algo(self.request.user) or es_finanzas(self.request.user)):
-            raise PermissionDenied("Solo quien gestiona un departamento o Finanzas puede cambiar clientes.")
+        from apps.core.permisos import tiene
+        if not (gestiona_algo(self.request.user) or es_finanzas(self.request.user) or tiene(self.request.user, 'clientes.gestionar')):
+            raise PermissionDenied("Solo quien gestiona un departamento, Finanzas o quien tiene «Gestión de clientes» puede cambiar clientes.")
 
     def perform_update(self, serializer):
         self._exigir()
@@ -1030,7 +1031,8 @@ def archivo_view(request, pk):
 @api_view(['GET'])
 def directorio_view(request):
     """Personas activas (para elegir responsables, equipos y @menciones). Solo datos de trabajo."""
-    usuarios = User.objects.filter(is_active=True).select_related('perfil__puesto_trabajo__departamento').order_by('first_name', 'username')
+    from apps.core.permisos import sin_areas_ocultas
+    usuarios = sin_areas_ocultas(request.user, User.objects.filter(is_active=True)).select_related('perfil__puesto_trabajo__departamento').order_by('first_name', 'username').distinct()
     datos = []
     for u in usuarios:
         puesto = puesto_de(u)

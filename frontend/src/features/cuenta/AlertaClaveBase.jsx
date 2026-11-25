@@ -8,6 +8,7 @@ const CLAVE_BASE = "usuarios";
 
 export default function AlertaClaveBase() {
   const { usuario, recargar } = useSesion();
+  const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
   const [repetir, setRepetir] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +21,7 @@ export default function AlertaClaveBase() {
     setGuardando(true);
     setError("");
     try {
-      await cambiarClave(CLAVE_BASE, nueva);
+      await cambiarClave(actual || CLAVE_BASE, nueva);
       await recargar();
     } catch (err) {
       setError(err.message);
@@ -37,8 +38,9 @@ export default function AlertaClaveBase() {
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amarillo-50 text-[#a86a00]"><KeyRound className="size-6" aria-hidden /></span>
           <h2 id="clave-base-titulo" className="text-xl font-semibold">Crea tu contraseña</h2>
         </div>
-        <p className="text-sm text-gris">Entraste con la contraseña que se le da a todas las cuentas nuevas. Para proteger tu cuenta, elige una propia: sin esto no se puede usar la plataforma.</p>
-        <input type="password" className="campo" placeholder="Contraseña nueva (mín. 8)" aria-label="Contraseña nueva" autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} required minLength={8} autoFocus />
+        <p className="text-sm text-gris">Entraste con una contraseña que te dieron (la de las cuentas nuevas o una temporal). Para proteger tu cuenta, elige una propia: sin esto no se puede usar la plataforma.</p>
+        <input type="password" className="campo" placeholder="La contraseña con la que entraste" aria-label="Contraseña con la que entraste" autoComplete="current-password" value={actual} onChange={(e) => setActual(e.target.value)} required />
+        <input type="password" className="campo" placeholder="Contraseña nueva (mín. 8)" aria-label="Contraseña nueva" autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} required minLength={8} />
         <input type="password" className="campo" placeholder="Repítela" aria-label="Repite la contraseña nueva" autoComplete="new-password" value={repetir} onChange={(e) => setRepetir(e.target.value)} required />
         <p className="text-xs text-gris">Al menos 8 caracteres, que no sea solo números ni se parezca a tu nombre.</p>
         {error && <p className="text-sm text-rojo">{error}</p>}

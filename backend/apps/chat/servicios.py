@@ -108,6 +108,10 @@ def crear_grupo(usuario, nombre, departamento=None, miembros=()):
     if len(nombre) < 3:
         raise ValidationError({'nombre': ['Ponle un nombre al grupo (mínimo 3 letras).']})
     ids = {usuario.pk, *[m for m in miembros if m]}
+    from apps.core.permisos import areas_ocultas, sin_areas_ocultas
+    if areas_ocultas(usuario):   # no puede meter en un grupo a personas de áreas que no ve
+        visibles = set(sin_areas_ocultas(usuario, User.objects.filter(pk__in=ids)).values_list('pk', flat=True))
+        ids = {i for i in ids if i in visibles or i == usuario.pk}
     if departamento is not None:  # un grupo por área: entra todo el personal activo de esa área
         ids |= set(User.objects.filter(is_active=True, perfil__puesto_trabajo__departamento=departamento).values_list('pk', flat=True))
     personas = list(User.objects.filter(pk__in=ids, is_active=True))
@@ -326,8 +330,34 @@ def persona(u):
 
 
 def personas_para_chatear(usuario, texto=''):
-    qs = User.objects.filter(is_active=True).exclude(pk=usuario.pk).select_related('perfil__puesto_trabajo__departamento')
+    from apps.core.permisos import sin_areas_ocultas
+    qs = sin_areas_ocultas(usuario, User.objects.filter(is_active=True).exclude(pk=usuario.pk)).select_related('perfil__puesto_trabajo__departamento').distinct()
     for palabra in texto.split():
         qs = qs.filter(Q(first_name__icontains=palabra) | Q(last_name__icontains=palabra) | Q(username__icontains=palabra)
                        | Q(perfil__puesto_trabajo__nombre__icontains=palabra) | Q(perfil__puesto_trabajo__departamento__nombre__icontains=palabra))
     return qs.order_by('first_name', 'last_name', 'username')[:100]
+
+
+MINUTOS_EDITAR = 5
+
+
+def puede_editar(usuario, mensaje, ahora=None):
+    """Solo quien lo envió, sin borrar, y dentro de los 5 minutos desde la hora de envío original."""
+    ahora = ahora or timezone.now()
+    return (mensaje.autor_id == usuario.id and not mensaje.eliminado
+            and ahora - mensaje.creado <= timedelta(minutes=MINUTOS_EDITAR))
+
+
+def editar(mensaje, texto):
+    """Guarda lo que decía antes, cambia el texto (la hora de envío queda igual) y actualiza la vista previa de la conversación."""
+    from .models import EdicionMensaje
+    EdicionMensaje.objects.create(mensaje=mensaje, texto_anterior=mensaje.texto)
+    mensaje.texto = texto
+    mensaje.editado_en = timezone.now()
+    mensaje.menciones = menciones_de(texto, mensaje.conversacion, mensaje.autor)
+    mensaje.save(update_fields=['texto', 'editado_en', 'menciones'])
+    c = mensaje.conversacion
+    if c.ultimo_id == mensaje.id:
+        c.ultimo_texto = (texto or f'📎 {mensaje.archivo_nombre}')[:140]
+        c.save(update_fields=['ultimo_texto'])
+    return mensaje

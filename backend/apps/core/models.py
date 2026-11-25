@@ -188,3 +188,18 @@ class EventoAcceso(models.Model):
         indexes = [models.Index(fields=['usuario', 'tipo', 'fecha']), models.Index(fields=['ip', 'fecha'])]
         verbose_name = 'Evento de acceso'
         verbose_name_plural = 'Eventos de acceso'
+
+
+class AlcanceAreas(models.Model):
+    """Límites por persona sobre qué áreas puede pedir trabajo y qué áreas ve (Accesos y permisos → la persona).
+    - `asignar_a`: con «Asignar tareas a otras áreas», solo a estas áreas (vacío = a todas las permitidas, como siempre).
+    - `ocultas`: no ve al personal de estas áreas en ningún listado ni puede elegirlo (asignar, chat, buscador, organigrama…)."""
+    usuario = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='alcance_areas')
+    asignar_a = models.ManyToManyField(Departamento, blank=True, related_name='+')
+    ocultas = models.ManyToManyField(Departamento, blank=True, related_name='+')
+    actualizado_por = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Alcance por áreas'
+        verbose_name_plural = 'Alcances por áreas'

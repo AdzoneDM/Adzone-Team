@@ -1,5 +1,28 @@
 # Cambios
 
+## 12.68 · 25/11/2026 · Alcance por áreas, clientes para Marketing, edición de mensajes y filtro por departamento
+
+**Alcance por áreas (por persona)**
+- Nueva sección en **Accesos y permisos → la persona → Alcance por áreas**:
+  - **Puede pedir trabajo solo a estas áreas**: limita «Asignar tareas a otras áreas» a las áreas elegidas (vacío = como siempre).
+  - **No ve al personal de estas áreas**: no aparecen al asignar tareas, en el chat (buscar, abrir un privado, grupos), el directorio, el buscador, el organigrama ni en «Quién está libre», y la API rechaza elegirlas aunque se intente directo.
+- Cada cambio queda en la bitácora. Solo lo cambia quien tiene «Personas y accesos» (con el control contra la escalada).
+
+**Clientes**
+- Permiso nuevo **«Gestión de clientes»** y perfil del mismo nombre: consultar, crear, editar y completar clientes (contacto, RNC, dirección, notas). Cada cambio de un cliente queda en la bitácora con quién, cuándo, el antes y el después.
+
+**Contraseña temporal**
+- Una cuenta creada por otra persona, o una contraseña restablecida, es **temporal**: al entrar hay que crear una propia antes de usar nada (como con la contraseña base).
+
+**Chat: editar mensajes**
+- **Editar** tus propios mensajes durante **5 minutos** desde que los enviaste (lápiz junto al mensaje; Enter guarda, Esc cancela). El mensaje cambia en su lugar, sin duplicarse, con la marca **«Editado»**; la hora de envío no cambia.
+- El servidor valida el autor y el plazo (después de 5 minutos o en mensajes ajenos, se rechaza) y guarda lo que decía antes de cada edición. Las otras personas reciben la versión editada sin recargar.
+
+**Mi equipo → Tareas**
+- Filtro **«Por departamento»** junto a «Todo el equipo»: solo muestra las áreas de las personas que cada quien puede ver; se combina con persona, estado, vencidas y «Las que yo asigné». El servidor nunca devuelve tareas fuera de lo permitido aunque se pida otro departamento.
+
+Migraciones `core.0018` (perfil «Gestión de clientes»), `core.0019` (alcance por áreas), `organizacion.0008` (contraseña temporal) y `chat.0011` (edición de mensajes). 8 pruebas nuevas, una por cada punto de validación del requerimiento.
+
 ## 12.67 · 25/11/2026 · Auditoría de seguridad: correcciones y nuevos controles
 
 Informe completo (confidencial): `docs/SEGURIDAD_AUDITORIA_2026-11.md`.

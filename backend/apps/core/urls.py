@@ -35,6 +35,7 @@ urlpatterns = [
     path('accesos/perfiles/<int:pk>/', acc.perfil_view, name='accesos_perfil'),
     path('accesos/personas/', acc.personas_view, name='accesos_personas'),
     path('accesos/personas/<int:pk>/perfiles/', acc.persona_perfiles_view, name='accesos_persona_perfiles'),
+    path('accesos/personas/<int:pk>/alcance/', acc.persona_alcance_view, name='accesos_persona_alcance'),
     path('accesos/excepciones/', acc.excepcion_crear_view, name='accesos_excepcion_crear'),
     path('accesos/excepciones/<int:pk>/', acc.excepcion_view, name='accesos_excepcion'),
     path('accesos/equipo-extra/', acc.equipo_extra_crear_view, name='accesos_equipo_extra_crear'),

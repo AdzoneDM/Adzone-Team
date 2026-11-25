@@ -531,6 +531,7 @@ export const accesosPersonas = () => api("/api/accesos/personas/");
 export const crearPerfilAcceso = (p) => api("/api/accesos/perfiles/", { method: "POST", body: p });
 export const guardarPerfilAcceso = (id, p) => api(`/api/accesos/perfiles/${id}/`, { method: "PATCH", body: p });
 export const borrarPerfilAcceso = (id) => api(`/api/accesos/perfiles/${id}/`, { method: "DELETE" });
+export const alcanceDePersona = (id, datos) => api(`/api/accesos/personas/${id}/alcance/`, { method: "POST", body: datos });
 export const perfilesDePersona = (id, perfiles) => api(`/api/accesos/personas/${id}/perfiles/`, { method: "POST", body: { perfiles } });
 export const crearExcepcion = (e) => api("/api/accesos/excepciones/", { method: "POST", body: e });
 export const borrarExcepcion = (id) => api(`/api/accesos/excepciones/${id}/`, { method: "DELETE" });
@@ -633,6 +634,8 @@ export const chatGrupo = (id) => api(`/api/chat/grupos/${id}/`);
 export const chatGrupoEditar = (id, datos) => api(`/api/chat/grupos/${id}/`, { method: "PATCH", body: datos });
 export const chatGrupoEliminar = (id) => api(`/api/chat/grupos/${id}/`, { method: "DELETE" });
 export const chatBorrar = (id) => api(`/api/chat/mensajes/${id}/`, { method: "DELETE" });
+// Editar tu mensaje (solo durante 5 minutos desde que lo enviaste: el servidor lo valida)
+export const chatEditar = (id, texto) => api(`/api/chat/mensajes/${id}/`, { method: "PATCH", body: { texto } });
 // Evidencia de lectura: quién vio el mensaje (y cuándo), quién lo tiene pendiente y quién abrió el archivo
 export const chatVistos = (id) => api(`/api/chat/mensajes/${id}/vistos/`);
 export const chatAbierto = (id) => api(`/api/chat/mensajes/${id}/abierto/`, { method: "POST" }).catch(() => {});

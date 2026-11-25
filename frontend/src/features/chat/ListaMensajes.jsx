@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, Check, CheckCheck, Download, FileArchive, FileSpreadsheet, FileText, Film, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowDown, Check, CheckCheck, Download, FileArchive, FileSpreadsheet, FileText, Film, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { chatAbierto, urlArchivoChat } from "@/lib/api";
 import { BotonVistos, ModalVistos } from "./Vistos";
 import { Avatar, cx } from "@/components/ui";
@@ -158,8 +158,59 @@ function Visto({ m, lectores, privado, detalle, onVer }) {
     : <span className={clase} title={texto}>{contenido}</span>;
 }
 
-function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo, onVer }) {
+/** ¿Todavía se puede editar? Se vuelve a calcular solo al vencer el plazo (el botón desaparece sin recargar). */
+function useEditable(hasta) {
+  const fin = hasta ? Date.parse(hasta) : 0;
+  const [vigente, setVigente] = useState(() => fin > Date.now());
+  useEffect(() => {
+    if (!fin) { setVigente(false); return undefined; }
+    const falta = fin - Date.now();
+    setVigente(falta > 0);
+    if (falta <= 0) return undefined;
+    const t = setTimeout(() => setVigente(false), Math.min(falta, 2 ** 31 - 1));
+    return () => clearTimeout(t);
+  }, [fin]);
+  return vigente;
+}
+
+/** Editar el texto en la misma burbuja: Enter guarda, Mayús+Enter salta de línea, Esc cancela. */
+function EdicionEnLinea({ m, onGuardar, onCancelar }) {
+  const [texto, setTexto] = useState(m.texto || "");
+  const [guardando, setGuardando] = useState(false);
+  const caja = useRef(null);
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    el.setSelectionRange(el.value.length, el.value.length);
+    el.closest("div.rounded-2xl")?.scrollIntoView({ block: "nearest", behavior: "smooth" });   // que se vea entero, con sus botones
+  }, []);
+  const guardar = async () => {
+    const limpio = texto.trim();
+    if (limpio === (m.texto || "").trim()) { onCancelar(); return; }
+    if (!limpio && !m.archivo) return;
+    setGuardando(true);
+    if (await onGuardar(m.id, limpio)) onCancelar();
+    setGuardando(false);
+  };
+  return (
+    <div className="w-full min-w-64 max-w-md rounded-2xl bg-white p-2 shadow-sm ring-2 ring-azul/40">
+      <textarea ref={caja} value={texto} onChange={(e) => setTexto(e.target.value)} rows={Math.min(8, Math.max(2, texto.split("\n").length))}
+        onKeyDown={(e) => { if (e.key === "Escape") onCancelar(); if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); guardar(); } }}
+        aria-label="Editar mensaje" className="w-full resize-none rounded-lg border-0 p-1 text-[14px] leading-snug text-tinta focus:outline-none focus:ring-0" />
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <span className="mr-auto text-[11px] text-gris">Esc para cancelar · Enter para guardar</span>
+        <button type="button" onClick={onCancelar} className="rounded-lg px-2.5 py-1 text-xs font-medium text-gris hover:bg-fondo">Cancelar</button>
+        <button type="button" onClick={guardar} disabled={guardando || (!texto.trim() && !m.archivo)} className="rounded-lg bg-azul px-3 py-1 text-xs font-semibold text-white hover:bg-azul-700 disabled:opacity-50">{guardando ? "Guardando…" : "Guardar"}</button>
+      </div>
+    </div>
+  );
+}
+
+function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, lectores, ultimoMio, yo, onVer }) {
   const [confirmar, setConfirmar] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const editable = useEditable(mio && onEditar && !m.eliminado ? m.editable_hasta : null);
   if (m.eliminado) {
     return <p className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : privado ? "" : "pl-10")}>Mensaje eliminado</p>;
   }
@@ -169,6 +220,12 @@ function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo, 
       <div className={cx("flex max-w-[85%] flex-col lg:max-w-[75%]", mio ? "items-end" : "items-start")}>
         {primero && !mio && !privado && <span className="mb-0.5 px-1 text-xs font-medium text-gris">{m.autor_nombre}</span>}
         <div className="flex items-center gap-1.5">
+          {editable && !editando && (
+            <button type="button" onClick={() => setEditando(true)} aria-label="Editar mensaje" title="Editar (durante 5 minutos desde que lo enviaste)"
+              className={cx("rounded p-1 text-gris transition-opacity hover:bg-azul/10 hover:text-azul focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100", mio ? "order-first" : "order-last")}>
+              <Pencil className="size-3.5" aria-hidden />
+            </button>
+          )}
           {m.puede_ver_vistos && <BotonVistos onClick={() => onVer(m)} className={cx("sm:opacity-0 sm:group-hover:opacity-100", mio ? "order-first" : "order-last")} />}
           {m.puede_borrar && (
             <button type="button" onClick={() => (confirmar ? onBorrar(m.id) : setConfirmar(true))} onBlur={() => setConfirmar(false)}
@@ -180,7 +237,7 @@ function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo, 
           )}
           <div className={cx("flex min-w-0 flex-col", mio ? "items-end" : "items-start")}>
             {m.archivo && <Adjunto m={m} mio={mio} />}
-            {m.texto && (
+            {editando && editable ? <EdicionEnLinea m={m} onGuardar={onEditar} onCancelar={() => setEditando(false)} /> : m.texto && (
               <p className={cx("whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[14px] leading-snug",
                 mio ? "rounded-br-md bg-azul text-white" : "rounded-bl-md bg-white text-tinta shadow-sm ring-1 ring-linea")}>
                 <TextoLargo texto={m.texto} menciones={m.menciones || []} yo={yo} mio={mio} />
@@ -190,6 +247,7 @@ function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo, 
         </div>
         <div className="flex items-center gap-1.5 px-1 pt-0.5 text-[11px] text-gris">
           <time dateTime={m.creado}>{hora(m.creado)}</time>
+          {m.editado_en && <span title={`Editado a las ${hora(m.editado_en)}`} className="italic">· Editado</span>}
           {mio && <Visto m={m} lectores={lectores} privado={privado} detalle={ultimoMio} onVer={m.puede_ver_vistos ? () => onVer(m) : null} />}
         </div>
       </div>
@@ -198,7 +256,7 @@ function Burbuja({ m, mio, primero, privado, onBorrar, lectores, ultimoMio, yo, 
 }
 
 /** Lista con desplazamiento inteligente: si estás al final sigue los mensajes nuevos; si lees arriba, no te mueve y te avisa. */
-export default function ListaMensajes({ mensajes, lectores = { lista: [], total: 0 }, usuarioId, hayMas, cargando, privado = false, nombreOtro = "", onMas, onBorrar }) {
+export default function ListaMensajes({ mensajes, lectores = { lista: [], total: 0 }, usuarioId, hayMas, cargando, privado = false, nombreOtro = "", onMas, onBorrar, onEditar }) {
   const caja = useRef(null);
   const alFinal = useRef(true);
   const previo = useRef({ n: 0, primero: null, alto: 0 });
@@ -261,7 +319,7 @@ export default function ListaMensajes({ mensajes, lectores = { lista: [], total:
           return (
             <Fragment key={m.id}>
               {nuevoDia && <p className="my-3 text-center text-xs font-medium capitalize text-gris">{dia}</p>}
-              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} lectores={lectores} ultimoMio={m.id === ultimoPropio} yo={usuarioId} onVer={setViendo} />
+              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} onEditar={onEditar} lectores={lectores} ultimoMio={m.id === ultimoPropio} yo={usuarioId} onVer={setViendo} />
             </Fragment>
           );
         })}

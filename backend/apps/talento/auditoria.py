@@ -66,6 +66,7 @@ VIGILADOS = {
     # Cuentas: alta, datos, activación y privilegios de Django (la contraseña se registra aparte, sin su valor)
     'auth.User': ('Cuenta de usuario', ['username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser']),
     'core.PermisosDePerfil': ('Permisos de un perfil', ['permisos', 'descripcion']),
+    'operaciones.Cliente': ('Cliente', ['nombre', 'tipo', 'rnc', 'contacto', 'telefono', 'correo', 'direccion', 'notas', 'activo']),
 }
 
 

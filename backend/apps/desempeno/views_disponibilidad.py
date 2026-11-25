@@ -38,7 +38,8 @@ def disponibilidad_view(request):
     from .views_equipo import _depto_id, _entre_areas_permitido
     u = request.user
     hoy = timezone.localdate()
-    gente = list(User.objects.filter(is_active=True, perfil__puesto_trabajo__isnull=False).exclude(groups__name=GRUPO_AGENTE)
+    from apps.core.permisos import sin_areas_ocultas
+    gente = list(sin_areas_ocultas(u, User.objects.filter(is_active=True, perfil__puesto_trabajo__isnull=False)).exclude(groups__name=GRUPO_AGENTE)
                  .select_related('perfil__puesto_trabajo__departamento').order_by('first_name', 'last_name', 'username').distinct())
     carga = {p.pk: {'abiertas': 0, 'en_revision': 0, 'horas': 0.0, 'proxima': None} for p in gente}
 

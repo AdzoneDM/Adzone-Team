@@ -217,7 +217,9 @@ def login_view(request):
     if request.user.is_authenticated and request.user.pk != user.pk:
         django_logout(request)  # otra cuenta en este navegador: se cierra antes de seguir
     # Contraseña base de las cuentas nuevas: mientras la tenga, la app le pide cambiarla (se sabe al entrar, sin guardar nada más)
-    request.session[SESION_CLAVE_BASE] = password == CLAVE_BASE
+    # …o una contraseña temporal que le puso otra persona (cuenta nueva o restablecida): también la cambia antes de usar nada
+    temporal = bool(getattr(getattr(user, 'perfil', None), 'debe_cambiar_clave', False))
+    request.session[SESION_CLAVE_BASE] = password == CLAVE_BASE or temporal
     if seg.tiene_dos_pasos(user):
         # La contraseña estuvo bien: falta el código de la app. La sesión aún no se abre.
         request.session[PENDIENTE] = {'id': user.pk, 't': int(time.time()), 'recordar': remember_me, 'intentos': 0}
@@ -396,6 +398,8 @@ def cambiar_clave_view(request):
     request.user.save()
     update_session_auth_hash(request, request.user)  # no lo saca de la sesión; las demás sesiones quedan cerradas
     request.session[SESION_CLAVE_BASE] = False
+    from apps.organizacion.models import PerfilUsuario
+    PerfilUsuario.objects.filter(user=request.user).update(debe_cambiar_clave=False)
     accesos.registrar('CLAVE', request, request.user, motivo='Cambió su contraseña (se cerraron sus otras sesiones)')
     from apps.talento.auditoria import auditar
     auditar('Cambió su contraseña', request.user, usuario=request.user)

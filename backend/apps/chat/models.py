@@ -73,6 +73,7 @@ class Mensaje(models.Model):
     archivo_escaneo = models.CharField(max_length=12, blank=True, default='')
     creado = models.DateTimeField(auto_now_add=True, db_index=True)
     # Un mensaje borrado no se elimina de la base (queda constancia), pero deja de mostrar su texto.
+    editado_en = models.DateTimeField(null=True, blank=True, help_text="Última edición (la hora de envío original no cambia).")
     eliminado = models.BooleanField(default=False)
     eliminado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
@@ -113,3 +114,15 @@ class VistaMensaje(models.Model):
         indexes = [models.Index(fields=['usuario', 'mensaje'])]
         verbose_name = 'Lectura de un mensaje'
         verbose_name_plural = 'Lecturas de mensajes'
+
+
+class EdicionMensaje(models.Model):
+    """Lo que decía un mensaje antes de cada edición (trazabilidad: el historial de la conversación no se pierde)."""
+    mensaje = models.ForeignKey(Mensaje, on_delete=models.CASCADE, related_name='ediciones')
+    texto_anterior = models.TextField(max_length=LIMITE_TEXTO, blank=True)
+    editado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['editado_en', 'id']
+        verbose_name = 'Edición de un mensaje'
+        verbose_name_plural = 'Ediciones de mensajes'

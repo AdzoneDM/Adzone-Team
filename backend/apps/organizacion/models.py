@@ -96,6 +96,7 @@ class PerfilUsuario(models.Model):
     # Nada se borra: la información (tareas, chats, evidencias, historial) se conserva en todos los estados.
     ESTADOS_CUENTA = [('ACTIVA', 'Activa'), ('SUSPENDIDA', 'Suspendida'), ('INACTIVA', 'Inactiva (baja)'), ('ELIMINADA', 'Eliminada')]
     estado_cuenta = models.CharField(max_length=10, choices=ESTADOS_CUENTA, default='ACTIVA', db_index=True)
+    debe_cambiar_clave = models.BooleanField(default=False, help_text="Tiene una contraseña temporal (puesta por otra persona): al entrar debe crear la suya.")
     estado_motivo = models.CharField(max_length=300, blank=True, default='')
     estado_desde = models.DateTimeField(null=True, blank=True)
     estado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')

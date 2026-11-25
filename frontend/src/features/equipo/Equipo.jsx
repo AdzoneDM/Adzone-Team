@@ -116,6 +116,7 @@ export default function Equipo() {
   const vista = params.get("ver") || "ahora";
   const mes = params.get("mes") || mesActual();
   const colaborador = params.get("colaborador") || "";
+  const departamento = params.get("departamento") || "";
   const estado = params.get("estado") || "";
   const vencidas = params.get("vencidas") === "1";
   const asignadas = params.get("asignadas") === "1"; // solo las que yo asigné a otras personas
@@ -127,13 +128,20 @@ export default function Equipo() {
   const cargar = useCallback((silencioso) => {
     if (silencioso !== true) setTareas(null);
     // Con una búsqueda de texto se mira en todas las tareas, de cualquier mes
-    listarTareas({ ambito: "equipo", mes: vencidas || buscar ? "" : mes, colaborador, estado, vencidas: vencidas ? "1" : "", buscar, asignadas: asignadas ? "1" : "" })
+    listarTareas({ ambito: "equipo", mes: vencidas || buscar ? "" : mes, colaborador, departamento, estado, vencidas: vencidas ? "1" : "", buscar, asignadas: asignadas ? "1" : "" })
       .then(setTareas).catch((e) => setError(e.message));
-  }, [mes, colaborador, estado, vencidas, buscar, asignadas]);
+  }, [mes, colaborador, departamento, estado, vencidas, buscar, asignadas]);
   useEffect(() => { cargar(); }, [cargar, version]);
   useNovedades(useCallback(() => cargar(true), [cargar]));
   useEffect(() => { cargarEquipo().then(setGente).catch(() => {}); }, []);
 
+  // Departamentos de las personas que puede ver o asignar (nunca áreas a las que no tiene acceso)
+  const departamentos = useMemo(() => {
+    const m = new Map();
+    gente.forEach((g) => { if (g.departamento_id && g.departamento) m.set(String(g.departamento_id), g.departamento); });
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], "es"));
+  }, [gente]);
+  const genteVisible = departamento ? gente.filter((g) => String(g.departamento_id) === departamento) : gente;
   const lista = useMemo(() => [...(tareas || [])].sort((a, b) => a.fecha_limite.localeCompare(b.fecha_limite)), [tareas]);
   const cuenta = (fn) => (tareas || []).filter(fn).length;
   const hoy = hoyISO();
@@ -191,9 +199,16 @@ export default function Equipo() {
         <>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             {!vencidas && !buscar && <SelectorMes valor={mes} onCambio={(v) => poner("mes", v === mesActual() ? "" : v)} hastaActual={false} />}
+            {departamentos.length > 1 && (
+              <select className="campo h-11 w-auto py-0" value={departamento} aria-label="Por departamento"
+                onChange={(e) => { const n = new URLSearchParams(params); if (e.target.value) n.set("departamento", e.target.value); else n.delete("departamento"); n.delete("colaborador"); setParams(n, { replace: true }); }}>
+                <option value="">Todos los departamentos</option>
+                {departamentos.map(([id, nombre]) => <option key={id} value={id}>{nombre}</option>)}
+              </select>
+            )}
             <select className="campo h-11 w-auto py-0" value={colaborador} onChange={(e) => poner("colaborador", e.target.value)} aria-label="Persona">
-              <option value="">Todo el equipo</option>
-              {gente.filter((g) => !g.es_yo).map((g) => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+              <option value="">{departamento ? "Todo el departamento" : "Todo el equipo"}</option>
+              {genteVisible.filter((g) => !g.es_yo).map((g) => <option key={g.id} value={g.id}>{g.nombre}</option>)}
             </select>
             <select className="campo h-11 w-auto py-0" value={estado} onChange={(e) => poner("estado", e.target.value)} aria-label="Estado" disabled={vencidas}>
               <option value="">Todos los estados</option>

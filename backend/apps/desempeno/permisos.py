@@ -149,6 +149,12 @@ def entre_areas(user, colaborador):
     tareas, o con el permiso de otras áreas (menos Dirección y Call Center)."""
     if not (tiene(user, 'tareas.asignar') and colaborador.is_active and colaborador.pk != user.pk) or _de_area_cerrada(colaborador):
         return False
+    from apps.core.permisos import areas_para_asignar, ve_a
+    if not ve_a(user, colaborador):
+        return False
+    permitidas = areas_para_asignar(user)   # límite por persona (Accesos y permisos): solo a esas áreas
+    if permitidas is not None and not any(p.departamento_id in permitidas for p in puestos_de(colaborador)):
+        return False
     if _de_area_de_servicio(colaborador):
         return True
     return bool(tiene(user, 'tareas.otras_areas') and not es_administrador(colaborador))
@@ -168,11 +174,18 @@ def asignables(user):
     servicio = User.objects.filter(is_active=True).exclude(pk=user.pk).filter(
         Q(perfil__puesto_trabajo__departamento__nombre__in=AREAS_DE_SERVICIO) | Q(perfil__puestos_adicionales__departamento__nombre__in=AREAS_DE_SERVICIO)
     ).exclude(cerradas)
+    from apps.core.permisos import areas_para_asignar, sin_areas_ocultas
+    permitidas = areas_para_asignar(user)
+    if permitidas is not None:   # límite por persona: el servicio de Tecnología y las otras áreas, solo dentro de las permitidas
+        en_permitidas = Q(perfil__puesto_trabajo__departamento_id__in=permitidas) | Q(perfil__puestos_adicionales__departamento_id__in=permitidas)
+        servicio = servicio.filter(en_permitidas)
     ids = set(base.values_list('pk', flat=True)) | set(servicio.values_list('pk', flat=True))
     if tiene(user, 'tareas.otras_areas'):
         otras = User.objects.filter(is_active=True).exclude(pk=user.pk).exclude(pk__in=administradores().values('pk')).exclude(cerradas)
+        if permitidas is not None:
+            otras = otras.filter(en_permitidas)
         ids |= set(otras.values_list('pk', flat=True))
-    return User.objects.filter(pk__in=ids, is_active=True)
+    return sin_areas_ocultas(user, User.objects.filter(pk__in=ids, is_active=True)).distinct()
 
 
 def tiene_propias(user):

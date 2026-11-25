@@ -184,7 +184,8 @@ def ve_datos_de_clientes(user):
     cache = getattr(user, '_ve_clientes', None)
     if cache is None:
         from .models import OrdenTrabajo
-        cache = bool(es_finanzas(user) or es_coordinacion(user) or gestiona_algo(user)
+        from apps.core.permisos import tiene
+        cache = bool(es_finanzas(user) or es_coordinacion(user) or gestiona_algo(user) or tiene(user, 'clientes.gestionar')
                      or OrdenTrabajo.objects.filter(asesor_comercial=user).exists())
         user._ve_clientes = cache
     return cache

@@ -268,6 +268,8 @@ class UserSerializer(serializers.ModelSerializer):
         adicionales = validated_data.pop('puestos_adicionales_ids', None)
         user = User.objects.create_user(**validated_data)
         user.perfil.puesto_trabajo = perfil_data.get('puesto_trabajo')
+        # La contraseña la puso otra persona: es temporal y se cambia en el primer inicio de sesión
+        user.perfil.debe_cambiar_clave = bool(validated_data.get('password'))
         for campo in PERFIL_EDITABLE[1:]:
             if campo in perfil_data:
                 setattr(user.perfil, campo, perfil_data[campo])

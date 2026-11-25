@@ -139,6 +139,9 @@ class UserViewSet(viewsets.ModelViewSet):
         nueva_clave = bool(request.data.get('password'))
         respuesta = super().update(request, *args, **kwargs)
         usuario.refresh_from_db()
+        if nueva_clave and respuesta.status_code < 300 and usuario.pk != request.user.pk:
+            usuario.perfil.debe_cambiar_clave = True   # contraseña temporal: al entrar crea la suya
+            usuario.perfil.save(update_fields=['debe_cambiar_clave'])
         if nueva_clave and respuesta.status_code < 300:
             # Contraseña restablecida por otra persona: queda en la bitácora (sin la clave) y la persona se entera
             from apps.core import accesos
@@ -238,12 +241,14 @@ class UserViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 def organigrama_view(request):
     """Árbol de puestos (quién reporta a quién) con las personas de cada puesto."""
+    from apps.core.permisos import areas_ocultas
+    ocultas = areas_ocultas(request.user)
     puestos = list(_puestos())
     nodos = {p.id: {
         'id': p.id, 'nombre': p.nombre, 'departamento': p.departamento.nombre, 'departamento_id': p.departamento_id,
         'funciones': (p.funciones_principales or '').strip()[:260],
         'personas': [{'id': pf.user_id, 'nombre': pf.user.get_full_name() or pf.user.username}
-                     for pf in p.perfiles_usuarios.all() if pf.user.is_active],
+                     for pf in p.perfiles_usuarios.all() if pf.user.is_active and p.departamento_id not in ocultas],
         'hijos': [],
     } for p in puestos}
     raices = []
