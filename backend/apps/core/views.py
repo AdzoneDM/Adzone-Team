@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login as django_login, logout as d
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -124,6 +124,18 @@ class LoginUsuarioThrottle(SimpleRateThrottle):
         return self.cache_format % {'scope': self.scope, 'ident': f'{self.get_ident(request)}|{quien}'}
 
 
+def exigir_csrf(request):
+    """CSRF también antes de tener sesión (entrada, clave general y segundo paso): otra web no puede iniciar sesión en el
+    navegador de alguien. DRF solo lo exige con sesión iniciada, y `csrf_protect` no sirve sobre una vista de DRF."""
+    from rest_framework.authentication import CSRFCheck
+    from rest_framework.exceptions import PermissionDenied
+    verificador = CSRFCheck(lambda r: None)
+    verificador.process_request(request._request)
+    motivo = verificador.process_view(request._request, None, (), {})
+    if motivo:
+        raise PermissionDenied('Recarga la página e inténtalo de nuevo (falta el token de seguridad).')
+
+
 def cuenta_de(request):
     """La cuenta a la que apunta un intento de entrada, resuelta igual que la usa el login (minúsculas)."""
     user_id = request.data.get('user_id')
@@ -157,13 +169,13 @@ class LoginThrottle(AnonRateThrottle):
         return self.cache_format % {'scope': self.scope, 'ident': self.get_ident(request)}
 
 
-@csrf_protect
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([LoginThrottle, LoginUsuarioThrottle])
 def login_view(request):
     """Entrar con usuario o correo, o con la persona elegida en el directorio (user_id) si el
     dispositivo ya pasó la clave general. Máximo 10 intentos por minuto desde una misma conexión."""
+    exigir_csrf(request)
     identificador = (request.data.get('username') or '').strip()
     user_id = request.data.get('user_id')
     password = request.data.get('password') or ''
@@ -242,12 +254,12 @@ def datos_sesion(request, user):
     return d
 
 
-@csrf_protect
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([LoginThrottle])
 def dos_pasos_login_view(request):
     """Segundo paso de la entrada: el código de la app (o uno de respaldo). Cinco intentos y cinco minutos."""
+    exigir_csrf(request)
     from .models import DosPasos
     p = request.session.get(PENDIENTE)
     if not p or time.time() - p['t'] > 300 or p['intentos'] >= 5:
@@ -294,12 +306,12 @@ def session_view(request):
     return Response({'isAuthenticated': True, 'user': datos_sesion(request, request.user)}, status=status.HTTP_200_OK)
 
 
-@csrf_protect
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([LoginThrottle, EquipoThrottle])
 def equipo_view(request):
     """Primer paso de la entrada: la clave general del equipo. Desbloquea el directorio en este dispositivo."""
+    exigir_csrf(request)
     if not clave_configurada():
         return Response({'error': 'El administrador todavía no definió la clave general del equipo.'},
                         status=status.HTTP_400_BAD_REQUEST)

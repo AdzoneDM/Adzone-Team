@@ -209,3 +209,15 @@ class DetrasDelProxyTests(Base):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(EventoAcceso.objects.get(tipo='ENTRADA').ip, '190.80.9.9')   # la IP real, no la del proxy
         self.assertEqual(EventoAcceso.objects.get(tipo='FALLO').ip, '190.80.9.9')
+
+
+class CsrfEnLaEntradaTests(Base):
+    def test_sin_token_no_se_entra_y_con_token_si(self):
+        c = APIClient(enforce_csrf_checks=True)
+        r = c.post('/api/auth/login/', {'username': 'ana', 'password': CLAVE}, format='json')
+        self.assertEqual(r.status_code, 403)
+        c.get('/api/auth/session/')   # entrega la cookie csrftoken, como hace la app al abrir
+        token = c.cookies['csrftoken'].value
+        r = c.post('/api/auth/login/', {'username': 'ana', 'password': CLAVE}, format='json', HTTP_X_CSRFTOKEN=token)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(APIClient(enforce_csrf_checks=True).post('/api/auth/equipo/', {'clave': 'x'}, format='json').status_code, 403)
