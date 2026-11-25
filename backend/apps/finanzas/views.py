@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
 from rest_framework import permissions, serializers, status, viewsets
@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from apps.operaciones.models import OrdenTrabajo
 from apps.operaciones.permisos import es_finanzas
 from . import servicios
-from .models import AdjuntoFactura, Cotizacion, Factura, Gasto, Pago, redondear
+from .models import DIAS_VENCE_PRONTO, AdjuntoFactura, Cotizacion, Factura, Gasto, Pago, redondear
 from .serializers import CotizacionSerializer, FacturaSerializer, GastoSerializer, PagoSerializer
 
 
@@ -33,6 +33,27 @@ def _fecha(texto, defecto):
         return date.fromisoformat(texto)
     except (TypeError, ValueError):
         return defecto
+
+
+def _filtro_vencimiento(qs, p):
+    """Solo facturas: rango de fechas de vencimiento (`vence_desde`, `vence_hasta`) y situación de cobro (`situacion` = vencida, por_vencer o pendiente).
+    Se combina con los demás filtros; `ordenar=vencimiento` pone primero las que vencen antes."""
+    hoy = timezone.localdate()
+    if _fecha(p.get('vence_desde'), None):
+        qs = qs.filter(vencimiento__gte=_fecha(p['vence_desde'], None))
+    if _fecha(p.get('vence_hasta'), None):
+        qs = qs.filter(vencimiento__lte=_fecha(p['vence_hasta'], None))
+    limite = hoy + timedelta(days=DIAS_VENCE_PRONTO)
+    situacion = p.get('situacion')
+    if situacion == 'vencida':
+        qs = qs.filter(estado='EMITIDA', vencimiento__lt=hoy)
+    elif situacion == 'por_vencer':
+        qs = qs.filter(estado='EMITIDA', vencimiento__gte=hoy, vencimiento__lte=limite)
+    elif situacion == 'pendiente':
+        qs = qs.filter(estado='EMITIDA').filter(Q(vencimiento__isnull=True) | Q(vencimiento__gt=limite))
+    if p.get('ordenar') == 'vencimiento':
+        qs = qs.order_by(F('vencimiento').asc(nulls_last=True), 'id')
+    return qs
 
 
 def _filtros(qs, p):
@@ -227,7 +248,7 @@ class FacturaViewSet(viewsets.ModelViewSet):
             qs = qs.filter(estado='EMITIDA', vencimiento__lt=timezone.localdate())
         if self.request.query_params.get('por_cobrar') == '1':
             qs = qs.filter(estado='EMITIDA')
-        return qs
+        return _filtro_vencimiento(qs, self.request.query_params)
 
     def perform_create(self, serializer):
         f = serializer.save(creada_por=self.request.user)
@@ -479,6 +500,7 @@ class FacturaViewSet(viewsets.ModelViewSet):
             qs = qs.filter(estado='EMITIDA', vencimiento__lt=hoy)
         if p.get('por_cobrar') == '1':
             qs = qs.filter(estado='EMITIDA')
+        qs = _filtro_vencimiento(qs, p)
         w.writerow(['Número', 'Fecha', 'Cliente', 'RNC', 'Título', 'Estado', 'NCF', 'Moneda', 'Subtotal', 'ITBIS', 'Total', 'Pagado', 'Saldo',
                     'Vencimiento', 'Días de atraso', 'Pagos', 'Último pago', 'Comprobantes de pago', 'Imágenes y documentos', 'Orden', 'Cotización'])
         totales = {}
@@ -634,6 +656,10 @@ def resumen_view(request):
         'resultado': redondear(facturado - gastos),
         'por_cobrar': redondear(sum((f.saldo for f in por_cobrar), Decimal('0'))),
         'vencido': redondear(sum((f.saldo for f in por_cobrar if f.vencida), Decimal('0'))),
+        'vencidas_n': sum(1 for f in por_cobrar if f.situacion == 'VENCIDA'),
+        'por_vencer': redondear(sum((f.saldo for f in por_cobrar if f.situacion == 'POR_VENCER'), Decimal('0'))),
+        'por_vencer_n': sum(1 for f in por_cobrar if f.situacion == 'POR_VENCER'),
+        'dias_vence_pronto': DIAS_VENCE_PRONTO,
         'antiguedad': servicios.antiguedad(hoy),
         'gastos_por_categoria': [{'categoria': k, 'monto': redondear(v)} for k, v in sorted(por_categoria.items(), key=lambda x: -x[1])],
         'deudores': sorted(deudores.values(), key=lambda d: -d['saldo'])[:8],

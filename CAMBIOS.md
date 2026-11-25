@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.57 · 25/11/2026 · Requerimiento #10, etapa 3: control y seguimiento de vencimientos
+
+- **Cuánto falta o cuánto lleva de atraso:** en la lista y en el detalle de cada factura por cobrar aparece «Faltan 3 días», «Vence hoy», «Vence mañana» o «12 días de atraso», con color (gris al día, ámbar cerca, rojo vencida).
+- **Situaciones diferenciadas:** **Por vencer** (vence en los próximos 7 días), **Vencida**, Pendiente (al día), Pagada, Borrador y Anulada. Una factura con pago parcial sigue vencida hasta cobrarse completa.
+- **Filtros:** nuevo «Por vencer» en el selector, y un **rango «Vence desde / hasta»** que se combina con todo lo demás (estado, cliente, búsqueda). Al filtrar por vencimiento la lista se ordena por quién vence primero. El **reporte descargable usa los mismos filtros** que la pantalla.
+- **Resumen de Finanzas:** «Por cobrar» indica cuánto vence en los próximos 7 días y «Vencido» cuántas facturas son.
+- **Recordatorios automáticos** (con la tarea diaria del servidor) a Finanzas y Dirección: 3 días antes, el día del vencimiento, y a 1, 7, 15 y 30 días de atraso. Cada hito avisa **una sola vez** por factura (no se repite si la tarea corre dos veces), solo de lo que sigue sin cobrar, y el aviso lleva directo a la factura.
+- Sin migraciones: todo se calcula con los datos que ya existían. 20 pruebas nuevas.
+
 ## 12.56 · 24/11/2026 · Requerimiento #10, etapa 2: historial y trazabilidad de las facturas
 
 - **Sección «Historial» en el detalle de cada factura** (se abre con «Ver quién hizo qué»): lo más reciente primero, con quién lo hizo y cuándo.

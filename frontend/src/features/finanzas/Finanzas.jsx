@@ -5,7 +5,7 @@ import { ChevronDown, Download, FileSpreadsheet, FileText, Paperclip, Pencil, Pl
 import { eliminarDocumento, facturarOrden, guardarGasto, listarDocumentos, listarProyectos, obtenerDocumento, rentabilidad, resumenFinanzas, urlReporteFacturas } from "@/lib/api";
 import { dinero, fechaCorta, hoyISO, horas, mesActual } from "@/lib/formato";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, Panel, Pestanas, SelectorMes, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
-import { DetalleDocumento, EditorDocumento, EstadoDoc } from "./documentos";
+import { DetalleDocumento, EditorDocumento, EstadoDoc, textoVence } from "./documentos";
 import Cashflow from "./Cashflow";
 import RentabilidadOT from "./RentabilidadOT";
 
@@ -39,8 +39,8 @@ function Resumen({ onFacturar }) {
         <Tarjeta etiqueta="Cobrado" valor={dinero(d.cobrado)} tono="text-verde" />
         <Tarjeta etiqueta="Gastos" valor={dinero(d.gastos)} />
         <Tarjeta etiqueta="Resultado del mes" valor={dinero(d.resultado)} tono={Number(d.resultado) < 0 ? "text-rojo" : "text-noche"} nota="Facturado − gastos" />
-        <Tarjeta etiqueta="Por cobrar" valor={dinero(d.por_cobrar)} tono="text-[#a86a00]" />
-        <Tarjeta etiqueta="Vencido" valor={dinero(d.vencido)} tono={Number(d.vencido) > 0 ? "text-rojo" : ""} />
+        <Tarjeta etiqueta="Por cobrar" valor={dinero(d.por_cobrar)} tono="text-[#a86a00]" nota={d.por_vencer_n > 0 ? `${dinero(d.por_vencer)} vence en ${d.dias_vence_pronto} días (${d.por_vencer_n})` : undefined} />
+        <Tarjeta etiqueta="Vencido" valor={dinero(d.vencido)} tono={Number(d.vencido) > 0 ? "text-rojo" : ""} nota={d.vencidas_n > 0 ? `${d.vencidas_n} ${d.vencidas_n === 1 ? "factura" : "facturas"}` : undefined} />
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
         <Panel titulo="Órdenes listas o entregadas sin facturar" cuerpo="p-0">
@@ -95,11 +95,14 @@ function Resumen({ onFacturar }) {
   );
 }
 
+// Cómo se pide cada opción del selector de facturas (la lista y el reporte usan lo mismo, para que coincidan)
+const paramsDeFiltro = (filtro) => filtro === "vencidas" ? { situacion: "vencida" } : filtro === "por_vencer" ? { situacion: "por_vencer" } : filtro === "por_cobrar" ? { por_cobrar: 1 } : filtro ? { estado: filtro } : {};
+
 /** Descargar el reporte en Excel: las facturas (con lo filtrado en pantalla) o los pagos con su comprobante, por rango de fechas. */
-function ReporteFacturas({ filtro }) {
+function ReporteFacturas({ filtro, extra = {} }) {
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const filtros = filtro === "vencidas" ? { vencidas: 1 } : filtro === "por_cobrar" ? { por_cobrar: 1 } : filtro ? { estado: filtro } : {};
+  const filtros = { ...paramsDeFiltro(filtro), ...extra };
   const rango = { ...(desde && { desde }), ...(hasta && { hasta }) };
   const cierra = (e) => { const d = e.currentTarget.closest("details"); setTimeout(() => d?.removeAttribute("open"), 100); };
   return (
@@ -131,13 +134,16 @@ function ListaDocumentos({ tipo, abrirId }) {
   const [lista, setLista] = useState(null);
   const [filtro, setFiltro] = useState("");
   const [buscar, setBuscar] = useState("");
+  const [venceDesde, setVenceDesde] = useState("");   // rango de fecha de vencimiento (solo facturas)
+  const [venceHasta, setVenceHasta] = useState("");
   const [detalle, setDetalle] = useState(null);
   const [editor, setEditor] = useState(null);
   const esCot = tipo === "cotizaciones";
   const cargar = useCallback(() => {
-    const p = esCot ? { estado: filtro } : filtro === "vencidas" ? { vencidas: 1 } : filtro === "por_cobrar" ? { por_cobrar: 1 } : { estado: filtro };
+    const p = esCot ? { estado: filtro } : { ...paramsDeFiltro(filtro), ...(venceDesde && { vence_desde: venceDesde }), ...(venceHasta && { vence_hasta: venceHasta }),
+      ...((filtro === "por_vencer" || filtro === "vencidas" || venceDesde || venceHasta) && { ordenar: "vencimiento" }) };
     listarDocumentos(tipo, p).then(setLista).catch((e) => avisar(e.message, "rojo"));
-  }, [tipo, filtro, esCot, avisar]);
+  }, [tipo, filtro, esCot, venceDesde, venceHasta, avisar]);
   useEffect(() => { cargar(); }, [cargar]);
   useEffect(() => { if (abrirId) obtenerDocumento(tipo, abrirId).then(setDetalle).catch(() => {}); }, [abrirId, tipo]);
   const cerrar = () => { setDetalle(null); params.delete("id"); setParams(params, { replace: true }); };
@@ -145,7 +151,7 @@ function ListaDocumentos({ tipo, abrirId }) {
   const filtrada = useMemo(() => (lista || []).filter((d) => !buscar || `${d.numero} ${d.cliente_nombre} ${d.titulo} ${d.ncf || ""}`.toLowerCase().includes(buscar.toLowerCase())), [lista, buscar]);
   const opciones = esCot
     ? [["", "Todas"], ["BORRADOR,ENVIADA", "Abiertas"], ["APROBADA", "Aprobadas"], ["RECHAZADA", "Rechazadas"]]
-    : [["", "Todas"], ["por_cobrar", "Por cobrar"], ["vencidas", "Vencidas"], ["BORRADOR", "Borradores"], ["PAGADA", "Pagadas"]];
+    : [["", "Todas"], ["por_cobrar", "Por cobrar"], ["por_vencer", "Por vencer"], ["vencidas", "Vencidas"], ["BORRADOR", "Borradores"], ["PAGADA", "Pagadas"]];
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -156,8 +162,15 @@ function ListaDocumentos({ tipo, abrirId }) {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" />
           <input className="campo h-11 pl-9" placeholder="Número, cliente o NCF" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar" />
         </div>
+        {!esCot && (
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Fecha de vencimiento">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-gris">Vence desde<input type="date" className="campo h-11 w-auto" value={venceDesde} onChange={(e) => setVenceDesde(e.target.value)} /></label>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-gris">hasta<input type="date" className="campo h-11 w-auto" value={venceHasta} min={venceDesde || undefined} onChange={(e) => setVenceHasta(e.target.value)} /></label>
+            {(venceDesde || venceHasta) && <button type="button" onClick={() => { setVenceDesde(""); setVenceHasta(""); }} className="text-xs font-medium text-azul hover:underline">Quitar fechas</button>}
+          </div>
+        )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          {!esCot && <ReporteFacturas filtro={filtro} />}
+          {!esCot && <ReporteFacturas filtro={filtro} extra={{ ...(venceDesde && { vence_desde: venceDesde }), ...(venceHasta && { vence_hasta: venceHasta }) }} />}
           <Boton icono={Plus} onClick={() => setEditor({})}>{esCot ? "Nueva cotización" : "Nueva factura"}</Boton>
         </div>
       </div>
@@ -175,7 +188,7 @@ function ListaDocumentos({ tipo, abrirId }) {
                   {!esCot && <td className={cx("hidden whitespace-nowrap text-sm md:table-cell", d.vencida && "font-medium text-rojo")}>{d.vencimiento ? fechaCorta(d.vencimiento) : "—"}</td>}
                   <td className="whitespace-nowrap text-right num">{dinero(d.total, d.moneda)}</td>
                   {!esCot && <td className="whitespace-nowrap text-right num">{d.estado === "ANULADA" ? "—" : dinero(d.saldo, d.moneda)}</td>}
-                  <td><EstadoDoc doc={d} /></td>
+                  <td><EstadoDoc doc={d} />{!esCot && textoVence(d) && <p className={cx("mt-0.5 whitespace-nowrap text-xs", textoVence(d).clase)}>{textoVence(d).texto}</p>}</td>
                 </tr>
               ))}
             </tbody>

@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import AdjuntoFactura, Cotizacion, Factura, Gasto, LineaCotizacion, LineaFactura, Pago
+from .models import SITUACIONES, AdjuntoFactura, Cotizacion, Factura, Gasto, LineaCotizacion, LineaFactura, Pago
 
 
 class LineaSerializer(serializers.Serializer):
@@ -120,15 +120,21 @@ class FacturaSerializer(DocumentoSerializer):
     MODELO_LINEA = LineaFactura
     saldo = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     vencida = serializers.BooleanField(read_only=True)
+    dias_para_vencer = serializers.IntegerField(read_only=True)
+    situacion = serializers.CharField(read_only=True)
+    situacion_nombre = serializers.SerializerMethodField()
     pagos = PagoSerializer(many=True, read_only=True)
     adjuntos = AdjuntoSerializer(many=True, read_only=True)
     orden_numero = serializers.CharField(source='orden.codigo', read_only=True, default=None)
     cotizacion_numero = serializers.CharField(source='cotizacion.numero', read_only=True, default=None)
 
+    def get_situacion_nombre(self, f):
+        return SITUACIONES[f.situacion]
+
     class Meta:
         model = Factura
         fields = DocumentoSerializer.BASE + ['vencimiento', 'ncf', 'orden', 'orden_numero', 'cotizacion', 'cotizacion_numero',
-                                             'pagado', 'saldo', 'vencida', 'pagos', 'adjuntos', 'es_anticipo']
+                                             'pagado', 'saldo', 'vencida', 'dias_para_vencer', 'situacion', 'situacion_nombre', 'pagos', 'adjuntos', 'es_anticipo']
         read_only_fields = ['numero', 'subtotal', 'itbis', 'total', 'estado', 'pagado', 'cotizacion', 'cashflow_id',
                             'cashflow_numero', 'cashflow_estado', 'cashflow_sincronizado']
 

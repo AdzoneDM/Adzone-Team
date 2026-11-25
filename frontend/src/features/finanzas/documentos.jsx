@@ -10,11 +10,23 @@ import { Alerta, Boton, Campo, Modal, cx, useAviso, useConfirmar } from "@/compo
 export const TONO_DOC = {
   BORRADOR: "bg-linea-suave text-tinta", ENVIADA: "bg-azul/10 text-azul", APROBADA: "bg-verde-50 text-verde", RECHAZADA: "bg-rojo-50 text-[#a3170f]",
   EMITIDA: "bg-azul/10 text-azul", PAGADA: "bg-verde text-white", ANULADA: "bg-linea-suave text-gris line-through", VENCIDA: "bg-rojo text-white",
+  POR_VENCER: "bg-amarillo-50 text-[#8a5a00]",
 };
 export const EstadoDoc = ({ doc }) => {
-  const e = doc.vencida ? "VENCIDA" : doc.estado;
-  return <span className={cx("whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium", TONO_DOC[e])}>{doc.vencida ? "Vencida" : doc.estado_nombre}</span>;
+  const e = doc.vencida ? "VENCIDA" : doc.situacion === "POR_VENCER" ? "POR_VENCER" : doc.estado;
+  return <span className={cx("whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium", TONO_DOC[e])}>{doc.vencida ? "Vencida" : e === "POR_VENCER" ? "Por vencer" : doc.estado_nombre}</span>;
 };
+
+/** Cuánto falta (o cuánto lleva de atraso) una factura por cobrar. Solo aparece en facturas emitidas con saldo y fecha de vencimiento. */
+export function textoVence(doc) {
+  const d = doc?.dias_para_vencer;
+  if (d == null) return null;
+  const plural = (n) => `${n} ${n === 1 ? "día" : "días"}`;
+  if (d < 0) return { texto: `${plural(-d)} de atraso`, clase: "font-medium text-rojo" };
+  if (d === 0) return { texto: "Vence hoy", clase: "font-medium text-[#a86a00]" };
+  if (d === 1) return { texto: "Vence mañana", clase: "font-medium text-[#a86a00]" };
+  return { texto: `Faltan ${plural(d)}`, clase: doc.situacion === "POR_VENCER" ? "font-medium text-[#a86a00]" : "text-gris" };
+}
 
 const ITBIS = 0.18;
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -370,6 +382,7 @@ export function DetalleDocumento({ tipo, doc, onCerrar, onCambio, onEditar }) {
           <span className="text-gris">Fecha {fechaCorta(doc.fecha)}</span>
           {esCot && doc.valida_hasta && <span className="text-gris">Válida hasta {fechaCorta(doc.valida_hasta)}</span>}
           {!esCot && doc.vencimiento && <span className={cx(doc.vencida ? "font-medium text-rojo" : "text-gris")}>Vence {fechaCorta(doc.vencimiento)}</span>}
+          {!esCot && textoVence(doc) && <span className={textoVence(doc).clase}>· {textoVence(doc).texto}</span>}
           {doc.orden && <Link to={`/ordenes/${doc.orden}`} className="text-azul hover:underline">{doc.orden_numero}</Link>}
           {doc.cotizacion_numero && <span className="text-gris">De {doc.cotizacion_numero}</span>}
           {doc.es_anticipo && <span className="rounded-full bg-azul/10 px-2 py-0.5 text-xs font-medium text-azul">Anticipo</span>}

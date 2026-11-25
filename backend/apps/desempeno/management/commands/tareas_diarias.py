@@ -18,6 +18,13 @@ class Command(BaseCommand):
         vencidas = avisar_vencidas()
         if vencidas:
             self.stdout.write(f'Tareas vencidas avisadas: {vencidas}.')
+        try:
+            from apps.finanzas.servicios import avisar_vencimientos
+            cobros = avisar_vencimientos()
+            if cobros:
+                self.stdout.write(f'Recordatorios de cobro a Finanzas: {cobros}.')
+        except Exception as e:  # noqa: BLE001 (un fallo aquí nunca detiene el resto de las tareas del día)
+            self.stderr.write(f'Recordatorios de cobro no generados: {e}')
         from apps.automatizaciones.motor import revisar_vencimientos
         reglas = revisar_vencimientos()
         from apps.operaciones.servicios_ot import revisar_excepciones

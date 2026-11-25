@@ -23,6 +23,10 @@ def redondear(x):
     return Decimal(x).quantize(DOS, rounding=ROUND_HALF_UP)
 
 
+DIAS_VENCE_PRONTO = 7   # una factura que vence dentro de este plazo se marca «por vencer»
+SITUACIONES = {'BORRADOR': 'Borrador', 'ANULADA': 'Anulada', 'PAGADA': 'Pagada', 'VENCIDA': 'Vencida', 'POR_VENCER': 'Por vencer', 'PENDIENTE': 'Pendiente'}
+
+
 class Documento(models.Model):
     """Lo común de cotizaciones y facturas."""
     numero = models.CharField(max_length=20, unique=True, editable=False)
@@ -114,6 +118,25 @@ class Factura(Documento):
     @property
     def vencida(self):
         return self.estado == 'EMITIDA' and self.vencimiento and self.vencimiento < timezone.localdate() and self.saldo > 0
+
+    @property
+    def dias_para_vencer(self):
+        """Días que faltan para el vencimiento (negativo = días de atraso). Solo aplica a una factura emitida con saldo y fecha de vencimiento."""
+        if self.estado != 'EMITIDA' or not self.vencimiento or self.saldo <= 0:
+            return None
+        return (self.vencimiento - timezone.localdate()).days
+
+    @property
+    def situacion(self):
+        """Dónde está la factura respecto al cobro: BORRADOR, ANULADA, PAGADA, VENCIDA, POR_VENCER (en los próximos DIAS_VENCE_PRONTO días) o PENDIENTE."""
+        if self.estado in ('BORRADOR', 'ANULADA', 'PAGADA'):
+            return self.estado
+        if self.saldo <= 0:
+            return 'PAGADA'
+        dias = self.dias_para_vencer
+        if dias is None:
+            return 'PENDIENTE'
+        return 'VENCIDA' if dias < 0 else 'POR_VENCER' if dias <= DIAS_VENCE_PRONTO else 'PENDIENTE'
 
     def actualizar_pagos(self):
         # Se consulta la base (no el prefetch): el pago recién creado tiene que contar.

@@ -163,6 +163,43 @@ def registrar_pago(factura, quien, monto, **datos):
     return pago
 
 
+# Días respecto al vencimiento en los que se recuerda el cobro (negativo = días de atraso): 3 antes, el mismo día, y 1, 7, 15 y 30 de atraso.
+HITOS_VENCIMIENTO = (3, 0, -1, -7, -15, -30)
+
+
+def _texto_hito(dias):
+    if dias > 0:
+        return f"vence en {dias} días"
+    if dias == 0:
+        return "vence hoy"
+    return "venció ayer" if dias == -1 else f"lleva {-dias} días vencida"
+
+
+def avisar_vencimientos(hoy=None):
+    """Recordatorio para Finanzas de las facturas por cobrar que se acercan a vencer o ya vencieron (para el cron diario).
+    Solo en los hitos de HITOS_VENCIMIENTO y una vez por hito: si el cron corre dos veces el mismo día no repite el aviso. Devuelve cuántos avisos creó."""
+    from django.contrib.auth.models import User
+    from apps.desempeno.models import Notificacion
+    from apps.operaciones.permisos import es_finanzas
+    hoy = hoy or timezone.localdate()
+    facturas = [f for f in Factura.objects.filter(estado='EMITIDA', vencimiento__isnull=False).select_related('cliente')
+                if f.saldo > 0 and (f.vencimiento - hoy).days in HITOS_VENCIMIENTO]
+    if not facturas:
+        return 0
+    destinatarios = [u for u in User.objects.filter(is_active=True) if es_finanzas(u)]
+    creados = 0
+    for f in facturas:
+        dias = (f.vencimiento - hoy).days
+        titulo = f"{f.numero}: {_texto_hito(dias)}"
+        mensaje = f"{f.cliente.nombre} · saldo {f.saldo:,.2f} {f.moneda} · vence el {f.vencimiento:%d/%m/%Y}"
+        ya = set(Notificacion.objects.filter(tipo='FINANZAS', titulo=titulo, destinatario__in=destinatarios).values_list('destinatario_id', flat=True))
+        nuevos = [u for u in destinatarios if u.pk not in ya]
+        if nuevos:
+            avisar(nuevos, 'FINANZAS', titulo, mensaje, enlace=f"/finanzas?ver=facturas&id={f.pk}")
+            creados += len(nuevos)
+    return creados
+
+
 def gastos_de(proyecto=None, orden=None):
     qs = Gasto.objects.all()
     if proyecto:
