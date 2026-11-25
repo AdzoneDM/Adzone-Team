@@ -124,3 +124,8 @@
   body { background: #fff !important; }
   .lg\:pl-64 { padding-left: 0 !important; }
 }
+
+/* Recarga suave al validar/entregar: la pantalla reaparece con un fundido casi imperceptible */
+@keyframes recarga-suave { from { opacity: .82; } to { opacity: 1; } }
+.recarga-suave { animation: recarga-suave 260ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .recarga-suave { animation: none; } }

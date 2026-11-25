@@ -202,8 +202,9 @@ export const RECETAS = [
   { id: "buscar", titulo: "Encontrar algo rápido", pasos: [
     { objetivo: ["[data-guia=buscar]", "[data-guia=buscar-movil]"], titulo: "Buscar", texto: "Escribe el número de OT, el nombre del cliente, un proyecto o una tarea. En la PC: Ctrl + K o /." },
   ] },
-  { id: "instalar", titulo: "Instalar la app en el celular", pasos: [
-    { titulo: "Como una app", texto: "En Android (Chrome): menú ⋮ → «Instalar app» o «Agregar a la pantalla principal». En iPhone (Safari): botón Compartir → «Agregar a inicio». Así abres Adzone Team con un toque y recibes los avisos más rápido." },
+  { id: "instalar", titulo: "Instalar la app (celular o computadora)", pasos: [
+    { objetivo: ["[data-guia=instalar]"], titulo: "Botón Instalar", texto: "Arriba, junto a la campanita, está el botón de instalar (flecha hacia abajo). Tócalo: si tu navegador lo permite se instala con un toque; si no, te muestra los pasos. Desaparece cuando la app ya está instalada." },
+    { titulo: "Como una app", texto: "En computadora (Chrome o Edge): ícono de instalar en la barra de direcciones. En Android (Chrome): menú ⋮ → «Instalar app» o «Agregar a la pantalla principal». En iPhone (Safari): botón Compartir → «Agregar a inicio». Así abres Adzone Team con un toque y recibes los avisos más rápido." },
   ] },
   { id: "contrasena", titulo: "Cambiar mi contraseña", pasos: [
     { ruta: "/mi-cuenta", objetivo: TITULO, titulo: "Mi cuenta", texto: "Escribe tu contraseña actual y la nueva dos veces. En la PC, «Mi cuenta» está abajo a la izquierda; en el celular, en «Más»." },

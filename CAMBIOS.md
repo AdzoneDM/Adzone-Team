@@ -1,5 +1,18 @@
 # Cambios
 
+## 12.61 · 25/11/2026 · Recarga suave al validar y botón «Instalar app» siempre a la vista
+
+**Recarga suave (como Ctrl+R, casi sin notarse)**
+- Cuando alguien **entrega, valida, devuelve, reabre o cancela** una tarea, la pantalla que cada persona tiene abierta **se vuelve a cargar entera** con datos nuevos (en unos 10 segundos; quien valida, al instante), con un fundido muy breve. No es una recarga de la página: no se cierra la sesión, no se pierde el menú y la pantalla vuelve a la **misma altura** donde estabas.
+- **No interrumpe:** si la persona está **escribiendo**, tiene una **ventana abierta** (por ejemplo, un formulario) o **texto seleccionado**, espera a que termine y recarga después. Con la pestaña oculta, recarga al volver.
+- **«Por validar» no se recarga entera** (perderías la tarea que estás revisando y lo que escribiste): sigue con su refresco silencioso de la 12.60.
+
+**Botón «Instalar app» (celular, tablet y computadora)**
+- Botón fijo arriba, junto a la campanita (en computadora dice «Instalar app»; en celular es el ícono de descarga). Está **siempre** mientras la app no esté instalada en ese dispositivo y desaparece al instalarla.
+- Si el navegador lo permite (Chrome y Edge en Android y computadora) se instala con un toque. Si no (iPhone, Safari en Mac, Firefox), muestra los pasos exactos para ese dispositivo.
+- La franja «Instala Adzone Team» ahora también aparece en computadora (antes solo en celular). La guía «¿Cómo hago…? → Instalar la app» señala el nuevo botón.
+- Solo frontend; sin migraciones.
+
 ## 12.60 · 25/11/2026 · «Por validar» rediseñado, «Quién está libre» más claro y refresco silencioso
 
 **Por validar**

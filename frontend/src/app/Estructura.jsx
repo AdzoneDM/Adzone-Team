@@ -15,6 +15,7 @@ import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/ti
 import { esAlertaTarea } from "@/lib/alertas";
 import { sonarAlerta, sonarNotificacion } from "@/lib/sonido";
 import { anunciarNovedades } from "@/lib/novedades";
+import { pedirRecargaSuave, useRecargaSuave } from "@/lib/recargaSuave";
 import { useRecordarPosicion } from "@/lib/posicion";
 import LimiteDeErrores from "@/components/LimiteDeErrores";
 import { GuiaProvider, useGuia } from "@/app/Guia";
@@ -25,7 +26,7 @@ import { mostrarAvisoLocal, permisoNotificaciones, recibePush } from "@/lib/noti
 import AlertaTarea from "@/app/AlertaTarea";
 import AlertaClaveBase from "@/features/cuenta/AlertaClaveBase";
 import ChatFlotante from "@/features/chat/ChatFlotante";
-import { SugerenciaApp } from "@/features/cuenta/AvisosCelular";
+import { BotonInstalar, SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
 function secciones({ esAdmin, puedeValidar, puedeAsignar, puedeAutoasignar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
   gestionaPersonas, veDirectorio, configuraSistema, esRRHH, tablerosDeptos = [] }) {
@@ -130,6 +131,7 @@ function useAvisos() {
   const [datos, setDatos] = useState({ no_leidas: 0, avisos: [], por_validar: 0 });
   const vistos = useRef(null);
   const firma = useRef(null);
+  const pulso = useRef(null);
   const conPush = useRef(false); // este dispositivo ya recibe los avisos del sistema por el servidor
   const refrescar = useCallback(() => cargarAvisos().then((d) => {
     const alertas = d.avisos.filter(esAlertaTarea).map((a) => a.id);
@@ -149,6 +151,9 @@ function useAvisos() {
     const nueva = `${Math.max(0, ...d.avisos.map((a) => a.id))}-${d.no_leidas}-${d.por_validar}-${d.pulso ?? 0}`;
     if (firma.current !== null && firma.current !== nueva) anunciarNovedades();
     firma.current = nueva;
+    // Alguien entregó, validó o devolvió una tarea: la pantalla abierta se recarga entera (recarga suave, como Ctrl+R)
+    if (pulso.current !== null && d.pulso != null && pulso.current !== d.pulso) pedirRecargaSuave();
+    if (d.pulso != null) pulso.current = d.pulso;
     setDatos(d);
   }).catch(() => {}), []);
   useEffect(() => {
@@ -348,6 +353,7 @@ function EstructuraInterna() {
   const [mas, setMas] = useState(false);
   const [buscando, setBuscando] = useState(false);
   const location = useLocation();
+  const vuelta = useRecargaSuave(location.pathname);
   useEffect(() => {
     const tecla = (e) => {
       const escribiendo = /input|textarea|select/i.test(document.activeElement?.tagName || "") || document.activeElement?.isContentEditable;
@@ -405,6 +411,7 @@ function EstructuraInterna() {
           <button type="button" onClick={() => setBuscando(true)} data-guia="buscar-movil" className="flex size-10 items-center justify-center rounded-lg text-gris hover:bg-white lg:hidden" aria-label="Buscar"><Search className="size-5" /></button>
           {/* El botón «Crear» es para quien dirige o gestiona; el empleado solo trabaja lo que le asignan */}
           {!sesion.esAgente && (sesion.esAdmin || sesion.puedeValidar || sesion.puedeAsignar || sesion.gestiona || sesion.esFinanzas || sesion.esCoordinacion || sesion.gestionaCallCenter) && <Crear sesion={sesion} />}
+          <BotonInstalar />
           <Campanita datos={datos} refrescar={refrescar} />
           <button type="button" onClick={guia.abrirAyuda} data-guia="ayuda" aria-label="Ayuda: guía paso a paso" title="Ayuda"
             className="flex size-10 items-center justify-center rounded-lg text-gris hover:bg-white hover:text-azul">
@@ -428,7 +435,10 @@ function EstructuraInterna() {
         <SugerenciaDosPasos usuario={usuario} enCuenta={location.pathname.startsWith("/mi-cuenta")} />
         <SugerenciaApp />
         {/* Si una pantalla falla, el menú y la cabecera siguen funcionando: se puede ir a otra pantalla sin recargar */}
-        <LimiteDeErrores claveReinicio={location.pathname}><Outlet context={{ refrescarAvisos: refrescar }} /></LimiteDeErrores>
+        <LimiteDeErrores claveReinicio={location.pathname}>
+          {/* `key` cambia con cada recarga suave: la pantalla se vuelve a montar con datos nuevos */}
+          <div key={vuelta} className={vuelta ? "recarga-suave" : undefined}><Outlet context={{ refrescarAvisos: refrescar }} /></div>
+        </LimiteDeErrores>
       </main>
 
       <ChatFlotante />

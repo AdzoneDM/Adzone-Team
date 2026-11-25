@@ -7,6 +7,7 @@ import { CalendarClock, CircleCheckBig, Clock, FileText, Film, ImageIcon, Link2,
 import { listarTareas } from "@/lib/api";
 import { fechaCorta, fechaHora } from "@/lib/formato";
 import { useNovedades } from "@/lib/novedades";
+import { useSinRecargaSuave } from "@/lib/recargaSuave";
 import { refrescarAvisos } from "@/app/Estructura";
 import { Alerta, Avatar, Cabecera, Cargando, Insignia, Modal, PrioridadTarea, Vacio, cx, useAviso } from "@/components/ui";
 import RevisionTarea from "./RevisionTarea";
@@ -128,6 +129,7 @@ export default function Validar() {
   }, [avisar]);
   useEffect(() => { cargar(); }, [cargar]);
   useNovedades(cargar);
+  useSinRecargaSuave();   // aquí no se vuelve a montar: perderías la tarea que estás revisando (ya se refresca sola)
 
   const personas = useMemo(() => [...new Map((lista || []).map((t) => [t.colaborador, t.colaborador_nombre])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [lista]);
   const deptos = useMemo(() => [...new Set((lista || []).map((t) => t.colaborador_departamento).filter(Boolean))].sort(), [lista]);
