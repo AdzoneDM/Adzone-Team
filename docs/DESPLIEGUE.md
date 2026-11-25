@@ -188,6 +188,7 @@ Tareas programadas en Plesk:
 
 | Cada | Comando | Para qué |
 |---|---|---|
+| 1 minuto | `python manage.py revisar_recordatorios` | Avisa los recordatorios personales a la hora exacta (si no corre cada minuto, llegan tarde) |
 | 10 minutos, de 7:00 a 20:00 | `python manage.py revisar_jornadas` | Avisos de tardanza, sin marcar, inactividad, PC sin reportar, improductivo |
 
 Puesta en marcha recomendada:

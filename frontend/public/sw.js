@@ -35,7 +35,7 @@ self.addEventListener("fetch", (event) => {
 
 // Avisos del sistema (Windows, Linux, Mac y celular): cada aviso de la campanita sale como notificación aunque la app
 // esté cerrada o minimizada. Las alertas importantes se quedan en pantalla hasta atenderlas.
-const IMPORTANTES = ["RECORDATORIO", "DEVUELTA", "VENCE", "ASIGNADA", "REABIERTA", "BLOQUEADA", "MODIFICADA", "ALMUERZO_HORA", "ALMUERZO_FIN", "ALMUERZO_EXCESO"];
+const IMPORTANTES = ["MI_RECORDATORIO", "RECORDATORIO", "DEVUELTA", "VENCE", "ASIGNADA", "REABIERTA", "BLOQUEADA", "MODIFICADA", "ALMUERZO_HORA", "ALMUERZO_FIN", "ALMUERZO_EXCESO"];
 
 self.addEventListener("push", (event) => {
   let d = {};

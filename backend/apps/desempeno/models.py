@@ -355,6 +355,30 @@ class ReferenciaArchivo(models.Model):
         ordering = ['fecha', 'id']
 
 
+class Recordatorio(models.Model):
+    """Una nota personal que te avisa a la hora que eliges (una reunión, ir a un lugar…). No es una tarea: no suma al puntaje, ni a los KPI, ni a
+    «quién está libre», y solo la ve su dueño."""
+    REPETICIONES = [('NO', 'No se repite'), ('DIARIO', 'Cada día'), ('SEMANAL', 'Cada semana'), ('MENSUAL', 'Cada mes')]
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recordatorios")
+    titulo = models.CharField(max_length=120)
+    nota = models.TextField(max_length=1000, blank=True)
+    recordar_en = models.DateTimeField(db_index=True, help_text="Cuándo avisar (la próxima vez, si se repite).")
+    repetir = models.CharField(max_length=8, choices=REPETICIONES, default='NO')
+    avisado = models.BooleanField(default=False, help_text="Ya sonó (solo los que no se repiten).")
+    hecho = models.BooleanField(default=False)
+    ultimo_aviso = models.DateTimeField(null=True, blank=True)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Recordatorio"
+        verbose_name_plural = "Recordatorios"
+        ordering = ['recordar_en', 'id']
+        indexes = [models.Index(fields=['avisado', 'hecho', 'recordar_en'])]
+
+    def __str__(self):
+        return f"{self.titulo} ({self.recordar_en:%d/%m/%Y %H:%M})"
+
+
 class ComentarioTarea(models.Model):
     """Conversación de una tarea: la ven y escriben solo quienes ven la tarea. Un comentario no se edita ni se borra (es parte de la trazabilidad)."""
     tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name="comentarios")
@@ -430,6 +454,7 @@ class Notificacion(models.Model):
         ('ACTIVIDAD', 'Actividad adicional'),
         ('DOCUMENTO', 'Documento compartido'),
         ('COMENTARIO', 'Comentario en una tarea'),
+        ('MI_RECORDATORIO', 'Tu recordatorio'),
     ]
     destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notificaciones")
     remitente = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",

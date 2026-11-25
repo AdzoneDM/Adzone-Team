@@ -1,5 +1,14 @@
 # Cambios
 
+## 12.59 · 25/11/2026 · Recordatorios personales
+
+- **Nueva sección «Recordatorios»** (menú «Mi trabajo» y botón «Crear → Recordatorio»): notas que te **avisan a la hora que elijas**, por ejemplo una reunión o ir a un lugar. **No son tareas**: no suman al puntaje, ni a los KPI, ni cambian «Quién está libre».
+- **Crear en segundos:** qué te recordamos, cuándo (con atajos «En 30 min», «En 1 hora», «Mañana 9:00»), si se repite (**cada día, semana o mes**) y una nota opcional (dirección, qué llevar…). Se pueden editar y borrar.
+- **El aviso:** a la hora exacta aparece la **alerta en pantalla con sonido** («Tu recordatorio»), queda en la campanita y, si la persona activó los avisos del celular, llega también con la aplicación cerrada. Si el servidor estuvo apagado, avisa al volver y aclara a qué hora era (una sola vez, no uno por cada día perdido).
+- **Después de que suena:** «Listo», o **posponer** 10 minutos, 1 hora o hasta mañana a las 9:00. Los hechos quedan en una lista aparte (se limpian solos a los 90 días) y se pueden reabrir. Los que se repiten siguen su ritmo hasta que se borran.
+- **Privado:** cada persona ve y maneja solo los suyos (ni siquiera Dirección los ve). Tope de 200 activos por persona.
+- **Para el servidor:** nueva tarea programada **cada minuto** (`python manage.py revisar_recordatorios`, ya incluida en `docker/crontab`; en Plesk sin Docker hay que agregarla, está en `servidor/tareas-programadas.txt`). Migración `desempeno.0030` (tabla nueva y un tipo de aviso nuevo). 27 pruebas nuevas.
+
 ## 12.58 · 25/11/2026 · Requerimiento #10, etapa 4: reportes de facturas en Excel (.xlsx) y PDF
 
 - **Botón «Reportes»** en Facturas (reemplaza «Descargar reporte»): elige filtros, ve **al instante cuántas facturas y qué montos incluirá** y descarga en **Excel (.xlsx)** o **PDF**. Sigue disponible el CSV simple y el de pagos con comprobante.

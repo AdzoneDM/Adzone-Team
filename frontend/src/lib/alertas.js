@@ -3,6 +3,8 @@ import { AlarmClock, BellRing, ClipboardPlus, Lock, PencilLine, RotateCcw, Timer
 
 // tipo → cómo se presenta. «tono» elige los colores; «insiste» repite el sonido hasta que se atiende.
 export const ALERTAS_TAREA = {
+  // Recordatorio personal: suena a la hora que la persona eligió y insiste hasta que lo atiende
+  MI_RECORDATORIO: { etiqueta: "Tu recordatorio", icono: AlarmClock, tono: "azul", insiste: true, boton: "Ver recordatorios" },
   RECORDATORIO: { etiqueta: "Recordatorio de tu supervisor", icono: BellRing, tono: "rojo", insiste: true, boton: "Ver tarea" },
   ASIGNADA: { etiqueta: "Nueva tarea para ti", icono: ClipboardPlus, tono: "azul", boton: "Ver tarea" },
   DEVUELTA: { etiqueta: "Tu entrega fue devuelta", icono: Undo2, tono: "rojo", insiste: true, boton: "Corregir ahora" },

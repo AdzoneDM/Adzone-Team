@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import departamentos, views, views_equipo, views_disponibilidad
+from . import departamentos, views, views_equipo, views_disponibilidad, views_recordatorios
 
 router = DefaultRouter()
 router.register(r'tareas', views.TareaViewSet, basename='tarea')
@@ -10,6 +10,7 @@ router.register(r'resultados-kpi', views.ResultadoKPIViewSet, basename='resultad
 router.register(r'empleados-del-mes', views.EmpleadoDelMesViewSet, basename='empleadodelmes')
 router.register(r'actividades', views_equipo.ActividadAdicionalViewSet, basename='actividad')
 router.register(r'colaboraciones', views_equipo.ColaboracionViewSet, basename='colaboracion')
+router.register(r'recordatorios', views_recordatorios.RecordatorioViewSet, basename='recordatorio')
 
 urlpatterns = [
     path('', include(router.urls)),

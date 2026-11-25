@@ -336,6 +336,11 @@ export const subirAdjuntosFactura = (id, archivos, tipo = "OTRO", nota = "") => 
   if (nota) f.append("nota", nota);
   return api(`${F}/facturas/${id}/adjuntos/`, { method: "POST", body: f });
 };
+// Recordatorios personales (solo los de quien consulta)
+export const listarRecordatorios = () => api(`${D}/recordatorios/`);
+export const guardarRecordatorio = (r) => (r.id ? api(`${D}/recordatorios/${r.id}/`, { method: "PATCH", body: r }) : api(`${D}/recordatorios/`, { method: "POST", body: r }));
+export const borrarRecordatorio = (id) => api(`${D}/recordatorios/${id}/`, { method: "DELETE" });
+export const accionRecordatorio = (id, accion, body = {}) => api(`${D}/recordatorios/${id}/${accion}/`, { method: "POST", body });
 export const historialFactura = (id) => api(`${F}/facturas/${id}/historial/`);
 export const cambiarAdjuntoFactura = (id, adjunto, datos) => api(`${F}/facturas/${id}/adjuntos/${adjunto}/`, { method: "PATCH", body: datos });
 export const reemplazarAdjuntoFactura = (id, adjunto, archivo) => {

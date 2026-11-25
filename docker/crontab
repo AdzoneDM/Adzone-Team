@@ -4,6 +4,8 @@
 
 # Recurrentes, avisos de lo que vence mañana, automatizaciones de vencidas y pagos de Cashflow
 0 7 * * *       cd /app/backend && python manage.py tareas_diarias
+# Recordatorios personales: avisan a la hora exacta que cada persona eligió
+* * * * *       cd /app/backend && python manage.py revisar_recordatorios
 # Tardanzas, entradas sin marcar y pausas que pasaron su límite
 */10 7-20 * * * cd /app/backend && python manage.py revisar_jornadas
 # Documentos por vencer y políticas pendientes

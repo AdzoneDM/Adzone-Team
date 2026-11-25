@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
+  AlarmClock, Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
   Award, CalendarClock, ChartNoAxesColumn, FolderOpen, Gauge, HeartHandshake, History, UsersRound, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos, tablerosDepartamentos } from "@/lib/api";
@@ -42,6 +42,7 @@ function secciones({ esAdmin, puedeValidar, puedeAsignar, puedeAutoasignar, esFi
     { titulo: "Mi trabajo", items: [
       { a: "/", texto: "Inicio", icono: House, fin: true },
       { a: "/mis-tareas", texto: "Mis tareas", icono: ListChecks },
+      { a: "/recordatorios", texto: "Recordatorios", icono: AlarmClock },
       { a: "/colaboracion", texto: "Colaboración", icono: HeartHandshake },
       { a: "/disponibilidad", texto: "Quién está libre", icono: UsersRound },
       { a: "/resumen-tareas", texto: "Resumen de tareas", icono: ChartNoAxesColumn },
@@ -290,6 +291,7 @@ function Crear({ sesion }) {
     return () => document.removeEventListener("mousedown", fuera);
   }, [abierto]);
   const opciones = [
+    { texto: "Recordatorio", sub: "Una nota que te avisa a su hora", a: "/recordatorios?nuevo=1", icono: AlarmClock },
     { texto: "Orden de trabajo (F-01)", sub: "Se entrega a Coordinación para el G0", a: "/ordenes?nueva=1", icono: ClipboardList },
     (sesion.puedeValidar || sesion.puedeAsignar) && { texto: sesion.puedeValidar ? "Tarea para mi equipo" : "Tarea para mí", sub: "Con pasos, fecha y responsable", a: "/equipo?ver=tareas&nueva=1", icono: ListChecks },
     (sesion.gestiona || sesion.esFinanzas) && { texto: "Proyecto", sub: "Agrupa tareas y órdenes", a: "/proyectos?nuevo=1", icono: FolderKanban },

@@ -12,6 +12,7 @@ import MisTareas from "@/features/tareas/MisTareas";
 // Las pantallas de supervisión y administración se cargan al abrirlas: la app del celular pesa menos.
 const Validar = perezosa(() => import("@/features/tareas/Validar"));
 const Equipo = perezosa(() => import("@/features/equipo/Equipo"));
+const Recordatorios = perezosa(() => import("@/features/recordatorios/Recordatorios"));
 const Colaboracion = perezosa(() => import("@/features/colaboracion/Colaboracion"));
 const Disponibilidad = perezosa(() => import("@/features/disponibilidad/Disponibilidad"));
 const HistorialTareas = perezosa(() => import("@/features/tareas/HistorialTareas"));
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="call-center" element={<CallCenter />} />
           <Route path="mis-tareas" element={<MisTareas />} />
           <Route path="colaboracion" element={<Colaboracion />} />
+          <Route path="recordatorios" element={<Recordatorios />} />
           <Route path="disponibilidad" element={<Disponibilidad />} />
           <Route path="historial-tareas" element={<HistorialTareas />} />
           <Route path="resumen-tareas" element={<ResumenTareas />} />
