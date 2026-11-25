@@ -1,5 +1,6 @@
 // Historial de tareas: quién la hizo, quién la asignó y quién la validó, con fechas y calidad. Cada quien ve lo que ya veía (lo suyo, su equipo, lo que asignó).
 import { useCallback, useEffect, useState } from "react";
+import { useNovedades } from "@/lib/novedades";
 import { ChevronLeft, ChevronRight, Download, History, Search } from "lucide-react";
 import { historialTareas, obtenerTarea, urlHistorialCsv } from "@/lib/api";
 import { fechaCorta } from "@/lib/formato";
@@ -34,13 +35,15 @@ export default function HistorialTareas() {
   const [detalle, setDetalle] = useState(null);
 
   const params = useCallback(() => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== "")), [f]);
+  const [pulso, setPulso] = useState(0);
+  useNovedades(() => setPulso((p) => p + 1)); // al llegar novedades se vuelve a pedir la página actual, sin mostrar «cargando»
   useEffect(() => { setPagina(1); }, [f]);
   useEffect(() => {
     const t = setTimeout(() => { // espera un instante al escribir para no consultar con cada letra
       historialTareas({ ...params(), pagina }).then((d) => { setDatos(d); setError(""); }).catch((e) => setError(e.message));
     }, f.q ? 300 : 0);
     return () => clearTimeout(t);
-  }, [params, pagina, f.q]);
+  }, [params, pagina, f.q, pulso]);
   const poner = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const abrir = async (id) => { try { setDetalle(await obtenerTarea(id)); } catch (e) { avisar(e.message, "rojo"); } };
   const personas = (gente || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre));

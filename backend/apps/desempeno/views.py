@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
 from rest_framework import permissions, serializers, status, viewsets
@@ -19,7 +19,7 @@ from apps.kpis.models import KPIAsignado
 from apps.tiempo import servicios as cronometro
 from . import servicios
 from .models import (
-    ConfiguracionDesempeno, EmpleadoDelMes, EsperaAsignacion, EvidenciaArchivo, Notificacion, ReferenciaArchivo, ResultadoKPI,
+    ConfiguracionDesempeno, EmpleadoDelMes, EsperaAsignacion, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo, ResultadoKPI,
     Tarea, TareaRecurrente,
 )
 from .permisos import (
@@ -492,8 +492,20 @@ def referencia_view(request, pk):
     tipo = mimetypes.guess_type(ref.archivo.name)[0] or 'application/octet-stream'
     from apps.core.archivos import entregar
     respuesta = entregar(archivo, ref.nombre_original or os.path.basename(ref.archivo.name), tipo, request)
+    _pdf_incrustable(respuesta, tipo)
     respuesta['Cache-Control'] = 'private, max-age=3600'
     return respuesta
+
+
+ACCIONES_QUE_REFRESCAN = ('ENTREGADA', 'VALIDADA', 'DEVUELTA', 'REABIERTA', 'CANCELADA')
+
+
+def _pdf_incrustable(respuesta, tipo):
+    """Un PDF de evidencia se puede ver dentro de la propia plataforma (vista previa): el `sandbox` general del resto de archivos impide que el visor de PDF del
+    navegador funcione, y la cabecera «no incrustar» bloquearía el marco. Sigue sin ejecutar nada propio y solo se deja incrustar desde este mismo sitio."""
+    if (tipo or '').lower().split(';')[0].strip() == 'application/pdf':
+        respuesta['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:"
+        respuesta['X-Frame-Options'] = 'SAMEORIGIN'
 
 
 @api_view(['GET'])
@@ -515,6 +527,7 @@ def evidencia_archivo_view(request, pk):
     tipo = mimetypes.guess_type(evidencia.archivo.name)[0] or 'application/octet-stream'
     from apps.core.archivos import entregar
     respuesta = entregar(archivo, evidencia.nombre_original or os.path.basename(evidencia.archivo.name), tipo, request)
+    _pdf_incrustable(respuesta, tipo)
     respuesta['Cache-Control'] = 'private, max-age=3600'
     respuesta['X-Content-Type-Options'] = 'nosniff'
     return respuesta
@@ -963,6 +976,8 @@ def notificaciones_view(request):
     user = request.user
     return Response({
         'no_leidas': qs.filter(leida=False).count(),
+        # Cambia cuando alguien entrega, valida, devuelve, reabre o cancela una tarea: las pantallas abiertas de todos se refrescan solas
+        'pulso': HistorialTarea.objects.filter(accion__in=ACCIONES_QUE_REFRESCAN).aggregate(m=Max('id'))['m'] or 0,
         'avisos': NotificacionSerializer(qs[:30], many=True).data,
         # Para el número junto a «Por validar» en el menú (se consulta cada minuto)
         'por_validar': (por_validar(Tarea.objects.all(), user).count() if (puede_validar(user) or tiene_propias(user)) else 0),

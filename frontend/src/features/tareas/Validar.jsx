@@ -1,123 +1,107 @@
-import { useCallback, useEffect, useState } from "react";
+// Por validar: las entregas de tu equipo esperando revisión, en tarjetas con lo importante a la vista, filtros, orden y buscador;
+// al elegir una se abre el panel de revisión (a la derecha en computadora, en una ventana en celular y tableta).
+// La lista se actualiza sola cuando alguien entrega, valida o devuelve, sin parpadeo y sin perder lo que estás escribiendo.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CircleCheckBig, Paperclip, RotateCcw } from "lucide-react";
-import { devolverTarea, listarTareas, validarTarea } from "@/lib/api";
-import { fechaCorta, hace } from "@/lib/formato";
-import { refrescarAvisos } from "@/app/Estructura";
-import { EquipoTarea, Evidencias, Historial, Pasos, SelectorArchivos } from "@/features/tareas/componentes";
-import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, EntradaEstrellas, Insignia, Modal, PrioridadTarea, Vacio, cx, useAviso } from "@/components/ui";
-import { useRecurso } from "@/lib/recursos";
-import { useSesion } from "@/lib/sesion";
-import { Checklist } from "@/features/ordenes/piezas";
+import { CalendarClock, CircleCheckBig, Clock, FileText, Film, ImageIcon, Link2, MessageSquareText, RotateCcw, Search, X } from "lucide-react";
+import { listarTareas } from "@/lib/api";
+import { fechaCorta, fechaHora } from "@/lib/formato";
 import { useNovedades } from "@/lib/novedades";
+import { refrescarAvisos } from "@/app/Estructura";
+import { Alerta, Avatar, Cabecera, Cargando, Insignia, Modal, PrioridadTarea, Vacio, cx, useAviso } from "@/components/ui";
+import RevisionTarea from "./RevisionTarea";
+import { PESO_PRIORIDAD, diasTarde, entregaDe, resumenEvidencia, textoEspera, urgencia } from "./validarUtil";
 
-const aTiempo = (t) => t.fecha_completada <= t.fecha_limite;
-/** Qué evidencia trae la entrega, para verlo desde la lista. */
-const resumenEvidencia = (t) => [
-  t.evidencias.length && `${t.evidencias.length} archivo${t.evidencias.length > 1 ? "s" : ""}`,
-  t.evidencia_enlace && "enlace", t.evidencia_nota?.trim() && "nota",
-].filter(Boolean).join(" · ");
+const ICONO_EVIDENCIA = { imagen: ImageIcon, video: Film, pdf: FileText, documento: FileText, enlace: Link2, nota: MessageSquareText };
+const BARRA = { nueva: "bg-azul", normal: "bg-linea", larga: "bg-rojo" };
+const ESTADOS = [
+  ["", "Todas"], ["nuevas", "Recién entregadas"], ["largas", "Esperando mucho"], ["atrasadas", "Atrasadas"], ["a_tiempo", "A tiempo"], ["corregidas", "Corregidas"],
+];
+const FECHAS = [["", "Cualquier fecha"], ["hoy", "Entregadas hoy"], ["7", "Últimos 7 días"], ["30", "Últimos 30 días"]];
+const ORDENES = [["antiguas", "Más antiguas primero"], ["recientes", "Más recientes primero"], ["limite", "Fecha límite más próxima"], ["prioridad", "Prioridad más alta"]];
 
-function Revision({ tarea, onListo, onFallo }) {
-  const avisar = useAviso();
-  const [calidad, setCalidad] = useState(0);
-  const [comentario, setComentario] = useState("");
-  const [error, setError] = useState("");
-  const [enviando, setEnviando] = useState(null);
-  const [verHistorial, setVerHistorial] = useState(false);
-  const [g3, setG3] = useState({});
-  const [causa, setCausa] = useState("");
-  const [archivos, setArchivos] = useState([]); // bocetos o imágenes para la corrección, si la devuelve
-  const [catalogo] = useRecurso("catalogo");
-  const oa = tarea.oa_info;
-  const { usuario } = useSesion();
-  const propia = tarea.colaborador === usuario?.id; // validar lo propio: solo validar (queda como autovalidación)
+const coincideEstado = (t, estado) => (
+  !estado || (estado === "nuevas" && urgencia(t) === "nueva") || (estado === "largas" && urgencia(t) === "larga") || (estado === "atrasadas" && diasTarde(t) > 0)
+  || (estado === "a_tiempo" && diasTarde(t) === 0) || (estado === "corregidas" && t.rondas_revision > 0)
+);
+const coincideFecha = (t, fecha) => {
+  if (!fecha) return true;
+  const e = new Date(entregaDe(t));
+  if (fecha === "hoy") return e.toDateString() === new Date().toDateString();
+  return Date.now() - e.getTime() <= Number(fecha) * 86400000;
+};
+const ordenar = (lista, orden) => [...lista].sort((a, b) => {
+  if (orden === "recientes") return new Date(entregaDe(b)) - new Date(entregaDe(a));
+  if (orden === "limite") return String(a.fecha_limite).localeCompare(String(b.fecha_limite)) || new Date(entregaDe(a)) - new Date(entregaDe(b));
+  if (orden === "prioridad") return (PESO_PRIORIDAD[b.prioridad] || 0) - (PESO_PRIORIDAD[a.prioridad] || 0) || new Date(entregaDe(a)) - new Date(entregaDe(b));
+  return new Date(entregaDe(a)) - new Date(entregaDe(b));
+});
 
-  useEffect(() => { setCalidad(0); setComentario(""); setArchivos([]); setError(""); setVerHistorial(false); setG3(tarea.oa_info?.g3_marcados || {}); setCausa(""); }, [tarea.id, tarea.oa_info]);
-
-  const validar = async () => {
-    if (!calidad) { setError("Califica la calidad (1 a 5 estrellas) para validarla."); return; }
-    setEnviando("validar");
-    try {
-      await validarTarea(tarea.id, calidad, comentario.trim(), oa ? { g3 } : {});
-      avisar(`Validada. Ya cuenta para el puntaje de ${[tarea.colaborador_nombre, ...(tarea.companeros_nombres || [])].join(" y ")}.`);
-      onListo(tarea.id);
-    } catch (e) { setError(e.message); setEnviando(null); onFallo?.(); }
-  };
-  const devolver = async () => {
-    if (comentario.trim().length < 5) { setError("Para devolverla, escribe qué debe corregir."); return; }
-    setEnviando("devolver");
-    try {
-      await devolverTarea(tarea.id, comentario.trim(), oa ? { g3, causa_retrabajo: causa || null } : {}, archivos);
-      avisar(`Devuelta a ${tarea.colaborador_nombre} con tu comentario${archivos.length ? " y tus archivos de referencia" : ""}.`);
-      onListo(tarea.id);
-    } catch (e) { setError(e.message); setEnviando(null); onFallo?.(); }
-  };
-
+function Tarjeta({ t, activa, onElegir }) {
+  const urg = urgencia(t);
+  const tarde = diasTarde(t);
+  const evidencia = resumenEvidencia(t);
   return (
-    <div className="space-y-5">
-      <div className="flex items-start gap-3">
-        <Avatar nombre={tarea.colaborador_nombre} />
-        <div className="min-w-0 flex-1">
-          <p className="font-medium">{tarea.colaborador_nombre}</p>
-          <p className="text-sm text-gris">{tarea.colaborador_puesto}</p>
-        </div>
-        <Insignia tono={aTiempo(tarea) ? "verde" : "amarillo"}>{aTiempo(tarea) ? "A tiempo" : "Tarde"}</Insignia>
-      </div>
-      <div>
-        <h2 className="text-xl font-semibold leading-snug">{tarea.titulo}</h2>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gris">
-          <PrioridadTarea prioridad={tarea.prioridad} />
-          Entregada {fechaCorta(tarea.fecha_completada)}, límite {fechaCorta(tarea.fecha_limite)}
-          {tarea.rondas_revision > 0 && <Insignia tono="rojo">Entrega n.º {tarea.rondas_revision + 1}</Insignia>}
-        </p>
-        <EquipoTarea tarea={tarea} className="mt-1.5" />
-        {tarea.descripcion && <p className="mt-3 whitespace-pre-line text-[15px] text-gris">{tarea.descripcion}</p>}
-      </div>
-      <Pasos tarea={tarea} />
-      <Evidencias tarea={tarea} compacto />
-
-      <div className="space-y-4 rounded-xl border border-linea bg-fondo/60 p-4">
-        {error && <Alerta>{error}</Alerta>}
-        {oa && (
-          <div className="rounded-lg border border-linea bg-white p-3">
-            <Checklist items={oa.g3} valor={g3} onCambio={setG3} titulo={`G3 · Control de calidad de ${oa.numero}`}
-              ayuda="Validar es firmar el control de calidad interno: el trabajo no sale del área sin todas las casillas." />
-            {oa.requiere_g4 && !oa.g4_aprobado && <Alerta tono="amarillo" className="mt-2">Falta la aprobación escrita del cliente (G4) en la Orden de Área.</Alerta>}
-            <Campo etiqueta="Si la devuelves: causa del retrabajo (opcional)" className="mt-3">
-              {(id) => <select id={id} className="campo" value={causa} onChange={(e) => setCausa(e.target.value)}>
-                <option value="">Solo corrección, sin registrar retrabajo</option>{(catalogo?.causas_retrabajo || []).map((c) => <option key={c}>{c}</option>)}</select>}
-            </Campo>
-          </div>
-        )}
-        <EntradaEstrellas valor={calidad} onCambio={(v) => { setCalidad(v); setError(""); }} nombre={`calidad-${tarea.id}`} />
-        <Campo etiqueta="Comentario" ayuda="Opcional al validar. Si la devuelves, di exactamente qué corregir.">
-          {(id) => <textarea id={id} className="campo bg-white" rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} />}
-        </Campo>
-        <SelectorArchivos archivos={archivos} onCambio={setArchivos} etiqueta="Adjuntar boceto, imagen o video para la corrección" ayuda="Se envían solo si la devuelves." disabled={!!enviando} />
-        {propia && <Alerta tono="amarillo">Esta tarea la creaste para ti: puedes validarla tú mismo. Quedará registrada en el historial como <b>autovalidación</b>. (Devolverla o reabrirla no aplica a tu propio trabajo.)</Alerta>}
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-          {!propia && <Boton variante="secundario" icono={RotateCcw} onClick={devolver} cargando={enviando === "devolver"} disabled={!!enviando}>Devolver</Boton>}
-          <Boton icono={CircleCheckBig} onClick={validar} cargando={enviando === "validar"} disabled={!!enviando}>Validar</Boton>
-        </div>
-      </div>
-
-      <div>
-        <button type="button" className="text-sm font-medium text-azul hover:underline" onClick={() => setVerHistorial((v) => !v)}>
-          {verHistorial ? "Ocultar historial" : "Ver historial de la tarea"}
-        </button>
-        {verHistorial && <div className="mt-3"><Historial tareaId={tarea.id} /></div>}
-      </div>
-    </div>
+    <li>
+      <button type="button" onClick={() => onElegir(t.id)} aria-current={activa}
+        className={cx("relative flex w-full flex-col gap-2.5 overflow-hidden rounded-2xl border bg-white p-4 pl-5 text-left transition-all",
+          activa ? "border-azul shadow-[0_0_0_3px_rgba(37,99,235,0.14)]" : "border-linea hover:border-azul/40 hover:shadow-sm")}>
+        <span className={cx("absolute inset-y-0 left-0 w-1.5", BARRA[urg])} aria-hidden />
+        <span className="flex items-start gap-3">
+          <Avatar nombre={t.colaborador_nombre} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold leading-tight">{t.colaborador_nombre}</span>
+            <span className="block truncate text-xs text-gris">{[t.colaborador_puesto, t.colaborador_departamento].filter(Boolean).join(" · ")}</span>
+          </span>
+          <Insignia tono={tarde === 0 ? "verde" : "amarillo"} className="shrink-0">{tarde === 0 ? "A tiempo" : "Atrasada"}</Insignia>
+        </span>
+        <span className="block text-[15px] font-medium leading-snug">{t.titulo}</span>
+        <span className="flex flex-wrap items-center gap-1.5">
+          {urg === "nueva" && <Insignia tono="azul">Recién entregada</Insignia>}
+          {urg === "larga" && <Insignia tono="rojo"><Clock className="size-3" aria-hidden />Lleva {textoEspera(t).replace("hace ", "")} esperando</Insignia>}
+          {t.rondas_revision > 0 && <Insignia tono="rojo"><RotateCcw className="size-3" aria-hidden />Entrega n.º {t.rondas_revision + 1}</Insignia>}
+          <PrioridadTarea prioridad={t.prioridad} />
+        </span>
+        <span className="grid gap-x-3 gap-y-0.5 text-xs text-gris sm:grid-cols-2">
+          <span className="flex items-center gap-1.5"><Clock className="size-3.5 shrink-0" aria-hidden />Entregó {fechaHora(entregaDe(t))} · {textoEspera(t)}</span>
+          <span className="flex items-center gap-1.5"><CalendarClock className="size-3.5 shrink-0" aria-hidden />Límite {fechaCorta(t.fecha_limite)}{tarde > 0 ? ` · ${tarde} ${tarde === 1 ? "día" : "días"} tarde` : ""}</span>
+        </span>
+        <span className="flex flex-wrap items-center gap-1.5">
+          {evidencia.length === 0
+            ? <span className="rounded-full bg-fondo px-2.5 py-0.5 text-xs text-gris">Sin evidencia</span>
+            : evidencia.map((e) => {
+              const Icono = ICONO_EVIDENCIA[e.clave];
+              return <span key={e.clave} className="inline-flex items-center gap-1 rounded-full bg-fondo px-2.5 py-0.5 text-xs font-medium text-tinta"><Icono className="size-3.5 text-azul" aria-hidden />{e.texto}</span>;
+            })}
+        </span>
+      </button>
+    </li>
   );
 }
 
+const Selector = ({ valor, onCambio, opciones, etiqueta }) => (
+  <select aria-label={etiqueta} value={valor} onChange={(e) => onCambio(e.target.value)} className="campo h-10 min-w-0 py-0 text-sm">
+    {opciones.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+  </select>
+);
+
 export default function Validar() {
+  const avisar = useAviso();
   const [lista, setLista] = useState(null);
   const [error, setError] = useState("");
   const [params] = useSearchParams();
-  const [elegida, setElegida] = useState(() => Number(params.get("tarea")) || null); // viene del aviso «Por validar»
+  const [elegida, setElegida] = useState(() => Number(params.get("tarea")) || null);   // viene del aviso «Por validar»
   const [esPC, setEsPC] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
+  const [q, setQ] = useState("");
+  const [estado, setEstado] = useState("");
+  const [persona, setPersona] = useState("");
+  const [depto, setDepto] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [orden, setOrden] = useState("antiguas");
+  const accionPropia = useRef(false);
+  const lista0 = useRef(null);
+  const elegidaRef = useRef(elegida);
+  useEffect(() => { elegidaRef.current = elegida; }, [elegida]);
 
   useEffect(() => {
     const m = window.matchMedia("(min-width: 1024px)");
@@ -129,64 +113,114 @@ export default function Validar() {
   const cargar = useCallback(() => {
     listarTareas({ ambito: "por_validar" })
       .then((t) => {
-        const orden = [...t].sort((a, b) => a.fecha_modificacion.localeCompare(b.fecha_modificacion));
-        setLista(orden);
-        setElegida((e) => (e && orden.some((x) => x.id === e) ? e : esPC ? orden[0]?.id ?? null : null));
+        // Si la que estabas revisando desapareció sin que tú la resolvieras, alguien más la revisó: se avisa en vez de cambiar la pantalla en silencio
+        const previa = lista0.current;
+        const viendo = elegidaRef.current;
+        if (viendo && previa && !accionPropia.current && previa.some((x) => x.id === viendo) && !t.some((x) => x.id === viendo)) {
+          avisar(`«${previa.find((x) => x.id === viendo).titulo}» ya la revisó otra persona.`);
+        }
+        accionPropia.current = false;
+        lista0.current = t;
+        setLista(t);
+        setError("");
       })
       .catch((e) => setError(e.message));
-  }, [esPC]);
+  }, [avisar]);
   useEffect(() => { cargar(); }, [cargar]);
   useNovedades(cargar);
 
+  const personas = useMemo(() => [...new Map((lista || []).map((t) => [t.colaborador, t.colaborador_nombre])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [lista]);
+  const deptos = useMemo(() => [...new Set((lista || []).map((t) => t.colaborador_departamento).filter(Boolean))].sort(), [lista]);
+  const visibles = useMemo(() => {
+    const buscar = q.trim().toLowerCase();
+    return ordenar((lista || []).filter((t) => coincideEstado(t, estado) && coincideFecha(t, fecha)
+      && (!persona || String(t.colaborador) === persona) && (!depto || t.colaborador_departamento === depto)
+      && (!buscar || `${t.titulo} ${t.colaborador_nombre} ${t.cliente || ""} ${t.colaborador_puesto || ""}`.toLowerCase().includes(buscar))), orden);
+  }, [lista, q, estado, fecha, persona, depto, orden]);
+
+  // En computadora siempre hay una elegida (la primera de la lista visible); en celular, solo si tocas una
+  useEffect(() => {
+    if (!lista) return;
+    setElegida((e) => (e && visibles.some((x) => x.id === e) ? e : esPC ? visibles[0]?.id ?? null : null));
+  }, [lista, visibles, esPC]);
+
   const listo = (id) => {
-    const resto = lista.filter((t) => t.id !== id);
-    setLista(resto);
-    setElegida(esPC ? resto[0]?.id ?? null : null);
+    accionPropia.current = true;
+    lista0.current = (lista0.current || []).filter((t) => t.id !== id);
+    setLista((l) => l.filter((t) => t.id !== id));
     refrescarAvisos();
   };
 
-  if (error) return <Alerta>{error}</Alerta>;
+  const hayFiltros = q || estado || persona || depto || fecha || orden !== "antiguas";
+  const limpiar = () => { setQ(""); setEstado(""); setPersona(""); setDepto(""); setFecha(""); setOrden("antiguas"); };
+  const nuevas = (lista || []).filter((t) => urgencia(t) === "nueva").length;
+  const atrasadas = (lista || []).filter((t) => diasTarde(t) > 0).length;
+  const largas = (lista || []).filter((t) => urgencia(t) === "larga").length;
+
+  if (error && !lista) return <Alerta>{error}</Alerta>;
   if (!lista) return <Cargando />;
   const tarea = lista.find((t) => t.id === elegida);
 
   return (
     <div>
-      <Cabecera titulo="Por validar" descripcion="Una tarea solo suma al avance, al puntaje y al KPI de la persona cuando la validas. Nadie valida su propio trabajo." />
-      {lista.length === 0 ? (
-        <Vacio icono={CircleCheckBig} titulo="Estás al día">No hay entregas de tu equipo esperando validación.</Vacio>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
-          <ul className="space-y-2" aria-label="Entregas">
-            {lista.map((t) => (
-              <li key={t.id}>
-                <button type="button" onClick={() => setElegida(t.id)} aria-current={t.id === elegida}
-                  className={cx("flex w-full items-start gap-3 rounded-xl border bg-white p-4 text-left transition-colors",
-                    t.id === elegida && esPC ? "border-azul ring-2 ring-azul/15" : "border-linea hover:border-azul/40")}>
-                  <Avatar nombre={t.colaborador_nombre} tam="sm" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-gris">{t.colaborador_nombre}</span>
-                    <span className="block font-medium leading-snug">{t.titulo}</span>
-                    <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gris">
-                      Entregó {hace(t.fecha_modificacion)}
-                      {!aTiempo(t) && <Insignia tono="amarillo">Tarde</Insignia>}
-                      {t.rondas_revision > 0 && <Insignia tono="rojo">Corregida</Insignia>}
-                      {resumenEvidencia(t) && <Insignia tono="verde"><Paperclip className="size-3" />Evidencia: {resumenEvidencia(t)}</Insignia>}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {esPC && tarea && (
-            <section className="sticky top-24 self-start rounded-xl border border-linea bg-white p-6" aria-label="Revisión">
-              <Revision tarea={tarea} onListo={listo} onFallo={cargar} />
-            </section>
-          )}
+      <Cabecera titulo="Por validar" descripcion="Una tarea solo suma al avance, al puntaje y al KPI de la persona cuando la validas. Nadie valida su propio trabajo.">
+        <div className="flex flex-wrap items-center gap-2" aria-live="polite">
+          <Insignia tono={lista.length ? "azul" : "verde"} className="!px-3 !py-1 !text-sm">{lista.length} {lista.length === 1 ? "pendiente" : "pendientes"}</Insignia>
+          {nuevas > 0 && <Insignia tono="azul">{nuevas} {nuevas === 1 ? "recién entregada" : "recién entregadas"}</Insignia>}
+          {largas > 0 && <Insignia tono="rojo">{largas} esperando mucho</Insignia>}
+          {atrasadas > 0 && <Insignia tono="amarillo">{atrasadas} {atrasadas === 1 ? "atrasada" : "atrasadas"}</Insignia>}
         </div>
+      </Cabecera>
+
+      {lista.length === 0 ? (
+        <Vacio icono={CircleCheckBig} titulo="Estás al día">No hay entregas de tu equipo esperando validación. Cuando alguien entregue, aparecerá aquí sola.</Vacio>
+      ) : (
+        <>
+          <div className="mb-4 space-y-2.5 rounded-2xl border border-linea bg-white p-3" role="search">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" aria-hidden />
+              <input className="campo h-11 !pl-9 !pr-9" placeholder="Buscar por persona, tarea o cliente…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar entregas" />
+              {q && <button type="button" onClick={() => setQ("")} aria-label="Borrar búsqueda" className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gris hover:text-tinta"><X className="size-4" /></button>}
+            </div>
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Estado">
+              {ESTADOS.map(([v, t]) => (
+                <button key={v} type="button" aria-pressed={estado === v} onClick={() => setEstado(v)}
+                  className={cx("shrink-0 rounded-full border px-3 py-1 text-sm font-medium transition-colors", estado === v ? "border-noche bg-noche text-white" : "border-linea bg-white text-tinta hover:border-azul/50")}>{t}</button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+              <Selector etiqueta="Colaborador" valor={persona} onCambio={setPersona} opciones={[["", "Todo el equipo"], ...personas.map(([id, n]) => [String(id), n])]} />
+              <Selector etiqueta="Departamento" valor={depto} onCambio={setDepto} opciones={[["", "Todos los departamentos"], ...deptos.map((d) => [d, d])]} />
+              <Selector etiqueta="Fecha de entrega" valor={fecha} onCambio={setFecha} opciones={FECHAS} />
+              <Selector etiqueta="Ordenar por" valor={orden} onCambio={setOrden} opciones={ORDENES} />
+            </div>
+            {hayFiltros && (
+              <p className="flex items-center justify-between text-xs text-gris">
+                <span>Mostrando {visibles.length} de {lista.length}</span>
+                <button type="button" onClick={limpiar} className="font-medium text-azul hover:underline">Quitar filtros</button>
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)]">
+            {visibles.length === 0 ? (
+              <div className="lg:col-span-2"><Vacio icono={Search} titulo="Ninguna entrega coincide">Prueba con otra búsqueda o quita los filtros.</Vacio></div>
+            ) : (
+              <ul className="space-y-3 lg:max-h-[calc(100vh-14rem)] lg:overflow-y-auto lg:pr-1" aria-label="Entregas pendientes">
+                {visibles.map((t) => <Tarjeta key={t.id} t={t} activa={t.id === elegida && esPC} onElegir={setElegida} />)}
+              </ul>
+            )}
+            {esPC && tarea && visibles.length > 0 && (
+              <section className="sticky top-24 max-h-[calc(100vh-7rem)] self-start overflow-y-auto rounded-2xl border border-linea bg-white p-6" aria-label="Revisión">
+                <RevisionTarea tarea={tarea} onListo={listo} onFallo={cargar} />
+              </section>
+            )}
+          </div>
+        </>
       )}
       {!esPC && (
-        <Modal abierto={!!tarea} onCerrar={() => setElegida(null)} titulo="Revisar entrega" ancho="md:max-w-2xl">
-          {tarea && <Revision tarea={tarea} onListo={listo} onFallo={cargar} />}
+        <Modal abierto={!!tarea} onCerrar={() => setElegida(null)} titulo="Revisar entrega" ancho="md:max-w-3xl">
+          {tarea && <RevisionTarea tarea={tarea} onListo={listo} onFallo={cargar} />}
         </Modal>
       )}
     </div>

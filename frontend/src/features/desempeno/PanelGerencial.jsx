@@ -1,5 +1,6 @@
 // Panel gerencial de la Dirección: la empresa del mes en una pantalla, por área, con alertas para decidir.
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useNovedades } from "@/lib/novedades";
 import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Download, GraduationCap, ScrollText, TrendingDown } from "lucide-react";
 import { panelGerencial, urlExportarPanel } from "@/lib/api";
@@ -37,6 +38,7 @@ export default function PanelGerencial() {
   const [d, setD] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => { setD(null); setError(""); panelGerencial(mes).then(setD).catch((e) => setError(e.message)); }, [mes]);
+  useNovedades(useCallback(() => panelGerencial(mes).then(setD).catch(() => {}), [mes])); // se actualiza solo, sin parpadeo
   return (
     <div className="space-y-5">
       <Cabecera titulo="Panel gerencial" descripcion={`La empresa en ${nombreMes(mes)}: personal, productividad, entregas, áreas y alertas.`}>

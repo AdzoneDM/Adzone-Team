@@ -1,7 +1,8 @@
 // Panel de tareas: cuántas hay en cada estado, con filtros. Cada persona ve solo las estadísticas de lo que ya puede ver.
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChartNoAxesColumn } from "lucide-react";
 import { resumenTareas } from "@/lib/api";
+import { useNovedades } from "@/lib/novedades";
 import { useRecurso } from "@/lib/recursos";
 import { Alerta, Cabecera, Cargando, Vacio, cx } from "@/components/ui";
 import { Link } from "react-router-dom";
@@ -27,10 +28,9 @@ export default function ResumenTareas() {
   const [f, setF] = useState({ departamento: "", persona: "", asignador: "", estado: "", prioridad: "", ...mesDe() });
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState("");
-  useEffect(() => {
-    setDatos(null);
-    resumenTareas(Object.fromEntries(Object.entries(f).filter(([, v]) => v !== ""))).then((d) => { setDatos(d); setError(""); }).catch((e) => setError(e.message));
-  }, [f]);
+  const traer = useCallback(() => resumenTareas(Object.fromEntries(Object.entries(f).filter(([, v]) => v !== ""))).then((d) => { setDatos(d); setError(""); }).catch((e) => setError(e.message)), [f]);
+  useEffect(() => { setDatos(null); traer(); }, [traer]);
+  useNovedades(traer); // se actualiza solo cuando alguien valida, devuelve o entrega, sin parpadeo
   const poner = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const personas = useMemo(() => (gente || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre)), [gente]);
   const c = datos?.conteos;

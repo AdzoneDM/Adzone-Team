@@ -1,5 +1,22 @@
 # Cambios
 
+## 12.60 · 25/11/2026 · «Por validar» rediseñado, «Quién está libre» más claro y refresco silencioso
+
+**Por validar**
+- **Tarjetas por entrega** con: foto/iniciales, nombre, cargo y departamento, tarea, **fecha y hora de entrega y cuánto lleva esperando**, fecha límite, **A tiempo / Atrasada** (con los días de atraso), prioridad, «Entrega n.º 2» si ya fue devuelta y **qué evidencia trae** (imágenes, videos, PDF, documentos, enlace, nota). Una barra de color indica la urgencia: azul = recién entregada (menos de 4 h), roja = lleva más de 2 días esperando.
+- **Contadores** de pendientes, recién entregadas, esperando mucho y atrasadas; **buscador**; filtros por **estado, colaborador, departamento y fecha de entrega**; y **orden** por antigüedad, más recientes, fecha límite o prioridad.
+- **Panel de revisión** por secciones: información de la tarea (asignada, entregada, límite y cumplimiento), **evidencias** (cada archivo con su nombre, tipo y tamaño; **vista previa** de imágenes, PDF y videos dentro del sistema y **descarga**; las entregas anteriores aparecen aparte), **evaluación de calidad** con cinco botones descriptivos (Muy por debajo, Por debajo, Cumple, Bueno, Excelente) **obligatoria para validar**, **comentarios del supervisor** (obligatorios al devolver, con archivos de referencia para la corrección) e **historial** con las veces que fue devuelta.
+- **Confirmación** antes de validar y antes de devolver, que dice qué va a pasar. Las reglas se mantienen: solo suma al puntaje y al KPI al validarse, nadie valida lo ajeno a su equipo, quien la creó para sí puede autovalidarla (queda registrado) y toda devolución explica qué corregir.
+- Si otra persona revisa la que tenías abierta, el sistema avisa «ya la revisó otra persona» en vez de cambiar la pantalla en silencio. Lo que estás escribiendo (calificación y comentario) **ya no se borra** cuando la lista se actualiza sola (antes se reiniciaba con cada actualización).
+- Los PDF de evidencia ahora se pueden ver dentro de la plataforma (antes el navegador los bloqueaba al abrirlos).
+
+**Quién está libre**
+- Cuatro **tarjetas-resumen que también filtran** (Libres, Poca carga, Ocupados, No disponibles hoy) más «Todas las personas»; cada departamento es una sección que se **contrae** y muestra una barra con cuántos están libres; tarjetas de persona más limpias con un punto de color de disponibilidad, iconos y los botones de siempre (Pedir apoyo, Escribirle, Asignar tarea). La explicación de cómo se calcula queda plegada. Al buscar, no se esconde nadie por tener su departamento contraído.
+
+**Refresco silencioso** (sin recargar la página ni perder lo escrito)
+- Cuando alguien **entrega, valida, devuelve, reabre o cancela** una tarea, las pantallas abiertas de todas las personas se actualizan solas en unos 10 segundos y sin «cargando»: Por validar, Mis tareas, Mi equipo, Inicio, Quién está libre, Resumen e Historial de tareas, ranking, panel gerencial y ficha. Quien valida ve su propia pantalla actualizada al instante. No se hace una recarga completa de la página (eso borraría lo que otras personas estén escribiendo).
+- Sin migraciones. 7 pruebas nuevas.
+
 ## 12.59 · 25/11/2026 · Recordatorios personales
 
 - **Nueva sección «Recordatorios»** (menú «Mi trabajo» y botón «Crear → Recordatorio»): notas que te **avisan a la hora que elijas**, por ejemplo una reunión o ir a un lugar. **No son tareas**: no suman al puntaje, ni a los KPI, ni cambian «Quién está libre».

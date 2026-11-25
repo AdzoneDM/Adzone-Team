@@ -1,6 +1,7 @@
 // Ficha integral del mes: puntaje (4 partes), KPIs con su ficha técnica, horario, tareas,
 // evaluación 360°, planes de mejora, expediente y tendencia de 6 o 12 meses.
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useNovedades } from "@/lib/novedades";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, Bot, Eye, Info } from "lucide-react";
 import { fichaProductividad } from "@/lib/api";
@@ -47,6 +48,7 @@ export default function Ficha() {
   const [error, setError] = useState("");
   const [verSeguimiento, setVerSeguimiento] = useState(false);
   useEffect(() => { setD(null); setError(""); fichaProductividad({ usuario, mes, meses }).then(setD).catch((e) => setError(e.message)); }, [usuario, mes, meses]);
+  useNovedades(useCallback(() => fichaProductividad({ usuario, mes, meses }).then(setD).catch(() => {}), [usuario, mes, meses]));
   if (error) return <Alerta>{error}</Alerta>;
   if (!d) return <Cargando />;
   const p = d.puntaje;

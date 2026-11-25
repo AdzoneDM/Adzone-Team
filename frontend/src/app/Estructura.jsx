@@ -145,8 +145,8 @@ function useAvisos() {
       }
     }
     vistos.current = { alertas: new Set(alertas), todos: new Set(sinLeer.map((a) => a.id)) };
-    // Aviso nuevo o cambio en «por validar»: las pantallas abiertas se recargan solas.
-    const nueva = `${Math.max(0, ...d.avisos.map((a) => a.id))}-${d.no_leidas}-${d.por_validar}`;
+    // Aviso nuevo, cambio en «por validar» o alguien entregó, validó o devolvió una tarea: las pantallas abiertas se recargan solas, sin parpadeo.
+    const nueva = `${Math.max(0, ...d.avisos.map((a) => a.id))}-${d.no_leidas}-${d.por_validar}-${d.pulso ?? 0}`;
     if (firma.current !== null && firma.current !== nueva) anunciarNovedades();
     firma.current = nueva;
     setDatos(d);

@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useNovedades } from "@/lib/novedades";
 import { Link, useSearchParams } from "react-router-dom";
 import { Award, ChevronDown, CircleAlert, Download, Trophy, Undo2 } from "lucide-react";
 import { anularEmpleado, declararEmpleado, empleadosDelMes, ranking as cargarRanking, urlExportarRanking } from "@/lib/api";
@@ -180,6 +181,8 @@ export default function Desempeno() {
       .catch((e) => setError(e.message));
   }, [mes, grupo]);
   useEffect(() => { cargar(); }, [cargar]);
+  // Al validar o devolver una tarea, el ranking se actualiza solo (sin volver a mostrar «cargando»)
+  useNovedades(useCallback(() => Promise.all([cargarRanking(mes, grupo), empleadosDelMes({ mes })]).then(([r, g]) => { setDatos(r); setGanadores(g); }).catch(() => {}), [mes, grupo]));
   useEffect(() => { setDepto(""); setAbierta(null); }, [grupo]);
 
   const departamentos = useMemo(() => [...new Map((datos?.ranking || []).filter((f) => f.departamento_id).map((f) => [f.departamento_id, f.departamento])).entries()], [datos]);
