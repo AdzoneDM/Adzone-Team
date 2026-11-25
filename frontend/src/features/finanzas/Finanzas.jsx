@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ChevronDown, Download, FileSpreadsheet, FileText, Paperclip, Pencil, Plus, Receipt, Search, Trash2, Wallet } from "lucide-react";
-import { eliminarDocumento, facturarOrden, guardarGasto, listarDocumentos, listarProyectos, obtenerDocumento, rentabilidad, resumenFinanzas, urlReporteFacturas } from "@/lib/api";
+import { eliminarDocumento, facturarOrden, guardarGasto, listarDocumentos, listarProyectos, obtenerDocumento, rentabilidad, resumenFinanzas, resumenReporteFacturas, descargarReporteFacturas, urlReporteFacturas } from "@/lib/api";
 import { dinero, fechaCorta, hoyISO, horas, mesActual } from "@/lib/formato";
 import { Alerta, Boton, Cabecera, Campo, Cargando, Modal, Panel, Pestanas, SelectorMes, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
 import { DetalleDocumento, EditorDocumento, EstadoDoc, textoVence } from "./documentos";
@@ -98,31 +98,75 @@ function Resumen({ onFacturar }) {
 // Cómo se pide cada opción del selector de facturas (la lista y el reporte usan lo mismo, para que coincidan)
 const paramsDeFiltro = (filtro) => filtro === "vencidas" ? { situacion: "vencida" } : filtro === "por_vencer" ? { situacion: "por_vencer" } : filtro === "por_cobrar" ? { por_cobrar: 1 } : filtro ? { estado: filtro } : {};
 
-/** Descargar el reporte en Excel: las facturas (con lo filtrado en pantalla) o los pagos con su comprobante, por rango de fechas. */
-function ReporteFacturas({ filtro, extra = {} }) {
+/** Reportes de facturas en Excel o PDF. Usan los filtros de la pantalla (estado, vencimiento, búsqueda) más los propios de aquí, y antes de descargar
+ *  muestran los totales de exactamente lo que van a incluir. */
+function ReporteFacturas({ filtro, extra = {}, buscar = "" }) {
+  const avisar = useAviso();
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const filtros = { ...paramsDeFiltro(filtro), ...extra };
-  const rango = { ...(desde && { desde }), ...(hasta && { hasta }) };
-  const cierra = (e) => { const d = e.currentTarget.closest("details"); setTimeout(() => d?.removeAttribute("open"), 100); };
+  const [estadoPago, setEstadoPago] = useState("");
+  const [numero, setNumero] = useState("");
+  const [cliente, setCliente] = useState("");
+  const [abierto, setAbierto] = useState(false);
+  const [resumen, setResumen] = useState(null);
+  const [bajando, setBajando] = useState("");
+  const params = {
+    ...paramsDeFiltro(filtro), ...extra, ...(buscar && { q: buscar }), ...(desde && { desde }), ...(hasta && { hasta }),
+    ...(estadoPago && { estado_pago: estadoPago }), ...(numero.trim() && { numero: numero.trim() }), ...(cliente.trim() && { cliente_nombre: cliente.trim() }),
+  };
+  const clave = JSON.stringify(params);
+  useEffect(() => {
+    if (!abierto) return undefined;
+    setResumen(null);
+    const t = setTimeout(() => resumenReporteFacturas(JSON.parse(clave)).then(setResumen).catch(() => setResumen(false)), 300);
+    return () => clearTimeout(t);
+  }, [abierto, clave]);
+  const bajar = async (formato) => {
+    setBajando(formato);
+    try { await descargarReporteFacturas({ ...params, formato }); } catch (e) { avisar(e.message, "rojo"); }
+    setBajando("");
+  };
+  const hayFiltros = Object.keys(params).length > 0;
   return (
-    <details className="relative">
+    <details className="relative" onToggle={(e) => setAbierto(e.currentTarget.open)}>
       <summary className="inline-flex h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-linea bg-white px-4 text-[15px] font-medium text-tinta hover:border-azul [&::-webkit-details-marker]:hidden">
-        <Download className="size-4" aria-hidden />Descargar reporte<ChevronDown className="size-4 text-gris" aria-hidden />
+        <Download className="size-4" aria-hidden />Reportes<ChevronDown className="size-4 text-gris" aria-hidden />
       </summary>
-      <div className="absolute right-0 z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] space-y-3 rounded-xl border border-linea bg-white p-4 shadow-xl">
+      <div className="absolute right-0 z-20 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] space-y-3 rounded-xl border border-linea bg-white p-4 shadow-xl">
+        <p className="text-xs text-gris">{hayFiltros ? "Con los filtros de la pantalla y los de aquí abajo." : "Sin filtros: todas las facturas."} Puedes combinarlos.</p>
         <div className="grid grid-cols-2 gap-2">
-          <label className="text-xs font-medium text-gris">Desde<input type="date" className="campo mt-1 h-10" value={desde} onChange={(e) => setDesde(e.target.value)} /></label>
+          <label className="text-xs font-medium text-gris">Emitidas desde<input type="date" className="campo mt-1 h-10" value={desde} onChange={(e) => setDesde(e.target.value)} /></label>
           <label className="text-xs font-medium text-gris">Hasta<input type="date" className="campo mt-1 h-10" value={hasta} onChange={(e) => setHasta(e.target.value)} /></label>
+          <label className="text-xs font-medium text-gris">Estado de pago
+            <select className="campo mt-1 h-10" value={estadoPago} onChange={(e) => setEstadoPago(e.target.value)}>
+              <option value="">Todos</option><option value="pagada">Pagadas</option><option value="pendiente">Pendientes</option><option value="parcial">Con pago parcial</option>
+            </select>
+          </label>
+          <label className="text-xs font-medium text-gris">Número o NCF<input className="campo mt-1 h-10" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="FAC-2026-…" /></label>
+          <label className="col-span-2 text-xs font-medium text-gris">Cliente<input className="campo mt-1 h-10" value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Nombre o parte del nombre" /></label>
         </div>
-        <a href={urlReporteFacturas({ ...filtros, ...rango })} download onClick={cierra} className="flex items-start gap-3 rounded-lg border border-linea p-3 hover:border-azul hover:bg-fondo">
-          <FileSpreadsheet className="mt-0.5 size-5 shrink-0 text-verde" aria-hidden />
-          <span><span className="block text-sm font-semibold">Facturas (Excel)</span><span className="block text-xs text-gris">{filtro ? "Con el filtro de la pantalla: " : "Todas: "}total, pagado, saldo, atraso, pagos, comprobantes e imágenes</span></span>
-        </a>
-        <a href={urlReporteFacturas({ tipo: "pagos", ...rango })} download onClick={cierra} className="flex items-start gap-3 rounded-lg border border-linea p-3 hover:border-azul hover:bg-fondo">
-          <FileSpreadsheet className="mt-0.5 size-5 shrink-0 text-azul" aria-hidden />
-          <span><span className="block text-sm font-semibold">Pagos y comprobantes (Excel)</span><span className="block text-xs text-gris">Cada pago con su forma, referencia y si tiene comprobante</span></span>
-        </a>
+        <div className="rounded-lg bg-fondo p-3 text-sm" aria-live="polite">
+          {resumen === false ? <p className="text-rojo">No se pudo calcular el resumen.</p> : !resumen ? <p className="text-gris">Calculando…</p> : (
+            <>
+              <p className="font-medium">{resumen.cantidad} {resumen.cantidad === 1 ? "factura" : "facturas"}
+                <span className="font-normal text-gris"> · {resumen.pendientes} pendientes · {resumen.vencidas} vencidas · {resumen.pagadas} pagadas</span></p>
+              {resumen.monedas.map((m) => (
+                <p key={m.moneda} className="mt-1 text-xs text-gris">
+                  {m.moneda === "USD" ? "US$" : "RD$"}: facturado <b className="text-tinta num">{dinero(m.facturado, m.moneda)}</b> · pagado <b className="text-verde num">{dinero(m.pagado, m.moneda)}</b> · pendiente <b className="text-[#a86a00] num">{dinero(m.pendiente, m.moneda)}</b>
+                </p>
+              ))}
+              {resumen.monedas.length === 0 && resumen.cantidad > 0 && <p className="mt-1 text-xs text-gris">Solo borradores o anuladas: no suman montos.</p>}
+            </>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Boton icono={FileSpreadsheet} variante="secundario" cargando={bajando === "xlsx"} disabled={!resumen?.cantidad} onClick={() => bajar("xlsx")}>Excel (.xlsx)</Boton>
+          <Boton icono={FileText} variante="secundario" cargando={bajando === "pdf"} disabled={!resumen?.cantidad} onClick={() => bajar("pdf")}>PDF</Boton>
+        </div>
+        <div className="flex flex-wrap justify-between gap-2 border-t border-linea-suave pt-2 text-xs">
+          <a href={urlReporteFacturas({ ...params, formato: "csv" })} download className="font-medium text-azul hover:underline">CSV simple</a>
+          <a href={urlReporteFacturas({ tipo: "pagos", ...(desde && { desde }), ...(hasta && { hasta }) })} download className="font-medium text-azul hover:underline">Pagos y comprobantes (CSV)</a>
+        </div>
       </div>
     </details>
   );
@@ -170,7 +214,7 @@ function ListaDocumentos({ tipo, abrirId }) {
           </div>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          {!esCot && <ReporteFacturas filtro={filtro} extra={{ ...(venceDesde && { vence_desde: venceDesde }), ...(venceHasta && { vence_hasta: venceHasta }) }} />}
+          {!esCot && <ReporteFacturas filtro={filtro} buscar={buscar} extra={{ ...(venceDesde && { vence_desde: venceDesde }), ...(venceHasta && { vence_hasta: venceHasta }) }} />}
           <Boton icono={Plus} onClick={() => setEditor({})}>{esCot ? "Nueva cotización" : "Nueva factura"}</Boton>
         </div>
       </div>

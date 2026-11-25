@@ -51,9 +51,63 @@ def _filtro_vencimiento(qs, p):
         qs = qs.filter(estado='EMITIDA', vencimiento__gte=hoy, vencimiento__lte=limite)
     elif situacion == 'pendiente':
         qs = qs.filter(estado='EMITIDA').filter(Q(vencimiento__isnull=True) | Q(vencimiento__gt=limite))
+    estado_pago = p.get('estado_pago')
+    if estado_pago == 'pagada':
+        qs = qs.filter(estado='PAGADA')
+    elif estado_pago == 'pendiente':
+        qs = qs.filter(estado='EMITIDA')
+    elif estado_pago == 'parcial':
+        qs = qs.filter(estado='EMITIDA', pagado__gt=0)
+    if (p.get('numero') or '').strip():
+        qs = qs.filter(Q(numero__icontains=p['numero'].strip()) | Q(ncf__icontains=p['numero'].strip()))
+    if (p.get('cliente_nombre') or '').strip():
+        qs = qs.filter(cliente__nombre__icontains=p['cliente_nombre'].strip())
     if p.get('ordenar') == 'vencimiento':
         qs = qs.order_by(F('vencimiento').asc(nulls_last=True), 'id')
     return qs
+
+
+def _facturas_filtradas(p):
+    """Las facturas que piden los filtros de la pantalla (los mismos para la lista, el CSV, el Excel, el PDF y el resumen de totales)."""
+    qs = _filtros(Factura.objects.select_related('cliente', 'orden', 'cotizacion'), p)
+    if p.get('vencidas') == '1':
+        qs = qs.filter(estado='EMITIDA', vencimiento__lt=timezone.localdate())
+    if p.get('por_cobrar') == '1':
+        qs = qs.filter(estado='EMITIDA')
+    return _filtro_vencimiento(qs, p)
+
+
+def _describir_filtros(p):
+    """Los filtros aplicados, en palabras, para el encabezado de los reportes."""
+    f = []
+    fecha = lambda t: _fecha(t, None).strftime('%d/%m/%Y') if _fecha(t, None) else None   # noqa: E731
+    if fecha(p.get('desde')) or fecha(p.get('hasta')):
+        f.append(('Fecha de emisión', f"{fecha(p.get('desde')) or 'inicio'} a {fecha(p.get('hasta')) or 'hoy'}"))
+    if fecha(p.get('vence_desde')) or fecha(p.get('vence_hasta')):
+        f.append(('Fecha de vencimiento', f"{fecha(p.get('vence_desde')) or 'inicio'} a {fecha(p.get('vence_hasta')) or 'sin límite'}"))
+    nombres = {'vencida': 'Vencidas', 'por_vencer': 'Por vencer', 'pendiente': 'Pendientes (al día)'}
+    if p.get('situacion') in nombres:
+        f.append(('Situación', nombres[p['situacion']]))
+    if p.get('vencidas') == '1':
+        f.append(('Situación', 'Vencidas'))
+    if p.get('por_cobrar') == '1':
+        f.append(('Situación', 'Por cobrar'))
+    if p.get('estado'):
+        f.append(('Estado', ', '.join(dict(Factura.ESTADOS).get(e, e) for e in p['estado'].split(','))))
+    pagos = {'pagada': 'Pagadas', 'pendiente': 'Pendientes de pago', 'parcial': 'Con pago parcial'}
+    if p.get('estado_pago') in pagos:
+        f.append(('Estado de pago', pagos[p['estado_pago']]))
+    if p.get('cliente'):
+        from apps.operaciones.models import Cliente
+        c = Cliente.objects.filter(pk=p['cliente']).first() if str(p['cliente']).isdigit() else None
+        f.append(('Cliente', c.nombre if c else str(p['cliente'])))
+    if (p.get('cliente_nombre') or '').strip():
+        f.append(('Nombre del cliente contiene', p['cliente_nombre'].strip()))
+    if (p.get('numero') or '').strip():
+        f.append(('Número o NCF contiene', p['numero'].strip()))
+    if (p.get('q') or '').strip():
+        f.append(('Búsqueda', p['q'].strip()))
+    return f
 
 
 def _filtros(qs, p):
@@ -68,7 +122,10 @@ def _filtros(qs, p):
     if p.get('hasta'):
         qs = qs.filter(fecha__lte=p['hasta'])
     if p.get('q'):
-        qs = qs.filter(Q(numero__icontains=p['q']) | Q(cliente__nombre__icontains=p['q']) | Q(titulo__icontains=p['q']))
+        busca = Q(numero__icontains=p['q']) | Q(cliente__nombre__icontains=p['q']) | Q(titulo__icontains=p['q'])
+        if qs.model is Factura:
+            busca |= Q(ncf__icontains=p['q'])
+        qs = qs.filter(busca)
     return qs
 
 
@@ -470,8 +527,26 @@ class FacturaViewSet(viewsets.ModelViewSet):
     def reporte(self, request):
         """Excel (CSV) de las facturas con los mismos filtros de la pantalla, o de los pagos con su comprobante (`tipo=pagos`)."""
         p = request.query_params
-        r = HttpResponse(content_type='text/csv; charset=utf-8')
         hoy = timezone.localdate()
+        formato = (p.get('formato') or 'csv').lower()
+        if formato not in ('csv', 'xlsx', 'pdf', 'resumen'):
+            raise serializers_error("Formato no válido: usa xlsx, pdf o csv.", 'formato')
+        if formato != 'csv':
+            from . import reportes
+            qs = _facturas_filtradas(p)
+            filas, resumen = reportes.datos(qs if p.get('ordenar') else qs.order_by('fecha', 'id'))
+            if formato == 'resumen':   # los montos viajan como texto con dos decimales (nunca como número de punto flotante)
+                return Response({**resumen, 'monedas': [{k: (f"{v:.2f}" if isinstance(v, Decimal) else v) for k, v in m.items()} for m in resumen['monedas']]})
+            if formato == 'pdf':
+                if len(filas) > reportes.MAX_FILAS_PDF:
+                    raise serializers_error(f"Son {len(filas)} facturas: demasiadas para un PDF (máximo {reportes.MAX_FILAS_PDF}). Acota las fechas o descarga el Excel.", 'formato')
+                r = HttpResponse(reportes.pdf(filas, resumen, _describir_filtros(p), request.user), content_type='application/pdf')
+            else:
+                r = HttpResponse(reportes.excel(filas, resumen, _describir_filtros(p), request.user),
+                                 content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            r['Content-Disposition'] = f'attachment; filename="facturas-{hoy}.{formato}"'
+            return r
+        r = HttpResponse(content_type='text/csv; charset=utf-8')
         r.write('\ufeff')
         w = csv.writer(r)
         if p.get('tipo') == 'pagos':

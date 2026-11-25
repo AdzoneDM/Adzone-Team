@@ -1,5 +1,15 @@
 # Cambios
 
+## 12.58 · 25/11/2026 · Requerimiento #10, etapa 4: reportes de facturas en Excel (.xlsx) y PDF
+
+- **Botón «Reportes»** en Facturas (reemplaza «Descargar reporte»): elige filtros, ve **al instante cuántas facturas y qué montos incluirá** y descarga en **Excel (.xlsx)** o **PDF**. Sigue disponible el CSV simple y el de pagos con comprobante.
+- **Filtros combinables:** los de la pantalla (estado, por vencer/vencidas, rango de vencimiento, búsqueda) más fecha de emisión desde/hasta, **estado de pago** (pagadas, pendientes, con pago parcial), **número o NCF** y **nombre del cliente**.
+- **Qué trae cada factura:** número, NCF, cliente y RNC, fecha de emisión, vencimiento, concepto, proyecto u orden, moneda, subtotal, **impuestos (ITBIS)**, total facturado, **monto pagado**, **balance pendiente**, estado de pago (con los días de atraso o los que faltan) y fecha de registro.
+- **Resumen y totales:** cantidad de facturas consultadas, pendientes, por vencer, vencidas, pagadas, borradores y anuladas; y facturado, pagado y pendiente **por moneda** (RD$ y US$ nunca se mezclan). **Los totales salen solo de las facturas que cumplen los filtros**, y los borradores y anuladas no suman montos.
+- **Excel:** hoja «Resumen» (filtros aplicados, quién y cuándo lo generó, conteos y montos) y hoja «Facturas» con encabezado fijo, filtros de columna, fechas y montos con formato y totales al final. Cualquier texto que empiece con «=» se guarda como texto, nunca como fórmula.
+- **PDF:** horizontal, con filtros, resumen y tabla (el encabezado se repite en cada página y lleva número de página). Máximo 2 000 facturas; si hay más, avisa y sugiere el Excel.
+- Una sola función calcula filas y totales para Excel, PDF y la vista previa, así que no se pueden contradecir. Solo Finanzas y Dirección. Sin migraciones; se agregan las librerías `openpyxl` y `reportlab` (requieren reconstruir la imagen). 22 pruebas nuevas.
+
 ## 12.57 · 25/11/2026 · Requerimiento #10, etapa 3: control y seguimiento de vencimientos
 
 - **Cuánto falta o cuánto lleva de atraso:** en la lista y en el detalle de cada factura por cobrar aparece «Faltan 3 días», «Vence hoy», «Vence mañana» o «12 días de atraso», con color (gris al día, ámbar cerca, rojo vencida).

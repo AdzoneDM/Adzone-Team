@@ -349,6 +349,26 @@ export const urlComprobantePago = (id, descargar = false) => `${F}/pagos/${id}/c
 export const subirComprobantePago = (id, archivo) => { const f = new FormData(); f.append("comprobante", archivo); return api(`${F}/pagos/${id}/comprobante/`, { method: "POST", body: f }); };
 export const quitarComprobantePago = (id) => api(`${F}/pagos/${id}/comprobante/`, { method: "DELETE" });
 export const urlReporteFacturas = (params = {}) => `${F}/facturas/reporte/${q(params)}`;
+/** Totales y conteos de lo que incluiría el reporte con estos filtros (antes de descargarlo). */
+export const resumenReporteFacturas = (params = {}) => api(`${F}/facturas/reporte/${q({ ...params, formato: "resumen" })}`);
+/** Descarga el reporte (xlsx o pdf); si el servidor lo rechaza (por ejemplo, demasiadas facturas para un PDF) se lanza su mensaje en vez de bajar una página de error. */
+export async function descargarReporteFacturas(params) {
+  const r = await fetch(urlReporteFacturas(params), { credentials: "same-origin" });
+  if (!r.ok) {
+    let data = null;
+    try { data = await r.json(); } catch { /* sin cuerpo legible */ }
+    throw new ApiError(mensajeDeError(data, r.status), r.status, data);
+  }
+  const blob = await r.blob();
+  const nombre = (r.headers.get("Content-Disposition") || "").match(/filename="?([^";]+)"?/)?.[1] || `facturas.${params.formato}`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
 export const borrarPago = (id) => api(`${F}/pagos/${id}/`, { method: "DELETE" });
 export const guardarGasto = (g, comprobante) => {
   if (!comprobante) return g.id ? api(`${F}/gastos/${g.id}/`, { method: "PATCH", body: g }) : api(`${F}/gastos/`, { method: "POST", body: g });
