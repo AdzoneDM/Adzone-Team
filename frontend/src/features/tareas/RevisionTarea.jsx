@@ -11,6 +11,7 @@ import { useSesion } from "@/lib/sesion";
 import { Checklist } from "@/features/ordenes/piezas";
 import { EquipoTarea, Historial, Pasos, SelectorArchivos } from "@/features/tareas/componentes";
 import { Alerta, Avatar, Boton, Campo, Insignia, Modal, PrioridadTarea, cx, useAviso, useConfirmar } from "@/components/ui";
+import { BotonesGestion } from "./GestionTarea";
 import { ESCALA_CALIDAD, diasTarde, entregaDe, evidenciaActual, tamanoLegible, textoEspera, tipoDeArchivo } from "./validarUtil";
 
 function Seccion({ icono: Icono, titulo, derecha, children }) {
@@ -167,6 +168,11 @@ export default function RevisionTarea({ tarea, onListo, onFallo }) {
         </div>
         <Insignia tono={tarde === 0 ? "verde" : "amarillo"}>{tarde === 0 ? "A tiempo" : "Atrasada"}</Insignia>
       </header>
+      {(tarea.puedo_eliminar || tarea.puedo_reabrir || tarea.puedo_gestionar) && (
+        <div className="flex flex-wrap justify-end gap-2">
+          <BotonesGestion tarea={tarea} tam="sm" onCambio={(t) => (t.estado === "EN_REVISION" ? onFallo() : onListo(tarea.id))} onEliminada={() => onListo(tarea.id)} />
+        </div>
+      )}
 
       <Seccion icono={ClipboardList} titulo="Información de la tarea">
         <h2 className="text-xl font-semibold leading-snug">{tarea.titulo}</h2>

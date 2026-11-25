@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Briefcase, Camera, Check, ExternalLink, FileText, Film, ImagePlus, Link2, Paperclip, Repeat, Target, Trash2, Users, Video, X } from "lucide-react";
 import { comentarTarea, comentariosTarea, entregarTarea, historialTarea, marcarPaso, obtenerTarea, quitarReferencia, subirReferencias } from "@/lib/api";
 import Comentarios from "@/components/Comentarios";
+import { BotonesGestion } from "@/features/tareas/GestionTarea";
 import { useNovedades } from "@/lib/novedades";
 import { MAX_FOTO_MB, limites } from "@/lib/archivos";
 import { ESTADOS, fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
@@ -380,11 +381,23 @@ function ConversacionTarea({ tareaId }) {
 }
 
 /** Datos de una tarea; las acciones las pone cada pantalla en `pie`. */
-export function DetalleTarea({ tarea, abierto, onCerrar, pie, onCambio }) {
+export function DetalleTarea({ tarea: recibida, abierto, onCerrar, pie, onCambio, onEliminada }) {
   const avisar = useAviso();
+  const [actual, setActual] = useState(recibida);
+  useEffect(() => { setActual(recibida); }, [recibida]);
+  // Tras editar o reabrir desde aquí se muestra la versión nueva aunque la pantalla de origen no la actualice
+  const tarea = actual && recibida && actual.id === recibida.id ? actual : recibida;
   if (!tarea) return null;
+  // Editar, reabrir y eliminar salen aquí en todas las pantallas, a quien tenga el permiso sobre esta tarea
+  const gestiona = tarea.puedo_eliminar || tarea.puedo_reabrir || tarea.puedo_gestionar;
+  const pieCompleto = gestiona ? (
+    <div className="flex w-full flex-wrap justify-end gap-2">
+      <BotonesGestion tarea={tarea} onCambio={(t) => { setActual(t); onCambio?.(t); }} onEliminada={() => { onCerrar?.(); onEliminada?.(); }} />
+      {pie}
+    </div>
+  ) : pie;
   return (
-    <Modal abierto={abierto} onCerrar={onCerrar} titulo={tarea.titulo} ancho="md:max-w-2xl" pie={pie}>
+    <Modal abierto={abierto} onCerrar={onCerrar} titulo={tarea.titulo} ancho="md:max-w-2xl" pie={pieCompleto}>
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
           <EstadoTarea estado={tarea.estado} />

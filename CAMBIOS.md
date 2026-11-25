@@ -1,5 +1,10 @@
 # Cambios
 
+## 12.65 · 25/11/2026 · Editar, reabrir y eliminar desde todas las pantallas
+
+- En la 12.63 los botones **Editar, Reabrir y Eliminar** solo salían en **Mi equipo**. Ahora salen en la ventana de cualquier tarea, se abra desde donde se abra: **Historial de tareas** (donde están las validadas), **Mis tareas**, **Proyectos**, **Mi equipo** y en el panel de revisión de **Por validar**. Como siempre, cada botón sale solo a quien tiene ese permiso sobre la tarea.
+- Solo frontend; sin migraciones.
+
 ## 12.64 · 25/11/2026 · Descripción de puesto del Director de Operaciones
 
 - Se cargó la descripción de puesto oficial del **Director de Operaciones** (DP del 25/11/2026), el puesto de Reveca Acosta: objetivo, funciones (9 bloques), perfil ideal, compensación variable, beneficios y alineación cultural, y sus **12 KPIs con la ponderación del documento (100 %)**. El puesto «Gerente de Operaciones» pasa a llamarse «Director de Operaciones», como en el documento. El PDF original queda en el expediente de Reveca (Talento → Documentos).
