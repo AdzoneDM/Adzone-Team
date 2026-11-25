@@ -179,12 +179,15 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
                 fila['estado'] = 'PROGRAMADO'
         return fila
 
-    trabajados = pausa = 0.0  # segundos
-    inicio = inicio_pausa = None
+    trabajados = pausa = fuera = 0.0  # segundos; «fuera»: entre una salida y la siguiente entrada del día (p. ej. cerró la plataforma al almorzar)
+    inicio = inicio_pausa = salio = None
     es_almuerzo = False
     tramos = []  # (inicio, fin o None si sigue abierta, es almuerzo)
     for m in marcajes:
         if m.tipo in (Marcaje.ENTRADA, Marcaje.REGRESO):
+            if m.tipo == Marcaje.ENTRADA and salio and not inicio:
+                fuera += _segundos(m.momento - salio)
+            salio = None
             if inicio_pausa:
                 pausa += _segundos(m.momento - inicio_pausa)
                 tramos.append((inicio_pausa, m.momento, es_almuerzo))
@@ -193,6 +196,8 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         elif m.tipo in (Marcaje.PAUSA, Marcaje.SALIDA) and inicio:
             trabajados += _segundos(m.momento - inicio)
             inicio = None
+            if m.tipo == Marcaje.SALIDA:
+                salio = m.momento
             if m.tipo == Marcaje.PAUSA:
                 inicio_pausa, es_almuerzo = m.momento, m.es_almuerzo
     if inicio:  # sigue abierta al terminar el día
@@ -228,8 +233,9 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         if excedida:
             fila['excesos'] += 1
             fila['exceso_seg'] += _enteros(dur - limite)
-    if trabajados > DIA_LARGO * 60 and pausa < almuerzo * 60:
-        trabajados -= almuerzo * 60 - pausa
+    # Almuerzo no marcado: se descuenta lo que falte; el tiempo fuera entre dos tramos del día ya cuenta como descanso
+    if trabajados > DIA_LARGO * 60 and pausa + fuera < almuerzo * 60:
+        trabajados -= almuerzo * 60 - pausa - fuera
 
     primera = next((m for m in marcajes if m.tipo == Marcaje.ENTRADA), None)
     ultima_salida = next((m for m in reversed(marcajes) if m.tipo == Marcaje.SALIDA), None)
@@ -466,3 +472,61 @@ def revisar_asistencia(ahora=None):
             avisar(revisores_de(u, 'asistencia.ver'), 'ASISTENCIA', f'{nombre} no ha marcado entrada', f"Entraba a las {j['turno'][0]}.", enlace='/asistencia')
             enviados += 1
     return enviados
+
+
+# ------------------------------------------------------------------ Jornada automática
+# Al abrir la plataforma la jornada empieza sola; al cerrarla (sin señal de ningún dispositivo durante CIERRE_SIN_SENAL) termina sola,
+# a la hora de la última señal, y se detiene el cronómetro de la tarea. Si vuelve a abrirla ese día, empieza otro tramo.
+CIERRE_SIN_SENAL = timedelta(minutes=5)
+VENTANA_ANTES, VENTANA_DESPUES = timedelta(hours=2), timedelta(hours=3)   # entrada automática: de 2 h antes del turno a 3 h después
+NOTA_CIERRE_AUTO = 'Cierre automático: la plataforma se cerró'
+
+
+def registrar_senal(usuario, ahora=None):
+    from .models import PresenciaPlataforma
+    PresenciaPlataforma.objects.update_or_create(usuario=usuario, defaults={'ultima_senal': ahora or timezone.now()})
+
+
+def entrada_automatica(usuario, ahora=None, hoy=None, obligatoria=None):
+    """¿Debe empezar sola la jornada al abrir la plataforma? Solo a quien marca obligatoriamente, en día laborable, sin permiso aprobado,
+    cerca de su turno, y si hoy no ha marcado o su última salida fue automática (vuelve a abrirla: otro tramo)."""
+    ahora = ahora or timezone.now()
+    estado, ultimo = estado_actual(usuario, ahora)
+    if estado != 'FUERA':
+        return False
+    if obligatoria is None:
+        obligatoria = horario_de(usuario)[1]
+    hoy = hoy or jornada(usuario, timezone.localtime(ahora).date(), ahora)
+    if not (obligatoria and hoy.get('laborable') and hoy.get('turno')) or hoy.get('ausencia'):
+        return False
+    dia = timezone.localtime(ahora).date()
+    if not (_aware(dia, _hora(hoy['turno'][0])) - VENTANA_ANTES <= ahora <= _aware(dia, _hora(hoy['turno'][1])) + VENTANA_DESPUES):
+        return False
+    if ultimo is None or timezone.localtime(ultimo.momento).date() != dia:
+        return True
+    return ultimo.tipo == Marcaje.SALIDA and ultimo.origen == 'AUTO'
+
+
+def cerrar_jornadas_sin_senal(ahora=None):
+    """Cierra las jornadas de quienes cerraron la plataforma: la salida queda a la hora de la última señal.
+    Solo si la plataforma estuvo abierta durante ese tramo (quien marcó por QR y no la usa no se ve afectado)."""
+    from apps.tiempo import servicios as cronometro
+    from .models import PresenciaPlataforma
+    ahora = ahora or timezone.now()
+    cerradas = 0
+    for p in PresenciaPlataforma.objects.filter(ultima_senal__lt=ahora - CIERRE_SIN_SENAL, ultima_senal__gt=ahora - TURNO_MAXIMO).select_related('usuario'):
+        estado, ultimo = estado_actual(p.usuario, ahora)
+        if estado == 'FUERA':
+            continue
+        apertura = Marcaje.objects.filter(usuario=p.usuario, tipo=Marcaje.ENTRADA, momento__lte=ahora).order_by('-momento').values_list('momento', flat=True).first()
+        if apertura is None or p.ultima_senal < apertura:
+            continue   # no tuvo la plataforma abierta en este tramo
+        momento = max(p.ultima_senal, ultimo.momento)
+        marcaje, error = marcar(p.usuario, Marcaje.SALIDA, 'AUTO', nota=NOTA_CIERRE_AUTO, momento=momento)
+        if error:
+            continue
+        registro = cronometro.activo(p.usuario)
+        if registro:
+            cronometro.detener(registro, fin=max(momento, registro.inicio))
+        cerradas += 1
+    return cerradas

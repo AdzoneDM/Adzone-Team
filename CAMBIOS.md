@@ -1,5 +1,20 @@
 # Cambios
 
+## 12.62 · 25/11/2026 · Borrar tareas solo con permiso y jornada automática
+
+**Eliminar tareas, solo con permiso**
+- Nuevo permiso **«Eliminar tareas»** (Accesos y permisos → «Su equipo»): borrar del todo una tarea (con su historial y archivos) solo lo puede hacer quien lo tenga, sobre su equipo. **Dirección lo tiene siempre**; nadie más lo tiene hasta que se le dé.
+- Sin el permiso, supervisores y gerentes siguen pudiendo **cancelar** la tarea (queda registrada con su motivo). El botón «Borrar» solo aparece a quien puede usarlo. Una tarea validada sigue sin poder borrarse.
+- Se cierra un hueco: antes, quien asignaba tareas a otras áreas podía borrar tareas de esas personas que no había asignado.
+
+**Jornada automática**
+- **Empieza sola al abrir la plataforma**: se marca la Entrada (origen «Automático») y arranca el conteo de horas, con un aviso «Tu jornada empezó a las…». Solo a quien marca obligatoriamente, en día laborable, sin permiso aprobado y entre 2 h antes del turno y 3 h después de su salida. Si su horario exige marcar desde la oficina y no se puede confirmar la ubicación, aparece la pantalla de siempre para hacerlo a mano.
+- **Termina sola al cerrar la plataforma**: la plataforma da una señal cada minuto (también en segundo plano). Si pasan **5 minutos sin señal de ningún dispositivo**, la jornada se cierra con la **hora de la última señal** (no la de cuando se detectó) y se **detiene el cronómetro** de la tarea que estuviera corriendo. Vale también si estaba en pausa o almuerzo.
+- **Al volver a abrirla ese día empieza otro tramo** y las horas se suman (p. ej. 8:00-12:00 + 13:00-17:00). Si la salida se marcó a mano, no se reabre sola: hay que marcar Entrada.
+- **El tiempo fuera entre dos tramos cuenta como descanso**: quien cierra la plataforma para almorzar no recibe además el descuento de «almuerzo no marcado».
+- Quien marcó por QR o con el agente de escritorio y no abre la plataforma no se ve afectado. Las marcas automáticas se ven en Asistencia y se pueden corregir como siempre.
+- **Para el servidor:** nueva tarea programada **cada minuto** (`python manage.py cerrar_jornadas`, ya en `docker/crontab` y en `servidor/tareas-programadas.txt`). Migración `asistencia.0007` (tabla de presencia y origen «Automático»). 13 pruebas nuevas.
+
 ## 12.61 · 25/11/2026 · Recarga suave al validar y botón «Instalar app» siempre a la vista
 
 **Recarga suave (como Ctrl+R, casi sin notarse)**

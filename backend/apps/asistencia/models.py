@@ -80,7 +80,7 @@ class AsignacionHorario(models.Model):
 class Marcaje(models.Model):
     ENTRADA, PAUSA, REGRESO, SALIDA = 'ENTRADA', 'PAUSA', 'REGRESO', 'SALIDA'
     TIPOS = [(ENTRADA, 'Entrada'), (PAUSA, 'Inicio de pausa'), (REGRESO, 'Fin de pausa'), (SALIDA, 'Salida')]
-    ORIGENES = [('WEB', 'Plataforma'), ('MOVIL', 'Celular'), ('QR', 'QR de la oficina'), ('AGENTE', 'Agente de escritorio'), ('MANUAL', 'Corrección manual')]
+    ORIGENES = [('WEB', 'Plataforma'), ('MOVIL', 'Celular'), ('QR', 'QR de la oficina'), ('AGENTE', 'Agente de escritorio'), ('MANUAL', 'Corrección manual'), ('AUTO', 'Automático (al abrir o cerrar la plataforma)')]
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='marcajes')
     tipo = models.CharField(max_length=10, choices=TIPOS)
     momento = models.DateTimeField(db_index=True)
@@ -105,6 +105,18 @@ class Marcaje(models.Model):
 
     def __str__(self):
         return f'{self.usuario} · {self.get_tipo_display()} · {self.momento:%d/%m %H:%M}'
+
+
+class PresenciaPlataforma(models.Model):
+    """Última señal de vida de la plataforma abierta (en cualquier dispositivo). Sin señal unos minutos = la cerró: su jornada termina sola."""
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='presencia_plataforma')
+    ultima_senal = models.DateTimeField(db_index=True)
+
+    class Meta:
+        verbose_name = 'Presencia en la plataforma'
+
+    def __str__(self):
+        return f'{self.usuario} · {self.ultima_senal:%d/%m %H:%M:%S}'
 
 
 class Ausencia(models.Model):

@@ -242,7 +242,7 @@ export default function Equipo() {
           <div className="flex w-full flex-wrap justify-end gap-2">
             {detalle.estado === "COMPLETADA" && detalle.puedo_revisar && <Boton variante="secundario" icono={RotateCcw} onClick={() => setReabriendo(true)}>Reabrir</Boton>}
             {!["COMPLETADA", "CANCELADA"].includes(detalle.estado) && detalle.puedo_gestionar && (<>
-              <Boton variante="peligro" icono={Trash2} onClick={() => accionDetalle("eliminar")} className="mr-auto">Borrar</Boton>
+              {detalle.puedo_eliminar && <Boton variante="peligro" icono={Trash2} onClick={() => accionDetalle("eliminar")} className="mr-auto">Borrar</Boton>}
               <Boton variante="secundario" icono={Ban} onClick={() => accionDetalle("cancelar")}>Cancelar tarea</Boton>
               {["PENDIENTE", "EN_PROGRESO"].includes(detalle.estado) && detalle.puedo_revisar && <Boton variante="secundario" icono={BellRing} onClick={() => accionDetalle("recordar")}>Recordar</Boton>}
               <Boton icono={Pencil} onClick={() => { setForm(detalle); setDetalle(null); }}>Editar</Boton>

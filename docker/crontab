@@ -6,6 +6,8 @@
 0 7 * * *       cd /app/backend && python manage.py tareas_diarias
 # Recordatorios personales: avisan a la hora exacta que cada persona eligió
 * * * * *       cd /app/backend && python manage.py revisar_recordatorios
+# Jornada automática: cierra la de quien cerró la plataforma (5 min sin señal)
+* * * * *       cd /app/backend && python manage.py cerrar_jornadas
 # Tardanzas, entradas sin marcar y pausas que pasaron su límite
 */10 7-20 * * * cd /app/backend && python manage.py revisar_jornadas
 # Documentos por vencer y políticas pendientes

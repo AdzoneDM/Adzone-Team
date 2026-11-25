@@ -48,17 +48,19 @@ def _ver_persona(request, usuario):
 def estado_view(request):
     estado, ultimo = servicios.estado_actual(request.user)
     horario, obligatoria = servicios.horario_de(request.user)
+    hoy = servicios.jornada(request.user, timezone.localdate())
     return Response({
+        'entrada_automatica': servicios.entrada_automatica(request.user, hoy=hoy, obligatoria=obligatoria),
         'marca_obligatoria': bool(obligatoria),  # si no la tiene, no se le pide marcar al entrar
         'estado': estado, 'siguientes': servicios.SIGUIENTES[estado],
         'ahora': timezone.now(),  # la hora oficial: la que se estampa al marcar. La pantalla se sincroniza con ella, no con el reloj de la PC
-        'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento, 'almuerzo': ultimo.es_almuerzo, 'motivo': ultimo.motivo_pausa} if ultimo else None,
+        'ultimo': {'tipo': ultimo.tipo, 'momento': ultimo.momento, 'almuerzo': ultimo.es_almuerzo, 'motivo': ultimo.motivo_pausa, 'origen': ultimo.origen} if ultimo else None,
         'en_almuerzo': estado == 'EN_PAUSA' and bool(ultimo and ultimo.es_almuerzo),
         'limites': {'pausa_min': horario.pausa_max_minutos if horario else 60, 'almuerzo_min': horario.almuerzo_minutos if horario else 60,
                     'almuerzo_inicio': servicios.almuerzo_inicio_de(request.user, horario),   # la que eligió la persona o, si no, la del horario
                     'almuerzo_propio': AlmuerzoPersonal.objects.filter(usuario=request.user).values_list('hora', flat=True).first(),
                     'almuerzo_horario': (horario.almuerzo_inicio or None) if horario else None},
-        'hoy': servicios.jornada(request.user, timezone.localdate()),
+        'hoy': hoy,
         'horario': {'id': horario.id, 'nombre': horario.nombre} if horario else None,
         'donde_marca': _donde(request.user),
     })
@@ -90,6 +92,14 @@ def _donde(user):
 
 
 @api_view(['POST'])
+def presencia_view(request):
+    """Señal de vida: la plataforma sigue abierta en algún dispositivo de esta persona (cada minuto)."""
+    servicios.registrar_senal(request.user)
+    # Si su jornada se cerró sola (p. ej. la computadora se suspendió) y sigue con la plataforma abierta, la pantalla abre otro tramo
+    return Response({'entrada_automatica': servicios.entrada_automatica(request.user)})
+
+
+@api_view(['POST'])
 def marcar_view(request):
     tipo = request.data.get('tipo')
     almuerzo = bool(request.data.get('almuerzo'))
@@ -103,11 +113,13 @@ def marcar_view(request):
     lugar, error = validar(request.user, request.data, ip=_ip(request))
     if error:
         return Response({'detail': error, 'lugar': True}, status=400)
-    origen = lugar.pop('origen') or ('MOVIL' if request.data.get('movil') else 'WEB')
+    origen = lugar.pop('origen') or ('AUTO' if request.data.get('automatica') and tipo == Marcaje.ENTRADA
+                                     else 'MOVIL' if request.data.get('movil') else 'WEB')
     marcaje, error = servicios.marcar(request.user, tipo, origen, _ip(request), request.data.get('motivo') or '', request.data.get('nota') or '',
                                       lugar=lugar, almuerzo=almuerzo)
     if error:
         return Response({'detail': error}, status=400)
+    servicios.registrar_senal(request.user)   # marcar desde la plataforma también es señal de que está abierta
     return Response({'ok': True, 'tipo': marcaje.tipo, 'almuerzo': marcaje.es_almuerzo, 'momento': marcaje.momento,
                      'sitio': marcaje.sitio.nombre if marcaje.sitio_id else None}, status=201)
 

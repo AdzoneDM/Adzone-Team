@@ -204,6 +204,18 @@ def puede_gestionar_tarea(user, tarea):
         tarea.asignada_por_id == user.pk and entre_areas(user, tarea.colaborador))
 
 
+def puede_eliminar_tarea(user, tarea):
+    """Borrar del todo (con historial y archivos) solo con el permiso «Eliminar tareas», sobre su equipo o lo propio. Dirección siempre.
+    Sin el permiso, quien gestiona la tarea puede cancelarla (queda registrada)."""
+    if not (user and user.is_authenticated) or tarea.estado == 'COMPLETADA':
+        return False
+    if es_administrador(user):
+        return True
+    if not tiene(user, 'tareas.eliminar'):
+        return False
+    return tarea.colaborador_id == user.pk or equipo_base(user).filter(pk=tarea.colaborador_id).exists()
+
+
 def puede_autovalidar(user, tarea):
     """Quien tiene «Asignarse tareas a sí mismo» valida esas mismas tareas (las que él creó para sí). Queda en el historial."""
     return bool(tiene(user, 'tareas.propias') and tarea.colaborador_id == user.pk and tarea.asignada_por_id == user.pk)

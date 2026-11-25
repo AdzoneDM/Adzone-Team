@@ -421,6 +421,8 @@ const AS = "/api/asistencia";
 export const estadoJornada = () => api(`${AS}/estado/`);
 export const elegirAlmuerzo = (hora) => api(`${AS}/mi-almuerzo/`, { method: "POST", body: { hora } });
 export const marcarJornada = (tipo, extra = {}) => api(`${AS}/marcar/`, { method: "POST", body: { tipo, ...extra } });
+// Señal de vida: la plataforma sigue abierta (si deja de llegar 5 min en todos tus dispositivos, la jornada se cierra sola)
+export const senalPresencia = () => api(`${AS}/presencia/`, { method: "POST" });
 export const asistenciaMes = (params) => api(`${AS}/mes/${q(params)}`);
 export const asistenciaHoy = () => api(`${AS}/hoy/`);
 export const asistenciaReporte = (mes) => api(`${AS}/reporte/${q({ mes })}`);

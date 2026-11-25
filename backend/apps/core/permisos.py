@@ -14,6 +14,7 @@ from django.utils import timezone
 # código, nombre, grupo (para la pantalla), alcance ('equipo' o 'empresa'), descripción
 PERMISOS = [
     ('tareas.asignar', 'Asignar tareas', 'Su equipo', 'equipo', 'Crear, editar y reasignar tareas a las personas de su equipo.'),
+    ('tareas.eliminar', 'Eliminar tareas', 'Su equipo', 'equipo', 'Borrar del todo tareas de su equipo (con su historial y archivos). Sin este permiso solo se pueden cancelar, que deja registro.'),
     ('tareas.validar', 'Validar tareas', 'Su equipo', 'equipo', 'Validar, devolver o reabrir las entregas de su equipo y calificar su calidad.'),
     ('equipo.ver', 'Ver a su equipo', 'Su equipo', 'equipo', 'Ver las tareas, la ficha, los KPIs y la carga de trabajo de su equipo.'),
     ('equipo.evaluar', 'Evaluar a su equipo', 'Su equipo', 'equipo', 'Hacer la evaluación 360° de su equipo como supervisor y ver sus resultados.'),

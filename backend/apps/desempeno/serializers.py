@@ -17,7 +17,7 @@ from .models import (
     ComentarioTarea, ConfiguracionDesempeno, EmpleadoDelMes, EvidenciaArchivo, HistorialTarea, Notificacion, ReferenciaArchivo,
     PasoTarea, ResultadoKPI, Tarea, TareaRecurrente,
 )
-from .permisos import puede_gestionar, puede_gestionar_tarea, puede_revisar_tarea
+from .permisos import puede_eliminar_tarea, puede_gestionar, puede_gestionar_tarea, puede_revisar_tarea
 
 
 def _nombre(usuario):
@@ -107,6 +107,7 @@ class TareaSerializer(serializers.ModelSerializer):
     referencias = ReferenciaSerializer(many=True, read_only=True)
     es_recurrente = serializers.SerializerMethodField()
     puedo_gestionar = serializers.SerializerMethodField()
+    puedo_eliminar = serializers.SerializerMethodField()
     puedo_revisar = serializers.SerializerMethodField()
     revisor_nombre = serializers.SerializerMethodField()
     soy_participante = serializers.SerializerMethodField()
@@ -146,7 +147,7 @@ class TareaSerializer(serializers.ModelSerializer):
             'evidencia_nota', 'evidencia_enlace', 'evidencias', 'referencias',
             'validada_por', 'validada_por_nombre', 'fecha_validacion', 'comentario_revision',
             'calificacion_calidad', 'comentario_evaluacion', 'rondas_revision', 'es_recurrente',
-            'puedo_gestionar', 'puedo_revisar', 'soy_participante',
+            'puedo_gestionar', 'puedo_eliminar', 'puedo_revisar', 'soy_participante',
             'motivo_bloqueo', 'bloqueada_desde', 'fecha_inicio_trabajo', 'fecha_entrega_real',
             'fecha_creacion', 'fecha_modificacion',
         ]
@@ -189,6 +190,10 @@ class TareaSerializer(serializers.ModelSerializer):
     def get_puedo_gestionar(self, obj):
         user = self._usuario()
         return bool(user and puede_gestionar_tarea(user, obj))
+
+    def get_puedo_eliminar(self, obj):
+        user = self._usuario()
+        return bool(user and puede_eliminar_tarea(user, obj))
 
     def get_puedo_revisar(self, obj):
         user = self._usuario()

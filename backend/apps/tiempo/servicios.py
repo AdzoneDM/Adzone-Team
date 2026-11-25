@@ -9,8 +9,9 @@ def activo(usuario):
     return RegistroTiempo.objects.filter(usuario=usuario, fin__isnull=True).select_related('tarea', 'orden', 'proyecto').first()
 
 
-def detener(registro):
-    ahora = timezone.now()
+def detener(registro, fin=None):
+    """`fin`: cuándo se detuvo de verdad (p. ej. la última señal de la plataforma al cerrarse la jornada sola)."""
+    ahora = fin or timezone.now()
     minutos = int((ahora - registro.inicio).total_seconds() // 60)
     if minutos > MAX_MINUTOS:  # se quedó corriendo: se cierra en 12 h y se avisa en la descripción
         minutos = MAX_MINUTOS

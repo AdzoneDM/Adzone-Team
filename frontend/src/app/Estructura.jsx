@@ -5,7 +5,7 @@ import {
   AlarmClock, Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
   Award, CalendarClock, ChartNoAxesColumn, FolderOpen, Gauge, HeartHandshake, History, UsersRound, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
-import { avisos as cargarAvisos, leerAvisos, tablerosDepartamentos } from "@/lib/api";
+import { avisos as cargarAvisos, leerAvisos, senalPresencia, tablerosDepartamentos } from "@/lib/api";
 import { hace, relojSeg } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import Marca from "@/components/Marca";
@@ -344,11 +344,24 @@ export default function Estructura() {
   return <CronometroProvider><GuiaProvider><EstructuraInterna /></GuiaProvider></CronometroProvider>;
 }
 
+/** Señal de vida cada minuto mientras la plataforma esté abierta (aunque esté en segundo plano): sin señal 5 min, la jornada se cierra sola. */
+function usePresencia() {
+  useEffect(() => {
+    const enviar = () => senalPresencia().then((r) => { if (r?.entrada_automatica) window.dispatchEvent(new Event("adzone:jornada")); }).catch(() => {});
+    enviar();
+    const t = setInterval(enviar, 60000);
+    const alVolver = () => document.visibilityState === "visible" && enviar();
+    document.addEventListener("visibilitychange", alVolver);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", alVolver); };
+  }, []);
+}
+
 function EstructuraInterna() {
   const sesion = useSesion();
   const { usuario, logout } = sesion;
   const guia = useGuia();
   useRecordarPosicion();
+  usePresencia();
   const [datos, refrescar] = useAvisos();
   const [mas, setMas] = useState(false);
   const [buscando, setBuscando] = useState(false);

@@ -1,5 +1,6 @@
-// Al entrar a la plataforma, si hoy todavía no marcaste tu entrada, aparece esta pantalla para hacerlo con un toque.
-import { useCallback, useEffect, useState } from "react";
+// Al entrar a la plataforma la jornada empieza sola (entrada automática). Esta pantalla solo aparece si no se pudo
+// (por ejemplo, tu horario exige marcar desde la oficina y no se pudo confirmar la ubicación): ahí se marca con un toque.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
 import { estadoJornada, marcarJornada } from "@/lib/api";
 import { ZONA, horaExacta, primerNombre } from "@/lib/formato";
@@ -41,7 +42,25 @@ export default function PantallaEntrada() {
   // «SIN_CONTROL» es quien aún no ha usado el control de horario: justo a esa persona hay que pedirle que empiece.
   const falta = !!estado && estado.estado === "FUERA" && estado.marca_obligatoria !== false && estado.hoy?.laborable
     && ["PENDIENTE", "TARDE_SIN_MARCAR", "SIN_CONTROL"].includes(estado.hoy?.estado);
-  const visible = falta && !oculta;
+  // Entrada automática: al abrir la plataforma se marca sola (una vez por apertura); mientras tanto la pantalla no aparece
+  const intentada = useRef(null);   // se intenta una vez por cada «último marcaje» (al reabrir tras un cierre automático, otra vez)
+  const [auto, setAuto] = useState("");   // "" | "marcando" | "fallo"
+  useEffect(() => {
+    const clave = String(estado?.ultimo?.momento ?? "ninguno");
+    if (!estado?.entrada_automatica || intentada.current === clave) return;
+    intentada.current = clave;
+    setAuto("marcando");
+    (async () => {
+      try {
+        const lugar = await datosDeLugar(estado.donde_marca);
+        const r = await marcarJornada("ENTRADA", { automatica: true, movil: window.matchMedia("(max-width: 767px)").matches, ...lugar });
+        avisar(`Tu jornada empezó a las ${horaExacta(r?.momento)} y se cierra sola cuando cierres la plataforma.`);
+        setAuto("");
+        window.dispatchEvent(new Event("adzone:jornada"));
+      } catch (e) { setFallo(e.message); setAuto("fallo"); }
+    })();
+  }, [estado, avisar]);
+  const visible = (falta || auto === "fallo") && auto !== "marcando" && estado?.estado === "FUERA" && !oculta;
 
   useEffect(() => {
     if (!visible) return undefined;
@@ -83,8 +102,8 @@ export default function PantallaEntrada() {
           <h2 id="entrada-titulo" className="mt-5 text-2xl font-semibold text-tinta">{saludo}, {primerNombre(usuario?.nombre || "")}</h2>
           <p className="mt-2 text-[15px] text-gris">
             {tarde
-              ? "Ya pasó tu hora de entrada. Toca Comenzar para iniciar tu jornada y tu contador de tiempo ahora."
-              : `Tu turno empieza a las ${estado.hoy.turno?.[0] || "—"}. Toca Comenzar para iniciar tu jornada y tu contador de tiempo.`}
+              ? "Ya pasó tu hora de entrada. Toca Comenzar para iniciar tu jornada ahora."
+              : `Tu turno empieza a las ${estado.hoy.turno?.[0] || "—"}. Toca Comenzar para iniciar tu jornada.`}
           </p>
           {fallo && <p role="alert" className="mt-4 rounded-lg bg-rojo-50 px-3 py-2 text-sm text-rojo">{fallo}</p>}
           <Boton icono={Play} onClick={marcar} cargando={enviando} className="mt-6 !h-14 w-full !text-base" autoFocus>Comenzar</Boton>

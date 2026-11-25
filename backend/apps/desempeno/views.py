@@ -24,7 +24,7 @@ from .models import (
 )
 from .permisos import (
     EsAdministrador, tiene_otras_areas, tiene_propias, asignables, equipo_gestionable, es_administrador, por_validar, puede_asignar_a, puede_autovalidar, puede_gestionar,
-    puede_gestionar_tarea, puede_revisar, puede_revisar_tarea, puede_validar, puesto_de, revisables, revisores_posibles,
+    puede_eliminar_tarea, puede_gestionar_tarea, puede_revisar, puede_revisar_tarea, puede_validar, puesto_de, revisables, revisores_posibles,
     revisores_propias_ids, subordinados,
 )
 from .puntaje import calcular_ranking, filtrar_grupo, rango_del_mes, sin_evaluar
@@ -215,9 +215,10 @@ class TareaViewSet(viewsets.ModelViewSet):
             servicios.cerrar_esperas(nuevos, tarea)
 
     def perform_destroy(self, instance):
-        self._exigir_gestion(instance.colaborador)
         if instance.estado == 'COMPLETADA':
             raise PermissionDenied("Una tarea validada no se borra: ya cuenta en el historial. Puedes reabrirla o cancelarla.")
+        if not puede_eliminar_tarea(self.request.user, instance):
+            raise PermissionDenied("Para borrar tareas hace falta el permiso «Eliminar tareas». Puedes cancelarla: queda registrada.")
         instance.delete()
 
     def _respuesta(self, tarea):
