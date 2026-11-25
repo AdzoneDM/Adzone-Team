@@ -394,6 +394,21 @@ K['Agente de Call Center Español'] = [
     ('Uso correcto del CRM', 5, PCT, False, 100, 'M', "Registro completo y correcto de cada contacto en el CRM."),
 ]
 
+K['Director de Operaciones'] = [   # DP del 25/11/2026
+    ('Registro y trazabilidad de solicitudes en Adzone Team', 10, PCT, False, 100, 'M', "1 verificación por cada solicitud de clientes o Dirección General del mes: responsable, fecha de vencimiento y evidencia de cierre."),
+    ('Control diario de la operación', 10, PCT, False, 100, 'M', "1 control por día laborable: apertura, prioridades, recorrido de puestos y bloqueos con responsables y acciones."),
+    ('Seguimiento y coordinación de las áreas', 10, PCT, False, 100, 'M', "1 revisión semanal por cada una de las 8 unidades (32 si el mes tiene 4 semanas): avances, cronogramas, cargas y acuerdos."),
+    ('Entregas completas, a tiempo y aprobadas', 15, PCT, False, 100, 'M', "1 verificación por cada entrega con vencimiento en el mes; cuenta solo si es completa, a tiempo y aprobada."),
+    ('Cumplimiento de los planes de servicios de clientes', 10, PCT, False, 100, 'M', "1 revisión mensual por cada cliente con plan de servicios activo: contratado contra entregado, pendientes y correctivos."),
+    ('Gestión de quejas, reprocesos e incidencias', 10, PCT, False, 100, 'M', "1 gestión por cada caso que vence en el mes: causa, notificación, responsable, correctivos y seguimiento (las críticas, de inmediato)."),
+    ('Revisión de sistemas de gestión y monitoreo', 5, PCT, False, 100, 'M', "3 comprobaciones por día laborable (Adzone Team, ADZONE Monitor y Adzone Security), registrando y escalando alertas."),
+    ('Control de asistencia, puntualidad y horarios', 5, PCT, False, 100, 'M', "1 revisión consolidada por día laborable, incluida la conexión puntual del Call Center; incidencias canalizadas."),
+    ('Cumplimiento de políticas, procedimientos, autorizaciones y confidencialidad', 5, PCT, False, 100, 'M', "1 revisión mensual por cada una de las 8 unidades (incluye contratos y autorizaciones de imagen del estudio)."),
+    ('Control de equipos, mantenimiento, inventarios e insumos', 5, PCT, False, 100, 'M', "1 revisión mensual por cada una de las 8 unidades: condiciones, mantenimientos, consumo, desperdicios y reposiciones."),
+    ('Reporte diario a Dirección General', 5, PCT, False, 100, 'M', "1 reporte por día laborable a la hora de corte acordada: entregas, pendientes, retrasos, bloqueos, responsables y acciones."),
+    ('Informe mensual de resultados y mejoras', 10, PCT, False, 100, 'M', "1 informe mensual completo en la fecha que fije Dirección General: indicadores por área, pendientes, evaluaciones y planes de mejora."),
+]
+
 KPIS_OFICIALES = K
 
 # KPIs que la plataforma mide sola (no se anotan a mano): nombre → fuente (ver PlantillaKPI.FUENTES).

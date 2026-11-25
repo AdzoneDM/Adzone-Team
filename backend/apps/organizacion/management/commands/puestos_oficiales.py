@@ -4,6 +4,7 @@ Carga las descripciones de puesto oficiales de ADZONE y sus KPIs con la ponderac
 
     python manage.py puestos_oficiales            # muestra lo que haría, sin cambiar nada
     python manage.py puestos_oficiales --aplicar  # lo hace
+    python manage.py puestos_oficiales --aplicar --puesto "Director de Operaciones"   # solo ese puesto
 
 Corre antes `organigrama_2026 --aplicar` (crea y nombra los puestos). Es seguro repetirlo.
 
@@ -46,6 +47,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--aplicar', action='store_true', help='Hacer los cambios (sin esto solo se muestran).')
+        parser.add_argument('--puesto', help='Cargar solo este puesto (los demás no se tocan).')
 
     def _ficha(self, plantilla, unidad, menor, fuente, departamento):
         """Llena fórmula, fuente de datos y responsable si la plantilla no los tiene."""
@@ -74,10 +76,18 @@ class Command(BaseCommand):
             ids.append(plantilla.pk)
         return ids
 
-    def handle(self, *args, aplicar=False, **opciones):
+    def handle(self, *args, aplicar=False, puesto=None, **opciones):
         docs = descripciones()
+        oficiales = KPIS_OFICIALES
         puestos = {p.nombre: p for p in PuestoDeTrabajo.objects.all()}
-        faltan = sorted((set(docs) | set(KPIS_OFICIALES)) - set(puestos))
+        if puesto:
+            if puesto not in docs and puesto not in oficiales:
+                self.stderr.write(f"«{puesto}» no está en el documento.")
+                return
+            docs = {k: v for k, v in docs.items() if k == puesto}
+            oficiales = {k: v for k, v in oficiales.items() if k == puesto}
+            puestos = {k: v for k, v in puestos.items() if k == puesto}
+        faltan = sorted((set(docs) | set(oficiales)) - set(puestos))
         with transaction.atomic():
             for nombre, doc in docs.items():
                 p = puestos.get(nombre)
@@ -90,7 +100,7 @@ class Command(BaseCommand):
                     p.save(update_fields=cambios + ['fecha_modificacion'])
                     self.stdout.write(f"  ✎ {nombre}: descripción de puesto ({len(cambios)} secciones)")
 
-            for nombre, kpis in KPIS_OFICIALES.items():
+            for nombre, kpis in oficiales.items():
                 p = puestos.get(nombre)
                 if p is None:
                     continue
@@ -132,7 +142,7 @@ class Command(BaseCommand):
             self.stdout.write(f"\n  {total} KPIs activos en los puestos; {seg} de seguimiento (peso 0, se miden solos).")
             for nombre in faltan:
                 self.stdout.write(self.style.WARNING(f"  No existe el puesto «{nombre}». Corre antes: python manage.py organigrama_2026 --aplicar"))
-            sin_doc = sorted(set(puestos) - set(docs))
+            sin_doc = [] if puesto else sorted(set(puestos) - set(docs))
             if sin_doc:
                 self.stdout.write(self.style.NOTICE(f"\nPuestos que no están en el documento (se dejan igual): {', '.join(sin_doc)}"))
             if not aplicar:

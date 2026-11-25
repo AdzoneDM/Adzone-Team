@@ -25,9 +25,9 @@ def preparar_puestos():
 
 
 class DatosOficialesTests(TestCase):
-    def test_los_datos_cubren_los_34_puestos_del_documento(self):
+    def test_los_datos_cubren_los_36_puestos_del_documento(self):
         docs = descripciones()
-        self.assertEqual(len(docs), 35)
+        self.assertEqual(len(docs), 36)   # 35 del DP oficial + Director de Operaciones (DP del 25/11/2026)
         self.assertEqual(set(docs), set(KPIS_OFICIALES))
         for puesto, kpis in KPIS_OFICIALES.items():
             nombres = [k[0] for k in kpis]
@@ -199,3 +199,22 @@ class BonoProporcionalTests(TestCase):
                                                                       {'desde': 100, 'porcentaje': 10}]}, format='json')
         self.assertEqual(r.status_code, 200, r.data)
         self.assertEqual(r.data['tramos_bono'], [{'desde': 100, 'porcentaje': 10}, {'desde': 80, 'porcentaje': 10, 'proporcional': True}])
+
+
+class DirectorDeOperacionesTests(TestCase):
+    def test_solo_ese_puesto_con_su_descripcion_y_kpis_al_100(self):
+        from apps.core.models import Departamento
+        from apps.kpis.models import KPIAsignado
+        from apps.organizacion.models import PuestoDeTrabajo
+        ops = Departamento.objects.create(nombre='Operaciones')
+        p = PuestoDeTrabajo.objects.create(nombre='Director de Operaciones', departamento=ops)
+        otro = PuestoDeTrabajo.objects.create(nombre='Director Comercial', departamento=ops, objetivo='Lo que escribió alguien')
+        call_command('puestos_oficiales', '--aplicar', '--puesto', 'Director de Operaciones', stdout=NULO)
+        p.refresh_from_db()
+        otro.refresh_from_db()
+        self.assertIn('enlace de ejecución con la Dirección General', p.objetivo)
+        self.assertIn('Ley núm. 172-13', p.funciones_principales)
+        kpis = KPIAsignado.objects.filter(puesto_trabajo=p, activo=True, ponderacion__gt=0)
+        self.assertEqual(kpis.count(), 12)
+        self.assertEqual(sum(k.ponderacion for k in kpis), 100)
+        self.assertEqual(otro.objetivo, 'Lo que escribió alguien')   # los demás puestos no se tocan

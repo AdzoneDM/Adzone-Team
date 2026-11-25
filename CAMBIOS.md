@@ -1,5 +1,11 @@
 # Cambios
 
+## 12.64 · 25/11/2026 · Descripción de puesto del Director de Operaciones
+
+- Se cargó la descripción de puesto oficial del **Director de Operaciones** (DP del 25/11/2026), el puesto de Reveca Acosta: objetivo, funciones (9 bloques), perfil ideal, compensación variable, beneficios y alineación cultural, y sus **12 KPIs con la ponderación del documento (100 %)**. El puesto «Gerente de Operaciones» pasa a llamarse «Director de Operaciones», como en el documento. El PDF original queda en el expediente de Reveca (Talento → Documentos).
+- `puestos_oficiales` acepta `--puesto "Nombre"` para cargar un solo puesto sin tocar los demás.
+- Solo backend y datos; sin migraciones.
+
 ## 12.63 · 25/11/2026 · Editar, eliminar y reabrir tareas en cualquier estado, hora de almuerzo a elección y app que se actualiza sola
 
 **Editar, eliminar y reabrir tareas (requerimiento de mejora)**
