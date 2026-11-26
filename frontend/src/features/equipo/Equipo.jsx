@@ -119,7 +119,7 @@ export default function Equipo() {
   const colaborador = params.get("colaborador") || "";
   const departamento = params.get("departamento") || "";
   const estado = params.get("estado") || "";
-  const vencidas = params.get("vencidas") === "1";
+  const vencidas = false;   // «Vencidas» es una de las etapas de abajo (ya no hay casilla aparte)
   const asignadas = params.get("asignadas") === "1"; // solo las que yo asigné a otras personas
   const buscar = params.get("buscar") || "";
   const cliente = params.get("cliente") || "";
@@ -250,12 +250,6 @@ export default function Equipo() {
               <option value="">Todos los clientes</option>
               {(clientes || []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
-            <label className="flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm">
-              <input type="checkbox" checked={vencidas} onChange={(e) => poner("vencidas", e.target.checked ? "1" : "")} className="accent-rojo" /> Solo vencidas
-            </label>
-            <label className="flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm" title="Las tareas que tú creaste y enviaste a otras personas, para darles seguimiento">
-              <input type="checkbox" checked={asignadas} onChange={(e) => poner("asignadas", e.target.checked ? "1" : "")} className="accent-azul" /> Las que yo asigné
-            </label>
             {buscar && (
               <button type="button" onClick={() => poner("buscar", "")} className="flex h-11 items-center gap-2 rounded-full border border-azul/30 bg-azul/10 pl-4 pr-3 text-sm font-medium text-azul hover:bg-azul/15" aria-label={`Quitar la búsqueda «${buscar}»`}>
                 <Search className="size-4" aria-hidden />Búsqueda: «{buscar}»<X className="size-4" aria-hidden />
@@ -285,6 +279,19 @@ export default function Equipo() {
                       </button>
                     );
                   })}
+                  <span className="mx-1 h-6 w-px bg-linea" aria-hidden />
+                  <button type="button" aria-pressed={asignadas} onClick={() => poner("asignadas", asignadas ? "" : "1")} title="Solo las tareas que tú creaste y enviaste a otras personas, para darles seguimiento"
+                    className={cx("flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors", asignadas ? "border-azul bg-azul text-white" : "border-linea bg-white text-tinta hover:bg-fondo")}>
+                    Las que yo asigné
+                  </button>
+                </div>
+              )}
+              {grupo === "historial" && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" aria-pressed={asignadas} onClick={() => poner("asignadas", asignadas ? "" : "1")} title="Solo las tareas que tú creaste y enviaste a otras personas, para darles seguimiento"
+                    className={cx("flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors", asignadas ? "border-azul bg-azul text-white" : "border-linea bg-white text-tinta hover:bg-fondo")}>
+                    Las que yo asigné
+                  </button>
                 </div>
               )}
               {grupo === "historial" && <p className="text-sm text-gris">{historial.filter(delDia).length} tareas validadas o canceladas{dia ? ` el ${fechaCorta(dia)}` : " en el período"} · <span className="text-verde">{cuenta((t) => t.estado === "COMPLETADA")} validadas</span></p>}
