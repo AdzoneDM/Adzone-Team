@@ -133,17 +133,26 @@ export function Campo({ etiqueta, ayuda, error, children, className }) {
 // ---------------------------------------------------------------- Ventanas
 export function Modal({ abierto, onCerrar, titulo, descripcion, ancho = "max-w-lg", children, pie }) {
   const ref = useRef(null);
+  // Si ya se escribió o eligió algo en la ventana, tocar fuera NO la cierra (se perdería lo llenado): solo Cancelar, la X o Esc
+  const tocado = useRef(false);
+  const [aviso, setAviso] = useState(false);
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (abierto && !d.open) d.showModal();
+    if (abierto && !d.open) { tocado.current = false; d.showModal(); }
     if (!abierto && d.open) d.close();
   }, [abierto]);
+  const fuera = () => {
+    if (tocado.current) { setAviso(true); setTimeout(() => setAviso(false), 2200); return; }
+    onCerrar?.();
+  };
   return (
     <dialog
       ref={ref}
+      onInput={(e) => { if (e.target.closest?.("input, textarea, select, [contenteditable]")) tocado.current = true; }}
+      onChange={(e) => { if (e.target.closest?.("input, textarea, select")) tocado.current = true; }}
       onCancel={(e) => { e.preventDefault(); onCerrar?.(); }}
-      onClick={(e) => { if (e.target === ref.current) onCerrar?.(); }}
+      onClick={(e) => { if (e.target === ref.current) fuera(); }}
       className={cx(
         "m-0 mt-auto w-full max-w-none rounded-t-2xl bg-white p-0 text-tinta backdrop:bg-noche-900/50 md:m-auto md:rounded-2xl",
         ancho, "max-h-[92dvh]"
@@ -151,6 +160,7 @@ export function Modal({ abierto, onCerrar, titulo, descripcion, ancho = "max-w-l
     >
       {abierto && (
         <div className="flex max-h-[92dvh] flex-col">
+          {aviso && <p role="status" className="bg-amarillo-50 px-5 py-2 text-center text-sm font-medium text-[#5c3d00]">Para no perder lo que llenaste, cierra con «Cancelar» o la X.</p>}
           <header className="flex items-start justify-between gap-4 border-b border-linea-suave px-5 py-4">
             <div className="min-w-0">
               <h2 className="text-xl font-semibold">{titulo}</h2>

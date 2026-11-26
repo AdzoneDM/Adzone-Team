@@ -124,7 +124,7 @@ export default function Equipo() {
   const buscar = params.get("buscar") || "";
   const cliente = params.get("cliente") || "";
   const grupo = params.get("grupo") === "historial" ? "historial" : "activas";   // las validadas (y canceladas) van al historial
-  const etapaPedida = params.get("etapa") || "";                                  // dentro de las activas: por empezar primero
+  const etapaPedida = params.get("etapa") || "";                                  // dentro de las activas: todas, en curso, en pausa, por validar o vencidas
   const dia = params.get("dia") || "";
   const [clientes] = useRecurso("clientes");
 
@@ -158,14 +158,13 @@ export default function Equipo() {
   const hoyDia = hoyISO();
   const CERRADAS = ["COMPLETADA", "CANCELADA"];
   const ETAPAS = {
-    por_empezar: ["Por empezar", (t) => t.estado === "PENDIENTE"],
+    todas: ["Todas las activas", () => true],
     en_curso: ["En curso", (t) => t.estado === "EN_PROGRESO"],
     pausa: ["En pausa", (t) => t.estado === "BLOQUEADA"],
     revision: ["Por validar", (t) => t.estado === "EN_REVISION"],
     vencidas: ["Vencidas", (t) => ["PENDIENTE", "EN_PROGRESO"].includes(t.estado) && t.fecha_limite < hoyDia],
-    todas: ["Todas las activas", () => true],
   };
-  const etapa = etapaPedida || ((tareas || []).some((t) => t.estado === "PENDIENTE") ? "por_empezar" : "todas");
+  const etapa = etapaPedida && etapaPedida !== "por_empezar" ? etapaPedida : "todas";
   // El día: en las activas, su fecha límite; en el historial, el día que se validó (o se terminó)
   const delDia = (t) => !dia || (grupo === "historial" ? (t.fecha_validacion || "").slice(0, 10) === dia || t.fecha_completada === dia : t.fecha_limite === dia);
   const activas = useMemo(() => (tareas || []).filter((t) => !CERRADAS.includes(t.estado)), [tareas]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -280,7 +279,7 @@ export default function Equipo() {
                   {Object.entries(ETAPAS).map(([k, [texto, fn]]) => {
                     const n = activas.filter(fn).filter(delDia).length;
                     return (
-                      <button key={k} type="button" aria-pressed={etapa === k} onClick={() => poner("etapa", k)}
+                      <button key={k} type="button" aria-pressed={etapa === k} onClick={() => poner("etapa", k === "todas" ? "" : k)}
                         className={cx("flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors", etapa === k ? "border-noche bg-noche text-white" : "border-linea bg-white text-tinta hover:bg-fondo")}>
                         {texto}<span className={cx("num rounded-full px-1.5 text-xs", etapa === k ? "bg-white/20" : k === "vencidas" && n ? "bg-rojo-50 text-rojo" : k === "revision" && n ? "bg-amarillo-50 text-[#8a5a00]" : "bg-fondo text-gris")}>{n}</span>
                       </button>

@@ -8,6 +8,13 @@ import { SelectorArchivos } from "@/features/tareas/componentes";
 import { diasHasta, hoyISO, sumarDias } from "@/lib/formato";
 import { Alerta, Boton, Campo, Modal, cx } from "@/components/ui";
 
+// Borrador de la tarea nueva: si la ventana se cierra sin querer (o se recarga la página), lo llenado se recupera al volver a abrirla
+const claveBorrador = (u) => `adzone:borrador-tarea:${u || ""}`;
+const CAMPOS_BORRADOR = ["titulo", "descripcion", "cliente", "cliente_ref", "proyecto", "colaborador", "companeros", "pasosTexto", "prioridad", "fecha_limite", "fecha_inicio", "horas_estimadas", "kpi_asignado"];
+const leerBorrador = (u) => { try { return JSON.parse(localStorage.getItem(claveBorrador(u)) || "null"); } catch { return null; } };
+const guardarBorrador = (u, f) => { try { localStorage.setItem(claveBorrador(u), JSON.stringify(Object.fromEntries(CAMPOS_BORRADOR.map((k) => [k, f[k]])))); } catch { /* sin almacenamiento */ } };
+const borrarBorrador = (u) => { try { localStorage.removeItem(claveBorrador(u)); } catch { /* sin almacenamiento */ } };
+
 const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const masDias = (n) => sumarDias(hoyISO(), n);
 
@@ -16,6 +23,7 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const { usuario } = useSesion();
+  const [recuperado, setRecuperado] = useState(false);
   const [sugeridos, setSugeridos] = useState([]);
   const [referencias, setReferencias] = useState([]); // bocetos o imágenes para que la persona tenga de guía
   const editando = !!inicial?.id;
@@ -37,8 +45,20 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
       prioridad: "MEDIA", fecha_limite: masDias(3), kpi_asignado: "", repetir: false, frecuencia: "SEMANAL", dia_semana: 4, dia_mes: 28,
       proyecto: inicial?.proyecto ? String(inicial.proyecto) : "", fecha_inicio: "", horas_estimadas: "",
     });
-  }, [abierto, inicial, esRecurrente]);
+    setRecuperado(false);
+    if (!inicial?.id) {
+      const b = leerBorrador(usuario?.id);
+      if (b && (b.titulo || b.descripcion)) {
+        // Lo que viene de donde se abrió (el cliente o el proyecto) manda sobre el borrador
+        const contexto = Object.fromEntries(["cliente_ref", "cliente", "proyecto", "colaborador"].filter((k) => inicial?.[k]).map((k) => [k, String(inicial[k])]));
+        setF((x) => ({ ...x, ...Object.fromEntries(Object.entries(b).filter(([, v]) => v !== undefined && v !== null)), ...contexto }));
+        setRecuperado(true);
+      }
+    }
+  }, [abierto, inicial, esRecurrente, usuario?.id]);
 
+  // Guarda el borrador mientras se llena una tarea nueva
+  useEffect(() => { if (abierto && !editando && !f.repetir && (f.titulo || f.descripcion)) guardarBorrador(usuario?.id, f); }, [abierto, editando, f, usuario?.id]);
   const persona = gente.find((g) => String(g.id) === String(f.colaborador));
   const kpis = persona?.kpis_por_tareas || [];
   const cambiar = (campo) => (e) => setF((x) => ({ ...x, [campo]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
@@ -88,6 +108,7 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         if (referencias.length) {
           try { await subirReferencias(guardada.id, referencias, { momento: guardada.rondas_revision > 0 ? "CORRECCION" : "ASIGNACION" }); } catch (err) { sinReferencias = ` Pero los archivos no se pudieron subir: ${err.message} Agrégalos desde la tarea.`; }
         }
+        if (!editando) borrarBorrador(usuario?.id);
         const otros = (f.companeros || []).length;
         onGuardada(sinReferencias ? (editando ? "Cambios guardados." : `Tarea asignada a ${persona?.nombre}.`) + sinReferencias : editando ? "Cambios guardados." : `Tarea asignada a ${persona?.nombre}${otros ? ` y ${otros} más` : ""}. Les llegó el aviso${referencias.length ? " con tus archivos de referencia" : ""}.`);
       }
@@ -102,6 +123,12 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
       pie={<><Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton><Boton type="submit" form="form-tarea" cargando={guardando}>{editando ? "Guardar cambios" : f.repetir ? "Programar" : "Asignar tarea"}</Boton></>}>
       <form id="form-tarea" onSubmit={guardar} className="space-y-4">
         {error && <Alerta>{error}</Alerta>}
+        {recuperado && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-azul/5 px-3 py-2 text-sm text-noche">
+            <span>Recuperamos lo que estabas llenando (los archivos hay que adjuntarlos de nuevo).</span>
+            <button type="button" className="font-semibold text-azul hover:underline" onClick={() => { borrarBorrador(usuario?.id); setRecuperado(false); setF((x) => ({ ...x, titulo: "", descripcion: "", pasosTexto: "", companeros: [] })); }}>Empezar de cero</button>
+          </div>
+        )}
         {validada && (
           <div className="rounded-lg border border-amarillo/40 bg-amarillo/10 p-3">
             <p className="text-sm">Esta tarea ya está <b>validada</b>. Los cambios quedan en el historial con el antes y el después, y el puntaje se recalcula.</p>
