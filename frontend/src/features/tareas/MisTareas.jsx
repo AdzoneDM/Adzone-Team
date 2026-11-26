@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Hand, ListChecks, Paperclip, Pause, Play, Plus, Search, Send, Target, Unlock } from "lucide-react";
 import { bloquearTarea, desbloquearTarea, iniciarTarea, listarTareas, miDisponibilidad, miResumen, pedirTrabajo } from "@/lib/api";
-import { mesActual } from "@/lib/formato";
+import { fechaHora, mesActual } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import { refrescarAvisos } from "@/app/Estructura";
 import { DetalleTarea, EntregarModal, EquipoTarea, Evidencias, Progreso, Vencimiento } from "@/features/tareas/componentes";
@@ -55,9 +55,12 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, onBloquear, onDesblo
             {tarea.referencias?.length > 0 && <span className="inline-flex items-center gap-1 text-sm font-medium text-azul"><Paperclip className="size-3.5" aria-hidden />{tarea.referencias.length} referencia{tarea.referencias.length > 1 ? "s" : ""}</span>}
           </div>
           <EquipoTarea tarea={tarea} className="mt-1.5" />
-          {(tarea.asignada_por_nombre || tarea.cliente || tarea.proyecto_nombre) && (
-            <p className="mt-1 text-xs text-gris">{[tarea.asignada_por_nombre && `Te la asignó ${tarea.asignada_por_nombre}`, tarea.cliente_ref_nombre || tarea.cliente, tarea.proyecto_nombre].filter(Boolean).join(" · ")}</p>
-          )}
+          {/* Quién la asignó y cuándo (fecha y hora), y el proyecto (el cliente ya sale arriba) */}
+          <p className="mt-1.5 text-[13px] text-gris">
+            <span className="text-tinta">Asignada por <b className="font-semibold">{tarea.asignada_por_nombre || "—"}</b></span>
+            {tarea.fecha_creacion && <> · {fechaHora(tarea.fecha_creacion)}</>}
+            {tarea.proyecto_nombre && <> · {tarea.proyecto_nombre}</>}
+          </p>
         </button>
         {(tarea.estado === "PENDIENTE" || tarea.estado === "EN_PROGRESO") && (
           <div className="grid grid-cols-2 gap-2 md:flex">
