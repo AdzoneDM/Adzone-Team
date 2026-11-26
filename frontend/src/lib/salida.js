@@ -36,24 +36,13 @@ export function recargarSinAviso() {
 //   así que no se pregunta (el texto exacto sale al tocar «Salir» de la plataforma).
 let recargando = 0;
 let fuera = null;   // dónde salió el ratón de la página { x, y }
-let ultimoIntento = 0;
-export const TEXTO_SALIDA = "Primero cierra tu hora de salida para salir de la web";
 const soloTactil = () => typeof window !== "undefined" && window.matchMedia?.("(hover: none) and (pointer: coarse)").matches;
 if (typeof window !== "undefined") {
   window.addEventListener("keydown", (e) => {
     const r = e.key === "F5" || e.code === "F5" || ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "r" || e.key === "R" || e.code === "KeyR"));
     if (r) recargando = Date.now();
   }, true);
-  document.addEventListener("mouseout", (e) => {
-    if (e.relatedTarget) return;
-    fuera = { x: e.clientX, y: e.clientY };
-    // El ratón va hacia la X (arriba, fuera de la zona de atrás/recargar) con la jornada abierta: se avisa en la página con el texto
-    // exacto, ANTES de cerrar (la ventana propia del navegador no admite texto propio)
-    if (mensaje && !omitir && e.clientY <= 0 && !(e.clientX >= 60 && e.clientX <= 180) && Date.now() - ultimoIntento > 5 * 60000) {
-      ultimoIntento = Date.now();
-      window.dispatchEvent(new CustomEvent("adzone:intento-salida"));
-    }
-  }, true);
+  document.addEventListener("mouseout", (e) => { if (!e.relatedTarget) fuera = { x: e.clientX, y: e.clientY }; }, true);
   document.addEventListener("mouseover", () => { fuera = null; }, true);
 }
 /** ¿Es una recarga? (exportada para las pruebas) */
