@@ -27,19 +27,34 @@ export function recargarSinAviso() {
   window.location.reload();
 }
 
-// Recargar con el teclado (F5, Ctrl + R, Ctrl + Mayús + R, Cmd + R) no es cerrar: no se pregunta.
-// (El botón de recargar del navegador no se puede distinguir de cerrar: el navegador no lo dice.)
+// Recargar NO es cerrar: no se pregunta. El navegador no dice si es una recarga o un cierre (los dos disparan el mismo aviso),
+// así que se deduce:
+// - Teclado: F5, Ctrl + R, Ctrl + Mayús + R o Cmd + R.
+// - Botón ⟳ del navegador: el ratón salió de la página por arriba, a la altura de los botones atrás/adelante/recargar
+//   (a la izquierda, antes de las pestañas). Cerrar la pestaña (su X) o la ventana queda en otra posición.
+// - Celular o tableta (sin ratón): ahí cerrar la pestaña no dispara el aviso y sí lo dispara deslizar para recargar,
+//   así que no se pregunta (el texto exacto sale al tocar «Salir» de la plataforma).
 let recargando = 0;
+let fuera = null;   // dónde salió el ratón de la página { x, y }
+const soloTactil = () => typeof window !== "undefined" && window.matchMedia?.("(hover: none) and (pointer: coarse)").matches;
 if (typeof window !== "undefined") {
   window.addEventListener("keydown", (e) => {
-    const r = e.key === "F5" || ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "r" || e.key === "R"));
+    const r = e.key === "F5" || e.code === "F5" || ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "r" || e.key === "R" || e.code === "KeyR"));
     if (r) recargando = Date.now();
   }, true);
+  document.addEventListener("mouseout", (e) => { if (!e.relatedTarget) fuera = { x: e.clientX, y: e.clientY }; }, true);
+  document.addEventListener("mouseover", () => { fuera = null; }, true);
+}
+/** ¿Es una recarga? (exportada para las pruebas) */
+export function esRecarga(ahora = Date.now()) {
+  if (ahora - recargando < 4000) return true;
+  if (fuera && fuera.y <= 0 && fuera.x >= 60 && fuera.x <= 180) return true;   // sobre el botón ⟳ (Windows, Linux y Mac)
+  return false;
 }
 
 /** Escucha el cierre de la pestaña/navegador mientras haya algo pendiente. */
 export function alCerrarPestana(e) {
-  if (!mensaje || omitir || Date.now() - recargando < 3000) return undefined;
+  if (!mensaje || omitir || soloTactil() || esRecarga()) return undefined;
   e.preventDefault();
   e.returnValue = `${TITULO_CIERRE} ${mensaje}`;   // los navegadores muestran su texto propio, pero lo exigen para preguntar
   return e.returnValue;

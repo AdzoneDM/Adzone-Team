@@ -314,6 +314,7 @@ function Crear({ sesion }) {
     (sesion.puedeValidar || sesion.puedeAsignar) && { texto: sesion.puedeValidar ? "Tarea para mi equipo" : "Tarea para mí", sub: "Con pasos, fecha y responsable", a: "/equipo?ver=tareas&nueva=1", icono: ListChecks },
     (sesion.gestiona || sesion.esFinanzas) && { texto: "Proyecto", sub: "Agrupa tareas y órdenes", a: "/proyectos?nuevo=1", icono: FolderKanban },
     { texto: "Cliente", sub: "Datos de contacto", a: "/clientes?nuevo=1", icono: Building },
+    { texto: "Caso operativo", sub: "Incidencia, solicitud o mejora para Operaciones", a: "/casos?nuevo=1", icono: LifeBuoy },
     sesion.esFinanzas && { texto: "Cotización", sub: "Con ITBIS calculado", a: "/finanzas?ver=cotizaciones&nueva=1", icono: Wallet },
     sesion.gestionaCallCenter && { texto: "Campaña de call center", sub: "Metas, horario y agentes", a: "/call-center?nueva=1", icono: Headset },
   ].filter(Boolean);
