@@ -2,6 +2,7 @@
 // Cada 5 minutos, al volver a la app y al recuperar la conexión se compara el programa cargado con el publicado; si hay uno nuevo,
 // se recarga en un momento tranquilo (sin texto a medio escribir ni ventanas abiertas), como un Ctrl+R que casi no se nota.
 import { ocupado } from "@/lib/recargaSuave";
+import { recargarSinAviso } from "@/lib/salida";
 
 const CADA_MS = 5 * 60 * 1000;
 const scriptActual = () => document.querySelector('script[type="module"][src*="/assets/"]')?.getAttribute("src") || null;
@@ -24,7 +25,7 @@ function recargarCuandoSePueda() {
   const intentar = () => {
     if (document.visibilityState === "visible" && ocupado()) return setTimeout(intentar, 3000);
     sessionStorage.setItem("adzone:actualizada", "1");
-    window.location.reload();
+    recargarSinAviso();
   };
   intentar();
 }

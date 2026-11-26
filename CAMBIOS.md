@@ -1,5 +1,11 @@
 # Cambios
 
+## 12.73 · 26/11/2026 · Aviso al cerrar la plataforma con la jornada abierta
+
+- **Cerrar la pestaña, la ventana o el navegador** con la jornada abierta (trabajando, en pausa o en almuerzo): el navegador pide confirmación antes de cerrar. Por seguridad, Chrome/Edge/Firefox muestran su propio texto («¿Salir del sitio?») y no permiten uno personalizado; en celulares casi nunca lo muestran.
+- **Botón «Salir» de la plataforma**: ventana propia «¿Estás seguro de cerrar la plataforma?» con lo que falta: «No has marcado tu salida ni tu almuerzo», «No has marcado tu salida», «Estás en tu almuerzo: no has marcado el fin del almuerzo ni tu salida» o «Estás en pausa y no has marcado tu salida». Recuerda que salir no cierra la jornada.
+- Si ya marcó la salida, no pregunta nada. Las recargas automáticas (versión nueva) no preguntan.
+
 ## 12.72 · 26/11/2026 · Cierre manual de la jornada y justificación de tardanzas
 
 **Jornada**

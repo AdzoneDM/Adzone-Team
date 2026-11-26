@@ -3,6 +3,7 @@
 // pantalla con el nombre viejo (que ya no existe) y quedaba cargando hasta recargar a mano. Ahora, si un archivo no se
 // puede cargar, la app se recarga sola UNA vez (trae la versión nueva); si sigue fallando, muestra el error en pantalla.
 import { lazy } from "react";
+import { recargarSinAviso } from "@/lib/salida";
 
 const LLAVE = "adzone:recarga-por-version";
 const ESPERA_MS = 20000; // no más de una recarga automática cada 20 s (evita un bucle si el servidor está caído)
@@ -18,7 +19,7 @@ export function recargarPorVersionNueva() {
     sessionStorage.setItem(LLAVE, String(Date.now()));
   } catch { /* sin almacenamiento: se intenta igual */ }
   recargando = true;
-  window.location.reload();
+  recargarSinAviso();
   return true;
 }
 

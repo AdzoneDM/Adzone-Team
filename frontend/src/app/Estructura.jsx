@@ -9,7 +9,8 @@ import { avisos as cargarAvisos, leerAvisos, senalPresencia, tablerosDepartament
 import { hace, relojSeg } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import Marca from "@/components/Marca";
-import { Avatar, cx } from "@/components/ui";
+import { Avatar, cx, useConfirmar } from "@/components/ui";
+import { TITULO_CIERRE, mensajeCierre } from "@/lib/salida";
 import Buscador from "@/app/Buscador";
 import { CronometroProvider, nombreRegistro, useCronometro } from "@/features/tiempo/cronometro";
 import { esAlertaTarea } from "@/lib/alertas";
@@ -249,6 +250,14 @@ function Campanita({ datos, refrescar, alto = false }) {
 
 function MenuUsuario({ usuario, logout }) {
   const navigate = useNavigate();
+  const confirmar = useConfirmar();
+  // Con la jornada abierta, «Salir» pregunta antes (salir de la plataforma NO cierra la jornada)
+  const salir = async () => {
+    const pendiente = mensajeCierre();
+    if (pendiente && !(await confirmar({ titulo: TITULO_CIERRE, mensaje: `${pendiente} Salir de la plataforma no cierra tu jornada: márcala en «Jornada».`,
+      boton: "Salir de todos modos", peligro: true }))) return;
+    await logout(); navigate("/entrar");
+  };
   return (
     <div className="border-t border-white/10 p-3">
       <div className="flex items-center gap-3 rounded-lg px-2 py-2">
@@ -262,7 +271,7 @@ function MenuUsuario({ usuario, logout }) {
         <Link to="/mi-cuenta" data-guia="cuenta" className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-white/75 hover:bg-white/10 hover:text-white">
           <KeyRound className="size-3.5" /> Mi cuenta
         </Link>
-        <button type="button" onClick={async () => { await logout(); navigate("/entrar"); }}
+        <button type="button" onClick={salir}
           className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-white/75 hover:bg-white/10 hover:text-white">
           <LogOut className="size-3.5" /> Salir
         </button>
