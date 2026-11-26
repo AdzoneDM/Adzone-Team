@@ -124,7 +124,7 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectorCliente etiqueta="Cliente (opcional)" requerido={false} valor={f.cliente_ref}
               ayuda={!f.cliente_ref && f.cliente ? `Antes decía «${f.cliente}»: elígelo de la lista para que quede en su expediente.` : "Queda en el expediente del cliente."}
-              onCambio={(id) => setF((x) => ({ ...x, cliente_ref: id, proyecto: id && x.proyecto && x.proyectoCliente && String(x.proyectoCliente) !== String(id) ? "" : x.proyecto }))} />
+              onCambio={(id) => setF((x) => ({ ...x, cliente_ref: id, cliente: "", proyecto: id && x.proyecto && x.proyectoCliente && String(x.proyectoCliente) !== String(id) ? "" : x.proyecto }))} />
             <SelectorProyecto cliente={f.cliente_ref || undefined} valor={f.proyecto}
               onCambio={(id, o) => setF((x) => ({ ...x, proyecto: id, proyectoCliente: o?.cliente || "", cliente_ref: o?.cliente ? String(o.cliente) : x.cliente_ref }))} />
           </div>

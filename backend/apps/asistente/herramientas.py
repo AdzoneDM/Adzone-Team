@@ -214,7 +214,7 @@ def comercial(alcance, desde=None, hasta=None):
             'total': len(ops), 'por_estado': dict(Counter(o.get_estado_display() for o in ops)),
             'tasa_de_cierre_pct': round(sum(o.estado == 'APROBADA' for o in cerradas) / len(cerradas) * 100, 1) if cerradas else None,
             'por_responsable': dict(Counter(_nombre(o.responsable) or 'Sin responsable' for o in ops)),
-            'seguimiento_vencido': [{'codigo': o.codigo, 'cliente': o.cliente.nombre, 'titulo': o.titulo[:100], 'responsable': _nombre(o.responsable),
+            'seguimiento_vencido': [{'codigo': o.codigo, 'cliente': o.nombre_cliente, 'titulo': o.titulo[:100], 'responsable': _nombre(o.responsable),
                                      'seguimiento': o.proximo_seguimiento.isoformat(), 'estado': o.get_estado_display()}
                                     for o in Oportunidad.objects.exclude(estado__in=Oportunidad.CERRADOS)
                                     .filter(proximo_seguimiento__lt=hoy).select_related('cliente', 'responsable')[:MAX_LISTA]],

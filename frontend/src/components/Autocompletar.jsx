@@ -26,7 +26,7 @@ export default function Autocompletar({ etiqueta, ayuda, opciones = [], valor, o
     return [...l].sort((a, b) => Number(normal(b.texto).startsWith(t)) - Number(normal(a.texto).startsWith(t))).slice(0, 50);
   }, [opciones, t]);
   const exacta = opciones.some((o) => normal(o.texto) === t);
-  const puedeCrear = onCrear && t.length >= 2 && !exacta;
+  const puedeCrear = onCrear && t.length >= 2 && !exacta && lista.length === 0;   // con parecidos a la vista, no se ofrece crear (evita duplicados)
   const total = lista.length + (puedeCrear ? 1 : 0);
 
   useEffect(() => {

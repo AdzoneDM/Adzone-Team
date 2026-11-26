@@ -1,5 +1,42 @@
 # Cambios
 
+## 12.81 · 26/11/2026 · Clientes, proyectos, órdenes y tareas integrados; expediente del cliente; oportunidades; adjuntos de 400 MB
+
+**Análisis previo (cómo estaba)**: la tarea guardaba el cliente solo como texto libre (sin relación con el cliente registrado); proyectos y órdenes sí tenían su cliente. El detalle del cliente mostraba proyectos y órdenes, pero no las tareas ni su historial. Las oportunidades exigían un cliente ya registrado. Los adjuntos de tareas pasaban por una sola petición (el nginx de Plesk corta a 64 MB).
+
+**Tareas y equipos**
+- «Bloqueada» pasa a llamarse **«En pausa»** en botones, estados, avisos, resúmenes e historial («Puesta en pausa» / «Reanudada»). El código interno (BLOQUEADA) y la lógica no cambian.
+- Formulario de tarea (Tareas, Clientes y Proyectos): «Qué hay que hacer», «Detalles», adjuntos, **cliente y proyecto con autocompletado** de datos reales (el proyecto se filtra por el cliente elegido; elegir un proyecto completa su cliente), y una línea clara **«Asigna X → Recibe Y»**. No se ofrece registrar un cliente nuevo si hay parecidos (evita duplicados).
+- Mis tareas: filtros Pendientes / En proceso / En pausa / Vencidas / Devueltas y buscador (tarea, cliente, proyecto, quién la asignó); cada tarea muestra quién la asignó, el cliente y el proyecto.
+- Mi equipo: filtro por cliente y búsqueda también por cliente y proyecto.
+
+**Integración cliente → proyecto → orden → tarea (sin duplicar)**
+- Nuevo vínculo `Tarea.cliente_ref` al cliente registrado. Se llena solo (proyecto, orden o nombre igual) y la migración vinculó las tareas existentes **sin borrar ni cambiar el texto anterior**. Nunca se crean clientes automáticamente.
+- El proyecto de una tarea tiene que ser del cliente elegido (el servidor lo valida).
+- Se sigue pudiendo crear proyectos, órdenes y tareas desde Clientes, Proyectos, Órdenes y el botón «Crear».
+
+**Expediente del cliente** (Clientes → un cliente)
+- Logo o foto del cliente (lo cambian quienes pueden editar clientes).
+- Pestañas: Resumen, Proyectos (con avance), Órdenes, **Tareas** (historial completo), Archivos y evidencias (con visor y descarga), Entregas y Reportes.
+- Cada tarea: qué se hizo, proyecto/orden, quién la hizo (y con quién), quién la creó o asignó, cuándo empezó, entregó y se finalizó, quién la resolvió (validó), entrega al cliente (de la orden) y **quién hizo qué y cuándo** (incluye reasignaciones con antes → después y motivo).
+- Filtros: empleado, un día, un mes, rango de fechas (trabajadas en ese período), proyecto, estado y texto.
+- **Reporte de trabajos realizados** por período (y proyecto): PDF y Excel con datos del cliente, período, proyectos, órdenes, tareas con responsables, fechas de ejecución, finalización y entrega, estado y evidencias. También desde cada proyecto («Reporte PDF / Excel»).
+- Permisos: no cambian. Cada persona ve las tareas que ya podía ver (las suyas, las de su equipo y las que asignó); Dirección, todas.
+
+**Oportunidades comerciales**
+- Flujo de 6 estados: Nueva oportunidad → Contactado → En negociación → Propuesta enviada → Ganada / Perdida (los registros antiguos en «Evaluación» se conservan y se pueden mover).
+- Posibles clientes sin registrarlos (nombre, contacto, teléfono, correo, RNC), valor potencial y servicios de interés.
+- Registro de llamadas, reuniones, correos, WhatsApp y propuestas (con monto).
+- **Convertir en cliente** al ganar: busca duplicados por nombre (sin tildes ni mayúsculas) y RNC; enlaza el existente o crea uno nuevo, y los servicios pasan a solicitudes de cada departamento (→ proyecto u orden).
+- Tablero: pendientes, ganadas, perdidas y valor potencial.
+
+**Adjuntos grandes (ZIP y videos hasta 400 MB)**
+- Subida por partes de 8 MB (el nginx de Plesk sigue en 64 MB por petición, sin tocar el servidor). Temporales en MEDIA_ROOT/subidas_tmp (se limpian a las 24 h). ZIP revisados como en el chat (antivirus, bomba de compresión, ejecutables). Ajustes: ADJUNTO_GRANDE_MAX_MB, EVIDENCIA_VIDEO_GRANDE_MAX_MB, SUBIDA_PARTE_MB.
+- Pendiente de revisar en el servidor: `StreamMaxLength` de ClamAV (por defecto 25 MB) para escanear ZIP grandes.
+
+**Base de datos (solo agrega; nada se borra)**: core 0022, desempeno 0035 (vínculo de tareas y nombres «En pausa»), operaciones 0006 (logo), comercial 0002 (prospectos e interacciones).
+**Pruebas**: 779 pruebas automáticas (nuevas: expediente y reportes, subidas por partes, oportunidades).
+
 ## 12.75 · 26/11/2026 · Asistente IA y análisis del día
 
 **Asistente IA** (menú «Asistente IA», para todos)

@@ -51,9 +51,9 @@ function Filtros({ f, setF, estados, conResponsable = true, conTipo = false }) {
         <option value="">Todos los departamentos</option>
         {(deptos || []).map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
       </select>
-      <div className="flex gap-2 !min-w-[18rem]">
-        <label className="flex flex-1 items-center gap-1.5 text-sm text-gris">Desde<input type="date" className="campo" value={f.desde || ""} onChange={cambiar("desde")} aria-label="Registradas desde" /></label>
-        <label className="flex flex-1 items-center gap-1.5 text-sm text-gris">Hasta<input type="date" className="campo" value={f.hasta || ""} onChange={cambiar("hasta")} aria-label="Registradas hasta" /></label>
+      <div className="grid grid-cols-1 gap-2 sm:flex sm:!min-w-[18rem]">
+        <label className="flex flex-1 items-center gap-1.5 text-sm text-gris">Desde<input type="date" className="campo min-w-0" value={f.desde || ""} onChange={cambiar("desde")} aria-label="Registradas desde" /></label>
+        <label className="flex flex-1 items-center gap-1.5 text-sm text-gris">Hasta<input type="date" className="campo min-w-0" value={f.hasta || ""} onChange={cambiar("hasta")} aria-label="Registradas hasta" /></label>
       </div>
     </div>
   );
