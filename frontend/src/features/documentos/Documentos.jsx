@@ -5,6 +5,7 @@ import { Download, ExternalLink, FileSpreadsheet, FileText, FolderOpen, ImageIco
 import { chatPersonas, documentoEditar, documentoEliminar, documentoSubir, documentosLista, urlDocumentoCompartido } from "@/lib/api";
 import { fechaHora, hace } from "@/lib/formato";
 import { Alerta, Avatar, Boton, Cabecera, Campo, Cargando, Modal, Pestanas, Vacio, cx, useAviso, useConfirmar } from "@/components/ui";
+import { useVisor } from "@/components/VisorImagen";
 
 const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 const PERMITIDOS = /\.(jpe?g|png|webp|gif|pdf|docx?|xlsx?|pptx?|txt|csv|zip|odt|ods)$/i;
@@ -23,9 +24,11 @@ function Destino({ d }) {
 }
 
 function Tarjeta({ d, resaltado, onEditar, onEliminar }) {
+  const ver = useVisor();
+  const verImagen = (e) => { e.preventDefault(); ver({ src: urlDocumentoCompartido(d.id), nombre: d.titulo, descargar: urlDocumentoCompartido(d.id, true) }); };
   return (
     <li className={cx("flex flex-col overflow-hidden rounded-xl border bg-white transition-shadow hover:shadow-md", resaltado ? "border-azul ring-2 ring-azul/30" : "border-linea")}>
-      <a href={urlDocumentoCompartido(d.id)} target="_blank" rel="noopener" className="block" aria-label={`Abrir ${d.titulo}`}>
+      <a href={urlDocumentoCompartido(d.id)} target="_blank" rel="noopener" className={cx("block", d.es_imagen && "cursor-zoom-in")} aria-label={`Abrir ${d.titulo}`} onClick={d.es_imagen ? verImagen : undefined}>
         {d.es_imagen
           ? <img src={urlDocumentoCompartido(d.id)} alt="" loading="lazy" className="h-32 w-full object-cover" />
           : <span className="flex h-32 items-center justify-center bg-fondo text-azul/60"><IconoArchivo d={d} className="size-12" /></span>}
@@ -42,7 +45,7 @@ function Tarjeta({ d, resaltado, onEditar, onEliminar }) {
         {d.carpeta && <span className="inline-flex w-fit items-center gap-1 rounded-md bg-azul/10 px-1.5 py-0.5 text-xs font-medium text-azul"><FolderOpen className="size-3" aria-hidden />{d.carpeta}</span>}
       </div>
       <div className="flex items-center gap-1 border-t border-linea-suave px-2 py-1.5">
-        <a href={urlDocumentoCompartido(d.id)} target="_blank" rel="noopener" className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-azul hover:bg-azul/5"><ExternalLink className="size-4" aria-hidden />Abrir</a>
+        <a href={urlDocumentoCompartido(d.id)} target="_blank" rel="noopener" onClick={d.es_imagen ? verImagen : undefined} className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-azul hover:bg-azul/5"><ExternalLink className="size-4" aria-hidden />{d.es_imagen ? "Ver" : "Abrir"}</a>
         <a href={urlDocumentoCompartido(d.id, true)} aria-label={`Descargar ${d.titulo}`} title="Descargar" className="inline-flex size-9 items-center justify-center rounded-lg text-gris hover:bg-fondo hover:text-azul"><Download className="size-4" /></a>
         {d.mio && (
           <span className="ml-auto flex gap-1">

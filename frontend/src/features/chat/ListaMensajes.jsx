@@ -4,6 +4,7 @@ import { chatAbierto, urlArchivoChat } from "@/lib/api";
 import { BotonVistos, ModalVistos } from "./Vistos";
 import { copiarTexto } from "@/lib/portapapeles";
 import { Avatar, cx, useAviso } from "@/components/ui";
+import { useVisor } from "@/components/VisorImagen";
 
 const MINUTOS_AGRUPAR = 5;
 
@@ -82,6 +83,7 @@ const tamano = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} K
 /** Un archivo adjunto: la imagen se ve en el mensaje (y se abre en grande); un documento sale como tarjeta con su nombre, tamaño y descarga. */
 function Adjunto({ m, mio }) {
   const a = m.archivo;
+  const ver = useVisor();
   const abrir = urlArchivoChat(m.id), bajar = urlArchivoChat(m.id, true);
   // Abrir, reproducir o descargar el archivo queda como evidencia («quién lo abrió»)
   const abierto = () => { if (!mio) chatAbierto(m.id); };
@@ -120,7 +122,7 @@ function Adjunto({ m, mio }) {
   if (a.es_imagen) {
     return (
       <span className="group/img relative mb-1 block overflow-hidden rounded-2xl ring-1 ring-linea">
-        <a href={abrir} target="_blank" rel="noopener" onClick={abierto} aria-label={`Abrir ${a.nombre}`}><img src={abrir} alt={a.nombre} loading="lazy" className="max-h-[22rem] max-w-full object-cover" /></a>
+        <button type="button" onClick={() => { abierto(); ver({ src: abrir, nombre: a.nombre, descargar: bajar }); }} aria-label={`Ver ${a.nombre}`} className="block cursor-zoom-in"><img src={abrir} alt={a.nombre} loading="lazy" className="max-h-[22rem] max-w-full object-cover" /></button>
         <a href={bajar} aria-label={`Descargar ${a.nombre}`} title="Descargar" className="absolute right-1.5 top-1.5 rounded-lg bg-white/90 p-1.5 text-tinta opacity-100 shadow hover:text-azul sm:opacity-0 sm:group-hover/img:opacity-100"><Download className="size-4" /></a>
       </span>
     );

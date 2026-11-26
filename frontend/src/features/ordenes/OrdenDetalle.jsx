@@ -21,6 +21,7 @@ import {
   RechazarG0Modal,
 } from "./acciones";
 import { Anticipacion, AreaChip, Checklist, Dato, EstadoOA, EstadoOrden, EtapasE, Plazo, PrioridadOrden } from "./piezas";
+import { useVisor } from "@/components/VisorImagen";
 
 function Historial({ eventos }) {
   return (
@@ -38,6 +39,8 @@ function Historial({ eventos }) {
 
 function Archivos({ orden, archivos, onCambio }) {
   const avisar = useAviso();
+  const ver = useVisor();
+  const imagenes = archivos.filter((x) => x.es_imagen);
   const confirmar = useConfirmar();
   const ref = useRef(null);
   const [categoria, setCategoria] = useState("ARTE");
@@ -62,12 +65,19 @@ function Archivos({ orden, archivos, onCambio }) {
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3">
           {archivos.map((a) => (
             <li key={a.id} className="group relative overflow-hidden rounded-lg border border-linea">
-              <a href={a.url} target="_blank" rel="noopener noreferrer" className="block">
-                {a.es_imagen ? <img src={a.url} alt={a.nombre_original} loading="lazy" className="aspect-[4/3] w-full bg-fondo object-cover" />
-                  : <span className="flex aspect-[4/3] items-center justify-center bg-fondo text-gris"><FileText className="size-8" /></span>}
-                <span className="block truncate px-2 pt-1.5 text-xs">{a.nombre_original}</span>
-                <span className="block truncate px-2 pb-1.5 text-[11px] text-gris">{{ ARTE: "Arte", APROBACION: "Aprobación", FOTO: "Foto", COMPROBANTE: "Comprobante" }[a.categoria] || "Otro"}</span>
-              </a>
+              {(() => {
+                const contenido = (<>
+                  {a.es_imagen ? <img src={a.url} alt={a.nombre_original} loading="lazy" className="aspect-[4/3] w-full bg-fondo object-cover" />
+                    : <span className="flex aspect-[4/3] items-center justify-center bg-fondo text-gris"><FileText className="size-8" /></span>}
+                  <span className="block truncate px-2 pt-1.5 text-xs">{a.nombre_original}</span>
+                  <span className="block truncate px-2 pb-1.5 text-[11px] text-gris">{{ ARTE: "Arte", APROBACION: "Aprobación", FOTO: "Foto", COMPROBANTE: "Comprobante" }[a.categoria] || "Otro"}</span>
+                </>);
+                // Las imágenes se ven dentro de la plataforma (con zoom); los demás archivos se abren como siempre
+                return a.es_imagen
+                  ? <button type="button" className="block w-full cursor-zoom-in text-left" aria-label={`Ver ${a.nombre_original}`}
+                      onClick={() => ver(imagenes.map((x) => ({ src: x.url, nombre: x.nombre_original })), imagenes.indexOf(a))}>{contenido}</button>
+                  : <a href={a.url} target="_blank" rel="noopener noreferrer" className="block">{contenido}</a>;
+              })()}
               <button type="button" aria-label={`Quitar ${a.nombre_original}`} onClick={async () => {
                 if (!(await confirmar({ titulo: "¿Quitar este archivo?", mensaje: a.nombre_original, boton: "Quitar", peligro: true }))) return;
                 try { await quitarArchivo(a.id); onCambio(); } catch (e) { avisar(e.message, "rojo"); }

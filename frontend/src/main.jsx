@@ -8,6 +8,7 @@ import App from "@/app/App";
 import { SesionProvider } from "@/lib/sesion";
 import { vigilarActualizaciones } from "@/lib/actualizacion";
 import { AvisosProvider, ConfirmarProvider } from "@/components/ui";
+import { VisorProvider } from "@/components/VisorImagen";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -15,7 +16,9 @@ createRoot(document.getElementById("root")).render(
       <SesionProvider>
         <AvisosProvider>
           <ConfirmarProvider>
-            <App />
+            <VisorProvider>
+              <App />
+            </VisorProvider>
           </ConfirmarProvider>
         </AvisosProvider>
       </SesionProvider>

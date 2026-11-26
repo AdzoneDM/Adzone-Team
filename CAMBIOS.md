@@ -1,5 +1,12 @@
 # Cambios
 
+## 12.74 · 26/11/2026 · Las imágenes se ven dentro de la plataforma (vista previa y zoom)
+
+- Al abrir una imagen ya no se abre otra pestaña: sale un visor a pantalla completa dentro de la plataforma.
+- Agrandar y achicar: botones + y −, rueda del mouse, doble clic (o doble toque) y pellizco en el celular; arrastrar para moverse por la imagen ampliada; «ajustar a la pantalla»; descargar; Esc o la X para cerrar (o tocar fuera de la imagen).
+- Si hay varias imágenes juntas, se pasa de una a otra con las flechas, el teclado (← →) o deslizando.
+- Dónde: chat, referencias y evidencias de las tareas (también en «Por validar»), archivos de las órdenes de trabajo y de cada área, Documentos y el portal del cliente. Los PDF y otros archivos siguen abriéndose como antes.
+
 ## 12.73 · 26/11/2026 · Aviso al cerrar la plataforma con la jornada abierta
 
 - **Cerrar la pestaña, la ventana o el navegador** con la jornada abierta (trabajando, en pausa o en almuerzo): el navegador pide confirmación antes de cerrar. Por seguridad, Chrome/Edge/Firefox muestran su propio texto («¿Salir del sitio?») y no permiten uno personalizado; en celulares casi nunca lo muestran.

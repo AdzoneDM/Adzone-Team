@@ -13,6 +13,7 @@ import { EquipoTarea, Historial, Pasos, SelectorArchivos, TextoCopiable } from "
 import { Alerta, Avatar, Boton, Campo, Insignia, Modal, PrioridadTarea, cx, useAviso, useConfirmar } from "@/components/ui";
 import { BotonesGestion } from "./GestionTarea";
 import { ESCALA_CALIDAD, diasTarde, entregaDe, evidenciaActual, tamanoLegible, textoEspera, tipoDeArchivo } from "./validarUtil";
+import { useVisor } from "@/components/VisorImagen";
 
 function Seccion({ icono: Icono, titulo, derecha, children }) {
   return (
@@ -62,7 +63,16 @@ function ArchivoEvidencia({ e, onVer, etiquetaEntrega }) {
 }
 
 function EvidenciasRevision({ tarea }) {
-  const [ver, setVer] = useState(null);
+  const [ver, setVerArchivo] = useState(null);
+  const visor = useVisor();
+  // Imágenes: visor con zoom (todas las de la entrega, para pasar con las flechas); videos y PDF: su ventana
+  const setVer = (e) => {
+    if (e && tipoDeArchivo(e).clave === "imagen") {
+      const imgs = (tarea.evidencias || []).filter((x) => tipoDeArchivo(x).clave === "imagen" && !x.purgado);
+      return visor(imgs.map((x) => ({ src: x.url, nombre: x.nombre_original })), Math.max(0, imgs.findIndex((x) => x.id === e.id)));
+    }
+    return setVerArchivo(e);
+  };
   const actuales = evidenciaActual(tarea);
   const previas = (tarea.evidencias || []).filter((e) => !actuales.includes(e));
   const nada = !actuales.length && !tarea.evidencia_nota?.trim() && !tarea.evidencia_enlace;

@@ -9,6 +9,7 @@ import { copiarTexto } from "@/lib/portapapeles";
 import { MAX_FOTO_MB, limites } from "@/lib/archivos";
 import { ESTADOS, fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
 import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx, useAviso } from "@/components/ui";
+import { useVisor } from "@/components/VisorImagen";
 
 const MAX_LADO = 1600;
 
@@ -139,7 +140,7 @@ export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boce
 
 /** Bocetos e imágenes de referencia que dejó quien supervisa: al asignar y en cada corrección. */
 export function Referencias({ tarea, onCambio, avisar }) {
-  const [grande, setGrande] = useState(null);
+  const ver = useVisor();
   const [nuevos, setNuevos] = useState([]);
   const [subiendo, setSubiendo] = useState(false);
   const lista = tarea.referencias || [];
@@ -193,7 +194,7 @@ export function Referencias({ tarea, onCambio, avisar }) {
               {g.items.filter((r) => !r.es_video).map((r) => (
                 <li key={r.id} className="group relative">
                   {r.es_imagen ? (
-                    <button type="button" onClick={() => setGrande(r)} className="block w-full overflow-hidden rounded-lg border border-linea bg-fondo" aria-label={`Ver ${r.nombre_original || "imagen"} en grande`}>
+                    <button type="button" onClick={() => { const imgs = g.items.filter((x) => x.es_imagen); ver(imgs.map((x) => ({ src: x.url, nombre: x.nombre_original })), imgs.indexOf(r)); }} className="block w-full cursor-zoom-in overflow-hidden rounded-lg border border-linea bg-fondo" aria-label={`Ver ${r.nombre_original || "imagen"} en grande`}>
                       <img src={r.url} alt={r.nombre_original || "Referencia"} loading="lazy" className="aspect-square w-full object-cover" />
                     </button>
                   ) : (
@@ -219,12 +220,6 @@ export function Referencias({ tarea, onCambio, avisar }) {
           </div>
         )}
       </div>
-      {grande && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-noche-900/90 p-4" role="dialog" aria-modal="true" aria-label="Referencia" onClick={() => setGrande(null)}>
-          <button type="button" className="absolute right-4 top-4 rounded-lg bg-white/10 p-2 text-white" aria-label="Cerrar"><X className="size-6" /></button>
-          <img src={grande.url} alt={grande.nombre_original || "Referencia"} className="max-h-full max-w-full rounded-lg object-contain" />
-        </div>
-      )}
     </section>
   );
 }
@@ -315,7 +310,7 @@ export function Pasos({ tarea, onCambio }) {
 
 /** Fotos y PDF de una entrega. Las fotos abren en grande. */
 export function Evidencias({ tarea, compacto }) {
-  const [grande, setGrande] = useState(null);
+  const ver = useVisor();
   const lista = tarea.evidencias || [];
   const rondas = [...new Set(lista.map((e) => e.ronda))];
   const ultima = rondas.length ? Math.max(...rondas) : 0;
@@ -339,7 +334,7 @@ export function Evidencias({ tarea, compacto }) {
           {mostrar.filter((e) => !e.es_video).map((e) => (
             <li key={e.id}>
               {e.es_imagen ? (
-                <button type="button" onClick={() => setGrande(e)} className="block w-full overflow-hidden rounded-lg border border-linea bg-fondo">
+                <button type="button" onClick={() => { const imgs = mostrar.filter((x) => x.es_imagen); ver(imgs.map((x) => ({ src: x.url, nombre: x.nombre_original })), imgs.indexOf(e)); }} className="block w-full cursor-zoom-in overflow-hidden rounded-lg border border-linea bg-fondo" aria-label={`Ver ${e.nombre_original || "evidencia"} en grande`}>
                   <img src={e.url} alt={e.nombre_original || "Evidencia"} loading="lazy" className="aspect-square w-full object-cover" />
                 </button>
               ) : (
@@ -352,12 +347,6 @@ export function Evidencias({ tarea, compacto }) {
             </li>
           ))}
         </ul>
-      )}
-      {grande && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-noche-900/90 p-4" role="dialog" aria-modal="true" aria-label="Evidencia" onClick={() => setGrande(null)}>
-          <button type="button" className="absolute right-4 top-4 rounded-lg bg-white/10 p-2 text-white" aria-label="Cerrar"><X className="size-6" /></button>
-          <img src={grande.url} alt={grande.nombre_original || "Evidencia"} className="max-h-full max-w-full rounded-lg object-contain" />
-        </div>
       )}
     </div>
   );

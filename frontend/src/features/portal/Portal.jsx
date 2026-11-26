@@ -7,8 +7,10 @@ import FirmaCanvas from "@/components/FirmaCanvas";
 import { portal, portalAprobar, portalArchivo, portalFirmar } from "@/lib/api";
 import { dinero, fechaCorta } from "@/lib/formato";
 import { Alerta, Barra, Boton, Campo, Cargando, Insignia, Modal, Panel } from "@/components/ui";
+import { useVisor } from "@/components/VisorImagen";
 
 function Aprobar({ token, item, onHecho }) {
+  const ver = useVisor();
   const [modo, setModo] = useState(null); // aprobar | cambios
   const [nombre, setNombre] = useState("");
   const [comentario, setComentario] = useState("");
@@ -27,7 +29,9 @@ function Aprobar({ token, item, onHecho }) {
         {item.archivos.map((a) => (
           <li key={a.id}>
             {a.tipo?.startsWith("image/")
-              ? <a href={portalArchivo(token, a.id)} target="_blank" rel="noreferrer"><img src={portalArchivo(token, a.id)} alt={a.nombre} className="max-h-80 w-full rounded-lg border border-linea bg-white object-contain" /></a>
+              ? <button type="button" className="block w-full cursor-zoom-in" aria-label={`Ver ${a.nombre} en grande`}
+                  onClick={() => { const imgs = item.archivos.filter((x) => x.tipo?.startsWith("image/")); ver(imgs.map((x) => ({ src: portalArchivo(token, x.id), nombre: x.nombre })), imgs.indexOf(a)); }}>
+                  <img src={portalArchivo(token, a.id)} alt={a.nombre} className="max-h-80 w-full rounded-lg border border-linea bg-white object-contain" /></button>
               : <a className="inline-flex items-center gap-2 text-azul hover:underline" href={portalArchivo(token, a.id)} target="_blank" rel="noreferrer"><FileText className="size-4" />{a.nombre}</a>}
           </li>
         ))}

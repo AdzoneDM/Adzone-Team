@@ -16,6 +16,7 @@ import { SelectorPersona, SelectorPersonas } from "@/components/Selectores";
 import { Alerta, Boton, Campo, Cargando, EntradaEstrellas, Modal, Panel, cx, useAviso } from "@/components/ui";
 import { CambioModal } from "./acciones";
 import { AreaChip, CampoFormato, Checklist, Dato, EstadoOA, FichaFormato, PrioridadOrden } from "./piezas";
+import { useVisor } from "@/components/VisorImagen";
 
 const PASOS = [["G1", "Entrada"], ["E3", "Ejecución"], ["RI", "Revisión interna"], ["G4", "Cliente"], ["G3", "Calidad"], ["G2", "Salida"]];
 
@@ -309,6 +310,7 @@ function Costos({ oa, onGuardar }) {
 
 export default function OrdenArea() {
   const { id, oaId } = useParams();
+  const ver = useVisor();
   const avisar = useAviso();
   const { usuario, esCoordinacion, esAlmacen } = useSesion();
   const [d, setD] = useState(null);
@@ -456,7 +458,12 @@ export default function OrdenArea() {
               try { await subirArchivosOrden(orden.id, lista, { oa: oa.id, categoria: oa.estado === "EN_APROBACION" ? "APROBACION" : "ARTE" }); listo("Archivo(s) agregado(s)."); } catch (err) { avisar(err.message, "rojo"); }
             }} />
             {d.archivos.length === 0 ? <p className="text-sm text-gris">Artes, pruebas, aprobaciones del cliente y fotos de esta área.</p> : (
-              <ul className="space-y-1.5 text-sm">{d.archivos.map((a) => <li key={a.id}><a href={a.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-azul"><FileText className="size-4 text-gris" />{a.nombre_original}</a></li>)}</ul>
+              <ul className="space-y-1.5 text-sm">{d.archivos.map((a) => {
+                const imagenes = d.archivos.filter((x) => x.es_imagen);
+                return <li key={a.id}>{a.es_imagen
+                  ? <button type="button" onClick={() => ver(imagenes.map((x) => ({ src: x.url, nombre: x.nombre_original })), imagenes.indexOf(a))} className="inline-flex items-center gap-1.5 text-left hover:text-azul"><img src={a.url} alt="" loading="lazy" className="size-8 rounded object-cover" />{a.nombre_original}</button>
+                  : <a href={a.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-azul"><FileText className="size-4 text-gris" />{a.nombre_original}</a>}</li>;
+              })}</ul>
             )}
           </Panel>
 
