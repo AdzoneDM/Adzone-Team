@@ -52,12 +52,16 @@ function Personas({ lista, color }) {
 // Estilo del organigrama oficial (PDF «Organigramas Adzone 2026»): la cadena de mando y quien dirige gerencias en amarillo,
 // las direcciones y gerencias en azul, y debajo, en columna, los departamentos (texto azul en negrita) y sus áreas (blancas).
 const TONOS = {
-  oro: { caja: "border-amarillo-600 bg-amarillo text-noche", titulo: "text-noche", sub: "text-noche/65", chip: "bg-noche/10 text-noche", boton: "bg-noche/10 text-noche hover:bg-noche/15", centro: true },
-  azul: { caja: "border-azul bg-azul text-white", titulo: "text-white", sub: "text-white/70", chip: "bg-white/15 text-white", boton: "bg-white/15 text-white hover:bg-white/25", centro: true },
-  jefe: { caja: "border-azul/35 bg-white text-tinta", titulo: "text-azul font-bold", sub: "text-gris", chip: null, boton: "bg-fondo text-gris hover:bg-linea-suave hover:text-tinta" },
-  hoja: { caja: "border-linea bg-white text-tinta", titulo: "text-tinta font-medium", sub: "text-gris", chip: null, boton: "bg-fondo text-gris hover:bg-linea-suave hover:text-tinta" },
+  oro: { caja: "bg-gradient-to-br from-[#ffd666] to-[#f4a925] text-noche ring-1 ring-[#e09a17]/40 shadow-[0_10px_24px_-12px_rgb(180_120_0/0.55)]", titulo: "text-noche", sub: "text-noche/70",
+    chip: "bg-white/70 text-noche", boton: "bg-white/50 text-noche hover:bg-white/70", centro: true, anillo: "ring-[#ffd666]" },
+  azul: { caja: "bg-gradient-to-br from-[#2d5fbf] to-[#16357a] text-white ring-1 ring-white/10 shadow-[0_10px_24px_-12px_rgb(22_53_122/0.7)]", titulo: "text-white", sub: "text-white/75",
+    chip: "bg-white/20 text-white", boton: "bg-white/15 text-white hover:bg-white/25", centro: true, anillo: "ring-[#24519f]" },
+  jefe: { caja: "bg-white text-tinta ring-1 ring-azul/15 shadow-[0_8px_20px_-14px_rgb(15_37_80/0.45)]", titulo: "text-azul font-bold", sub: "text-gris",
+    chip: null, boton: "bg-azul/5 text-azul hover:bg-azul/10", barra: true, anillo: "ring-white" },
+  hoja: { caja: "bg-white text-tinta ring-1 ring-linea shadow-[0_6px_16px_-14px_rgb(15_37_80/0.4)]", titulo: "text-tinta font-semibold", sub: "text-gris",
+    chip: null, boton: "bg-fondo text-gris hover:bg-linea-suave hover:text-tinta", anillo: "ring-white" },
 };
-const LINEA = "bg-azul/45";
+const LINEA = "bg-[#9fb2d6]";
 
 function Tarjeta({ nodo, tono = "hoja", admin, resumen, abierto, onAlternar, atenuado, destacado, onDepto, ancho = "w-[230px]", modo = "nominal" }) {
   const color = colorDe(nodo.departamento_id);
@@ -67,34 +71,41 @@ function Tarjeta({ nodo, tono = "hoja", admin, resumen, abierto, onAlternar, ate
   const titulo = admin ? <Link to={`/puestos/${nodo.id}`} className="hover:underline">{texto}</Link> : texto;
   return (
     <div data-nodo={nodo.id} data-depto={nodo.departamento_id} data-coincide={destacado ? "1" : undefined}
-      className={cx("relative rounded-[3px] border shadow-[0_1px_2px_rgb(15_37_80/0.08)] transition", t.caja, ancho, atenuado && "opacity-30",
-        destacado ? "ring-4 ring-amarillo/70" : "hover:shadow-md")}>
-      <div className={cx("px-3 py-2.5", t.centro && "text-center")}>
+      className={cx("relative overflow-hidden rounded-2xl transition duration-200 motion-safe:hover:-translate-y-0.5", t.caja, ancho, atenuado && "opacity-30",
+        destacado && "!ring-4 !ring-amarillo/80")}>
+      {/* Departamentos y áreas: una franja arriba con el color de su departamento */}
+      {!t.centro && <span className="absolute inset-x-0 top-0 h-1" style={{ background: color.acento }} aria-hidden />}
+      <div className={cx("px-3.5 pb-3 pt-3.5", t.centro && "text-center")}>
         <h3 className={cx("!text-[14px] leading-snug", t.centro ? "font-bold" : "", t.titulo)}>{titulo}</h3>
         {/* El cargo y su unidad quedan vinculados: en el estructural se ve el cargo debajo; en el nominal, la unidad */}
         {(estructural ? nodo.unidad && nodo.unidad !== nodo.nombre : nodo.unidad) && <p className={cx("mt-0.5 text-[11.5px] leading-snug", t.sub)}>{estructural ? nodo.nombre : nodo.unidad}</p>}
         <button type="button" onClick={() => onDepto?.(nodo.departamento_id)} title={`Acercar a ${nodo.departamento}`} aria-label={`Acercar el organigrama a ${nodo.departamento}`}
-          className={cx("mt-1 inline-flex max-w-full items-center gap-1.5 rounded text-[10.5px] font-semibold uppercase tracking-wide hover:underline", t.sub)}>
+          className={cx("mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider hover:underline", t.centro ? "bg-black/10" : "bg-fondo", t.sub)}>
           <span className="size-2 shrink-0 rounded-full ring-1 ring-white/60" style={{ background: color.acento }} aria-hidden />
           <span className="truncate">{nodo.departamento}</span>
         </button>
         {estructural ? null : nodo.personas.length ? (
-          <ul className={cx("mt-1.5 space-y-1", t.centro && "flex flex-col items-center")}>
-            {nodo.personas.slice(0, 4).map((p) => (
-              <li key={p.id} className="flex max-w-full items-center gap-1.5 text-[12.5px]">
-                <span className={cx("flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold", t.chip || "")} style={t.chip ? undefined : { background: color.suave, color: color.acento }} aria-hidden>{iniciales(p.nombre)}</span>
-                <span className="truncate">{p.nombre}</span>
-              </li>
-            ))}
-            {nodo.personas.length > 4 && <li className={cx("text-[11.5px]", t.sub)}>+ {nodo.personas.length - 4} más</li>}
-          </ul>
+          <div className={cx("mt-2.5", t.centro && "flex flex-col items-center")}>
+            {/* Las caras (iniciales) superpuestas y debajo los nombres */}
+            <div className={cx("flex", t.centro && "justify-center")} aria-hidden>
+              {nodo.personas.slice(0, 5).map((p, i) => (
+                <span key={p.id} className={cx("flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-2", t.anillo, i > 0 && "-ml-2", t.chip || "")}
+                  style={t.chip ? undefined : { background: color.suave, color: color.acento }}>{iniciales(p.nombre)}</span>
+              ))}
+              {nodo.personas.length > 5 && <span className={cx("-ml-2 flex size-7 items-center justify-center rounded-full bg-fondo text-[10px] font-bold text-gris ring-2", t.anillo)}>+{nodo.personas.length - 5}</span>}
+            </div>
+            <ul className={cx("mt-1.5 space-y-0.5", t.centro && "flex flex-col items-center")}>
+              {nodo.personas.slice(0, 4).map((p) => <li key={p.id} className="max-w-full truncate text-[12.5px] font-medium">{p.nombre}</li>)}
+              {nodo.personas.length > 4 && <li className={cx("text-[11.5px]", t.sub)}>y {nodo.personas.length - 4} más</li>}
+            </ul>
+          </div>
         ) : !nodo.cubre?.length && <p className={cx("mt-1.5 inline-flex rounded border border-dashed px-1.5 text-[11px] italic", t.centro ? "border-current/40" : "border-gris/50", t.sub)}>Vacante</p>}
         {!estructural && nodo.situacion === "COMPARTIDO" && (
           <p className={cx("mt-1.5 text-[11px]", t.sub)}><span className={cx("rounded px-1.5 py-px font-semibold", t.chip || "bg-[#f0ebfb] text-[#6d4ac8]")}>Compartido</span>{nodo.cubre?.length ? ` · lo cubre ${nodo.cubre.join(", ")}` : ""}</p>
         )}
         {nodo.hijos.length > 0 && (
           <button type="button" onClick={onAlternar} aria-expanded={abierto} aria-label={`${abierto ? "Contraer" : "Expandir"} ${nodo.nombre}`}
-            className={cx("mt-2 inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium transition-colors", t.boton)}>
+            className={cx("mt-2.5 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors", t.boton)}>
             {plural(resumen.puestos - 1, "puesto", "puestos")} · {plural(resumen.personas - nodo.personas.length, "persona", "personas")}
             <ChevronDown className={cx("size-3.5 transition-transform", !abierto && "-rotate-90")} aria-hidden />
           </button>
@@ -114,12 +125,12 @@ const tarjeta = (nodo, ctx, tono, ancho) => (
 function Rama({ nodos, ctx, nivel = 0 }) {
   return (
     <ul className={cx("relative space-y-2 pt-2", nivel === 0 ? "ml-3" : "ml-3")}>
-      <span className={cx("absolute bottom-5 left-0 top-0 w-px", LINEA)} aria-hidden />
+      <span className={cx("absolute bottom-5 left-0 top-0 w-[2px]", LINEA)} aria-hidden />
       {nodos.map((n) => {
         const abierto = ctx.abierto(n);
         return (
           <li key={n.id} className="relative pl-4">
-            <span className={cx("absolute left-0 top-5 h-px w-4", LINEA)} aria-hidden />
+            <span className={cx("absolute left-0 top-5 h-[2px] w-4", LINEA)} aria-hidden />
             {tarjeta(n, ctx, n.hijos.length ? "jefe" : "hoja", nivel === 0 ? "w-[210px]" : "w-[196px]")}
             {abierto && n.hijos.length > 0 && <Rama nodos={n.hijos} ctx={ctx} nivel={nivel + 1} />}
           </li>
@@ -139,8 +150,8 @@ function Abanico({ nodos, ctx }) {
     <div className="flex items-start justify-center">
       {nodos.map((h, i) => (
         <div key={h.id} className="relative flex flex-col items-center px-2.5 pt-6">
-          {n > 1 && <span className={cx("absolute top-0 h-px", LINEA, i === 0 ? "left-1/2 right-0" : i === n - 1 ? "left-0 right-1/2" : "inset-x-0")} aria-hidden />}
-          <span className={cx("absolute left-1/2 top-0 h-6 w-px", LINEA)} aria-hidden />
+          {n > 1 && <span className={cx("absolute top-0 h-[2px]", LINEA, i === 0 ? "left-1/2 right-0" : i === n - 1 ? "left-0 right-1/2" : "inset-x-0")} aria-hidden />}
+          <span className={cx("absolute left-1/2 top-0 h-6 w-[2px]", LINEA)} aria-hidden />
           <Columna nodo={h} ctx={ctx} />
         </div>
       ))}
@@ -154,7 +165,7 @@ function Columna({ nodo, ctx }) {
     return (
       <div className="flex flex-col items-center">
         {tarjeta(nodo, ctx, "oro", "w-[260px]")}
-        {abierto && <><span className={cx("h-6 w-px", LINEA)} aria-hidden /><Abanico nodos={nodo.hijos} ctx={ctx} /></>}
+        {abierto && <><span className={cx("h-6 w-[2px]", LINEA)} aria-hidden /><Abanico nodos={nodo.hijos} ctx={ctx} /></>}
       </div>
     );
   }
@@ -177,11 +188,11 @@ function Arbol({ raiz, ctx }) {
     <div className="inline-flex flex-col items-center">
       {cadena.map((nodo, i) => (
         <div key={nodo.id} className="flex flex-col items-center">
-          {i > 0 && <span className={cx("h-3 w-px", LINEA)} aria-hidden />}
+          {i > 0 && <span className={cx("h-3 w-[2px]", LINEA)} aria-hidden />}
           {tarjeta(nodo, ctx, "oro", "w-[300px]")}
         </div>
       ))}
-      {hijos.length > 0 && <><span className={cx("h-6 w-px", LINEA)} aria-hidden /><Abanico nodos={hijos} ctx={ctx} /></>}
+      {hijos.length > 0 && <><span className={cx("h-6 w-[2px]", LINEA)} aria-hidden /><Abanico nodos={hijos} ctx={ctx} /></>}
     </div>
   );
 }
@@ -580,7 +591,7 @@ export default function Organigrama() {
       </div>
 
       {vista === "grafico" ? (
-        <div ref={contenedor} className="cursor-grab overflow-auto rounded-xl border border-linea [&.arrastrando]:cursor-grabbing [&.arrastrando]:select-none bg-white p-6 print:overflow-visible print:border-0">
+        <div ref={contenedor} className="cursor-grab overflow-auto rounded-2xl border border-linea [&.arrastrando]:cursor-grabbing [&.arrastrando]:select-none bg-[#fbfcfe] bg-[radial-gradient(#dde4f0_1px,transparent_1px)] [background-size:20px_20px] p-8 print:overflow-visible print:border-0 print:bg-white print:[background-image:none]">
           <Lienzo escala={escala}>
             <div className="relative space-y-12">
               {datos.raices.map((r) => <Arbol key={r.id} raiz={r} ctx={ctx} />)}

@@ -282,6 +282,21 @@ function MenuUsuario({ usuario, logout }) {
   );
 }
 
+const sinTildes = (t) => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/** Buscador del menú: escribe y quedan solo los módulos que coinciden (Enter abre el primero, Esc borra). */
+function FiltroMenu({ valor, onCambio, onPrimero, oscuro = true }) {
+  return (
+    <div className="relative">
+      <Search className={cx("pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2", oscuro ? "text-white/50" : "text-gris")} aria-hidden />
+      <input value={valor} onChange={(e) => onCambio(e.target.value)} placeholder="Buscar en el menú…" aria-label="Buscar en el menú"
+        onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onCambio(""); } else if (e.key === "Enter") { e.preventDefault(); onPrimero?.(); } }}
+        className="h-9 w-full rounded-lg border border-white/10 bg-white/10 pl-9 pr-8 text-sm text-white placeholder:text-white/45 outline-none transition focus:border-amarillo/60 focus:bg-white/15" />
+      {valor && <button type="button" onClick={() => onCambio("")} aria-label="Borrar la búsqueda" className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-white/60 hover:text-white"><X className="size-3.5" /></button>}
+    </div>
+  );
+}
+
 function Enlace({ item, cuentas, onClick }) {
   const n = item.cuenta ? cuentas[item.cuenta] : 0;
   return (
@@ -396,6 +411,11 @@ function EstructuraInterna() {
     tablerosDepartamentos().then(setTablerosDeptos).catch(() => setTablerosDeptos([]));
   }, [veTableros, usuario?.id]);
   const grupos = secciones({ ...sesion, tablerosDeptos });
+  const [filtroMenu, setFiltroMenu] = useState("");
+  const irA = useNavigate();
+  const tf = sinTildes(filtroMenu);
+  const gruposVistos = tf ? grupos.map((g) => ({ ...g, items: g.items.filter((i) => sinTildes(`${i.texto} ${g.titulo}`).includes(tf)) })).filter((g) => g.items.length) : grupos;
+  const primeroMenu = gruposVistos[0]?.items[0];
   useEffect(() => { setMas(false); }, [location.pathname]);
 
   // Barra inferior del celular: lo del día a día; el resto en «Más».
@@ -415,11 +435,13 @@ function EstructuraInterna() {
       {/* PC (desde 1024 px): menú lateral fijo. En tablet no cabe junto al contenido: usa la barra inferior */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-noche lg:flex">
         <div className="flex h-16 items-center px-5"><Link to="/" aria-label="Inicio"><Marca /></Link></div>
+        <div className="px-3 pb-1"><FiltroMenu valor={filtroMenu} onCambio={setFiltroMenu} onPrimero={() => { if (primeroMenu) { irA(primeroMenu.a); setFiltroMenu(""); } }} /></div>
         <nav className="scroll-oscuro flex-1 overflow-y-auto px-3 pb-4" aria-label="Menú principal" data-guia="menu">
-          {grupos.map((g) => (
+          {tf && !gruposVistos.length && <p className="px-3 py-4 text-sm text-white/55">Nada con «{filtroMenu}».</p>}
+          {gruposVistos.map((g) => (
             <div key={g.titulo} className="mt-4 first:mt-1">
               <p className="px-3 pb-1.5 text-xs font-medium text-white/45">{g.titulo}</p>
-              <div className="space-y-0.5">{g.items.map((i) => <Enlace key={i.a} item={i} cuentas={datos} />)}</div>
+              <div className="space-y-0.5">{g.items.map((i) => <Enlace key={i.a} item={i} cuentas={datos} onClick={() => setFiltroMenu("")} />)}</div>
             </div>
           ))}
         </nav>
@@ -501,8 +523,9 @@ function EstructuraInterna() {
           <button type="button" className="absolute inset-0 bg-noche-900/50" aria-label="Cerrar" onClick={() => setMas(false)} />
           <div className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-noche pb-[env(safe-area-inset-bottom)]">
             <div className="flex items-center justify-between px-5 pt-4"><Marca /><button type="button" onClick={() => setMas(false)} className="rounded-lg p-2 text-white/70" aria-label="Cerrar"><X className="size-5" /></button></div>
+            <div className="px-3 pt-3"><FiltroMenu valor={filtroMenu} onCambio={setFiltroMenu} onPrimero={() => { const r = resto.filter((i) => sinTildes(i.texto).includes(tf))[0]; if (r) { irA(r.a); setMas(false); setFiltroMenu(""); } }} /></div>
             <nav className="max-h-[60dvh] space-y-0.5 overflow-y-auto px-3 py-3">
-              {resto.map((i) => <Enlace key={i.a} item={i} cuentas={datos} />)}
+              {resto.filter((i) => !tf || sinTildes(i.texto).includes(tf)).map((i) => <Enlace key={i.a} item={i} cuentas={datos} onClick={() => { setMas(false); setFiltroMenu(""); }} />)}
               <button type="button" onClick={() => { setMas(false); guia.abrirAyuda(); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[15px] text-white/80 hover:bg-white/10 hover:text-white">
                 <CircleHelp className="size-5" aria-hidden /> Ayuda: guía paso a paso
               </button>
