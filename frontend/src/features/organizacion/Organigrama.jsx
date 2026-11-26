@@ -48,25 +48,47 @@ function Personas({ lista, color }) {
   );
 }
 
-function Tarjeta({ nodo, admin, resumen, abierto, onAlternar, atenuado, destacado, onDepto, ancho = "w-[260px]" }) {
+// Estilo del organigrama oficial (PDF «Organigramas Adzone 2026»): la cadena de mando y quien dirige gerencias en amarillo,
+// las direcciones y gerencias en azul, y debajo, en columna, los departamentos (texto azul en negrita) y sus áreas (blancas).
+const TONOS = {
+  oro: { caja: "border-amarillo-600 bg-amarillo text-noche", titulo: "text-noche", sub: "text-noche/65", chip: "bg-noche/10 text-noche", boton: "bg-noche/10 text-noche hover:bg-noche/15", centro: true },
+  azul: { caja: "border-azul bg-azul text-white", titulo: "text-white", sub: "text-white/70", chip: "bg-white/15 text-white", boton: "bg-white/15 text-white hover:bg-white/25", centro: true },
+  jefe: { caja: "border-azul/35 bg-white text-tinta", titulo: "text-azul font-bold", sub: "text-gris", chip: null, boton: "bg-fondo text-gris hover:bg-linea-suave hover:text-tinta" },
+  hoja: { caja: "border-linea bg-white text-tinta", titulo: "text-tinta font-medium", sub: "text-gris", chip: null, boton: "bg-fondo text-gris hover:bg-linea-suave hover:text-tinta" },
+};
+const LINEA = "bg-azul/45";
+
+function Tarjeta({ nodo, tono = "hoja", admin, resumen, abierto, onAlternar, atenuado, destacado, onDepto, ancho = "w-[230px]" }) {
   const color = colorDe(nodo.departamento_id);
-  const titulo = admin ? <Link to={`/puestos/${nodo.id}`} className="hover:text-azul hover:underline">{nodo.nombre}</Link> : nodo.nombre;
+  const t = TONOS[tono];
+  const titulo = admin ? <Link to={`/puestos/${nodo.id}`} className="hover:underline">{nodo.nombre}</Link> : nodo.nombre;
   return (
     <div data-nodo={nodo.id} data-depto={nodo.departamento_id} data-coincide={destacado ? "1" : undefined}
-      className={cx("relative overflow-hidden rounded-xl border bg-white shadow-sm transition", ancho, atenuado && "opacity-35", destacado ? "border-azul ring-2 ring-azul/30" : "border-linea hover:shadow-md")}>
-      <span className="absolute inset-y-0 left-0 w-1" style={{ background: color.acento }} aria-hidden />
-      <div className="py-3 pl-4 pr-3">
+      className={cx("relative rounded-[3px] border shadow-[0_1px_2px_rgb(15_37_80/0.08)] transition", t.caja, ancho, atenuado && "opacity-30",
+        destacado ? "ring-4 ring-amarillo/70" : "hover:shadow-md")}>
+      <div className={cx("px-3 py-2.5", t.centro && "text-center")}>
+        <h3 className={cx("!text-[14px] leading-snug", t.centro ? "font-bold" : "", t.titulo)}>{titulo}</h3>
         <button type="button" onClick={() => onDepto?.(nodo.departamento_id)} title={`Acercar a ${nodo.departamento}`} aria-label={`Acercar el organigrama a ${nodo.departamento}`}
-          className="inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide hover:brightness-95" style={{ background: color.suave, color: color.acento }}>
+          className={cx("mt-1 inline-flex max-w-full items-center gap-1.5 rounded text-[10.5px] font-semibold uppercase tracking-wide hover:underline", t.sub)}>
+          <span className="size-2 shrink-0 rounded-full ring-1 ring-white/60" style={{ background: color.acento }} aria-hidden />
           <span className="truncate">{nodo.departamento}</span>
         </button>
-        <h3 className="mt-1.5 !text-[15px] font-semibold leading-snug !text-noche">{titulo}</h3>
-        <Personas lista={nodo.personas} color={color} />
+        {nodo.personas.length ? (
+          <ul className={cx("mt-1.5 space-y-1", t.centro && "flex flex-col items-center")}>
+            {nodo.personas.slice(0, 4).map((p) => (
+              <li key={p.id} className="flex max-w-full items-center gap-1.5 text-[12.5px]">
+                <span className={cx("flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold", t.chip || "")} style={t.chip ? undefined : { background: color.suave, color: color.acento }} aria-hidden>{iniciales(p.nombre)}</span>
+                <span className="truncate">{p.nombre}</span>
+              </li>
+            ))}
+            {nodo.personas.length > 4 && <li className={cx("text-[11.5px]", t.sub)}>+ {nodo.personas.length - 4} más</li>}
+          </ul>
+        ) : <p className={cx("mt-1.5 text-[11.5px] italic", t.sub)}>Vacante</p>}
         {nodo.hijos.length > 0 && (
           <button type="button" onClick={onAlternar} aria-expanded={abierto} aria-label={`${abierto ? "Contraer" : "Expandir"} ${nodo.nombre}`}
-            className="mt-2.5 flex w-full items-center justify-between rounded-lg bg-fondo px-2.5 py-1.5 text-xs font-medium text-gris transition-colors hover:bg-linea-suave hover:text-tinta">
-            <span>{plural(resumen.puestos - 1, "puesto a cargo", "puestos a cargo")} · {plural(resumen.personas - nodo.personas.length, "persona", "personas")}</span>
-            <ChevronDown className={cx("size-4 transition-transform", !abierto && "-rotate-90")} aria-hidden />
+            className={cx("mt-2 inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium transition-colors", t.boton)}>
+            {plural(resumen.puestos - 1, "puesto", "puestos")} · {plural(resumen.personas - nodo.personas.length, "persona", "personas")}
+            <ChevronDown className={cx("size-3.5 transition-transform", !abierto && "-rotate-90")} aria-hidden />
           </button>
         )}
       </div>
@@ -74,68 +96,84 @@ function Tarjeta({ nodo, admin, resumen, abierto, onAlternar, atenuado, destacad
   );
 }
 
+const tarjeta = (nodo, ctx, tono, ancho) => (
+  <Tarjeta nodo={nodo} tono={tono} admin={ctx.admin} resumen={contar(nodo)} abierto={ctx.abierto(nodo)} onAlternar={() => ctx.alternar(nodo.id)}
+    atenuado={ctx.atenuado(nodo)} destacado={ctx.destacado(nodo)} onDepto={ctx.alDepto} ancho={ancho} />
+);
+
 // ── Gráfico ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-/** Puestos de niveles inferiores: lista vertical con conectores, para que el gráfico no se haga infinitamente ancho. */
-function Rama({ nodos, ctx }) {
+/** Debajo de una gerencia: lista vertical con la línea a la izquierda (como en el PDF); los que tienen gente a cargo, en negrita. */
+function Rama({ nodos, ctx, nivel = 0 }) {
   return (
-    <ul className="relative ml-5 space-y-3 pt-3">
-      <span className="absolute bottom-6 left-0 top-0 w-px bg-linea" aria-hidden />
-      {nodos.map((n) => <NodoVertical key={n.id} nodo={n} ctx={ctx} />)}
+    <ul className={cx("relative space-y-2 pt-2", nivel === 0 ? "ml-3" : "ml-3")}>
+      <span className={cx("absolute bottom-5 left-0 top-0 w-px", LINEA)} aria-hidden />
+      {nodos.map((n) => {
+        const abierto = ctx.abierto(n);
+        return (
+          <li key={n.id} className="relative pl-4">
+            <span className={cx("absolute left-0 top-5 h-px w-4", LINEA)} aria-hidden />
+            {tarjeta(n, ctx, n.hijos.length ? "jefe" : "hoja", nivel === 0 ? "w-[210px]" : "w-[196px]")}
+            {abierto && n.hijos.length > 0 && <Rama nodos={n.hijos} ctx={ctx} nivel={nivel + 1} />}
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
-function NodoVertical({ nodo, ctx }) {
-  const abierto = ctx.abierto(nodo);
+/** ¿Dirige gerencias? (varios puestos a cargo que a su vez tienen gente): sus puestos van en fila, como Director de Operaciones. */
+const dirigeGerencias = (n) => n.hijos.filter((h) => h.hijos.length > 0).length >= 2;
+
+/** Una fila de puestos unidos por la línea horizontal (direcciones, o las gerencias de Operaciones). */
+function Abanico({ nodos, ctx }) {
+  const n = nodos.length;
   return (
-    <li className="relative pl-5">
-      <span className="absolute left-0 top-7 h-px w-5 bg-linea" aria-hidden />
-      <Tarjeta nodo={nodo} admin={ctx.admin} resumen={contar(nodo)} abierto={abierto} onAlternar={() => ctx.alternar(nodo.id)}
-        atenuado={ctx.atenuado(nodo)} destacado={ctx.destacado(nodo)} onDepto={ctx.alDepto} ancho="w-[236px]" />
-      {abierto && nodo.hijos.length > 0 && <Rama nodos={nodo.hijos} ctx={ctx} />}
-    </li>
+    <div className="flex items-start justify-center">
+      {nodos.map((h, i) => (
+        <div key={h.id} className="relative flex flex-col items-center px-2.5 pt-6">
+          {n > 1 && <span className={cx("absolute top-0 h-px", LINEA, i === 0 ? "left-1/2 right-0" : i === n - 1 ? "left-0 right-1/2" : "inset-x-0")} aria-hidden />}
+          <span className={cx("absolute left-1/2 top-0 h-6 w-px", LINEA)} aria-hidden />
+          <Columna nodo={h} ctx={ctx} />
+        </div>
+      ))}
+    </div>
   );
 }
 
-/** Una raíz: la cadena de mando de un solo puesto va en vertical (Presidente → Vicepresidente → CEO…) y, donde se abre el
- *  abanico (la dirección con sus áreas), las áreas van en fila, unidas por conectores. */
+function Columna({ nodo, ctx }) {
+  const abierto = ctx.abierto(nodo);
+  if (dirigeGerencias(nodo)) {
+    return (
+      <div className="flex flex-col items-center">
+        {tarjeta(nodo, ctx, "oro", "w-[260px]")}
+        {abierto && <><span className={cx("h-6 w-px", LINEA)} aria-hidden /><Abanico nodos={nodo.hijos} ctx={ctx} /></>}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-start">
+      {tarjeta(nodo, ctx, "azul", "w-[220px]")}
+      {abierto && nodo.hijos.length > 0 && <Rama nodos={nodo.hijos} ctx={ctx} />}
+    </div>
+  );
+}
+
+/** Una raíz: la cadena de mando de un solo puesto va en vertical, en amarillo (Consejo → Dirección General) y, donde se abre
+ *  el abanico, las direcciones van en fila, unidas por la línea. */
 function Arbol({ raiz, ctx }) {
-  // Sigue hacia abajo mientras cada puesto tenga un único puesto a cargo
   const cadena = [raiz];
   while (ctx.abierto(cadena[cadena.length - 1]) && cadena[cadena.length - 1].hijos.length === 1) cadena.push(cadena[cadena.length - 1].hijos[0]);
   const ultimo = cadena[cadena.length - 1];
   const hijos = ctx.abierto(ultimo) ? ultimo.hijos : [];
-  const n = hijos.length;
   return (
     <div className="inline-flex flex-col items-center">
       {cadena.map((nodo, i) => (
         <div key={nodo.id} className="flex flex-col items-center">
-          {i > 0 && <span className="h-6 w-px bg-linea" aria-hidden />}
-          <Tarjeta nodo={nodo} admin={ctx.admin} resumen={contar(nodo)} abierto={ctx.abierto(nodo)} onAlternar={() => ctx.alternar(nodo.id)}
-            atenuado={ctx.atenuado(nodo)} destacado={ctx.destacado(nodo)} onDepto={ctx.alDepto} ancho="w-[300px]" />
+          {i > 0 && <span className={cx("h-3 w-px", LINEA)} aria-hidden />}
+          {tarjeta(nodo, ctx, "oro", "w-[300px]")}
         </div>
       ))}
-      {n > 0 && (
-        <>
-          <span className="h-7 w-px bg-linea" aria-hidden />
-          <div className="flex items-start justify-center">
-            {hijos.map((h, i) => (
-              <div key={h.id} className="relative flex flex-col items-center px-3 pt-7">
-                {/* Conector horizontal: de la mitad al borde en los extremos, completo en el medio */}
-                {n > 1 && <span className={cx("absolute top-0 h-px bg-linea", i === 0 ? "left-1/2 right-0" : i === n - 1 ? "left-0 right-1/2" : "inset-x-0")} aria-hidden />}
-                <span className="absolute left-1/2 top-0 h-7 w-px bg-linea" aria-hidden />
-                <Tarjeta nodo={h} admin={ctx.admin} resumen={contar(h)} abierto={ctx.abierto(h)} onAlternar={() => ctx.alternar(h.id)}
-                  atenuado={ctx.atenuado(h)} destacado={ctx.destacado(h)} onDepto={ctx.alDepto} />
-                {ctx.abierto(h) && h.hijos.length > 0 && (
-                  <div className="self-start">
-                    <Rama nodos={h.hijos} ctx={ctx} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+      {hijos.length > 0 && <><span className={cx("h-6 w-px", LINEA)} aria-hidden /><Abanico nodos={hijos} ctx={ctx} /></>}
     </div>
   );
 }
@@ -392,12 +430,15 @@ export default function Organigrama() {
 
   return (
     <div>
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-4 overflow-hidden rounded-xl bg-azul px-5 py-5 text-white md:px-7 print:rounded-none">
         <div className="min-w-0">
-          <h1 className="text-[26px] font-semibold leading-tight md:text-3xl">Organigrama</h1>
-          <p className="mt-1 max-w-[70ch] text-gris">Quién reporta a quién. El supervisor de cada persona es quien ocupa el puesto del que depende: asigna y valida sus tareas.</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-amarillo">Adzone D. M. / {new Date().getFullYear()}</p>
+          <h1 className="mt-1 text-[26px] font-bold leading-tight !text-white md:text-3xl">Organigrama estructural</h1>
+          <p className="mt-1 max-w-[70ch] text-sm text-white/75">Quién reporta a quién. El supervisor de cada persona es quien ocupa el puesto del que depende: asigna y valida sus tareas.</p>
         </div>
-        <Boton variante="secundario" icono={Printer} onClick={() => window.print()} className="no-imprimir">Imprimir</Boton>
+        <button type="button" onClick={() => window.print()} className="no-imprimir inline-flex h-10 items-center gap-2 rounded-lg bg-white/15 px-4 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/25">
+          <Printer className="size-4" aria-hidden />Imprimir
+        </button>
       </header>
 
       {/* Cifras de la empresa */}
@@ -463,10 +504,17 @@ export default function Organigrama() {
       </div>
 
       {vista === "grafico" ? (
-        <div ref={contenedor} className="cursor-grab overflow-auto rounded-xl border border-linea [&.arrastrando]:cursor-grabbing [&.arrastrando]:select-none bg-[radial-gradient(circle,#dfe5f1_1px,transparent_1px)] [background-size:22px_22px] bg-white p-6 print:overflow-visible print:border-0">
+        <div ref={contenedor} className="cursor-grab overflow-auto rounded-xl border border-linea [&.arrastrando]:cursor-grabbing [&.arrastrando]:select-none bg-white p-6 print:overflow-visible print:border-0">
           <Lienzo escala={escala}>
             <div className="space-y-12">{datos.raices.map((r) => <Arbol key={r.id} raiz={r} ctx={ctx} />)}</div>
           </Lienzo>
+          <p className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-gris">
+            <span className="inline-flex items-center gap-1.5"><span className={cx("h-px w-6", LINEA)} aria-hidden />Reporte directo</span>
+            <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[2px] bg-amarillo" aria-hidden />Dirección</span>
+            <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[2px] bg-azul" aria-hidden />Dirección de área o gerencia</span>
+            <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[2px] border border-azul/35 bg-white" aria-hidden /><b className="font-bold text-azul">Departamento</b> (con puestos a cargo)</span>
+            <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[2px] border border-linea bg-white" aria-hidden />Área o puesto</span>
+          </p>
         </div>
       ) : (
         <ul className="space-y-3">{datos.raices.map((r) => <ItemLista key={r.id} nodo={r} nivel={0} ctx={ctx} />)}</ul>

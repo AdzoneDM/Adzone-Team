@@ -644,6 +644,9 @@ export const chatEditar = (id, texto) => api(`/api/chat/mensajes/${id}/`, { meth
 export const chatVistos = (id) => api(`/api/chat/mensajes/${id}/vistos/`);
 export const chatAbierto = (id) => api(`/api/chat/mensajes/${id}/abierto/`, { method: "POST" }).catch(() => {});
 export const chatResumen = () => api("/api/chat/resumen/");
+// Reacción rápida (una por persona; el mismo emoji la quita) y reenviar a otras conversaciones tuyas
+export const chatReaccion = (id, emoji) => api(`/api/chat/mensajes/${id}/reaccion/`, { method: "POST", body: { emoji } });
+export const chatReenviar = (id, conversaciones) => api(`/api/chat/mensajes/${id}/reenviar/`, { method: "POST", body: { conversaciones } });
 export const chatLeido = (conversacion, hasta) => api(`/api/chat/conversaciones/${conversacion}/leido/`, { method: "POST", body: { hasta } });
 
 // Oportunidades comerciales (Marketing) y solicitudes de servicio por departamento

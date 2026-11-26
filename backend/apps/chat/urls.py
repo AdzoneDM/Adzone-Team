@@ -10,6 +10,8 @@ urlpatterns = [
     path('mensajes/<int:pk>/archivo/', views.archivo_view),
     path('mensajes/<int:pk>/vistos/', views.vistos_view),
     path('mensajes/<int:pk>/abierto/', views.abierto_view),
+    path('mensajes/<int:pk>/reaccion/', views.reaccion_view),
+    path('mensajes/<int:pk>/reenviar/', views.reenviar_view),
     path('grupos/', views.grupos_view),
     path('grupos/<int:pk>/', views.grupo_view),
     path('personas/', views.personas_view),

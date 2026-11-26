@@ -33,11 +33,15 @@ class MensajeSerializer(serializers.ModelSerializer):
     archivo = serializers.SerializerMethodField()
     menciones = serializers.SerializerMethodField()
     responde_a = serializers.SerializerMethodField()
+    reacciones = serializers.SerializerMethodField()
 
     class Meta:
         model = Mensaje
         fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'menciones', 'creado', 'eliminado', 'puede_borrar', 'puede_ver_vistos',
-                  'editado_en', 'editable_hasta', 'responde_a']
+                  'editado_en', 'editable_hasta', 'responde_a', 'reacciones', 'reenviado']
+
+    def get_reacciones(self, o):
+        return [] if o.eliminado else servicios.reacciones_de(o, self.context['request'].user)
 
     def get_responde_a(self, o):
         """La cita del mensaje al que responde (texto recortado; nada del contenido si el original se borró)."""
@@ -95,7 +99,7 @@ class NuevoMensaje(serializers.Serializer):
 
 
 def _serializar(request, qs):
-    return MensajeSerializer(qs.select_related('autor', 'conversacion', 'responde_a__autor'), many=True, context={'request': request}).data
+    return MensajeSerializer(qs.select_related('autor', 'conversacion', 'responde_a__autor').prefetch_related('reacciones__usuario'), many=True, context={'request': request}).data
 
 
 def _con_lectores(request, conv, datos):
@@ -296,7 +300,8 @@ def mensajes_view(request, pk):
         from datetime import timedelta
         from django.db.models import Q
         from django.utils import timezone as tz
-        ids = list(qs.filter(Q(id__gt=despues) | Q(editado_en__gte=tz.now() - timedelta(minutes=servicios.MINUTOS_EDITAR + 2)))
+        ids = list(qs.filter(Q(id__gt=despues) | Q(editado_en__gte=tz.now() - timedelta(minutes=servicios.MINUTOS_EDITAR + 2))
+                             | Q(cambiado__gte=tz.now() - timedelta(minutes=servicios.MINUTOS_CAMBIOS)))
                    .values_list('id', flat=True)[:servicios.PAGINA_MAX * 2])
         nuevos = Mensaje.objects.filter(id__in=ids)
         servicios.registrar_entregados(request.user, nuevos)
@@ -333,6 +338,42 @@ def mensaje_view(request, pk):
     m.save(update_fields=['eliminado', 'eliminado_por'])
     servicios.al_borrar(m)
     return Response(MensajeSerializer(m, context={'request': request}).data)
+
+
+@api_view(['POST'])
+def reaccion_view(request, pk):
+    """POST {emoji}: pone o cambia tu reacción; el mismo emoji (o vacío) la quita."""
+    m = get_object_or_404(Mensaje.objects.select_related('conversacion'), pk=pk, eliminado=False)
+    _conversacion_o_404(request, m.conversacion_id)
+    try:
+        servicios.reaccionar(request.user, m, str(request.data.get('emoji') or ''))
+    except ValueError as e:
+        return Response({'emoji': [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+    return Response(_serializar(request, Mensaje.objects.filter(pk=m.pk))[0])
+
+
+@api_view(['POST'])
+def reenviar_view(request, pk):
+    """POST {conversaciones: [ids]}: reenvía el mensaje (texto y archivo) a otras conversaciones tuyas."""
+    m = get_object_or_404(Mensaje.objects.select_related('conversacion'), pk=pk, eliminado=False)
+    _conversacion_o_404(request, m.conversacion_id)
+    if m.archivo_purgado or not (m.texto or m.archivo):
+        return Response({'detail': 'Ese mensaje ya no tiene nada para reenviar.'}, status=status.HTTP_400_BAD_REQUEST)
+    ids = request.data.get('conversaciones') or []
+    if not isinstance(ids, list) or not ids:
+        return Response({'conversaciones': ['Elige al menos una conversación.']}, status=status.HTTP_400_BAD_REQUEST)
+    if len(ids) > servicios.MAX_REENVIAR:
+        return Response({'conversaciones': [f'Puedes reenviar a {servicios.MAX_REENVIAR} conversaciones a la vez.']}, status=status.HTTP_400_BAD_REQUEST)
+    destinos = []
+    for i in dict.fromkeys(_entero(x) for x in ids):
+        c = servicios.conversacion_de(request.user, i) if i else None
+        if c is None:
+            return Response({'conversaciones': ['Una de esas conversaciones no está disponible.']}, status=status.HTTP_400_BAD_REQUEST)
+        destinos.append(c)
+    if servicios.excede_ritmo(request.user):
+        return Response({'detail': 'Estás escribiendo muy rápido. Espera unos segundos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    nuevos = servicios.reenviar(request.user, m, destinos)
+    return Response({'reenviados': len(nuevos)}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])

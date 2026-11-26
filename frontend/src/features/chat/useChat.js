@@ -1,7 +1,7 @@
 // Sincronización del chat. Sin websockets: consulta cada pocos segundos y solo con la pestaña visible.
 // Con el chat cerrado hace una consulta mínima (el contador de no leídos).
 import { useCallback, useEffect, useRef, useState } from "react";
-import { chatBorrar, chatConversaciones, chatEditar, chatEnviar, chatLeido, chatMensajes, chatResumen } from "@/lib/api";
+import { chatBorrar, chatConversaciones, chatEditar, chatReaccion, chatEnviar, chatLeido, chatMensajes, chatResumen } from "@/lib/api";
 import { mostrarAvisoLocal } from "@/lib/notificaciones";
 import { sonarMensaje } from "@/lib/sonido";
 
@@ -206,5 +206,13 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
     }
   }, [aplicar]);
 
-  return { mensajes, lectores, progreso, hayMas, cargando, error, enviando, enviar, borrar, editar, cargarAnteriores, reintentar: cargarInicial, limpiarError: () => setError("") };
+  const reaccionar = useCallback(async (id, emoji) => {
+    try {
+      aplicar([await chatReaccion(id, emoji)]);
+    } catch (e) {
+      setError(e.message);
+    }
+  }, [aplicar]);
+
+  return { mensajes, lectores, progreso, hayMas, cargando, error, enviando, enviar, borrar, editar, reaccionar, cargarAnteriores, reintentar: cargarInicial, limpiarError: () => setError("") };
 }

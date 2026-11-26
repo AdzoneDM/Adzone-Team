@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Download, Maximize2, Minus, Plus, X } from "
 import { cx } from "@/components/ui";
 
 const VisorCtx = createContext(() => {});
-/** `ver(imagenes, indice)` — imagenes: [{ src, nombre?, descargar? }] (o una sola). */
+/** `ver(imagenes, indice)` — imagenes: [{ src, nombre?, descargar?, detalle? }] (o una sola). `detalle`: quién la envió y cuándo. */
 export const useVisor = () => useContext(VisorCtx);
 
 const MIN = 1, MAX = 8;
@@ -23,6 +23,21 @@ export function VisorProvider({ children }) {
       {children}
       {estado && <Visor lista={estado.lista} inicio={estado.i} onCerrar={() => setEstado(null)} />}
     </VisorCtx.Provider>
+  );
+}
+
+function Miniaturas({ lista, i, onElegir }) {
+  const tira = useRef(null);
+  useEffect(() => { tira.current?.querySelector(`[data-i="${i}"]`)?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }, [i]);
+  return (
+    <div ref={tira} className="flex shrink-0 justify-start gap-1.5 overflow-x-auto px-3 pt-2 [scrollbar-width:none] sm:justify-center">
+      {lista.map((x, n) => (
+        <button key={`${x.src}-${n}`} data-i={n} type="button" onClick={() => onElegir(n)} aria-label={`Ver imagen ${n + 1}`} aria-current={n === i}
+          className={cx("size-12 shrink-0 overflow-hidden rounded-md transition", n === i ? "opacity-100 ring-2 ring-white" : "opacity-50 hover:opacity-90")}>
+          <img src={x.src} alt="" loading="lazy" className="size-full object-cover" />
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -129,7 +144,10 @@ function Visor({ lista, inicio, onCerrar }) {
   return (
     <div role="dialog" aria-modal="true" aria-label={`Imagen: ${actual.nombre || "vista previa"}`} className="fixed inset-0 z-[95] flex flex-col bg-[#0b0d12] text-white">
       <div className="flex shrink-0 items-center gap-1 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-4">
-        <p className="min-w-0 flex-1 truncate px-2 text-sm font-medium">{actual.nombre || "Imagen"}{varias && <span className="ml-2 text-white/60 num">{i + 1} / {lista.length}</span>}</p>
+        <div className="min-w-0 flex-1 px-2">
+          <p className="truncate text-sm font-medium">{actual.detalle || actual.nombre || "Imagen"}{varias && <span className="ml-2 text-white/60 num">{i + 1} / {lista.length}</span>}</p>
+          {actual.detalle && actual.nombre && <p className="truncate text-xs text-white/55">{actual.nombre}</p>}
+        </div>
         <button type="button" className={boton} onClick={() => zoomEn((z) => z / 1.5)} disabled={zoom <= MIN} aria-label="Achicar" title="Achicar (−)"><Minus className="size-5" /></button>
         <button type="button" className="hidden min-w-14 rounded-full px-2 py-2 text-sm text-white/90 hover:bg-white/15 sm:inline num" onClick={reiniciar} title="Ajustar a la pantalla (0)">{Math.round(zoom * 100)} %</button>
         <button type="button" className={boton} onClick={() => zoomEn((z) => z * 1.5)} disabled={zoom >= MAX} aria-label="Agrandar" title="Agrandar (+)"><Plus className="size-5" /></button>
@@ -152,6 +170,9 @@ function Visor({ lista, inicio, onCerrar }) {
           </>
         )}
       </div>
+      {varias && (   // tira de miniaturas, como la galería de WhatsApp
+        <Miniaturas lista={lista} i={i} onElegir={(n) => { setI(n); reiniciar(); setCargando(true); }} />
+      )}
       <p className="shrink-0 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-center text-xs text-white/50">
         <span className="hidden sm:inline">Rueda del mouse o doble clic para agrandar · arrastra para moverte · ← → para pasar · Esc para cerrar</span>
         <span className="sm:hidden">Pellizca o toca dos veces para agrandar{varias ? " · desliza para pasar" : ""}</span>

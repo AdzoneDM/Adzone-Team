@@ -160,6 +160,8 @@ def purgar_videos_del_chat(hoy=None):
 
 
 def al_borrar(mensaje):
+    mensaje.cambiado = timezone.now()
+    mensaje.save(update_fields=['cambiado'])
     if mensaje.archivo:  # el archivo de un mensaje borrado también se borra
         mensaje.archivo.delete(save=False)
         mensaje.archivo = None
@@ -353,11 +355,63 @@ def editar(mensaje, texto):
     from .models import EdicionMensaje
     EdicionMensaje.objects.create(mensaje=mensaje, texto_anterior=mensaje.texto)
     mensaje.texto = texto
-    mensaje.editado_en = timezone.now()
+    mensaje.editado_en = mensaje.cambiado = timezone.now()
     mensaje.menciones = menciones_de(texto, mensaje.conversacion, mensaje.autor)
-    mensaje.save(update_fields=['texto', 'editado_en', 'menciones'])
+    mensaje.save(update_fields=['texto', 'editado_en', 'cambiado', 'menciones'])
     c = mensaje.conversacion
     if c.ultimo_id == mensaje.id:
         c.ultimo_texto = (texto or f'📎 {mensaje.archivo_nombre}')[:140]
         c.save(update_fields=['ultimo_texto'])
     return mensaje
+
+
+MINUTOS_CAMBIOS = 3          # cuánto tiempo un cambio (edición, borrado, reacción) se reenvía en la consulta periódica
+MAX_REENVIAR = 5             # conversaciones por reenvío
+
+
+def reaccionar(usuario, mensaje, emoji):
+    """Pone, cambia o quita (mismo emoji o vacío) la reacción de la persona. Devuelve el mensaje."""
+    from .models import REACCIONES, Reaccion
+    if emoji and emoji not in REACCIONES:
+        raise ValueError('Esa reacción no está disponible.')
+    actual = Reaccion.objects.filter(mensaje=mensaje, usuario=usuario).first()
+    if actual and (not emoji or actual.emoji == emoji):
+        actual.delete()
+    elif emoji:
+        Reaccion.objects.update_or_create(mensaje=mensaje, usuario=usuario, defaults={'emoji': emoji})
+    mensaje.cambiado = timezone.now()
+    mensaje.save(update_fields=['cambiado'])
+    return mensaje
+
+
+def reenviar(usuario, mensaje, destinos):
+    """Copia el mensaje (texto y archivo) a otras conversaciones de la persona. El archivo se copia: cada mensaje es dueño del suyo."""
+    from django.core.files.base import ContentFile
+    nuevos = []
+    for conv in destinos:
+        m = Mensaje.objects.create(conversacion=conv, autor=usuario, texto=mensaje.texto, reenviado=True,
+                                   menciones=menciones_de(mensaje.texto, conv, usuario) if mensaje.texto else [])
+        if mensaje.archivo and not mensaje.archivo_purgado:
+            with mensaje.archivo.open('rb') as f:
+                m.archivo.save(mensaje.archivo_nombre or os.path.basename(mensaje.archivo.name), ContentFile(f.read()), save=False)
+            m.archivo_nombre, m.archivo_es_imagen, m.archivo_tamano = mensaje.archivo_nombre, mensaje.archivo_es_imagen, mensaje.archivo_tamano
+            m.archivo_items, m.archivo_escaneo = mensaje.archivo_items, mensaje.archivo_escaneo
+            m.save(update_fields=['archivo', 'archivo_nombre', 'archivo_es_imagen', 'archivo_tamano', 'archivo_items', 'archivo_escaneo'])
+        registrar(m)
+        avisar_menciones(m)
+        marcar_leido(usuario, conv, m.id)
+        nuevos.append(m)
+    return nuevos
+
+
+def reacciones_de(mensaje, yo):
+    """[{emoji, n, mia, nombres}] en el orden de la lista de reacciones."""
+    from .models import REACCIONES
+    grupos = {}
+    for r in mensaje.reacciones.all():
+        g = grupos.setdefault(r.emoji, {'emoji': r.emoji, 'n': 0, 'mia': False, 'nombres': []})
+        g['n'] += 1
+        g['mia'] = g['mia'] or r.usuario_id == yo.id
+        g['nombres'].append('Tú' if r.usuario_id == yo.id else (r.usuario.get_full_name() or r.usuario.username))
+    orden = {e: i for i, e in enumerate(REACCIONES)}
+    return sorted(grupos.values(), key=lambda g: orden.get(g['emoji'], 99))

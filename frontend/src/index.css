@@ -23,6 +23,12 @@
   --color-verde-50: #e3f5ee;
 }
 
+/* Chat: la hoja de opciones de un mensaje sube desde abajo (celular) */
+@keyframes subir {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+
 /* Alerta de tareas: entra deslizándose desde la izquierda, con un pequeño rebote */
 @keyframes entrar-izquierda {
   0% { opacity: 0; transform: translateX(-36px) scale(0.96); }

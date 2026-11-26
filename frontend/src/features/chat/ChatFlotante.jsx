@@ -105,7 +105,11 @@ export default function ChatFlotante() {
   // Esc: en el celular, desde la lista completa vuelve a la conversación; en los demás casos cierra el chat
   useEffect(() => {
     if (!abierto) return undefined;
-    const tecla = (e) => { if (e.key === "Escape" && !modalGrupo) (listaMovil && !esEscritorio() ? () => setListaMovil(false) : cerrar)(); }; // con el modal del grupo encima, Esc cierra solo el modal
+    const tecla = (e) => {
+      // Con algo abierto encima (visor de fotos, «¿Quién lo vio?», Reenviar…), Esc cierra solo eso y el chat sigue abierto
+      if (e.key !== "Escape" || e.defaultPrevented || document.querySelector('dialog[open], [aria-modal="true"]')) return;
+      if (!modalGrupo) (listaMovil && !esEscritorio() ? () => setListaMovil(false) : cerrar)(); // con el modal del grupo encima, Esc cierra solo el modal
+    };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
   }, [abierto, listaMovil, cerrar, modalGrupo]);

@@ -78,6 +78,10 @@ class Mensaje(models.Model):
     editado_en = models.DateTimeField(null=True, blank=True, help_text="Última edición (la hora de envío original no cambia).")
     eliminado = models.BooleanField(default=False)
     eliminado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    # Reenviado desde otra conversación (como en WhatsApp: «Reenviado»)
+    reenviado = models.BooleanField(default=False)
+    # Último cambio después de enviado (edición, borrado o reacción): así los demás lo ven sin recargar
+    cambiado = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ['id']
@@ -87,6 +91,22 @@ class Mensaje(models.Model):
 
     def __str__(self):
         return f'{self.autor_id}: {self.texto[:40]}'
+
+
+REACCIONES = ['👍', '✅', '❤️', '😂', '😮', '🙏']
+
+
+class Reaccion(models.Model):
+    """Una reacción rápida a un mensaje (una por persona, como en WhatsApp): sirve para dar «recibido» sin llenar el chat."""
+    mensaje = models.ForeignKey(Mensaje, on_delete=models.CASCADE, related_name='reacciones')
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reacciones_chat')
+    emoji = models.CharField(max_length=8)
+    creado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['mensaje', 'usuario'], name='chat_reaccion_unica')]
+        verbose_name = 'Reacción'
+        verbose_name_plural = 'Reacciones'
 
 
 class Lectura(models.Model):
