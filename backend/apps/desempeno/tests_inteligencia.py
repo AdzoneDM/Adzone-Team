@@ -64,23 +64,21 @@ class ResumenTests(Base):
         self.ana.perfil.save()
         enviado = {}
 
-        def falso(req, timeout):
-            enviado['cuerpo'] = json.loads(req.data)
-            enviado['clave'] = req.headers.get('X-api-key')
-            m = mock.MagicMock()
-            m.__enter__.return_value.read.return_value = json.dumps({'content': [{'type': 'text', 'text': 'Semana tranquila.'}]}).encode()
-            return m
-        with mock.patch('urllib.request.urlopen', side_effect=falso):
+        def falso(**kw):
+            enviado.update(kw)
+            return mock.MagicMock(stop_reason='end_turn', content=[mock.MagicMock(type='text', text='Semana tranquila.')])
+        with mock.patch('apps.core.ia.cliente') as cli:
+            cli.return_value.beta.messages.create.side_effect = falso
             r = generar_resumen(forzar=True)
         self.assertTrue(r.con_ia)
         self.assertEqual(r.texto, 'Semana tranquila.')
-        self.assertEqual(enviado['clave'], 'sk-prueba')
-        self.assertNotIn('55555', json.dumps(enviado['cuerpo']))
+        self.assertNotIn('55555', json.dumps(enviado['messages'], default=str))
 
     @override_settings(ANTHROPIC_API_KEY='sk-prueba')
     def test_si_la_api_falla_usa_el_texto_automatico(self):
-        import urllib.error
-        with mock.patch('urllib.request.urlopen', side_effect=urllib.error.URLError('caída')):
+        import anthropic
+        with mock.patch('apps.core.ia.cliente') as cli:
+            cli.return_value.beta.messages.create.side_effect = anthropic.APIConnectionError(request=mock.MagicMock())
             r = generar_resumen(forzar=True)
         self.assertFalse(r.con_ia)
         self.assertTrue(r.texto)

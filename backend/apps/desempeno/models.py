@@ -476,6 +476,7 @@ class Notificacion(models.Model):
         ('MODIFICADA', 'Tarea modificada'),
         ('BLOQUEADA', 'Tarea bloqueada'),
         ('COMERCIAL', 'Oportunidades y solicitudes'),
+        ('ANALISIS', 'Análisis del día'),
         ('COLABORACION', 'Colaboración'),
         ('ACTIVIDAD', 'Actividad adicional'),
         ('DOCUMENTO', 'Documento compartido'),

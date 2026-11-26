@@ -1,5 +1,20 @@
 # Cambios
 
+## 12.75 · 26/11/2026 · Asistente IA y análisis del día
+
+**Asistente IA** (menú «Asistente IA», para todos)
+- Preguntas en lenguaje natural sobre los datos de la plataforma: tareas, asistencia, desempeño y KPIs, órdenes de trabajo, oportunidades y solicitudes, y finanzas (solo con ese permiso). Responde con la conclusión, los números y, si ayuda, un gráfico (barras o líneas, con «Ver datos» en tabla). Conversaciones guardadas y privadas.
+- Seguridad: la IA nunca recibe la base de datos. Solo puede llamar a consultas de solo lectura que se ejecutan en el servidor con los permisos de quien pregunta (un colaborador ve lo suyo; un supervisor, su equipo; Dirección, todo). Salarios y bonos solo con «Salarios» o Dirección.
+- Control de gasto: máximo de preguntas por persona y día (IA_LIMITE_DIARIO, 60), caché de instrucciones y herramientas, y se registran los tokens de cada respuesta.
+- Modelo: Claude Opus 5.5 (IA_MODELO), esfuerzo «medium» (IA_ESFUERZO). Si el modelo rechaza una solicitud, la API la reintenta con otro modelo (fallbacks).
+- Sin clave (ANTHROPIC_API_KEY) la pantalla avisa que no está configurado.
+
+**Análisis del día** (Dirección y quien gestiona un área; lunes a sábado 7:20)
+- Alertas con números de su alcance: tareas vencidas y bloqueadas, tardanzas sin justificar y ausencias de la semana, puntajes del mes por debajo de 60, órdenes atrasadas, oportunidades con seguimiento vencido y facturas vencidas (Finanzas). Aviso en la campana si hay algo que atender. Con IA, además, una «lectura del día» priorizada.
+- Botón «Actualizar ahora» (hasta 5 veces al día).
+
+**Técnico**: SDK oficial `anthropic` (también para el resumen semanal y los borradores de evaluación, antes con llamadas manuales). Requiere `pip install anthropic` en la imagen.
+
 ## 12.74 · 26/11/2026 · Las imágenes se ven dentro de la plataforma (vista previa y zoom)
 
 - Al abrir una imagen ya no se abre otra pestaña: sale un visor a pantalla completa dentro de la plataforma.

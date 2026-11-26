@@ -658,3 +658,13 @@ export const obtenerSolicitud = (id) => api(`${CM}/solicitudes/${id}/`);
 export const guardarSolicitud = (s) => (s.id ? api(`${CM}/solicitudes/${s.id}/`, { method: "PATCH", body: s }) : api(`${CM}/solicitudes/`, { method: "POST", body: s }));
 export const comentarSolicitud = (id, texto) => api(`${CM}/solicitudes/${id}/comentar/`, { method: "POST", body: { texto } });
 export const convertirSolicitud = (id, datos = {}) => api(`${CM}/solicitudes/${id}/convertir/`, { method: "POST", body: datos });
+
+// Asistente con IA (consulta los datos con los permisos de quien pregunta) y análisis del día
+const IA = "/api/asistente";
+export const asistenteEstado = () => api(`${IA}/estado/`);
+export const asistenteConversaciones = () => api(`${IA}/conversaciones/`);
+export const asistenteConversacion = (id) => api(`${IA}/conversaciones/${id}/`);
+export const asistenteBorrar = (id) => api(`${IA}/conversaciones/${id}/`, { method: "DELETE" });
+export const asistentePreguntar = (texto, conversacion) => api(`${IA}/preguntar/`, { method: "POST", body: { texto, ...(conversacion ? { conversacion } : {}) } });
+export const asistenteInforme = () => api(`${IA}/informe/`);
+export const asistenteActualizarInforme = () => api(`${IA}/informe/`, { method: "POST" });

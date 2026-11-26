@@ -44,6 +44,7 @@ function secciones({ esAdmin, puedeValidar, puedeAsignar, puedeAutoasignar, esFi
     { titulo: "Mi trabajo", items: [
       { a: "/", texto: "Inicio", icono: House, fin: true },
       { a: "/mis-tareas", texto: "Mis tareas", icono: ListChecks },
+      { a: "/asistente", texto: "Asistente IA", icono: Sparkles },
       { a: "/recordatorios", texto: "Recordatorios", icono: AlarmClock },
       { a: "/colaboracion", texto: "Colaboración", icono: HeartHandshake },
       { a: "/disponibilidad", texto: "Quién está libre", icono: UsersRound },

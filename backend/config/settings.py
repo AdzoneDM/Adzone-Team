@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'apps.chat',
     'apps.documentos',
     'apps.comercial',
+    'apps.asistente',
     'corsheaders',
     'rest_framework',
     'django_filters',
@@ -195,7 +196,9 @@ PASSWORD_HASHERS = [
 CACHES = {'default': {'BACKEND': 'django.core.cache.backends.db.DatabaseCache', 'LOCATION': 'cache_adzone'}}
 # Inteligencia con la API de Claude (resumen semanal, borrador de evaluación). Sin clave: versión automática sin IA.
 ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY')
-IA_MODELO = env('IA_MODELO', 'claude-sonnet-5-5')
+IA_MODELO = env('IA_MODELO', 'claude-opus-5-5')
+IA_ESFUERZO = env('IA_ESFUERZO', 'medium')          # low | medium | high: más alto = respuestas más elaboradas y más costo
+IA_LIMITE_DIARIO = int(env('IA_LIMITE_DIARIO', '60'))   # preguntas por persona y día (controla el gasto)
 # Notificaciones en el celular (Web Push). Claves con: python manage.py generar_vapid
 VAPID_PUBLICA = env('VAPID_PUBLICA')
 VAPID_PRIVADA = env('VAPID_PRIVADA')

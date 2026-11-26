@@ -10,6 +10,8 @@
 * 7-20 * * *    cd /app/backend && python manage.py avisar_almuerzos
 # Tardanzas, entradas sin marcar y pausas que pasaron su límite
 */10 7-20 * * * cd /app/backend && python manage.py revisar_jornadas
+# Análisis del día (alertas y lectura con IA) para Dirección y quien gestiona un área, de lunes a sábado
+20 7 * * 1-6     cd /app/backend && python manage.py analisis_diario
 # Documentos por vencer y políticas pendientes
 30 7 * * *      cd /app/backend && python manage.py revisar_talento
 # Mantenimientos de equipos
