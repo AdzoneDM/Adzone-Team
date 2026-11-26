@@ -71,7 +71,7 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, onBloquear, onDesblo
             <Boton variante="acento" icono={Send} onClick={() => onEntregar(tarea)}>
               {devuelta ? "Entregar de nuevo" : "Entregar"}
             </Boton>
-            <Boton variante="fantasma" icono={Pause} onClick={() => onBloquear(tarea)} className="col-span-2 md:col-span-1">En pausa</Boton>
+            <Boton variante="fantasma" icono={Pause} onClick={() => onBloquear(tarea)} className="col-span-2 md:col-span-1">Pausar</Boton>
           </div>
         )}
         {bloqueada && (
@@ -213,7 +213,7 @@ export default function MisTareas() {
       {ver === "hacer" && grupos.hacer.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar lo que tienes por hacer">
           {[["todas", "Todas", grupos.hacer.length, ""], ["pendientes", "Pendientes", grupos.hacer.filter(FILTROS.pendientes).length, ""],
-            ["proceso", "En proceso", grupos.hacer.filter(FILTROS.proceso).length, ""], ["pausa", "En pausa", grupos.hacer.filter(FILTROS.pausa).length, "amarillo"],
+            ["proceso", "En proceso", grupos.hacer.filter(FILTROS.proceso).length, ""], ["pausa", "Pausadas", grupos.hacer.filter(FILTROS.pausa).length, "amarillo"],
             ["vencidas", "Vencidas", nVencidas, "rojo"], ["devueltas", "Devueltas para corregir", nDevueltas, "amarillo"]].filter(([k, , n]) => k === "todas" || n > 0).map(([k, texto, n, tono]) => (
             <button key={k} type="button" aria-pressed={filtroHacer === k} onClick={() => setFiltroHacer(k)}
               className={cx("flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors", filtroHacer === k ? "border-noche bg-noche text-white" : "border-linea bg-white text-tinta hover:bg-fondo")}>
