@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/activos/', include('apps.activos.urls')),
     path('api/chat/', include('apps.chat.urls')),
     path('api/documentos/', include('apps.documentos.urls')),
+    path('api/comercial/', include('apps.comercial.urls')),
     # Portal del cliente (sin sesión, con su enlace seguro)
     path('api/portal/<str:token>/', portal.portal_view),
     path('api/portal/<str:token>/archivos/<int:pk>/', portal.archivo_view),

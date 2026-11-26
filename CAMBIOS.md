@@ -1,5 +1,25 @@
 # Cambios
 
+## 12.70 · 26/11/2026 · Oportunidades comerciales de Marketing, solicitudes de servicio por departamento y copiar mensajes del chat
+
+**Oportunidades comerciales (Marketing)** — menú Operación → *Oportunidades comerciales* (permiso nuevo «Oportunidades comerciales», incluido en el perfil «Gestión de clientes» y en Dirección).
+- Del primer contacto a la contratación: cliente (existente o nuevo), qué necesita, servicios, responsable comercial, primer contacto, próximo seguimiento, comentarios.
+- Estados: Nuevo contacto, Contactado, Evaluación de necesidades, Cotización enviada, En negociación, Aprobado, No concretado (con motivo obligatorio).
+- Vistas Pendientes / Por atender hoy / Aprobadas / No concretadas / Todas; filtros por estado, responsable, departamento y fecha de registro; contadores por estado.
+- Seguimiento: la oportunidad con el seguimiento vencido sale en rojo y su responsable recibe un aviso cada mañana (tarea diaria de las 7:00).
+
+**Solicitudes de servicio por departamento**
+- Cada servicio de una oportunidad es una solicitud independiente (Marketing, Audiovisual, Tecnología, AdZone TV, Impresión u otro), con su estado, responsable e historial. Varias por cliente.
+- Cada departamento ve SOLO las suyas (menú *Solicitudes de servicio*); el estado y el responsable los cambian su responsable o quien gestiona el departamento; los demás del departamento comentan. Las crea Marketing.
+- Aprobada por el cliente → **Crear proyecto** o **Enlazar una orden de trabajo** del mismo cliente: queda enlazada, nada se copia.
+- La ficha del cliente muestra sus oportunidades y los servicios solicitados.
+
+**Seguridad y trazabilidad**
+- Historial de cada oportunidad y solicitud: quién la creó, cada cambio (antes y después), cambios de estado, comentarios y conversiones.
+- Gestión de clientes sin finanzas: facturas, pagos, cobros, gastos y rentabilidad siguen solo con «Finanzas» (validado en el servidor). La rentabilidad de un proyecto ya no la ve quien solo es su responsable: Finanzas o quien gestiona el departamento.
+
+**Chat**: botón **Copiar** en cada mensaje (celular y computadora).
+
 ## 12.69 · 26/11/2026 · Botón «Copiar» en el texto de la tarea y permiso «Clientes: eliminar y proyectos»
 
 - Al abrir una tarea (Mis tareas, Mi equipo, avisos «Ver tarea») y en la revisión de **Por validar**, los detalles que escribió quien la asignó traen un botón **Copiar** que copia el texto tal cual (saltos de línea, enlaces, emojis) y confirma con «Copiado». Si el teléfono no da permiso al portapapeles, se usa el método antiguo y, si tampoco se puede, avisa que se mantenga pulsado el texto.

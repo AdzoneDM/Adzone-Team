@@ -641,3 +641,16 @@ export const chatVistos = (id) => api(`/api/chat/mensajes/${id}/vistos/`);
 export const chatAbierto = (id) => api(`/api/chat/mensajes/${id}/abierto/`, { method: "POST" }).catch(() => {});
 export const chatResumen = () => api("/api/chat/resumen/");
 export const chatLeido = (conversacion, hasta) => api(`/api/chat/conversaciones/${conversacion}/leido/`, { method: "POST", body: { hasta } });
+
+// Oportunidades comerciales (Marketing) y solicitudes de servicio por departamento
+const CM = "/api/comercial";
+export const listarOportunidades = (params) => api(`${CM}/oportunidades/${q(params)}`);
+export const resumenOportunidades = (params) => api(`${CM}/oportunidades/resumen/${q(params)}`);
+export const obtenerOportunidad = (id) => api(`${CM}/oportunidades/${id}/`);
+export const guardarOportunidad = (o) => (o.id ? api(`${CM}/oportunidades/${o.id}/`, { method: "PATCH", body: o }) : api(`${CM}/oportunidades/`, { method: "POST", body: o }));
+export const comentarOportunidad = (id, texto) => api(`${CM}/oportunidades/${id}/comentar/`, { method: "POST", body: { texto } });
+export const listarSolicitudes = (params) => api(`${CM}/solicitudes/${q(params)}`);
+export const obtenerSolicitud = (id) => api(`${CM}/solicitudes/${id}/`);
+export const guardarSolicitud = (s) => (s.id ? api(`${CM}/solicitudes/${s.id}/`, { method: "PATCH", body: s }) : api(`${CM}/solicitudes/`, { method: "POST", body: s }));
+export const comentarSolicitud = (id, texto) => api(`${CM}/solicitudes/${id}/comentar/`, { method: "POST", body: { texto } });
+export const convertirSolicitud = (id, datos = {}) => api(`${CM}/solicitudes/${id}/convertir/`, { method: "POST", body: datos });

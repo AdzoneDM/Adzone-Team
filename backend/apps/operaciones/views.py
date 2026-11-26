@@ -118,6 +118,16 @@ class ClienteViewSet(viewsets.ModelViewSet):
                 'facturas': [{'id': f.id, 'numero': f.numero, 'fecha': f.fecha, 'total': f.total, 'saldo': f.saldo,
                               'estado': f.estado, 'vencida': f.vencida} for f in facturas[:20]],
             }
+        # Lo comercial: oportunidades (Marketing) y las solicitudes de servicio que cada quien puede ver
+        from apps.comercial.permisos import es_comercial, filtro_solicitudes
+        from apps.comercial.serializers import OportunidadSerializer, SolicitudSerializer
+        if es_comercial(user):
+            datos['oportunidades'] = OportunidadSerializer(cliente.oportunidades.select_related('departamento', 'responsable', 'creado_por', 'cliente')
+                                                           .prefetch_related('solicitudes__departamento'), many=True).data
+        sol = cliente.solicitudes_servicio.select_related('departamento', 'responsable', 'creado_por', 'proyecto', 'orden', 'oportunidad', 'cliente')
+        f = filtro_solicitudes(user)
+        sol = sol if f is None else sol.filter(f)
+        datos['solicitudes'] = SolicitudSerializer(sol, many=True, context={'request': request}).data
         return Response(datos)
 
 
@@ -196,7 +206,7 @@ class ProyectoViewSet(viewsets.ModelViewSet):
             'ordenes': OrdenSerializer(ordenes, many=True, context={'request': request}).data,
             'horas': round(minutos / 60, 1),
         }
-        if es_finanzas(user) or puede_gestionar_proyecto(user, proyecto):
+        if es_finanzas(user) or (gestiona_algo(user) and puede_gestionar_proyecto(user, proyecto)):
             from apps.finanzas.servicios import rentabilidad_proyecto
             datos['finanzas'] = rentabilidad_proyecto(proyecto)
         return Response(datos)

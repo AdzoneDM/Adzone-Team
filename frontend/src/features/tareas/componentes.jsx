@@ -5,22 +5,12 @@ import { comentarTarea, comentariosTarea, entregarTarea, historialTarea, marcarP
 import Comentarios from "@/components/Comentarios";
 import { BotonesGestion } from "@/features/tareas/GestionTarea";
 import { useNovedades } from "@/lib/novedades";
+import { copiarTexto } from "@/lib/portapapeles";
 import { MAX_FOTO_MB, limites } from "@/lib/archivos";
 import { ESTADOS, fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
 import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx, useAviso } from "@/components/ui";
 
 const MAX_LADO = 1600;
-
-async function copiarTexto(texto) {
-  try { await navigator.clipboard.writeText(texto); return true; } catch { /* sin permiso: se intenta a la antigua */ }
-  const area = document.createElement("textarea");
-  area.value = texto; area.setAttribute("readonly", ""); area.style.position = "fixed"; area.style.opacity = "0";
-  document.body.appendChild(area); area.select();
-  let ok = false;
-  try { ok = document.execCommand("copy"); } catch { ok = false; }
-  area.remove();
-  return ok;
-}
 
 // Texto de la tarea (los detalles que escribió quien la asignó) con un botón para copiarlo tal cual.
 export function TextoCopiable({ texto, className }) {

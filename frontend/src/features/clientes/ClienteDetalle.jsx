@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ClipboardList, Mail, MapPin, Pencil, Phone, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Briefcase, ClipboardList, Mail, MapPin, Pencil, Phone, Plus, Trash2 } from "lucide-react";
 import { obtenerCliente, resumenCliente } from "@/lib/api";
 import { eliminarClienteConfirmando } from "./eliminar";
 import { dinero, fechaCorta } from "@/lib/formato";
@@ -10,6 +10,7 @@ import FormOrden from "@/features/ordenes/FormOrden";
 import { TarjetaOrden } from "@/features/ordenes/piezas";
 import { AvanceProyecto, EstadoProyecto, FormProyecto } from "@/features/proyectos/piezas";
 import { FormCliente } from "./Clientes";
+import { EstadoOp, EstadoSol, FormOportunidad } from "@/features/comercial/piezas";
 
 export default function ClienteDetalle() {
   const { id } = useParams();
@@ -53,6 +54,7 @@ export default function ClienteDetalle() {
             {c.notas && <p className="mt-3 whitespace-pre-line border-t border-linea-suave pt-3 text-sm text-gris">{c.notas}</p>}
             <div className="mt-4 flex flex-wrap gap-2">
               <Boton tam="sm" icono={Plus} onClick={() => setModal("orden")}>Orden</Boton>
+              {usuario.es_comercial && <Boton tam="sm" variante="secundario" icono={Briefcase} onClick={() => setModal("oportunidad")}>Oportunidad</Boton>}
               {puedeEditar && <Boton tam="sm" variante="secundario" icono={Plus} onClick={() => setModal("proyecto")}>Proyecto</Boton>}
               {editaCliente && <Boton tam="sm" variante="secundario" icono={Pencil} onClick={() => setModal("editar")}>Editar</Boton>}
               {puedeEditar && !c.es_interno && <Boton tam="sm" variante="peligro" icono={Trash2} onClick={eliminar}>Eliminar</Boton>}
@@ -77,6 +79,25 @@ export default function ClienteDetalle() {
           )}
         </aside>
         <div className="space-y-5">
+          {r.oportunidades && (
+            <Panel titulo={`Oportunidades comerciales (${r.oportunidades.length})`} cuerpo="p-0"
+              accion={<Boton tam="sm" variante="secundario" icono={Plus} onClick={() => setModal("oportunidad")}>Nueva</Boton>}>
+              {r.oportunidades.length === 0 ? <p className="p-5 text-sm text-gris">Sin oportunidades registradas.</p> : (
+                <ul className="divide-y divide-linea-suave">{r.oportunidades.map((o) => (
+                  <li key={o.id}><Link to={`/oportunidades?oportunidad=${o.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 hover:bg-fondo">
+                    <span className="min-w-0 flex-1"><span className="block font-medium">{o.titulo}</span><span className="text-xs text-gris">{o.codigo} · {o.responsable_nombre || "sin responsable"} · {fechaCorta(o.fecha_creacion)}</span></span>
+                    <EstadoOp estado={o.estado} /></Link></li>))}</ul>
+              )}
+            </Panel>
+          )}
+          {r.solicitudes?.length > 0 && (
+            <Panel titulo={`Servicios solicitados (${r.solicitudes.length})`} cuerpo="p-0">
+              <ul className="divide-y divide-linea-suave">{r.solicitudes.map((s) => (
+                <li key={s.id}><Link to={`/oportunidades?solicitud=${s.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 hover:bg-fondo">
+                  <span className="min-w-0 flex-1"><span className="block font-medium">{s.servicio_nombre}</span><span className="text-xs text-gris">{s.codigo} · {s.departamento_nombre} · {s.responsable_nombre || "sin responsable"}</span></span>
+                  <EstadoSol estado={s.estado} /></Link></li>))}</ul>
+            </Panel>
+          )}
           <Panel titulo={`Proyectos (${r.proyectos.length})`} cuerpo="p-0">
             {r.proyectos.length === 0 ? <p className="p-5 text-sm text-gris">Sin proyectos.</p> : (
               <ul className="divide-y divide-linea-suave">{r.proyectos.map((p) => (
@@ -102,6 +123,7 @@ export default function ClienteDetalle() {
       </div>
       <FormCliente abierto={modal === "editar"} inicial={c} onCerrar={() => setModal(null)} onGuardado={() => { setModal(null); avisar("Cliente actualizado."); cargar(); }} />
       <FormOrden abierto={modal === "orden"} inicial={{ cliente: c.id }} onCerrar={() => setModal(null)} onGuardada={(o) => { setModal(null); avisar(`${o.numero} pedida.`); navigate(`/ordenes/${o.id}`); }} />
+      {usuario.es_comercial && <FormOportunidad abierto={modal === "oportunidad"} inicial={{ cliente: c.id }} onCerrar={() => setModal(null)} onGuardado={(o) => { setModal(null); navigate(`/oportunidades?oportunidad=${o.id}`); }} />}
       <FormProyecto abierto={modal === "proyecto"} inicial={{ cliente: c.id }} onCerrar={() => setModal(null)} onGuardado={(p) => { setModal(null); navigate(`/proyectos/${p.id}`); }} />
     </div>
   );

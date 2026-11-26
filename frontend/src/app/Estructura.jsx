@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  AlarmClock, Bell, BellRing, Boxes, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
+  AlarmClock, Bell, BellRing, Boxes, Briefcase, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
   Award, CalendarClock, ChartNoAxesColumn, FolderOpen, Gauge, HeartHandshake, History, UsersRound, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos, senalPresencia, tablerosDepartamentos } from "@/lib/api";
@@ -29,7 +29,7 @@ import ChatFlotante from "@/features/chat/ChatFlotante";
 import { BotonInstalar, SugerenciaApp } from "@/features/cuenta/AvisosCelular";
 
 function secciones({ esAdmin, puedeValidar, puedeAsignar, puedeAutoasignar, esFinanzas, esCoordinacion, esAlmacen, esAgente, gestionaCallCenter, gestionaActivos, misAreas = [],
-  gestionaPersonas, veDirectorio, configuraSistema, esRRHH, tablerosDeptos = [] }) {
+  gestionaPersonas, veDirectorio, configuraSistema, esRRHH, tablerosDeptos = [], usuario }) {
   // El agente de call center tiene una plataforma simple: su pantalla y poco más.
   if (esAgente) return [{ titulo: "Mi trabajo", items: [
     { a: "/call-center", texto: "Call Center", icono: Headset },
@@ -63,6 +63,8 @@ function secciones({ esAdmin, puedeValidar, puedeAsignar, puedeAutoasignar, esFi
     ] },
   ];
   if (esAlmacen || esCoordinacion || esFinanzas || misAreas.length) s[1].items.splice(1, 0, { a: "/almacen", texto: "Almacén", icono: Boxes });
+  if (usuario?.es_comercial) s[1].items.push({ a: "/oportunidades", texto: "Oportunidades comerciales", icono: Briefcase });
+  else if (usuario?.ve_solicitudes) s[1].items.push({ a: "/oportunidades", texto: "Solicitudes de servicio", icono: Briefcase });
   if (gestionaCallCenter) s[1].items.push({ a: "/call-center", texto: "Call Center", icono: Headset });
   if (gestionaActivos) s[1].items.push({ a: "/activos", texto: "Activos y equipos", icono: Laptop });
   if (esAdmin || esCoordinacion) s[1].items.push({ a: "/produccion/ajustes", texto: "Áreas y tiempos", icono: SlidersHorizontal });

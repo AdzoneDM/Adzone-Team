@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, Check, CheckCheck, Download, FileArchive, FileSpreadsheet, FileText, Film, Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowDown, Check, CheckCheck, Copy, Download, FileArchive, FileSpreadsheet, FileText, Film, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { chatAbierto, urlArchivoChat } from "@/lib/api";
 import { BotonVistos, ModalVistos } from "./Vistos";
-import { Avatar, cx } from "@/components/ui";
+import { copiarTexto } from "@/lib/portapapeles";
+import { Avatar, cx, useAviso } from "@/components/ui";
 
 const MINUTOS_AGRUPAR = 5;
 
@@ -211,6 +212,12 @@ function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, lectores, ultim
   const [confirmar, setConfirmar] = useState(false);
   const [editando, setEditando] = useState(false);
   const editable = useEditable(mio && onEditar && !m.eliminado ? m.editable_hasta : null);
+  const avisar = useAviso();
+  const [copiado, setCopiado] = useState(false);
+  const copiar = async () => {
+    if (await copiarTexto(m.texto)) { setCopiado(true); avisar("Mensaje copiado"); setTimeout(() => setCopiado(false), 1500); }
+    else avisar("No se pudo copiar. Mantén pulsado el texto para seleccionarlo.", "rojo");
+  };
   if (m.eliminado) {
     return <p className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : privado ? "" : "pl-10")}>Mensaje eliminado</p>;
   }
@@ -224,6 +231,12 @@ function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, lectores, ultim
             <button type="button" onClick={() => setEditando(true)} aria-label="Editar mensaje" title="Editar (durante 5 minutos desde que lo enviaste)"
               className={cx("rounded p-1 text-gris transition-opacity hover:bg-azul/10 hover:text-azul focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100", mio ? "order-first" : "order-last")}>
               <Pencil className="size-3.5" aria-hidden />
+            </button>
+          )}
+          {m.texto && !editando && (
+            <button type="button" onClick={copiar} aria-label="Copiar mensaje" title="Copiar el texto"
+              className={cx("rounded p-1 text-gris transition-opacity hover:bg-azul/10 hover:text-azul focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100", mio ? "order-first" : "order-last", copiado && "opacity-100")}>
+              {copiado ? <Check className="size-3.5 text-verde" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
             </button>
           )}
           {m.puede_ver_vistos && <BotonVistos onClick={() => onVer(m)} className={cx("sm:opacity-0 sm:group-hover:opacity-100", mio ? "order-first" : "order-last")} />}

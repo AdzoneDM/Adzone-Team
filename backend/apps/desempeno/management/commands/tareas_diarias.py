@@ -25,6 +25,13 @@ class Command(BaseCommand):
                 self.stdout.write(f'Recordatorios de cobro a Finanzas: {cobros}.')
         except Exception as e:  # noqa: BLE001 (un fallo aquí nunca detiene el resto de las tareas del día)
             self.stderr.write(f'Recordatorios de cobro no generados: {e}')
+        try:
+            from apps.comercial.servicios import avisar_seguimientos
+            seguimientos = avisar_seguimientos()
+            if seguimientos:
+                self.stdout.write(f'Seguimientos comerciales avisados: {seguimientos}.')
+        except Exception as e:  # noqa: BLE001
+            self.stderr.write(f'Seguimientos comerciales no avisados: {e}')
         from apps.automatizaciones.motor import revisar_vencimientos
         reglas = revisar_vencimientos()
         from apps.operaciones.servicios_ot import revisar_excepciones

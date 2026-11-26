@@ -28,6 +28,7 @@ PERMISOS = [
     ('equipo.todos', 'Supervisar a toda la empresa', 'Empresa', 'empresa', 'Su equipo pasa a ser todo el personal (menos Dirección): los permisos de equipo que tenga se ejercen sobre todos, y recibe sus avisos de entregas y tardanzas.'),
     ('clientes.gestionar', 'Gestión de clientes', 'Empresa', 'empresa', 'Consultar, crear, editar y completar los datos de los clientes (contacto, RNC, dirección, notas). Cada cambio queda en la bitácora.'),
     ('clientes.completo', 'Clientes: eliminar y proyectos', 'Empresa', 'empresa', 'Además de editar, eliminar clientes y crearles proyectos (de su propio departamento o de varios), como quien gestiona un área. Se da por persona.'),
+    ('comercial.oportunidades', 'Oportunidades comerciales', 'Empresa', 'empresa', 'Tablero de oportunidades de Marketing: registrar oportunidades y clientes, servicios que necesitan, seguimiento y solicitudes a cada departamento. No da acceso a facturas, pagos ni cobros.'),
     ('finanzas.gestionar', 'Finanzas', 'Empresa', 'empresa', 'Facturas, gastos, pagos, cotizaciones, rentabilidad (con el costo de cada persona) y Cashflow.'),
     ('operaciones.coordinar', 'Coordinación de producción', 'Empresa', 'empresa', 'Recibe y numera las órdenes de trabajo, emite las órdenes de área y autoriza vales.'),
     ('almacen.gestionar', 'Almacén', 'Empresa', 'empresa', 'Inventario, vales de materiales y despacho.'),
@@ -64,7 +65,8 @@ PERFILES = {
     'Operaciones': ('Asigna, edita, elimina, reabre y valida las tareas de su equipo y las que pide a otras áreas.',
                     SUPERVISOR + ['tareas.otras_areas'], 35),
     'Almacén': ('Inventario, vales de materiales y activos.', ['almacen.gestionar'], 45),
-    'Gestión de clientes': ('Consulta, crea, edita y completa los datos de los clientes (Marketing).', ['clientes.gestionar'], 42),
+    'Gestión de clientes': ('Consulta, crea, edita y completa los datos de los clientes y lleva las oportunidades comerciales (Marketing). Sin facturas, pagos ni cobros.',
+                            ['clientes.gestionar', 'comercial.oportunidades'], 42),
     'Agente Call Center': ('Su pantalla de call center y lo suyo.', [], 15),
 }
 

@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'apps.activos',
     'apps.chat',
     'apps.documentos',
+    'apps.comercial',
     'corsheaders',
     'rest_framework',
     'django_filters',

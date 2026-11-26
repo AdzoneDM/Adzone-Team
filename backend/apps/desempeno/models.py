@@ -475,6 +475,7 @@ class Notificacion(models.Model):
         ('SEGURIDAD', 'Seguridad de la cuenta'),
         ('MODIFICADA', 'Tarea modificada'),
         ('BLOQUEADA', 'Tarea bloqueada'),
+        ('COMERCIAL', 'Oportunidades y solicitudes'),
         ('COLABORACION', 'Colaboración'),
         ('ACTIVIDAD', 'Actividad adicional'),
         ('DOCUMENTO', 'Documento compartido'),

@@ -73,6 +73,16 @@ def _tiene_permiso(user, codigo):
     return tiene(user, codigo)
 
 
+def _comercial(user):
+    from apps.comercial.permisos import es_comercial
+    return es_comercial(user)
+
+
+def _ve_solicitudes(user):
+    from apps.comercial.permisos import ve_solicitudes
+    return ve_solicitudes(user)
+
+
 def _es_tecnologia(user):
     from apps.core.permisos import tiene
     return tiene(user, 'activos.gestionar')
@@ -112,6 +122,8 @@ def datos_usuario(user):
         'mis_areas': areas_que_supervisa(user),
         'es_agente': es_agente(user),
         'gestiona_call_center': gestiona_call_center(user),
+        'es_comercial': _comercial(user),
+        've_solicitudes': _ve_solicitudes(user),
     }
 
 
