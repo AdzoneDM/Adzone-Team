@@ -125,6 +125,13 @@ function FilaTarea({ t, onVerImagen }) {
             <Linea etiqueta="Entregada" valor={t.entregada} />
             <Linea etiqueta="Finalizada / resuelta" valor={t.finalizada} quien={t.resuelta_por} />
             {t.entrega_cliente && <p className="text-xs"><span className="text-gris">Entrega al cliente:</span> {fechaCorta(t.entrega_cliente)}</p>}
+            {t.dias_trabajados?.length > 0 && (
+              <div className="text-xs"><span className="text-gris">Días trabajados:</span>
+                <ul className="mt-0.5 space-y-0.5">{t.dias_trabajados.map((d, i) => (
+                  <li key={i}>{fechaCorta(d.fecha)} · {d.persona} · {d.minutos >= 60 ? `${Math.floor(d.minutos / 60)} h ${d.minutos % 60} min` : `${d.minutos} min`}</li>
+                ))}</ul>
+              </div>
+            )}
             {t.evidencia_nota && <p className="rounded-lg bg-fondo p-2 text-sm"><b className="font-medium">Nota de entrega:</b> {t.evidencia_nota}</p>}
             {t.evidencia_enlace && <a href={t.evidencia_enlace} target="_blank" rel="noopener noreferrer" className="block break-all text-sm text-azul underline">{t.evidencia_enlace}</a>}
             {t.evidencias.length > 0 && (
@@ -250,6 +257,7 @@ export default function ClienteDetalle() {
             {c.notas && <p className="mt-2 max-w-3xl whitespace-pre-line text-sm text-gris">{c.notas}</p>}
           </div>
           <div className="flex flex-wrap gap-2">
+            <Boton tam="sm" variante="acento" icono={Download} onClick={() => { const n = new URLSearchParams(params); n.set("ver", "reporte"); setParams(n, { replace: true }); }}>Exportar trabajos</Boton>
             <Boton tam="sm" icono={Plus} onClick={() => setModal("orden")}>Orden</Boton>
             {(puedeValidar || puedeAsignar) && <Boton tam="sm" variante="secundario" icono={ListChecks} onClick={() => setModal("tarea")}>Tarea</Boton>}
             {puedeEditar && <Boton tam="sm" variante="secundario" icono={FolderKanban} onClick={() => setModal("proyecto")}>Proyecto</Boton>}

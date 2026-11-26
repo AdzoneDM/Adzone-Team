@@ -63,6 +63,8 @@ def filtrar(qs, params):
         qs = qs.filter(Q(titulo__icontains=params['q']) | Q(descripcion__icontains=params['q']))
     desde, hasta = rango(params)
     if desde or hasta:
+        # También cuenta si alguien registró tiempo en ella esos días (cronómetro)
+        con_tiempo = qs.filter(registros_tiempo__inicio__date__range=(desde or date(2000, 1, 1), hasta or date(2100, 1, 1)))
         z = timezone.get_current_timezone()
         if hasta:   # empezó (o se creó) antes de que termine el período
             fin = timezone.make_aware(datetime.combine(hasta, time.max), z)
@@ -71,10 +73,11 @@ def filtrar(qs, params):
             ini = timezone.make_aware(datetime.combine(desde, time.min), z)
             qs = qs.filter(Q(fecha_entrega_real__gte=ini) | Q(fecha_completada__gte=desde)
                            | Q(fecha_entrega_real__isnull=True, fecha_completada__isnull=True))
+        qs = Tarea.objects.filter(Q(pk__in=qs.values('pk')) | Q(pk__in=con_tiempo.values('pk')))
     return qs
 
 
-def ficha_tarea(t, modificaciones):
+def ficha_tarea(t, modificaciones, dias=None):
     orden = t.orden
     return {
         'id': t.id, 'titulo': t.titulo, 'descripcion': (t.descripcion or '')[:600], 'estado': t.estado, 'estado_texto': ESTADOS.get(t.estado, t.estado),
@@ -89,6 +92,8 @@ def ficha_tarea(t, modificaciones):
         'evidencias': [{'id': e.id, 'nombre': e.nombre_original or e.archivo.name.rsplit('/', 1)[-1], 'es_imagen': e.es_imagen,
                         'url': f'/api/desempeno/evidencias/{e.id}/archivo/', 'purgado': e.purgado} for e in t.evidencias.all()],
         'modificaciones': modificaciones.get(t.id, []),
+        # Qué días se le trabajó y quién (del cronómetro y el tiempo anotado)
+        'dias_trabajados': (dias or {}).get(t.id, []),
     }
 
 
@@ -99,7 +104,16 @@ def tareas(qs):
     for h in HistorialTarea.objects.filter(tarea__in=lista).exclude(accion__in=['COMENTADA']).select_related('usuario').order_by('fecha'):
         mods.setdefault(h.tarea_id, []).append({'accion': h.get_accion_display(), 'usuario': _n(h.usuario), 'fecha': h.fecha,
                                                'detalle': (h.comentario or '')[:300]})
-    return [ficha_tarea(t, mods) for t in lista]
+    from collections import defaultdict
+    from apps.tiempo.models import RegistroTiempo
+    suma = defaultdict(int)
+    for r in RegistroTiempo.objects.filter(tarea__in=lista).select_related('usuario'):
+        dia = timezone.localtime(r.inicio).date()
+        suma[(r.tarea_id, dia, _n(r.usuario))] += r.minutos_hasta_ahora() if hasattr(r, 'minutos_hasta_ahora') else r.minutos
+    dias = defaultdict(list)
+    for (tid, dia, quien), minutos in sorted(suma.items(), key=lambda x: (x[0][0], x[0][1])):
+        dias[tid].append({'fecha': dia, 'persona': quien, 'minutos': minutos})
+    return [ficha_tarea(t, mods, dias) for t in lista]
 
 
 def archivos(cliente, qs_tareas):
@@ -157,6 +171,14 @@ def datos_reporte(cliente, user, params):
             'generado': timezone.localtime(), 'por': _n(user)}
 
 
+def _dias_texto(t, corto=False):
+    """«25/11 Ana 2 h 10 min; 26/11 Luis 45 min»."""
+    def hm(m):
+        return f"{m // 60} h {m % 60} min" if m >= 60 else f"{m} min"
+    partes = [f"{x['fecha']:%d/%m} {x['persona'] if not corto else (x['persona'] or '').split(' ')[0]} {hm(x['minutos'])}" for x in t['dias_trabajados']]
+    return '; '.join(partes[:8] if corto else partes) + (' …' if corto and len(partes) > 8 else '')
+
+
 def excel(d):
     from io import BytesIO
     from openpyxl import Workbook
@@ -171,7 +193,7 @@ def excel(d):
     ws.append([f"Generado el {_f(d['generado'], True)} por {d['por']}"])
     ws.append([])
     cab = ['Tarea', 'Descripción', 'Proyecto', 'Orden', 'Responsable', 'Con', 'Asignada por', 'Creada', 'Empezó', 'Entregada',
-           'Finalizada', 'Resuelta por', 'Entrega al cliente', 'Estado', 'Evidencias', 'Modificaciones']
+           'Finalizada', 'Resuelta por', 'Entrega al cliente', 'Estado', 'Días trabajados', 'Evidencias', 'Modificaciones']
     ws.append(cab)
     for celda in ws[5]:
         celda.font = Font(bold=True, color='FFFFFF')
@@ -179,10 +201,10 @@ def excel(d):
     for t in d['tareas']:
         ws.append([t['titulo'], t['descripcion'], t['proyecto'] or '', t['orden'] or '', t['responsable'] or '', ', '.join(t['companeros']),
                    t['asignada_por'] or '', _f(t['creada'], True), _f(t['inicio_trabajo'], True), _f(t['entregada'], True), _f(t['finalizada'], True),
-                   t['resuelta_por'] or '', _f(t['entrega_cliente']), t['estado_texto'],
+                   t['resuelta_por'] or '', _f(t['entrega_cliente']), t['estado_texto'], _dias_texto(t),
                    ', '.join(e['nombre'] for e in t['evidencias']) + (f" · {t['evidencia_enlace']}" if t['evidencia_enlace'] else ''),
                    '\n'.join(f"{_f(m['fecha'], True)} {m['usuario'] or ''}: {m['accion']}" for m in t['modificaciones'])])
-    for col, ancho in zip('ABCDEFGHIJKLMNOP', (34, 40, 26, 12, 22, 22, 20, 16, 16, 16, 16, 20, 14, 14, 30, 46)):
+    for col, ancho in zip('ABCDEFGHIJKLMNOPQ', (34, 40, 26, 12, 22, 22, 20, 16, 16, 16, 16, 20, 14, 14, 34, 30, 46)):
         ws.column_dimensions[col].width = ancho
     for fila in ws.iter_rows(min_row=6):
         for celda in fila:
@@ -251,7 +273,7 @@ def pdf(d):
         filas.append([
             P(f"{t['titulo']}\n{t['descripcion'][:300]}"), P(' / '.join(x for x in [t['proyecto'], t['orden']] if x) or '—'),
             P(', '.join([t['responsable'] or '—', *t['companeros']])), P(t['asignada_por']),
-            P(f"Empezó: {_f(t['inicio_trabajo'], True)}\nEntregó: {_f(t['entregada'], True)}"),
+            P(f"Empezó: {_f(t['inicio_trabajo'], True)}\nEntregó: {_f(t['entregada'], True)}" + (f"\nTrabajó: {_dias_texto(t, corto=True)}" if t['dias_trabajados'] else '')),
             P(f"Finalizada: {_f(t['finalizada'], True)}" + (f"\npor {t['resuelta_por']}" if t['resuelta_por'] else '') + f"\nAl cliente: {_f(t['entrega_cliente'])}"),
             P(t['estado_texto']),
             P('\n'.join([e['nombre'] for e in t['evidencias']][:6] + ([t['evidencia_enlace']] if t['evidencia_enlace'] else [])) or '—'),

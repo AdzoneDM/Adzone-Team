@@ -111,3 +111,19 @@ class ExpedienteTests(TestCase):
         self.assertEqual(self.como(self.ana).get(f'{API}/{self.cliente.pk}/logo/').status_code, 200)
         malo = SimpleUploadedFile('x.png', b'MZ\x90programa', content_type='image/png')
         self.assertEqual(self.como(self.jefe).post(f'{API}/{self.cliente.pk}/logo/', {'logo': malo}, format='multipart').status_code, 400)
+
+
+class DiasTrabajadosTests(ExpedienteTests):
+    def test_dias_trabajados_del_cronometro_en_expediente_y_reporte(self):
+        from datetime import datetime
+        from apps.tiempo.models import RegistroTiempo
+        z = timezone.get_current_timezone()
+        dia = timezone.localdate() - timedelta(days=40)
+        RegistroTiempo.objects.create(usuario=self.ana, tarea=self.t1, inicio=timezone.make_aware(datetime.combine(dia, datetime.min.time()).replace(hour=9), z),
+                                      fin=timezone.make_aware(datetime.combine(dia, datetime.min.time()).replace(hour=11), z), minutos=120)
+        d = self.como(self.jefe).get(f'{API}/{self.cliente.pk}/expediente/?dia={dia.isoformat()}').json()
+        self.assertEqual([t['titulo'] for t in d['tareas']], ['Arte del banner'])   # se trabajó ese día (cronómetro)
+        self.assertEqual(d['tareas'][0]['dias_trabajados'][0]['minutos'], 120)
+        r = self.como(self.jefe).get(f'{API}/{self.cliente.pk}/reporte/?formato=xlsx')
+        ws = load_workbook(BytesIO(r.content))['Trabajos realizados']
+        self.assertIn('2 h 0 min', ' '.join(str(ws.cell(row=f, column=15).value or '') for f in range(6, 9)))

@@ -6,7 +6,7 @@ import { sonarAlerta } from "@/lib/sonido";
 import { horaExacta, relojSeg } from "@/lib/formato";
 import { datosDeLugar } from "@/lib/ubicacion";
 import { Boton, Modal, cx, useAviso } from "@/components/ui";
-import { alCerrarPestana, fijarMensajeCierre, textoCierre } from "@/lib/salida";
+import { fijarMensajeCierre, textoCierre } from "@/lib/salida";
 
 const TEXTO = { ENTRADA: "Marcar entrada", PAUSA: "Iniciar pausa", REGRESO: "Terminar pausa", SALIDA: "Salida" };
 const ICONO = { ENTRADA: LogIn, PAUSA: Coffee, REGRESO: Play, SALIDA: LogOut };
@@ -145,11 +145,10 @@ export default function BotonJornada() {
   const caja = useRef(null);
   const [, setLatido] = useState(0);
   const corriendo = estado?.estado === "TRABAJANDO" || estado?.estado === "EN_PAUSA"; // el contador de la pausa también corre
-  // Jornada abierta: al cerrar la pestaña o el navegador se pide confirmación (y «Salir» de la plataforma muestra el texto exacto)
+  // Sin aviso del navegador al recargar o cerrar (lo pidió la empresa: molestaba). Solo «Salir» de la plataforma recuerda marcar la salida.
   useEffect(() => {
     fijarMensajeCierre(textoCierre(estado));
-    window.addEventListener("beforeunload", alCerrarPestana);
-    return () => { window.removeEventListener("beforeunload", alCerrarPestana); fijarMensajeCierre(null); };
+    return () => fijarMensajeCierre(null);
   }, [estado]);
   useEffect(() => {  // el contador y la hora oficial avanzan cada segundo (mientras se trabaja o el panel está abierto)
     if (!corriendo && !abierto) return undefined;
