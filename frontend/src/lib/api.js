@@ -2,6 +2,8 @@
 
 // Alguien (yo) validó, devolvió, reabrió o eliminó una tarea: las demás pestañas y ventanas abiertas se refrescan al instante
 import { anunciarCambioTareas } from "@/lib/recargaSuave";
+import { fijarLimitesGrandes } from "@/lib/archivos";
+import { prepararArchivos } from "@/lib/subidaPorPartes";
 const tareasCambiaron = (r) => { anunciarCambioTareas(); return r; };
 
 export function getCookie(name) {
@@ -106,7 +108,8 @@ const q = (params = {}) => {
 const D = "/api/desempeno";
 
 // Sesión
-export const sesion = () => api("/api/auth/session/");
+// De paso fija el tope de los adjuntos grandes de tareas (ZIP y videos que se suben por partes)
+export const sesion = () => api("/api/auth/session/").then((d) => { if (d?.user) fijarLimitesGrandes(d.user); return d; });
 // Credenciales: { username, password, remember_me } o, desde el directorio, { user_id, password, remember_me }
 export const entrar = (credenciales) => api("/api/auth/login/", { method: "POST", body: credenciales });
 export const entrarConCodigo = (codigo) => api("/api/auth/dos-pasos/", { method: "POST", body: { codigo } });
@@ -133,28 +136,35 @@ export const tareasEliminadas = () => api(`${D}/tareas/eliminadas/`);
 export const restaurarTarea = (id) => api(`${D}/tareas/${id}/restaurar/`, { method: "POST" }).then(tareasCambiaron);
 export const historialTarea = (id) => api(`${D}/tareas/${id}/historial/`);
 export const iniciarTarea = (id) => api(`${D}/tareas/${id}/iniciar/`, { method: "POST" });
-export const entregarTarea = (id, { nota, enlace, archivos = [] }) => {
+// Los archivos de más de ~40 MB (ZIP, videos) se suben antes por partes y viajan como «subidas» (ids); `alAvanzar(f)`: avance de 0 a 1
+export const entregarTarea = async (id, { nota, enlace, archivos = [], alAvanzar } = {}) => {
+  const { chicos, subidas } = await prepararArchivos(archivos, alAvanzar);
   const f = new FormData();
   if (nota) f.append("evidencia_nota", nota);
   if (enlace) f.append("evidencia_enlace", enlace);
-  archivos.forEach((a) => f.append("archivos", a, a.name));
+  chicos.forEach((a) => f.append("archivos", a, a.name));
+  subidas.forEach((s) => f.append("subidas", s));
   return api(`${D}/tareas/${id}/entregar/`, { method: "POST", body: f });
 };
 export const validarTarea = (id, calificacion_calidad, comentario_evaluacion, extra = {}) =>
   api(`${D}/tareas/${id}/validar/`, { method: "POST", body: { calificacion_calidad, comentario_evaluacion, ...extra } }).then(tareasCambiaron);
 // Devolver una tarea; con «archivos» (bocetos, imágenes, PDF) viaja como formulario y quedan de referencia para la corrección
-export const devolverTarea = (id, comentario_revision, extra = {}, archivos = []) => {
+export const devolverTarea = async (id, comentario_revision, extra = {}, archivos = [], alAvanzar) => {
   if (!archivos.length) return api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: { comentario_revision, ...extra } }).then(tareasCambiaron);
+  const { chicos, subidas } = await prepararArchivos(archivos, alAvanzar);
   const f = new FormData();
   f.append("comentario_revision", comentario_revision);
   Object.entries(extra).forEach(([k, v]) => { if (v != null) f.append(k, typeof v === "object" ? JSON.stringify(v) : v); });
-  archivos.forEach((a) => f.append("archivos", a, a.name));
+  chicos.forEach((a) => f.append("archivos", a, a.name));
+  subidas.forEach((s) => f.append("subidas", s));
   return api(`${D}/tareas/${id}/rechazar/`, { method: "POST", body: f }).then(tareasCambiaron);
 };
 // Referencias de una tarea: bocetos o imágenes que adjunta quien supervisa (al asignar o al corregir)
-export const subirReferencias = (id, archivos, { nota = "", momento = "ASIGNACION" } = {}) => {
+export const subirReferencias = async (id, archivos, { nota = "", momento = "ASIGNACION", alAvanzar } = {}) => {
+  const { chicos, subidas } = await prepararArchivos(archivos, alAvanzar);
   const f = new FormData();
-  archivos.forEach((a) => f.append("archivos", a, a.name));
+  chicos.forEach((a) => f.append("archivos", a, a.name));
+  subidas.forEach((s) => f.append("subidas", s));
   if (nota) f.append("nota", nota);
   f.append("momento", momento);
   return api(`${D}/tareas/${id}/referencias/`, { method: "POST", body: f });

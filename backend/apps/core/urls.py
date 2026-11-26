@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import views, views_accesos as acc, views_dos_pasos as dp, views_respaldos as resp, views_push, views_seguridad as vs
+from . import subidas, views, views_accesos as acc, views_dos_pasos as dp, views_respaldos as resp, views_push, views_seguridad as vs
 
 router = DefaultRouter()
 router.register(r'departamentos', views.DepartamentoViewSet, basename='departamento')
@@ -17,6 +17,11 @@ urlpatterns = [
     path('auth/clave-equipo/', views.clave_equipo_view, name='api_clave_equipo'),
     path('auth/dos-pasos/', views.dos_pasos_login_view, name='api_dos_pasos_login'),
     path('respaldos/', resp.respaldos_view, name='respaldos'),
+    # Archivos grandes (ZIP, videos) por partes: el nginx de Plesk corta cada petición en 64 MB
+    path('subidas/', subidas.iniciar_view, name='subida_iniciar'),
+    path('subidas/<uuid:pk>/', subidas.subida_view, name='subida'),
+    path('subidas/<uuid:pk>/partes/<int:indice>/', subidas.parte_view, name='subida_parte'),
+    path('subidas/<uuid:pk>/completar/', subidas.completar_view, name='subida_completar'),
     path('cuenta/sesiones/', vs.mis_sesiones_view, name='mis_sesiones'),
     path('cuenta/sesiones/cerrar-otras/', vs.cerrar_otras_view, name='cerrar_otras_sesiones'),
     path('cuenta/sesiones/<int:pk>/', vs.mi_sesion_view, name='mi_sesion'),

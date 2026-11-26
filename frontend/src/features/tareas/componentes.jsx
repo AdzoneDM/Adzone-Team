@@ -39,11 +39,12 @@ const ACEPTA = "image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx
 export const esVideo = (f) => (f.type || "").startsWith("video/") || /\.(mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g)$/i.test(f.name || "");
 const tamanoMB = (b) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : b >= 10 * 1024 * 1024 ? `${Math.round(b / 1024 / 1024)} MB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 
-/** Qué le pasa a un archivo antes de subirlo (null = está bien): tipo permitido y peso (el video tiene su propio límite). */
+/** Qué le pasa a un archivo antes de subirlo (null = está bien): tipo permitido y peso. Los ZIP y los videos grandes se suben por partes
+ * (lib/subidaPorPartes.js), así que su tope es el de adjuntos grandes (400 MB por defecto, lo manda el servidor). */
 export function problemaDeArchivo(f) {
-  if (!EXT_PERMITIDAS.test(f.name || "")) return `«${f.name}»: solo se aceptan fotos, videos, PDF o documentos (Word, Excel, PowerPoint, CSV, texto o ZIP).`;
-  const tope = esVideo(f) ? limites.videoMB : /\.zip$/i.test(f.name) ? limites.zipMB : esDocumento(f) ? 15 : MAX_FOTO_MB;
-  if (f.size > tope * 1024 * 1024) return `«${f.name}» pesa ${tamanoMB(f.size)} y el máximo es ${tope} MB${esVideo(f) ? ". Para un video largo, súbelo a Drive y pega el enlace" : ""}.`;
+  if (!EXT_PERMITIDAS.test(f.name || "")) return `«${f.name}»: solo se aceptan fotos, videos, PDF, documentos (Word, Excel, PowerPoint, CSV, texto) o ZIP.`;
+  const tope = esVideo(f) ? limites.videoGrandeMB : /\.zip$/i.test(f.name) ? limites.adjuntoGrandeMB : esDocumento(f) ? 15 : MAX_FOTO_MB;
+  if (f.size > tope * 1024 * 1024) return `«${f.name}» pesa ${tamanoMB(f.size)}. Máximo ${tope} MB${esVideo(f) ? "; para un video más largo, súbelo a Drive y pega el enlace" : ""}.`;
   return null;
 }
 
@@ -120,7 +121,7 @@ export function SelectorArchivos({ archivos, onCambio, etiqueta = "Adjuntar boce
           className="inline-flex h-10 items-center gap-2 rounded-lg border border-dashed border-azul/50 bg-azul/5 px-3 text-sm font-medium text-azul hover:bg-azul/10 disabled:cursor-not-allowed disabled:opacity-50">
           <Paperclip className="size-4" aria-hidden />{procesando ? "Preparando…" : etiqueta}
         </button>
-        {archivos.length === 0 && <span className="text-xs text-gris">{ayuda ? `${ayuda} ` : ""}Imágenes, PDF, documentos o videos (hasta {limites.videoMB} MB).</span>}
+        {archivos.length === 0 && <span className="text-xs text-gris">{ayuda ? `${ayuda} ` : ""}Imágenes, PDF, documentos, videos o ZIP (máximo {Math.max(limites.videoGrandeMB, limites.adjuntoGrandeMB)} MB).</span>}
       </div>
       {aviso && <p role="alert" className="mt-1.5 text-xs text-rojo">{aviso}</p>}
       {archivos.length > 0 && (
@@ -143,6 +144,7 @@ export function Referencias({ tarea, onCambio, avisar }) {
   const ver = useVisor();
   const [nuevos, setNuevos] = useState([]);
   const [subiendo, setSubiendo] = useState(false);
+  const [avance, setAvance] = useState(null); // archivos grandes: se suben por partes y se muestra el avance
   const lista = tarea.referencias || [];
   // Quien puede editar la tarea agrega o quita referencias en cualquier estado (también validada)
   const puedeAgregar = !!tarea.puedo_gestionar;
@@ -161,12 +163,13 @@ export function Referencias({ tarea, onCambio, avisar }) {
   const subir = async () => {
     setSubiendo(true);
     try {
-      const actualizada = await subirReferencias(tarea.id, nuevos, { momento: tarea.rondas_revision > 0 ? "CORRECCION" : "ASIGNACION" });
+      const actualizada = await subirReferencias(tarea.id, nuevos, { momento: tarea.rondas_revision > 0 ? "CORRECCION" : "ASIGNACION", alAvanzar: (f) => setAvance(Math.round(f * 100)) });
       setNuevos([]);
       avisar?.("Referencia enviada. Le llegó el aviso.");
       onCambio?.(actualizada);
     } catch (e) { avisar?.(e.message, "rojo"); }
     setSubiendo(false);
+    setAvance(null);
   };
   const quitar = async (r) => {
     try { await quitarReferencia(r.url); onCambio?.(await obtenerTarea(tarea.id)); } catch (e) { avisar?.(e.message, "rojo"); }
@@ -216,7 +219,7 @@ export function Referencias({ tarea, onCambio, avisar }) {
         {puedeAgregar && (
           <div className="space-y-2">
             <SelectorArchivos archivos={nuevos} onCambio={setNuevos} etiqueta="Agregar boceto, imagen o video" disabled={subiendo} />
-            {nuevos.length > 0 && <Boton tam="sm" onClick={subir} cargando={subiendo}>Enviar {nuevos.length === 1 ? "el archivo" : `los ${nuevos.length} archivos`}</Boton>}
+            {nuevos.length > 0 && <Boton tam="sm" onClick={subir} cargando={subiendo}>{subiendo && avance != null ? `Subiendo… ${avance} %` : `Enviar ${nuevos.length === 1 ? "el archivo" : `los ${nuevos.length} archivos`}`}</Boton>}
           </div>
         )}
       </div>
@@ -471,6 +474,7 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
   const [archivos, setArchivos] = useState([]);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [avance, setAvance] = useState(null); // ZIP y videos grandes: se suben por partes y se muestra el avance
   const camara = useRef(null);
   const camaraVideo = useRef(null);
   const galeria = useRef(null);
@@ -501,12 +505,13 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
     }
     setEnviando(true);
     try {
-      const t = await entregarTarea(tarea.id, { nota: nota.trim(), enlace: enlace.trim(), archivos: archivos.map((a) => a.f) });
+      const t = await entregarTarea(tarea.id, { nota: nota.trim(), enlace: enlace.trim(), archivos: archivos.map((a) => a.f), alAvanzar: (f) => setAvance(Math.round(f * 100)) });
       onEntregada(t);
     } catch (err) {
       setError(err.message + (archivos.length ? " Tus fotos siguen aquí." : ""));
     } finally {
       setEnviando(false);
+      setAvance(null);
     }
   };
 
@@ -515,7 +520,7 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
     <Modal abierto={abierto} onCerrar={onCerrar} titulo="Entregar tarea" descripcion={tarea.titulo}
       pie={<>
         <Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton>
-        <Boton type="submit" form="form-entrega" variante="acento" cargando={enviando}>{archivos.some((x) => x.video) ? (enviando ? "Subiendo el video…" : "Subir y entregar") : archivos.length ? "Subir y entregar" : "Entregar"}</Boton>
+        <Boton type="submit" form="form-entrega" variante="acento" cargando={enviando}>{enviando && avance != null ? `Subiendo… ${avance} %` : archivos.some((x) => x.video) ? (enviando ? "Subiendo el video…" : "Subir y entregar") : archivos.length ? "Subir y entregar" : "Entregar"}</Boton>
       </>}>
       <form id="form-entrega" onSubmit={enviar} className="space-y-4">
         {tarea.comentario_revision && <Alerta tono="rojo"><p className="font-medium">Lo que pidieron corregir</p><p className="whitespace-pre-line">{tarea.comentario_revision}</p></Alerta>}
@@ -534,7 +539,7 @@ export function EntregarModal({ tarea, abierto, onCerrar, onEntregada }) {
             <Boton variante="secundario" icono={Video} onClick={() => camaraVideo.current?.click()} className="md:hidden">Grabar video</Boton>
             <Boton variante="secundario" icono={ImagePlus} onClick={() => galeria.current?.click()}>Elegir archivos</Boton>
           </div>
-          <p className="mt-1.5 text-xs text-gris">Videos de hasta {limites.videoMB} MB (MP4, MOV o WEBM); para uno más largo, súbelo a Drive y pega el enlace. Se borran solos unos días después de que se valide la tarea; las fotos y los PDF se quedan.</p>
+          <p className="mt-1.5 text-xs text-gris">Videos de hasta {limites.videoGrandeMB} MB (MP4, MOV o WEBM) y ZIP de hasta {limites.adjuntoGrandeMB} MB; para uno más grande, súbelo a Drive y pega el enlace. Se borran solos unos días después de que se valide la tarea; las fotos y los PDF se quedan.</p>
           <input ref={camara} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
           <input ref={camaraVideo} type="file" accept="video/*" capture="environment" className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
           <input ref={galeria} type="file" accept={ACEPTA} multiple className="sr-only" tabIndex={-1} onChange={(e) => { agregar(e.target.files); e.target.value = ""; }} />
