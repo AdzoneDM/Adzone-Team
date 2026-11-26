@@ -113,6 +113,36 @@ class ClientesTests(Base):
         self.assertEqual(a.despues['telefono'], '809-555-0101')
 
 
+    def test_clientes_completo_borra_clientes_y_crea_proyectos_de_su_area(self):
+        """Erlyn, igual que Enmanuel en clientes: editar, eliminar y crear proyectos; sin equipo ni Coordinación."""
+        from apps.core.models import ExcepcionPermiso
+        from apps.operaciones.models import Cliente, Proyecto
+        cli, otro = Cliente.objects.create(nombre='Banco X'), Cliente.objects.create(nombre='Tienda Y')
+        erlyn, colega = self.gente['Marketing'], self.gente['Audiovisual']
+        erlyn.groups.add(Group.objects.get(name='Gestión de clientes'))
+        colega.groups.add(Group.objects.get(name='Gestión de clientes'))
+        # Solo con «Gestión de clientes» no borra ni crea proyectos
+        self.assertEqual(self.c(erlyn).post('/api/operaciones/proyectos/', {'nombre': 'P', 'cliente': cli.pk}, format='json').status_code, 403)
+        ExcepcionPermiso.objects.create(usuario=erlyn, permiso='clientes.completo', motivo='Igual que Enmanuel en clientes')
+        sesion = APIClient(); sesion.login(username=erlyn.username, password=CLAVE)
+        u = sesion.get('/api/auth/session/').json()['user']
+        self.assertTrue(u['edita_clientes']); self.assertTrue(u['clientes_completo']); self.assertFalse(u['gestiona'])
+        self.assertEqual(sesion.patch(f'/api/operaciones/clientes/{cli.pk}/', {'telefono': '809'}, format='json').status_code, 200)
+        r = sesion.post('/api/operaciones/proyectos/', {'nombre': 'Campaña', 'cliente': cli.pk, 'departamento': self.d['Marketing'].pk}, format='json')
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(Proyecto.objects.get(pk=r.json()['id']).responsable, erlyn)
+        self.assertEqual(sesion.post('/api/operaciones/proyectos/', {'nombre': 'Varios', 'cliente': cli.pk}, format='json').status_code, 201)
+        # No crea proyectos de otro departamento
+        self.assertEqual(sesion.post('/api/operaciones/proyectos/', {'nombre': 'Ajeno', 'cliente': cli.pk, 'departamento': self.d['Impresión'].pk}, format='json').status_code, 403)
+        self.assertEqual(sesion.delete(f'/api/operaciones/clientes/{otro.pk}/').status_code, 204)
+        self.assertFalse(Cliente.objects.filter(pk=otro.pk).exists())
+        # Su colega con solo «Gestión de clientes» sigue sin borrar, y Erlyn no gana equipo ni validación
+        self.assertEqual(self.c(colega).delete(f'/api/operaciones/clientes/{cli.pk}/').status_code, 403)
+        from apps.core.permisos import tiene
+        self.assertFalse(tiene(User.objects.get(pk=erlyn.pk), 'tareas.validar'))
+        self.assertFalse(tiene(User.objects.get(pk=erlyn.pk), 'operaciones.coordinar'))
+
+
 class ContrasenaTemporalTests(Base):
     def test_6_7_cuenta_nueva_con_contrasena_temporal_y_sin_privilegios_globales(self):
         mkt = self.gente['Marketing'].perfil.puesto_trabajo

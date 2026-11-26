@@ -42,14 +42,14 @@ export default function Proyectos() {
   const [form, setForm] = useState(null);
   const vista = params.get("ver") || "tabla";
   const todos = params.get("todos") === "1";
-  useEffect(() => { if (params.get("nuevo") === "1" && (usuario.gestiona || usuario.es_finanzas)) setForm({}); }, [params, usuario]);
+  useEffect(() => { if (params.get("nuevo") === "1" && (usuario.gestiona || usuario.es_finanzas || usuario.clientes_completo)) setForm({}); }, [params, usuario]);
   const poner = (k, v) => { if (v) params.set(k, v); else params.delete(k); setParams(params, { replace: true }); };
 
   const cargar = useCallback(() => listarProyectos(todos ? {} : { activos: 1 }).then(setLista).catch((e) => setError(e.message)), [todos]);
   useEffect(() => { cargar(); }, [cargar]);
   const filtrada = useMemo(() => (lista || []).filter((p) => !buscar || `${p.codigo} ${p.nombre} ${p.cliente_nombre}`.toLowerCase().includes(buscar.toLowerCase())), [lista, buscar]);
   const abrir = (p) => navigate(`/proyectos/${p.id}`);
-  const puedeCrear = usuario.gestiona || usuario.es_finanzas;
+  const puedeCrear = usuario.gestiona || usuario.es_finanzas || usuario.clientes_completo;
 
   const soltar = async (id, estado) => {
     const p = lista.find((x) => x.id === id);

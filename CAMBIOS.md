@@ -1,8 +1,9 @@
 # Cambios
 
-## 12.69 · 26/11/2026 · Botón «Copiar» en el texto de la tarea
+## 12.69 · 26/11/2026 · Botón «Copiar» en el texto de la tarea y permiso «Clientes: eliminar y proyectos»
 
 - Al abrir una tarea (Mis tareas, Mi equipo, avisos «Ver tarea») y en la revisión de **Por validar**, los detalles que escribió quien la asignó traen un botón **Copiar** que copia el texto tal cual (saltos de línea, enlaces, emojis) y confirma con «Copiado». Si el teléfono no da permiso al portapapeles, se usa el método antiguo y, si tampoco se puede, avisa que se mantenga pulsado el texto.
+- Permiso nuevo **Clientes: eliminar y proyectos** (se da por persona en Accesos y permisos): además de editar, elimina clientes y les crea proyectos de su departamento o de varios, como quien gestiona un área, sin darle equipo, validación de tareas ni Coordinación. Se le da a **Erlyn**, igual que Enmanuel Beltre en clientes. Quien solo tiene «Gestión de clientes» sigue sin borrar. Dirección lo tiene incluido.
 
 ## 12.68.1 · 25/11/2026 · Corrección: «Gestión de clientes» no mostraba el botón Editar
 

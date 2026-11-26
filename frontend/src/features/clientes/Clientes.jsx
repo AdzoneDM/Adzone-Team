@@ -48,7 +48,7 @@ export default function Clientes() {
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const { usuario } = useSesion();
-  const puedeEliminar = !!(usuario?.gestiona || usuario?.es_finanzas); // el mismo permiso que para editar (también se valida en el servidor)
+  const puedeEliminar = !!(usuario?.gestiona || usuario?.es_finanzas || usuario?.clientes_completo); // el mismo permiso que para editar (también se valida en el servidor)
   const navigate = useNavigate();
   const [lista, setLista] = useState(null);
   const [error, setError] = useState("");

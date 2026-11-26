@@ -64,10 +64,11 @@ class ClienteViewSet(viewsets.ModelViewSet):
         """Editar: quien gestiona, Finanzas o «Gestión de clientes». Borrar: solo quien gestiona o Finanzas."""
         from apps.core.permisos import tiene
         if borrar:
-            if not (gestiona_algo(self.request.user) or es_finanzas(self.request.user)):
-                raise PermissionDenied("Borrar clientes es de quien gestiona un departamento o de Finanzas.")
+            if not (gestiona_algo(self.request.user) or es_finanzas(self.request.user) or tiene(self.request.user, 'clientes.completo')):
+                raise PermissionDenied("Borrar clientes es de quien gestiona un departamento, de Finanzas o de quien tiene «Clientes: eliminar y proyectos».")
             return
-        if not (gestiona_algo(self.request.user) or es_finanzas(self.request.user) or tiene(self.request.user, 'clientes.gestionar')):
+        if not (gestiona_algo(self.request.user) or es_finanzas(self.request.user) or tiene(self.request.user, 'clientes.gestionar')
+                or tiene(self.request.user, 'clientes.completo')):
             raise PermissionDenied("Solo quien gestiona un departamento, Finanzas o quien tiene «Gestión de clientes» puede cambiar clientes.")
 
     def perform_update(self, serializer):
@@ -144,12 +145,17 @@ class ProyectoViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
+        from apps.core.permisos import tiene
         user = self.request.user
-        if not (gestiona_algo(user) or es_finanzas(user)):
-            raise PermissionDenied("Los proyectos los crea quien gestiona un departamento.")
         depto = serializer.validated_data.get('departamento')
+        if not (gestiona_algo(user) or es_finanzas(user)):
+            if not tiene(user, 'clientes.completo'):
+                raise PermissionDenied("Los proyectos los crea quien gestiona un departamento.")
+            propio = getattr(puesto_de(user), 'departamento_id', None)
+            if depto and depto.pk != propio:
+                raise PermissionDenied("Puedes crear proyectos de tu departamento o de varios departamentos.")
         a_cargo = departamentos_a_cargo(user)
-        if depto and a_cargo is not None and depto.pk not in a_cargo and not es_finanzas(user):
+        if depto and a_cargo is not None and depto.pk not in a_cargo and not es_finanzas(user) and gestiona_algo(user):
             raise PermissionDenied("Solo puedes crear proyectos de los departamentos que gestionas.")
         proyecto = serializer.save(creado_por=user, responsable=serializer.validated_data.get('responsable') or user)
         servicios.avisar([*proyecto.miembros.all(), proyecto.responsable], 'PROYECTO', f"Te sumaron a {proyecto.codigo}: {proyecto.nombre}",

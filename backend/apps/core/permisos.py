@@ -27,6 +27,7 @@ PERMISOS = [
     ('asistencia.corregir', 'Corregir marcajes', 'Su equipo', 'equipo', 'Agregar o borrar marcajes de su equipo (con nota y auditoría).'),
     ('equipo.todos', 'Supervisar a toda la empresa', 'Empresa', 'empresa', 'Su equipo pasa a ser todo el personal (menos Dirección): los permisos de equipo que tenga se ejercen sobre todos, y recibe sus avisos de entregas y tardanzas.'),
     ('clientes.gestionar', 'Gestión de clientes', 'Empresa', 'empresa', 'Consultar, crear, editar y completar los datos de los clientes (contacto, RNC, dirección, notas). Cada cambio queda en la bitácora.'),
+    ('clientes.completo', 'Clientes: eliminar y proyectos', 'Empresa', 'empresa', 'Además de editar, eliminar clientes y crearles proyectos (de su propio departamento o de varios), como quien gestiona un área. Se da por persona.'),
     ('finanzas.gestionar', 'Finanzas', 'Empresa', 'empresa', 'Facturas, gastos, pagos, cotizaciones, rentabilidad (con el costo de cada persona) y Cashflow.'),
     ('operaciones.coordinar', 'Coordinación de producción', 'Empresa', 'empresa', 'Recibe y numera las órdenes de trabajo, emite las órdenes de área y autoriza vales.'),
     ('almacen.gestionar', 'Almacén', 'Empresa', 'empresa', 'Inventario, vales de materiales y despacho.'),

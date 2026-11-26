@@ -33,7 +33,7 @@ export default function ClienteDetalle() {
   if (!c || !r) return <Cargando />;
   const abiertas = r.ordenes.filter((o) => !["ENTREGADA", "CANCELADA"].includes(o.estado));
   const cerradas = r.ordenes.filter((o) => ["ENTREGADA", "CANCELADA"].includes(o.estado));
-  const puedeEditar = usuario.gestiona || usuario.es_finanzas;   // proyectos y borrar
+  const puedeEditar = usuario.gestiona || usuario.es_finanzas || usuario.clientes_completo;   // proyectos y borrar
   const editaCliente = puedeEditar || usuario.edita_clientes;     // editar y completar los datos («Gestión de clientes»)
   return (
     <div>
