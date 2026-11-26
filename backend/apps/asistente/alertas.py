@@ -46,7 +46,7 @@ def calcular_alertas(usuario, hoy=None):
                         'titulo': f"{vencidas['total']} tarea(s) vencida(s) sin validar", 'detalle': top, 'enlace': '/equipo' if equipo else '/mis-tareas'})
     bloqueadas = herramientas.tareas_lista(a, 'bloqueadas', limite=10)
     if bloqueadas['total']:
-        alertas.append({'nivel': 'media', 'tema': 'Tareas', 'titulo': f"{bloqueadas['total']} tarea(s) bloqueada(s)",
+        alertas.append({'nivel': 'media', 'tema': 'Tareas', 'titulo': f"{bloqueadas['total']} tarea(s) en pausa",
                         'detalle': '; '.join(f"{t['persona']}: {t['titulo']}" for t in bloqueadas['tareas'][:5]), 'enlace': '/equipo'})
 
     if len(a.ids_asistencia) > 1:

@@ -11,7 +11,7 @@ export const ALERTAS_TAREA = {
   REABIERTA: { etiqueta: "Tarea reabierta", icono: RotateCcw, tono: "rojo", boton: "Ver tarea" },
   MODIFICADA: { etiqueta: "Tu tarea cambió", icono: PencilLine, tono: "azul", boton: "Ver cambios" },
   ELIMINADA: { etiqueta: "Se eliminó una de tus tareas", icono: Trash2, tono: "rojo", boton: "Ver mis tareas" },
-  BLOQUEADA: { etiqueta: "Tarea bloqueada", icono: Lock, tono: "amarillo", boton: "Ver tarea" },
+  BLOQUEADA: { etiqueta: "Tarea en pausa", icono: Lock, tono: "amarillo", boton: "Ver tarea" },
   VENCE: { etiqueta: "Tarea por vencer", icono: AlarmClock, tono: "rojo", insiste: true, boton: "Ir a la tarea" },
   // Almuerzo: salen igual que las alertas de tareas (con sonido); la de pasarse insiste hasta que marcas tu regreso
   ALMUERZO_HORA: { etiqueta: "Hora de almuerzo", icono: Utensils, tono: "azul" },

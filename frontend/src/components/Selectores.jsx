@@ -1,54 +1,41 @@
-// Selectores comunes: cliente (con alta rápida) y personas (chips).
-import { useState } from "react";
+// Selectores comunes: cliente y proyecto (con autocompletado) y personas (chips).
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
-import { guardarCliente } from "@/lib/api";
+import { guardarCliente, listarProyectos } from "@/lib/api";
+import Autocompletar from "@/components/Autocompletar";
 import { useRecurso } from "@/lib/recursos";
 import { Boton, Campo, cx, useAviso } from "@/components/ui";
 
-export function SelectorCliente({ valor, onCambio, etiqueta = "Cliente", requerido = true }) {
+/** Cliente con autocompletado (clientes reales de la plataforma). Si no existe, se registra ahí mismo (el servidor evita duplicados). */
+export function SelectorCliente({ valor, onCambio, etiqueta = "Cliente", requerido = true, ayuda, permitirNuevo = true }) {
   const [clientes, recargar] = useRecurso("clientes");
-  const [nuevo, setNuevo] = useState(null);
-  const [guardando, setGuardando] = useState(false);
   const avisar = useAviso();
-  const crear = async () => {
-    if (!nuevo?.trim()) return;
-    setGuardando(true);
+  const opciones = (clientes || []).map((c) => ({ id: c.id, texto: c.nombre, sub: c.activo === false ? "inactivo" : c.tipo_nombre || "" }));
+  const crear = async (nombre) => {
     try {
-      const c = await guardarCliente({ nombre: nuevo.trim() });
+      const c = await guardarCliente({ nombre });
       recargar();
-      onCambio(String(c.id));
-      setNuevo(null);
       avisar(`Cliente «${c.nombre}» registrado. Completa sus datos en Clientes.`);
-    } catch (e) { avisar(e.message, "rojo"); }
-    setGuardando(false);
+      return { id: c.id, texto: c.nombre };
+    } catch (e) { avisar(e.message, "rojo"); return null; }
   };
-  if (nuevo !== null) {
-    return (
-      <Campo etiqueta="Nombre del cliente nuevo">
-        {(id) => (
-          <div className="flex gap-2">
-            <input id={id} className="campo" value={nuevo} onChange={(e) => setNuevo(e.target.value)} autoFocus maxLength={200}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); crear(); } }} />
-            <Boton onClick={crear} cargando={guardando}>Agregar</Boton>
-            <Boton variante="secundario" onClick={() => setNuevo(null)}>Volver</Boton>
-          </div>
-        )}
-      </Campo>
-    );
-  }
-  return (
-    <Campo etiqueta={etiqueta}>
-      {(id) => (
-        <div className="flex gap-2">
-          <select id={id} className="campo" value={valor || ""} onChange={(e) => onCambio(e.target.value)} required={requerido}>
-            <option value="">{clientes ? "Elige el cliente…" : "Cargando…"}</option>
-            {(clientes || []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </select>
-          <Boton variante="secundario" icono={Plus} onClick={() => setNuevo("")} aria-label="Cliente nuevo" className="shrink-0 px-3" title="Cliente nuevo" />
-        </div>
-      )}
-    </Campo>
-  );
+  return <Autocompletar etiqueta={etiqueta} ayuda={ayuda} opciones={opciones} valor={valor} onCambio={(id) => onCambio(id)} cargando={!clientes}
+    onCrear={permitirNuevo ? crear : undefined} textoCrear="Registrar cliente" placeholder="Busca el cliente por su nombre…" requerido={requerido && !valor} />;
+}
+
+/** Proyecto con autocompletado; con `cliente`, solo los proyectos de ese cliente. */
+export function SelectorProyecto({ cliente, valor, onCambio, etiqueta = "Proyecto (opcional)", ayuda }) {
+  const [proyectos, setProyectos] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    setProyectos(null);
+    listarProyectos({ activos: 1, ...(cliente ? { cliente } : {}) }).then((l) => vivo && setProyectos(Array.isArray(l) ? l : l?.results || [])).catch(() => vivo && setProyectos([]));
+    return () => { vivo = false; };
+  }, [cliente]);
+  const opciones = (proyectos || []).filter((p) => !cliente || String(p.cliente) === String(cliente))
+    .map((p) => ({ id: p.id, texto: `${p.codigo} · ${p.nombre}`, sub: cliente ? p.estado_nombre || "" : p.cliente_nombre, cliente: p.cliente }));
+  return <Autocompletar etiqueta={etiqueta} ayuda={ayuda} opciones={opciones} valor={valor} onCambio={onCambio} cargando={!proyectos}
+    placeholder={cliente ? "Busca entre los proyectos de este cliente…" : "Busca el proyecto…"} vacio={cliente ? "Este cliente no tiene proyectos activos" : "Sin proyectos"} />;
 }
 
 /** Elegir varias personas con botones. `excluir`: ids que no se muestran. */

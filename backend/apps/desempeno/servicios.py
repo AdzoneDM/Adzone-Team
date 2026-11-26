@@ -179,7 +179,7 @@ def al_modificar(tarea, quien, campos, motivo=''):
 def al_bloquear(tarea, quien):
     registrar(tarea, quien, 'BLOQUEADA', tarea.motivo_bloqueo)
     avisar([*revisores_de_tarea(tarea), tarea.colaborador, *tarea.companeros.all()], 'BLOQUEADA',
-           f"Bloqueada: {tarea.titulo}", f"{nombre(quien)}: {tarea.motivo_bloqueo}",
+           f"En pausa: {tarea.titulo}", f"{nombre(quien)}: {tarea.motivo_bloqueo}",
            tarea=tarea, enlace=f'/equipo?colaborador={tarea.colaborador_id}', excepto=quien)
     tras_cambio(tarea, quien)
 
@@ -205,7 +205,7 @@ def avisar_bloqueadas(ahora=None):
         if Notificacion.objects.filter(tarea=tarea, tipo='BLOQUEADA', fecha__gte=hoy0).exists():
             continue
         dias = (ahora - tarea.bloqueada_desde).days
-        avisar(revisores_de_tarea(tarea), 'BLOQUEADA', f"Sigue bloqueada ({dias} días): {tarea.titulo}",
+        avisar(revisores_de_tarea(tarea), 'BLOQUEADA', f"Sigue en pausa ({dias} días): {tarea.titulo}",
                f"{nombre(tarea.colaborador)}: {tarea.motivo_bloqueo}", tarea=tarea,
                enlace=f'/equipo?colaborador={tarea.colaborador_id}')
         n += 1
@@ -372,7 +372,7 @@ def pedir_trabajo(quien):
     if not espera_abierta(quien):
         EsperaAsignacion.objects.create(usuario=quien)
     jefes = revisores_de(quien)
-    extra = f" Tiene {bloqueadas} tarea(s) bloqueada(s)." if bloqueadas else ''
+    extra = f" Tiene {bloqueadas} tarea(s) en pausa." if bloqueadas else ''
     avisar(jefes, 'PIDE_TRABAJO', f"{nombre(quien)} terminó sus tareas: en espera de asignación",
            f"No tiene tareas por hacer.{extra}", enlace=f'/equipo?colaborador={quien.id}', excepto=quien)
     return [nombre(j) for j in jefes]

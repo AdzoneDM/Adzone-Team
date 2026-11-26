@@ -121,6 +121,7 @@ class TareaSerializer(serializers.ModelSerializer):
                                         required=False, write_only=True)
     progreso = serializers.SerializerMethodField()
     proyecto_nombre = serializers.CharField(source='proyecto.nombre', read_only=True, default=None)
+    cliente_ref_nombre = serializers.CharField(source='cliente_ref.nombre', read_only=True, default=None)
     orden_numero = serializers.SerializerMethodField()
     oa_info = serializers.SerializerMethodField()
 
@@ -139,7 +140,7 @@ class TareaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tarea
         fields = [
-            'id', 'titulo', 'descripcion', 'cliente',
+            'id', 'titulo', 'descripcion', 'cliente', 'cliente_ref', 'cliente_ref_nombre',
             'colaborador', 'companeros', 'companeros_nombres', 'pasos', 'pasos_texto', 'progreso',
             'proyecto', 'proyecto_nombre', 'orden', 'orden_numero', 'oa', 'oa_info', 'fecha_inicio', 'horas_estimadas', 'colaborador_nombre', 'colaborador_puesto', 'colaborador_departamento',
             'asignada_por', 'asignada_por_nombre', 'revisor', 'revisor_nombre', 'departamento_origen', 'departamento_origen_nombre', 'entre_areas', 'autovalidada',
@@ -160,6 +161,22 @@ class TareaSerializer(serializers.ModelSerializer):
             'comentario_evaluacion', 'rondas_revision',
             'motivo_bloqueo', 'bloqueada_desde', 'fecha_inicio_trabajo', 'fecha_entrega_real',
         ]
+
+    def _validar_cliente(self, datos):
+        # Cliente registrado y proyecto: el proyecto tiene que ser de ese cliente (sin duplicar ni mezclar expedientes)
+        cliente = datos.get('cliente_ref', getattr(self.instance, 'cliente_ref', None))
+        proyecto = datos.get('proyecto', getattr(self.instance, 'proyecto', None))
+        if 'cliente_ref' in datos or 'proyecto' in datos:
+            if cliente and proyecto and proyecto.cliente_id != cliente.pk:
+                raise serializers.ValidationError({'proyecto': f'Ese proyecto es de {proyecto.cliente.nombre}, no de {cliente.nombre}.'})
+            if cliente:
+                datos['cliente'] = cliente.nombre[:150]
+            elif proyecto and 'cliente_ref' not in datos:
+                datos['cliente_ref'] = proyecto.cliente
+                datos['cliente'] = proyecto.cliente.nombre[:150]
+            elif 'cliente_ref' in datos and datos['cliente_ref'] is None and 'cliente' not in datos:
+                datos['cliente'] = ''
+        return datos
 
     def _usuario(self):
         request = self.context.get('request')
@@ -254,6 +271,7 @@ class TareaSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
+        data = self._validar_cliente(data)
         colaborador = data.get('colaborador', getattr(self.instance, 'colaborador', None))
         kpi = data.get('kpi_asignado', getattr(self.instance, 'kpi_asignado', None))
         puesto = getattr(getattr(colaborador, 'perfil', None), 'puesto_trabajo', None)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Ban, Hand, ListChecks, Paperclip, Play, Plus, Send, Target, Unlock } from "lucide-react";
+import { Hand, ListChecks, Paperclip, Pause, Play, Plus, Search, Send, Target, Unlock } from "lucide-react";
 import { bloquearTarea, desbloquearTarea, iniciarTarea, listarTareas, miDisponibilidad, miResumen, pedirTrabajo } from "@/lib/api";
 import { mesActual } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
@@ -13,7 +13,7 @@ import BotonCronometro from "@/features/tiempo/BotonCronometro";
 import { useCronometro } from "@/features/tiempo/cronometro";
 import { useNovedades } from "@/lib/novedades";
 
-/** Bloquear: qué impide seguir. Le llega a su supervisor. */
+/** Poner en pausa: qué impide seguir. Le llega a su supervisor. */
 function BloquearModal({ tarea, onCerrar, onHecho }) {
   const avisar = useAviso();
   const [motivo, setMotivo] = useState("");
@@ -22,13 +22,13 @@ function BloquearModal({ tarea, onCerrar, onHecho }) {
   useEffect(() => { setMotivo(""); setError(""); }, [tarea]);
   const guardar = async () => {
     setCargando(true); setError("");
-    try { onHecho(await bloquearTarea(tarea.id, motivo)); avisar("Marcada como bloqueada. Tu supervisor ya lo sabe."); }
+    try { onHecho(await bloquearTarea(tarea.id, motivo)); avisar("Tarea en pausa. Tu supervisor ya lo sabe."); }
     catch (e) { setError(e.message); }
     setCargando(false);
   };
   return (
     <Modal abierto={!!tarea} onCerrar={onCerrar} titulo="¿Qué impide seguir?" descripcion={tarea?.titulo}
-      pie={<><Boton variante="fantasma" onClick={onCerrar}>Cancelar</Boton><Boton variante="peligro" icono={Ban} onClick={guardar} cargando={cargando}>Marcar bloqueada</Boton></>}>
+      pie={<><Boton variante="fantasma" onClick={onCerrar}>Cancelar</Boton><Boton variante="peligro" icono={Pause} onClick={guardar} cargando={cargando}>Poner en pausa</Boton></>}>
       <Campo etiqueta="Motivo" ayuda="Ej.: espero el logo del cliente, falta material, necesito una aprobación.">
         {(id) => <textarea id={id} className="campo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />}
       </Campo>
@@ -55,6 +55,9 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, onBloquear, onDesblo
             {tarea.referencias?.length > 0 && <span className="inline-flex items-center gap-1 text-sm font-medium text-azul"><Paperclip className="size-3.5" aria-hidden />{tarea.referencias.length} referencia{tarea.referencias.length > 1 ? "s" : ""}</span>}
           </div>
           <EquipoTarea tarea={tarea} className="mt-1.5" />
+          {(tarea.asignada_por_nombre || tarea.cliente || tarea.proyecto_nombre) && (
+            <p className="mt-1 text-xs text-gris">{[tarea.asignada_por_nombre && `Te la asignó ${tarea.asignada_por_nombre}`, tarea.cliente_ref_nombre || tarea.cliente, tarea.proyecto_nombre].filter(Boolean).join(" · ")}</p>
+          )}
         </button>
         {(tarea.estado === "PENDIENTE" || tarea.estado === "EN_PROGRESO") && (
           <div className="grid grid-cols-2 gap-2 md:flex">
@@ -65,7 +68,7 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, onBloquear, onDesblo
             <Boton variante="acento" icono={Send} onClick={() => onEntregar(tarea)}>
               {devuelta ? "Entregar de nuevo" : "Entregar"}
             </Boton>
-            <Boton variante="fantasma" icono={Ban} onClick={() => onBloquear(tarea)} className="col-span-2 md:col-span-1">Bloqueada</Boton>
+            <Boton variante="fantasma" icono={Pause} onClick={() => onBloquear(tarea)} className="col-span-2 md:col-span-1">En pausa</Boton>
           </div>
         )}
         {bloqueada && (
@@ -74,7 +77,7 @@ function FilaTarea({ tarea, onAbrir, onIniciar, onEntregar, onBloquear, onDesblo
       </div>
       {bloqueada && (
         <div className="border-t border-rojo/20 bg-rojo-50 px-4 py-3 text-sm text-[#7a1610] md:px-5">
-          <span className="font-medium">Bloqueada: </span><span className="whitespace-pre-line">{tarea.motivo_bloqueo}</span>
+          <span className="font-medium">En pausa: </span><span className="whitespace-pre-line">{tarea.motivo_bloqueo}</span>
         </div>
       )}
       {devuelta && (
@@ -98,6 +101,7 @@ export default function MisTareas() {
   const [resumen, setResumen] = useState(null);
   const [error, setError] = useState("");
   const [mesValidadas, setMesValidadas] = useState(mesActual());
+  const [buscar, setBuscar] = useState("");
   const [entregando, setEntregando] = useState(null);
   const [iniciando, setIniciando] = useState(null);
   const [pidiendo, setPidiendo] = useState(false);
@@ -163,7 +167,10 @@ export default function MisTareas() {
   const nVencidas = grupos.hacer.filter(esVencida).length;
   const nDevueltas = grupos.hacer.filter(esDevuelta).length;
   const base = grupos[ver] || grupos.hacer;
-  const lista = ver === "hacer" && filtroHacer === "vencidas" ? base.filter(esVencida) : ver === "hacer" && filtroHacer === "devueltas" ? base.filter(esDevuelta) : base;
+  const FILTROS = { vencidas: esVencida, devueltas: esDevuelta, pendientes: (t) => t.estado === "PENDIENTE", proceso: (t) => t.estado === "EN_PROGRESO", pausa: (t) => t.estado === "BLOQUEADA" };
+  const texto = buscar.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const coincide = (t) => !texto || [t.titulo, t.cliente, t.proyecto_nombre, t.asignada_por_nombre, t.descripcion].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(texto);
+  const lista = (ver === "hacer" && FILTROS[filtroHacer] ? base.filter(FILTROS[filtroHacer]) : base).filter(coincide);
   const soloBloqueadas = ver === "hacer" && lista.length > 0 && lista.every((t) => t.estado === "BLOQUEADA");
   const detalle = abierta ? tareas.find((t) => String(t.id) === abierta) : null;
 
@@ -179,7 +186,7 @@ export default function MisTareas() {
       )}
       {soloBloqueadas && !disp?.en_espera && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amarillo bg-amarillo-50 px-4 py-3 text-[15px] text-[#7a5000]">
-          <span>Solo te quedan tareas bloqueadas. Avisa a tu supervisor que puedes tomar otra cosa.</span>
+          <span>Solo te quedan tareas en pausa. Avisa a tu supervisor que puedes tomar otra cosa.</span>
           <Boton variante="acento" tam="sm" icono={Hand} onClick={pedir} cargando={pidiendo}>Pedir más trabajo</Boton>
         </div>
       )}
@@ -194,9 +201,17 @@ export default function MisTareas() {
         {usuario.puede_autoasignar && <Boton icono={Plus} onClick={() => setCreando(true)} data-guia="tarea-propia" className="w-full md:w-auto">Nueva tarea para mí</Boton>}
       </div>
 
-      {ver === "hacer" && (nVencidas > 0 || nDevueltas > 0) && (
+      {(grupos[ver] || []).length > 0 && (
+        <div className="relative max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gris" aria-hidden />
+          <input className="campo h-10 !pl-9" placeholder="Buscar por tarea, cliente, proyecto o quién la asignó" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar en mis tareas" />
+        </div>
+      )}
+      {ver === "hacer" && grupos.hacer.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar lo que tienes por hacer">
-          {[["todas", "Todas", grupos.hacer.length, ""], ["vencidas", "Vencidas", nVencidas, "rojo"], ["devueltas", "Devueltas para corregir", nDevueltas, "amarillo"]].map(([k, texto, n, tono]) => (
+          {[["todas", "Todas", grupos.hacer.length, ""], ["pendientes", "Pendientes", grupos.hacer.filter(FILTROS.pendientes).length, ""],
+            ["proceso", "En proceso", grupos.hacer.filter(FILTROS.proceso).length, ""], ["pausa", "En pausa", grupos.hacer.filter(FILTROS.pausa).length, "amarillo"],
+            ["vencidas", "Vencidas", nVencidas, "rojo"], ["devueltas", "Devueltas para corregir", nDevueltas, "amarillo"]].filter(([k, , n]) => k === "todas" || n > 0).map(([k, texto, n, tono]) => (
             <button key={k} type="button" aria-pressed={filtroHacer === k} onClick={() => setFiltroHacer(k)}
               className={cx("flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors", filtroHacer === k ? "border-noche bg-noche text-white" : "border-linea bg-white text-tinta hover:bg-fondo")}>
               {texto}<span className={cx("num rounded-full px-1.5 text-xs", filtroHacer === k ? "bg-white/20" : tono === "rojo" && n > 0 ? "bg-rojo-50 text-rojo" : tono === "amarillo" && n > 0 ? "bg-amarillo-50 text-[#8a5a00]" : "bg-fondo text-gris")}>{n}</span>

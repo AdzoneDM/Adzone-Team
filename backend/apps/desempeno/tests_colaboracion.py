@@ -71,7 +71,7 @@ class EsperaTests(Base):
         self.como(self.erlin)
         self.assertEqual(self.c.post('/api/desempeno/pedir-trabajo/').status_code, 200)
         aviso = Notificacion.objects.get(destinatario=self.vladi, tipo='PIDE_TRABAJO')
-        self.assertIn('bloqueada', aviso.mensaje)
+        self.assertIn('en pausa', aviso.mensaje)
 
 
 class ModificacionTests(Base):

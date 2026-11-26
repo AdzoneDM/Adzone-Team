@@ -21,7 +21,7 @@ class Tarea(models.Model):
     ESTADO_CHOICES = [
         ('PENDIENTE', 'Pendiente'),
         ('EN_PROGRESO', 'En progreso'),
-        ('BLOQUEADA', 'Bloqueada'),
+        ('BLOQUEADA', 'En pausa'),
         ('EN_REVISION', 'En revisión'),
         ('COMPLETADA', 'Validada'),
         ('CANCELADA', 'Cancelada'),
@@ -37,6 +37,9 @@ class Tarea(models.Model):
     descripcion = models.TextField(blank=True, verbose_name="Descripción")
     cliente = models.CharField(max_length=150, blank=True, verbose_name="Cliente",
                                help_text="Para quién es el trabajo (p. ej. Merengue Restaurant).")
+    # El cliente registrado (expediente del cliente). El texto de arriba se conserva (historial) y se llena con su nombre.
+    cliente_ref = models.ForeignKey('operaciones.Cliente', on_delete=models.SET_NULL, null=True, blank=True, related_name='tareas',
+                                    verbose_name="Cliente registrado")
     colaborador = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -128,9 +131,9 @@ class Tarea(models.Model):
         help_text="Calidad del trabajo entregado, de 1 (deficiente) a 5 (excelente)."
     )
     comentario_evaluacion = models.TextField(blank=True, verbose_name="Comentario de Evaluación")
-    motivo_bloqueo = models.TextField(blank=True, verbose_name="Motivo del bloqueo",
+    motivo_bloqueo = models.TextField(blank=True, verbose_name="Motivo de la pausa",
                                       help_text="Qué impide seguir (dependencia, falta de material, aprobación…).")
-    bloqueada_desde = models.DateTimeField(null=True, blank=True, verbose_name="Bloqueada desde")
+    bloqueada_desde = models.DateTimeField(null=True, blank=True, verbose_name="En pausa desde")
     fecha_inicio_trabajo = models.DateTimeField(null=True, blank=True, verbose_name="Empezó a trabajarla",
                                                 help_text="Primera vez que pasó a «En progreso»: mide el tiempo de ejecución.")
     fecha_entrega_real = models.DateTimeField(null=True, blank=True, verbose_name="Entregada (fecha y hora)")
@@ -143,6 +146,24 @@ class Tarea(models.Model):
 
     objects = TareasVigentes()
     todas = models.Manager()
+
+    def vincular_cliente(self):
+        """Une la tarea al cliente registrado: el del proyecto o la orden, o el que se llama igual que el texto. Nunca crea clientes."""
+        if self.cliente_ref_id is None:
+            if self.proyecto_id:
+                self.cliente_ref_id = self.proyecto.cliente_id
+            elif self.orden_id:
+                self.cliente_ref_id = self.orden.cliente_id
+            elif (self.cliente or '').strip():
+                from apps.operaciones.models import Cliente
+                self.cliente_ref = Cliente.objects.filter(nombre__iexact=self.cliente.strip()).first()
+        if self.cliente_ref_id and not (self.cliente or '').strip():
+            self.cliente = self.cliente_ref.nombre[:150]
+
+    def save(self, *args, **kwargs):
+        if kwargs.get('update_fields') is None:
+            self.vincular_cliente()
+        super().save(*args, **kwargs)
 
     @classmethod
     def from_db(cls, db, field_names, values):
@@ -429,8 +450,8 @@ class HistorialTarea(models.Model):
         ('DEVUELTA', 'Devuelta'),
         ('REABIERTA', 'Reabierta'),
         ('CANCELADA', 'Cancelada'),
-        ('BLOQUEADA', 'Bloqueada'),
-        ('DESBLOQUEADA', 'Desbloqueada'),
+        ('BLOQUEADA', 'Puesta en pausa'),
+        ('DESBLOQUEADA', 'Reanudada'),
         ('COMENTADA', 'Comentó'),
         ('ELIMINADA', 'Eliminada'),
         ('RESTAURADA', 'Recuperada'),
@@ -474,7 +495,7 @@ class Notificacion(models.Model):
         ('TALENTO', 'Talento y evaluaciones'),
         ('SEGURIDAD', 'Seguridad de la cuenta'),
         ('MODIFICADA', 'Tarea modificada'),
-        ('BLOQUEADA', 'Tarea bloqueada'),
+        ('BLOQUEADA', 'Tarea en pausa'),
         ('COMERCIAL', 'Oportunidades y solicitudes'),
         ('ANALISIS', 'Análisis del día'),
         ('CASO', 'Casos operativos'),

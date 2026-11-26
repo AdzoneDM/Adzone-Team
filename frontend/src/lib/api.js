@@ -299,6 +299,11 @@ export const quitarArchivo = (id) => api(`${O}/archivos/${id}/`, { method: "DELE
 export const listarClientes = (params) => api(`${O}/clientes/${q(params)}`);
 export const obtenerCliente = (id) => api(`${O}/clientes/${id}/`);
 export const resumenCliente = (id) => api(`${O}/clientes/${id}/resumen/`);
+// Expediente del cliente: proyectos, órdenes, tareas (con filtros), archivos y entregas; reporte del período en PDF o Excel
+export const expedienteCliente = (id, params = {}) => api(`${O}/clientes/${id}/expediente/${q(params)}`);
+export const urlReporteCliente = (id, params = {}) => `${O}/clientes/${id}/reporte/${q(params)}`;
+export const subirLogoCliente = (id, archivo) => { const f = new FormData(); f.append("logo", archivo); return api(`${O}/clientes/${id}/logo/`, { method: "POST", body: f }); };
+export const quitarLogoCliente = (id) => api(`${O}/clientes/${id}/logo/`, { method: "DELETE" });
 export const guardarCliente = (c) => (c.id ? api(`${O}/clientes/${c.id}/`, { method: "PATCH", body: c }) : api(`${O}/clientes/`, { method: "POST", body: c }));
 export const eliminarCliente = (id) => api(`${O}/clientes/${id}/`, { method: "DELETE" });
 export const listarProyectos = (params) => api(`${O}/proyectos/${q(params)}`);

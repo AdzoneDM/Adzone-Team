@@ -13,6 +13,7 @@ import {
 import { DetalleTarea, EquipoTarea, Progreso, Vencimiento } from "@/features/tareas/componentes";
 import Ahora from "@/features/equipo/Ahora";
 import BuscadorEquipo from "@/features/equipo/BuscadorEquipo";
+import { useRecurso } from "@/lib/recursos";
 import FormTarea from "@/features/tareas/FormTarea";
 import { useNovedades } from "@/lib/novedades";
 import { useSesion } from "@/lib/sesion";
@@ -121,6 +122,8 @@ export default function Equipo() {
   const vencidas = params.get("vencidas") === "1";
   const asignadas = params.get("asignadas") === "1"; // solo las que yo asigné a otras personas
   const buscar = params.get("buscar") || "";
+  const cliente = params.get("cliente") || "";
+  const [clientes] = useRecurso("clientes");
 
   useEffect(() => { if (params.get("nueva") === "1") { setForm({}); params.delete("nueva"); setParams(params, { replace: true }); } }, [params, setParams]);
   const poner = (clave, valor) => { if (valor) params.set(clave, valor); else params.delete(clave); setParams(params, { replace: true }); };
@@ -128,9 +131,9 @@ export default function Equipo() {
   const cargar = useCallback((silencioso) => {
     if (silencioso !== true) setTareas(null);
     // Con una búsqueda de texto se mira en todas las tareas, de cualquier mes
-    listarTareas({ ambito: "equipo", mes: vencidas || buscar ? "" : mes, colaborador, departamento, estado, vencidas: vencidas ? "1" : "", buscar, asignadas: asignadas ? "1" : "" })
+    listarTareas({ ambito: "equipo", mes: vencidas || buscar || cliente ? "" : mes, colaborador, departamento, estado, vencidas: vencidas ? "1" : "", buscar, cliente, asignadas: asignadas ? "1" : "" })
       .then(setTareas).catch((e) => setError(e.message));
-  }, [mes, colaborador, departamento, estado, vencidas, buscar, asignadas]);
+  }, [mes, colaborador, departamento, estado, vencidas, buscar, cliente, asignadas]);
   useEffect(() => { cargar(); }, [cargar, version]);
   useNovedades(useCallback(() => cargar(true), [cargar]));
   useEffect(() => { cargarEquipo().then(setGente).catch(() => {}); }, []);
@@ -198,7 +201,7 @@ export default function Equipo() {
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            {!vencidas && !buscar && <SelectorMes valor={mes} onCambio={(v) => poner("mes", v === mesActual() ? "" : v)} hastaActual={false} />}
+            {!vencidas && !buscar && !cliente && <SelectorMes valor={mes} onCambio={(v) => poner("mes", v === mesActual() ? "" : v)} hastaActual={false} />}
             {departamentos.length > 1 && (
               <select className="campo h-11 w-auto py-0" value={departamento} aria-label="Por departamento"
                 onChange={(e) => { const n = new URLSearchParams(params); if (e.target.value) n.set("departamento", e.target.value); else n.delete("departamento"); n.delete("colaborador"); setParams(n, { replace: true }); }}>
@@ -213,6 +216,10 @@ export default function Equipo() {
             <select className="campo h-11 w-auto py-0" value={estado} onChange={(e) => poner("estado", e.target.value)} aria-label="Estado" disabled={vencidas}>
               <option value="">Todos los estados</option>
               {Object.entries(ESTADOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <select className="campo h-11 w-auto max-w-56 py-0" value={cliente} onChange={(e) => poner("cliente", e.target.value)} aria-label="Cliente">
+              <option value="">Todos los clientes</option>
+              {(clientes || []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
             <label className="flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm">
               <input type="checkbox" checked={vencidas} onChange={(e) => poner("vencidas", e.target.checked ? "1" : "")} className="accent-rojo" /> Solo vencidas

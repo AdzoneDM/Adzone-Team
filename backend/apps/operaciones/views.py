@@ -131,6 +131,97 @@ class ClienteViewSet(viewsets.ModelViewSet):
         return Response(datos)
 
 
+    # -------------------------------------------------------------- Expediente del cliente
+    @action(detail=True)
+    def expediente(self, request, pk=None):
+        """Todo lo trabajado para el cliente: proyectos, órdenes, tareas (con filtros), archivos y entregas. Con los permisos de siempre."""
+        from . import expediente as exp
+        cliente = self.get_object()
+        user = request.user
+        base = exp.tareas_del_cliente(cliente, user)
+        filtradas = exp.filtrar(base, request.query_params)
+        ordenes = _filtrar(cliente.ordenes.select_related('departamento', 'cliente', 'proyecto'), filtro_ordenes(user))
+        proyectos = _filtrar(cliente.proyectos.select_related('departamento', 'cliente', 'responsable'), filtro_proyectos(user))
+        estados = {}
+        for e in base.values_list('estado', flat=True):
+            estados[e] = estados.get(e, 0) + 1
+        empleados = {}
+        for t in base.select_related('colaborador'):
+            empleados[t.colaborador_id] = (t.colaborador.get_full_name() or t.colaborador.username) if t.colaborador_id else '—'
+        n = lambda u: (u.get_full_name() or u.username) if u else None  # noqa: E731
+        return Response({
+            'cliente': ClienteSerializer(cliente, context={'request': request}).data,
+            'proyectos': [{'id': p.id, 'codigo': p.codigo, 'nombre': p.nombre, 'estado': p.estado, 'estado_texto': p.get_estado_display(),
+                           'responsable': n(p.responsable), 'departamento': p.departamento.nombre if p.departamento_id else None,
+                           'fecha_inicio': p.fecha_inicio, 'fecha_fin': p.fecha_fin,
+                           'tareas': base.filter(proyecto=p).count(), 'tareas_hechas': base.filter(proyecto=p, estado='COMPLETADA').count(),
+                           'ordenes': ordenes.filter(proyecto=p).count()} for p in proyectos],
+            'ordenes': [{'id': o.id, 'codigo': o.codigo, 'titulo': o.titulo, 'estado': o.estado, 'estado_texto': o.get_estado_display(),
+                         'proyecto': o.proyecto.codigo if o.proyecto_id else None, 'proyecto_id': o.proyecto_id,
+                         'departamento': o.departamento.nombre if o.departamento_id else None, 'fecha_compromiso': o.fecha_compromiso,
+                         'fecha_entrega': o.fecha_entrega, 'recibido_por': o.recibido_por, 'creada': o.fecha_creacion} for o in ordenes],
+            'tareas': exp.tareas(filtradas),
+            'resumen_tareas': {'total': sum(estados.values()), 'por_estado': estados},
+            'empleados': sorted([{'id': k, 'nombre': v} for k, v in empleados.items() if k], key=lambda x: x['nombre']),
+            'estados': list(Tarea.ESTADO_CHOICES),
+            'archivos': exp.archivos(cliente, base),
+            'entregas': exp.entregas(cliente, base, ordenes),
+            've_todas_las_tareas': es_administrador(user),
+        })
+
+    @action(detail=True)
+    def reporte(self, request, pk=None):
+        """Reporte de trabajos realizados en un período: ?desde=&hasta= (o dia/mes), proyecto, empleado, estado; formato=pdf|xlsx."""
+        from django.http import HttpResponse
+        from django.utils.text import slugify
+        from . import expediente as exp
+        cliente = self.get_object()
+        d = exp.datos_reporte(cliente, request.user, request.query_params)
+        nombre = f"trabajos-{slugify(cliente.nombre)[:40]}"
+        if d['desde'] or d['hasta']:
+            nombre += f"-{d['desde'] or ''}-al-{d['hasta'] or ''}"
+        if request.query_params.get('formato') == 'xlsx':
+            r = HttpResponse(exp.excel(d), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            r['Content-Disposition'] = f'attachment; filename="{nombre}.xlsx"'
+            return r
+        r = HttpResponse(exp.pdf(d), content_type='application/pdf')
+        r['Content-Disposition'] = f'inline; filename="{nombre}.pdf"'
+        return r
+
+    @action(detail=True, methods=['get', 'post', 'delete'], parser_classes=[MultiPartParser, FormParser])
+    def logo(self, request, pk=None):
+        """GET: el logo o foto del cliente. POST (logo=archivo) o DELETE: lo cambian quienes pueden editar el cliente."""
+        cliente = self.get_object()
+        if request.method == 'GET':
+            if not cliente.logo:
+                from django.http import Http404
+                raise Http404
+            from apps.core.archivos import entregar, tipo_por_extension
+            return entregar(cliente.logo.open('rb'), cliente.logo.name.rsplit('/', 1)[-1], tipo_por_extension(cliente.logo.name), request)
+        self._exigir()
+        if request.method == 'DELETE':
+            if cliente.logo:
+                cliente.logo.delete(save=False)
+            cliente.logo = None
+            cliente.save(update_fields=['logo'])
+            return Response(ClienteSerializer(cliente, context={'request': request}).data)
+        f = request.FILES.get('logo')
+        import os
+        if not f or os.path.splitext(f.name)[1].lower() not in ('.jpg', '.jpeg', '.png', '.webp'):
+            return Response({'logo': ['Sube una imagen JPG, PNG o WEBP.']}, status=status.HTTP_400_BAD_REQUEST)
+        if f.size > 3 * 1024 * 1024:
+            return Response({'logo': ['La imagen pesa más de 3 MB.']}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.core.archivos import revisar_contenido
+        problema = revisar_contenido(f)
+        if problema:
+            return Response({'logo': [f'La imagen {problema}.']}, status=status.HTTP_400_BAD_REQUEST)
+        if cliente.logo:
+            cliente.logo.delete(save=False)
+        cliente.logo = f
+        cliente.save(update_fields=['logo'])
+        return Response(ClienteSerializer(cliente, context={'request': request}).data)
+
+
 # ------------------------------------------------------------------ Proyectos
 class ProyectoViewSet(viewsets.ModelViewSet):
     serializer_class = ProyectoSerializer

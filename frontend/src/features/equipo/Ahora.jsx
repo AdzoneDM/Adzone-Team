@@ -9,7 +9,7 @@ import { useNovedades } from "@/lib/novedades";
 
 const ESTADOS = {
   vencida: { texto: "Con tarea vencida", punto: "bg-rojo", caja: "border-rojo/40" },
-  bloqueada: { texto: "Con tareas bloqueadas", punto: "bg-rojo/60", caja: "border-rojo/30" },
+  bloqueada: { texto: "Con tareas en pausa", punto: "bg-rojo/60", caja: "border-rojo/30" },
   en_espera: { texto: "En espera de asignación", punto: "bg-amarillo", caja: "border-amarillo" },
   libre: { texto: "Sin tareas", punto: "bg-gris/50", caja: "border-linea" },
   en_revision: { texto: "Esperando validación", punto: "bg-amarillo", caja: "border-linea" },
@@ -47,7 +47,7 @@ function Tarjeta({ p, onAbrirTarea, onAsignar, onRecordar, recordando }) {
         <span className={cx("size-2.5 rounded-full", e.punto)} aria-hidden="true" />
         {e.texto}
         {p.abiertas > 1 && <span className="font-normal text-gris">· {p.abiertas} abiertas</span>}
-        {p.bloqueadas > 0 && p.estado !== "bloqueada" && <span className="font-normal text-rojo">· {p.bloqueadas} bloqueada{p.bloqueadas > 1 ? "s" : ""}</span>}
+        {p.bloqueadas > 0 && p.estado !== "bloqueada" && <span className="font-normal text-rojo">· {p.bloqueadas} en pausa</span>}
       </div>
       <div className="flex-1 px-4 py-3">
         {t ? (
@@ -58,7 +58,7 @@ function Tarjeta({ p, onAbrirTarea, onAsignar, onRecordar, recordando }) {
               {v && <span className={cx(v.tono === "rojo" && "font-medium text-rojo", v.tono === "amarillo" && "font-medium text-[#a86a00]")}>{v.texto}</span>}
               <Progreso progreso={t.progreso} />
             </span>
-            {t.motivo_bloqueo && <span className="mt-1 block text-sm text-[#7a1610]"><span className="font-medium">Bloqueada: </span>{t.motivo_bloqueo}</span>}
+            {t.motivo_bloqueo && <span className="mt-1 block text-sm text-[#7a1610]"><span className="font-medium">En pausa: </span>{t.motivo_bloqueo}</span>}
           </button>
         ) : (
           <p className="text-sm text-gris">{p.esperando_desde ? `Terminó lo suyo y espera asignación desde ${desde(p.esperando_desde)}` : "No tiene tareas abiertas."}</p>
@@ -114,7 +114,7 @@ export default function Ahora({ version, onAbrirTarea, onAsignar }) {
       )}
       {bloqueadas > 0 && (
         <Alerta tono="rojo" className="border border-rojo/30">
-          <span className="font-medium">{bloqueadas === 1 ? "1 tarea bloqueada" : `${bloqueadas} tareas bloqueadas`} en tu equipo.</span> Abre la tarjeta para ver qué falta y destrabarla.
+          <span className="font-medium">{bloqueadas === 1 ? "1 tarea en pausa" : `${bloqueadas} tareas en pausa`} en tu equipo.</span> Abre la tarjeta para ver qué falta y destrabarla.
         </Alerta>
       )}
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por estado">

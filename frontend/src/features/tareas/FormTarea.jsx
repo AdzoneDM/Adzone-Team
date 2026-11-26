@@ -1,7 +1,9 @@
 // Asignar o editar una tarea (también recurrente). Se usa en Mi equipo y en los proyectos.
 import { useEffect, useState } from "react";
-import { Repeat, Sparkles } from "lucide-react";
-import { guardarRecurrente, guardarTarea, listarClientes, listarProyectos, subirReferencias, sugerirAsignacion } from "@/lib/api";
+import { ArrowRight, Repeat, Sparkles } from "lucide-react";
+import { guardarRecurrente, guardarTarea, subirReferencias, sugerirAsignacion } from "@/lib/api";
+import { SelectorCliente, SelectorProyecto } from "@/components/Selectores";
+import { useSesion } from "@/lib/sesion";
 import { SelectorArchivos } from "@/features/tareas/componentes";
 import { diasHasta, hoyISO, sumarDias } from "@/lib/formato";
 import { Alerta, Boton, Campo, Modal, cx } from "@/components/ui";
@@ -13,15 +15,12 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
   const [f, setF] = useState({});
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
-  const [proyectos, setProyectos] = useState([]);
-  const [clientes, setClientes] = useState([]); // catálogo de clientes: sugerencias para el campo «Cliente» (se puede escribir otro)
+  const { usuario } = useSesion();
   const [sugeridos, setSugeridos] = useState([]);
   const [referencias, setReferencias] = useState([]); // bocetos o imágenes para que la persona tenga de guía
   const editando = !!inicial?.id;
   const esRecurrente = inicial?.tipo === "recurrente";
   const validada = editando && !esRecurrente && inicial?.estado === "COMPLETADA";
-
-  useEffect(() => { if (abierto) listarClientes({ activos: "1" }).then((l) => setClientes(Array.isArray(l) ? l : l?.results || [])).catch(() => {}); }, [abierto]);
 
   useEffect(() => {
     if (!abierto) return;
@@ -31,13 +30,13 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
       ...inicial, repetir: esRecurrente, companeros: inicial.companeros || [],
       pasosTexto: (inicial.pasos || []).map((p) => p.texto).join("\n"),
       proyecto: inicial.proyecto ? String(inicial.proyecto) : "", fecha_inicio: inicial.fecha_inicio || "",
+      cliente_ref: inicial.cliente_ref ? String(inicial.cliente_ref) : "",
       horas_estimadas: inicial.horas_estimadas ?? "",
     } : {
-      titulo: "", descripcion: "", cliente: inicial?.cliente || "", colaborador: inicial?.colaborador || "", companeros: [], pasosTexto: "",
+      titulo: "", descripcion: "", cliente: inicial?.cliente || "", cliente_ref: inicial?.cliente_ref ? String(inicial.cliente_ref) : "", colaborador: inicial?.colaborador || "", companeros: [], pasosTexto: "",
       prioridad: "MEDIA", fecha_limite: masDias(3), kpi_asignado: "", repetir: false, frecuencia: "SEMANAL", dia_semana: 4, dia_mes: 28,
       proyecto: inicial?.proyecto ? String(inicial.proyecto) : "", fecha_inicio: "", horas_estimadas: "",
     });
-    listarProyectos({ activos: 1 }).then(setProyectos).catch(() => setProyectos([]));
   }, [abierto, inicial, esRecurrente]);
 
   const persona = gente.find((g) => String(g.id) === String(f.colaborador));
@@ -72,7 +71,9 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         onGuardada(esRecurrente ? "Tarea recurrente actualizada." : "Tarea recurrente creada. Las próximas ya aparecen en la lista.");
       } else {
         const guardada = await guardarTarea({
-          id: f.id, titulo: f.titulo.trim(), descripcion: f.descripcion || "", cliente: (f.cliente || "").trim(),
+          id: f.id, titulo: f.titulo.trim(), descripcion: f.descripcion || "",
+          // El cliente registrado (expediente); si no se eligió, se conserva el texto que ya tenía la tarea
+          cliente_ref: f.cliente_ref ? Number(f.cliente_ref) : null, cliente: f.cliente_ref ? undefined : (f.cliente || "").trim(),
           colaborador: Number(f.colaborador), companeros: (f.companeros || []).map(Number).filter((c) => c !== Number(f.colaborador)),
           pasos_texto: (f.pasosTexto || "").split("\n").map((t) => t.trim()).filter(Boolean),
           prioridad: f.prioridad, fecha_limite: f.fecha_limite, kpi_asignado: f.kpi_asignado || null,
@@ -119,8 +120,15 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
         {!f.repetir && (
           <SelectorArchivos archivos={referencias} onCambio={setReferencias} etiqueta="Adjuntar boceto, imagen o video de referencia" ayuda="Para que la persona tenga una guía visual." disabled={guardando} />
         )}
-        <Campo etiqueta="Cliente (opcional)" ayuda="Elige uno de la lista o escribe otro.">{(id) => <input id={id} className="campo" list="clientes-catalogo" autoComplete="off" value={f.cliente || ""} onChange={cambiar("cliente")} maxLength={150} placeholder="Ej.: Plaza Bonao" />}</Campo>
-        <datalist id="clientes-catalogo">{clientes.map((c) => <option key={c.id} value={c.nombre} />)}</datalist>
+        {!f.repetir && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectorCliente etiqueta="Cliente (opcional)" requerido={false} valor={f.cliente_ref}
+              ayuda={!f.cliente_ref && f.cliente ? `Antes decía «${f.cliente}»: elígelo de la lista para que quede en su expediente.` : "Queda en el expediente del cliente."}
+              onCambio={(id) => setF((x) => ({ ...x, cliente_ref: id, proyecto: id && x.proyecto && x.proyectoCliente && String(x.proyectoCliente) !== String(id) ? "" : x.proyecto }))} />
+            <SelectorProyecto cliente={f.cliente_ref || undefined} valor={f.proyecto}
+              onCambio={(id, o) => setF((x) => ({ ...x, proyecto: id, proyectoCliente: o?.cliente || "", cliente_ref: o?.cliente ? String(o.cliente) : x.cliente_ref }))} />
+          </div>
+        )}
         {!editando && !esRecurrente && <Sugerencias titulo={f.titulo} descripcion={f.descripcion} lista={sugeridos} setLista={setSugeridos}
           elegido={f.colaborador} onElegir={(id) => setF((x) => ({ ...x, colaborador: String(id), kpi_asignado: "" }))} />}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -142,6 +150,13 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
             {(id) => <select id={id} className="campo" value={f.prioridad} onChange={cambiar("prioridad")}><option value="URGENTE">Urgente</option><option value="ALTA">Alta</option><option value="MEDIA">Media</option><option value="BAJA">Baja</option></select>}
           </Campo>
         </div>
+        {persona && (
+          <p className="flex flex-wrap items-center gap-2 rounded-lg bg-fondo px-3 py-2 text-sm">
+            <span className="text-gris">Asigna</span><b className="font-semibold">{editando && inicial?.asignada_por_nombre ? inicial.asignada_por_nombre : `${usuario?.nombre || "Tú"} (tú)`}</b>
+            <ArrowRight className="size-4 text-gris" aria-hidden /><span className="text-gris">Recibe</span><b className="font-semibold text-azul">{persona.nombre}</b>
+            {(f.companeros || []).length > 0 && <span className="text-gris">y {(f.companeros || []).length} más</span>}
+          </p>
+        )}
         {pideMotivo && (
           <Campo etiqueta="Motivo del cambio" ayuda={`Cambias ${cambiosCriticos.join(", ")}. Le llega a quienes participan y queda en el historial.`}>
             {(id) => <textarea id={id} rows={2} className="campo" required minLength={5} maxLength={300} value={f.motivo || ""} onChange={cambiar("motivo")} placeholder="Ej.: el cliente movió el evento" />}
@@ -208,16 +223,6 @@ export default function FormTarea({ abierto, onCerrar, inicial, gente, onGuardad
               {(id) => <input id={id} type="number" min={0} step="0.5" inputMode="decimal" className="campo" value={f.horas_estimadas ?? ""} onChange={cambiar("horas_estimadas")} />}
             </Campo>
           </div>
-        )}
-        {!f.repetir && (
-          <Campo etiqueta="Proyecto (opcional)">
-            {(id) => (
-              <select id={id} className="campo" value={f.proyecto || ""} onChange={cambiar("proyecto")}>
-                <option value="">Ninguno</option>
-                {proyectos.map((p) => <option key={p.id} value={p.id}>{p.codigo} · {p.nombre} ({p.cliente_nombre})</option>)}
-              </select>
-            )}
-          </Campo>
         )}
       </form>
     </Modal>

@@ -35,6 +35,7 @@ class Cliente(models.Model):
     notas = models.TextField(blank=True)
     activo = models.BooleanField(default=True)
     cashflow_id = models.CharField(max_length=60, blank=True, help_text="Id del cliente en Cashflow.")
+    logo = models.ImageField("Logo o foto", upload_to='clientes/logos/', null=True, blank=True)
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 

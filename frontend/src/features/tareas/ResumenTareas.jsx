@@ -17,7 +17,7 @@ const TARJETAS = [
   ["por_validar", "Por validar", "text-[#a86a00]", "Entregadas, esperando que alguien las valide."],
   ["aprobadas", "Aprobadas", "text-verde", "Validadas: las que suman al puntaje."],
   ["vencidas", "Vencidas", "text-rojo", "Pasó su fecha límite sin entregarse (se cuentan además de su estado)."],
-  ["bloqueadas", "Bloqueadas", "text-gris", "Detenidas por un problema."],
+  ["bloqueadas", "En pausa", "text-gris", "Detenidas por un problema."],
   ["canceladas", "Canceladas", "text-gris", "Ya no hacen falta."],
 ];
 const PRIORIDADES = { URGENTE: "Urgente", ALTA: "Alta", MEDIA: "Media", BAJA: "Baja" };

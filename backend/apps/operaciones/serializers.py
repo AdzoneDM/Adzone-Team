@@ -39,11 +39,16 @@ class ClienteSerializer(serializers.ModelSerializer):
     es_interno = serializers.BooleanField(read_only=True)
 
     cashflow_id = serializers.CharField(read_only=True)
+    logo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Cliente
         fields = ['id', 'nombre', 'tipo', 'tipo_nombre', 'rnc', 'cashflow_id', 'contacto', 'telefono', 'correo', 'direccion', 'notas',
-                  'activo', 'ordenes_abiertas', 'proyectos_activos', 'fecha_creacion', 'es_interno']
+                  'activo', 'ordenes_abiertas', 'proyectos_activos', 'fecha_creacion', 'es_interno', 'logo_url']
+
+    def get_logo_url(self, obj):
+        # con la fecha del archivo en la URL, el navegador no muestra el logo viejo después de cambiarlo
+        return f"/api/operaciones/clientes/{obj.pk}/logo/?v={obj.logo.name.rsplit('/', 1)[-1][:12]}" if obj.logo else None
 
     PRIVADOS = ('rnc', 'contacto', 'telefono', 'correo', 'direccion', 'notas', 'cashflow_id')
 

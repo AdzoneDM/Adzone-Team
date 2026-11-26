@@ -92,7 +92,10 @@ class TareaViewSet(viewsets.ModelViewSet):
         if params.get('departamento'):
             queryset = queryset.filter(colaborador__perfil__puesto_trabajo__departamento_id=params['departamento'])
         if params.get('buscar'):
-            queryset = queryset.filter(titulo__icontains=params['buscar'][:100])
+            b = params['buscar'][:100]   # título, cliente o proyecto
+            queryset = queryset.filter(Q(titulo__icontains=b) | Q(cliente__icontains=b) | Q(cliente_ref__nombre__icontains=b) | Q(proyecto__nombre__icontains=b))
+        if params.get('cliente'):
+            queryset = queryset.filter(Q(cliente_ref_id=params['cliente']) | Q(proyecto__cliente_id=params['cliente']) | Q(orden__cliente_id=params['cliente'])).distinct()
         if params.get('vencidas') == '1':
             queryset = queryset.filter(estado__in=['PENDIENTE', 'EN_PROGRESO'], fecha_limite__lt=timezone.localdate())
         if params.get('proyecto'):

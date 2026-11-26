@@ -1,8 +1,8 @@
 // Un proyecto: avance, tareas (lista, tablero o cronograma), órdenes, conversación y números.
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ClipboardList, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
-import { comentarProyecto, comentariosProyecto, detalleProyecto, eliminarProyecto, equipo as cargarEquipo, obtenerProyecto } from "@/lib/api";
+import { ArrowLeft, ClipboardList, FileSpreadsheet, FileText, History, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
+import { comentarProyecto, comentariosProyecto, detalleProyecto, eliminarProyecto, equipo as cargarEquipo, obtenerProyecto, urlReporteCliente } from "@/lib/api";
 import { ESTADOS, dinero, fechaCorta, horas, hoyISO } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
 import Comentarios from "@/components/Comentarios";
@@ -26,7 +26,7 @@ function Numero({ etiqueta, valor, tono }) {
 
 export default function ProyectoDetalle() {
   const { id } = useParams();
-  const { puedeValidar } = useSesion();
+  const { puedeValidar, puedeAsignar } = useSesion();
   const avisar = useAviso();
   const confirmar = useConfirmar();
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function ProyectoDetalle() {
       .then(([a, b, c]) => { setP(a); setD(b); setComentarios(c); }).catch((e) => setError(e.message));
   }, [id]);
   useEffect(() => { cargar(); }, [cargar]);
-  useEffect(() => { if (puedeValidar) cargarEquipo().then(setGente).catch(() => {}); }, [puedeValidar]);
+  useEffect(() => { if (puedeValidar || puedeAsignar) cargarEquipo().then(setGente).catch(() => {}); }, [puedeValidar, puedeAsignar]);
 
   if (error) return <Alerta>{error}</Alerta>;
   if (!p || !d) return <Cargando />;
@@ -70,10 +70,14 @@ export default function ProyectoDetalle() {
             <p className="mt-1 text-sm text-gris">Responsable: <span className="text-tinta">{p.responsable_nombre || "—"}</span>{p.miembros_nombres.length > 0 && ` · Equipo: ${p.miembros_nombres.join(", ")}`}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {puedeValidar && <Boton icono={Plus} onClick={() => setModal("tarea")}>Tarea</Boton>}
+            {(puedeValidar || puedeAsignar) && <Boton icono={Plus} onClick={() => setModal("tarea")}>Tarea</Boton>}
             <Boton variante="secundario" icono={ClipboardList} onClick={() => setModal("orden")}>Orden</Boton>
             <BotonCronometro proyecto={p.id} />
             {p.puedo_gestionar && <Boton variante="secundario" icono={Pencil} onClick={() => setModal("editar")}>Editar</Boton>}
+            {/* Reporte del proyecto: el mismo del expediente del cliente, solo con este proyecto */}
+            <a href={urlReporteCliente(p.cliente, { proyecto: p.id, formato: "pdf" })} target="_blank" rel="noopener" className="inline-flex h-10 items-center gap-2 rounded-lg border border-linea bg-white px-3.5 text-sm font-semibold text-azul hover:bg-fondo"><FileText className="size-4" />Reporte PDF</a>
+            <a href={urlReporteCliente(p.cliente, { proyecto: p.id, formato: "xlsx" })} className="inline-flex h-10 items-center gap-2 rounded-lg border border-linea bg-white px-3.5 text-sm font-semibold text-azul hover:bg-fondo"><FileSpreadsheet className="size-4" />Excel</a>
+            <Link to={`/clientes/${p.cliente}?ver=tareas`} className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-azul hover:bg-azul/5"><History className="size-4" />Historial en el expediente</Link>
           </div>
         </div>
         {p.descripcion && <p className="mt-3 whitespace-pre-line text-[15px]">{p.descripcion}</p>}
@@ -152,7 +156,7 @@ export default function ProyectoDetalle() {
       )}
 
       <FormProyecto abierto={modal === "editar"} inicial={p} onCerrar={() => setModal(null)} onGuardado={() => { setModal(null); avisar("Proyecto actualizado."); cargar(); }} />
-      <FormTarea abierto={modal === "tarea"} inicial={{ proyecto: p.id, cliente: p.cliente_nombre }} gente={gente} onCerrar={() => setModal(null)}
+      <FormTarea abierto={modal === "tarea"} inicial={{ proyecto: p.id, cliente: p.cliente_nombre, cliente_ref: p.cliente }} gente={gente} onCerrar={() => setModal(null)}
         onGuardada={(msg) => { setModal(null); avisar(msg); cargar(); }} />
       <FormOrden abierto={modal === "orden"} inicial={{ cliente: p.cliente, proyecto: p.id }} onCerrar={() => setModal(null)}
         onGuardada={(o) => { setModal(null); avisar(`${o.numero} pedida.`); cargar(); }} />
