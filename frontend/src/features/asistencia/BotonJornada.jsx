@@ -6,7 +6,7 @@ import { sonarAlerta } from "@/lib/sonido";
 import { horaExacta, relojSeg } from "@/lib/formato";
 import { datosDeLugar } from "@/lib/ubicacion";
 import { Boton, Modal, cx, useAviso } from "@/components/ui";
-import { alCerrarPestana, fijarMensajeCierre, textoCierre } from "@/lib/salida";
+import { TEXTO_SALIDA, alCerrarPestana, fijarMensajeCierre, textoCierre } from "@/lib/salida";
 
 const TEXTO = { ENTRADA: "Marcar entrada", PAUSA: "Iniciar pausa", REGRESO: "Terminar pausa", SALIDA: "Salida" };
 const ICONO = { ENTRADA: LogIn, PAUSA: Coffee, REGRESO: Play, SALIDA: LogOut };
@@ -141,6 +141,12 @@ export default function BotonJornada() {
   const [estado, cargar] = useJornada();
   const [abierto, setAbierto] = useState(false);
   const [pidiendoMotivo, setPidiendoMotivo] = useState(false);
+  const [intentoSalir, setIntentoSalir] = useState(false);   // el ratón fue hacia la X del navegador con la jornada abierta
+  useEffect(() => {
+    const f = () => setIntentoSalir(true);
+    window.addEventListener("adzone:intento-salida", f);
+    return () => window.removeEventListener("adzone:intento-salida", f);
+  }, []);
   const [enviando, setEnviando] = useState(false);
   const caja = useRef(null);
   const [, setLatido] = useState(0);
@@ -246,6 +252,11 @@ export default function BotonJornada() {
           </div>
         </div>
       )}
+      <Modal abierto={intentoSalir && corriendo} onCerrar={() => setIntentoSalir(false)} titulo={TEXTO_SALIDA} descripcion={textoCierre(estado) || ""} ancho="md:max-w-md"
+        pie={<><Boton variante="secundario" onClick={() => setIntentoSalir(false)}>Seguir trabajando</Boton>
+          <Boton icono={LogOut} cargando={enviando} onClick={async () => { await marcar("SALIDA"); setIntentoSalir(false); }}>Marcar mi salida</Boton></>}>
+        <p className="text-sm text-gris">Si cierras la web sin marcarla, tu jornada queda abierta.</p>
+      </Modal>
       <AvisoAlmuerzo estado={estado} horaOficial={horaOficial} enviando={enviando} onCambio={cargar} onSalir={() => marcar("ALMUERZO", "Almuerzo")} />
       <Modal abierto={pidiendoMotivo} onCerrar={() => setPidiendoMotivo(false)} titulo="¿Por qué la pausa?" descripcion={`Si pasa de ${estado.limites?.pausa_min ?? 60} minutos sin que marques el regreso, se avisa a tu supervisor.`} ancho="max-w-sm">
         <div className="grid gap-2">
