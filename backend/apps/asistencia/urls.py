@@ -9,6 +9,7 @@ router.register(r'horarios', views.HorarioViewSet, basename='horario')
 router.register(r'feriados', views.FeriadoViewSet, basename='feriado')
 router.register(r'sitios', views.SitioViewSet, basename='sitio')
 router.register(r'ausencias', views.AusenciaViewSet, basename='ausencia')
+router.register(r'justificaciones', views.JustificacionViewSet, basename='justificacion')
 
 urlpatterns = [
     path('', include(router.urls)),

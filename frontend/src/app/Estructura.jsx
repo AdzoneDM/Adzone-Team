@@ -346,7 +346,7 @@ export default function Estructura() {
   return <CronometroProvider><GuiaProvider><EstructuraInterna /></GuiaProvider></CronometroProvider>;
 }
 
-/** Señal de vida cada minuto mientras la plataforma esté abierta (aunque esté en segundo plano): sin señal 5 min, la jornada se cierra sola. */
+/** Señal de vida cada minuto mientras la plataforma esté abierta (para «quién está conectado» y la apertura automática). La jornada NO se cierra sola. */
 function usePresencia() {
   useEffect(() => {
     const enviar = () => senalPresencia().then((r) => { if (r?.entrada_automatica) window.dispatchEvent(new Event("adzone:jornada")); }).catch(() => {});

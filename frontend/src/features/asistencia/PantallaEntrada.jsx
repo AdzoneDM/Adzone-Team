@@ -54,7 +54,7 @@ export default function PantallaEntrada() {
       try {
         const lugar = await datosDeLugar(estado.donde_marca);
         const r = await marcarJornada("ENTRADA", { automatica: true, movil: window.matchMedia("(max-width: 767px)").matches, ...lugar });
-        avisar(`Tu jornada empezó a las ${horaExacta(r?.momento)} y se cierra sola cuando cierres la plataforma.`);
+        avisar(`Tu jornada empezó a las ${horaExacta(r?.momento)}: recuerda cerrarla tú al terminar (botón «Jornada», arriba).`);
         setAuto("");
         window.dispatchEvent(new Event("adzone:jornada"));
       } catch (e) { setFallo(e.message); setAuto("fallo"); }

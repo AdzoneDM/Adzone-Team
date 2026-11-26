@@ -63,7 +63,7 @@ function Cifra({ etiqueta, valor, alerta, nota }) {
   );
 }
 
-export default function DiaDeAsistencia({ j, estado, marcajes }) {
+export default function DiaDeAsistencia({ j, estado, marcajes, onJustificar }) {
   const [anio, mes, dia] = j.fecha.split("-");
   const mesCorto = new Date(Number(anio), Number(mes) - 1, 1).toLocaleDateString("es-DO", { month: "short" }).replace(".", "");
   const segs = tramos(j);
@@ -92,8 +92,21 @@ export default function DiaDeAsistencia({ j, estado, marcajes }) {
             {(j.tardanza > 0 || j.salida_temprana > 0) && (
               <p className="mt-1 flex flex-wrap gap-1.5">
                 {j.tardanza > 0 && <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-medium text-rojo">Llegó {j.tardanza} min tarde</span>}
+                {j.tardanza > 0 && j.justificacion && <span className="rounded-md bg-verde-50 px-1.5 py-0.5 text-xs font-medium text-verde">Justificada</span>}
+                {j.tardanza > 0 && onJustificar && (
+                  <button type="button" onClick={() => onJustificar(j)} className="rounded-md px-1.5 py-0.5 text-xs font-medium text-azul hover:bg-azul/10 hover:underline">
+                    {j.justificacion ? "Modificar justificación" : "Justificar tardanza"}
+                  </button>
+                )}
                 {j.salida_temprana > 0 && <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-medium text-rojo">Salió {j.salida_temprana} min antes</span>}
               </p>
+            )}
+            {j.tardanza > 0 && j.justificacion && (
+              <div className="mt-2 rounded-lg border-l-4 border-verde bg-verde-50/60 px-3 py-2 text-sm">
+                <p className="font-medium text-noche">{j.justificacion.tipo_nombre}</p>
+                <p className="whitespace-pre-line text-tinta">{j.justificacion.nota}</p>
+                <p className="mt-0.5 text-xs text-gris">Registrada por {j.justificacion.registrada_por}{j.justificacion.modificada_por ? ` · modificada por ${j.justificacion.modificada_por}` : ""}</p>
+              </div>
             )}
             <div className="mt-3"><LineaDeTiempo j={j} segs={segs} /></div>
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gris">

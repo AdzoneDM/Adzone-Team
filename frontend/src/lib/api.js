@@ -432,13 +432,16 @@ export const elegirAlmuerzo = (hora, soloHoy = false) => api(`${AS}/mi-almuerzo/
 export const posponerAlmuerzo = (minutos) => api(`${AS}/mi-almuerzo/`, { method: "POST", body: { posponer: minutos } });
 export const almuerzoVisto = () => api(`${AS}/mi-almuerzo/`, { method: "POST", body: { visto: true } });
 export const marcarJornada = (tipo, extra = {}) => api(`${AS}/marcar/`, { method: "POST", body: { tipo, ...extra } });
-// Señal de vida: la plataforma sigue abierta (si deja de llegar 5 min en todos tus dispositivos, la jornada se cierra sola)
+// Señal de vida: la plataforma sigue abierta (la jornada ya no se cierra sola: el cierre es manual)
 export const senalPresencia = () => api(`${AS}/presencia/`, { method: "POST" });
 export const asistenciaMes = (params) => api(`${AS}/mes/${q(params)}`);
 export const asistenciaHoy = () => api(`${AS}/hoy/`);
 export const asistenciaReporte = (mes) => api(`${AS}/reporte/${q({ mes })}`);
 export const urlAsistenciaCsv = (mes) => `${AS}/reporte/${q({ mes, formato: "csv" })}`;
 export const corregirMarcaje = (m) => api(`${AS}/marcajes/`, { method: "POST", body: m });
+// Justificación de tardanzas (solo el supervisor de la persona; no se borran, al modificar queda el antes)
+export const justificarTardanza = (j) => (j.id ? api(`${AS}/justificaciones/${j.id}/`, { method: "PATCH", body: { tipo: j.tipo, nota: j.nota } })
+  : api(`${AS}/justificaciones/`, { method: "POST", body: j }));
 export const borrarMarcaje = (id) => api(`${AS}/marcajes/${id}/`, { method: "DELETE" });
 export const horarios = () => api(`${AS}/horarios/`);
 export const guardarHorario = (h) => (h.id ? api(`${AS}/horarios/${h.id}/`, { method: "PATCH", body: h }) : api(`${AS}/horarios/`, { method: "POST", body: h }));

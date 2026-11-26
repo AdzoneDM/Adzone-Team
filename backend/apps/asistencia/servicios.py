@@ -155,9 +155,11 @@ def inicio_control(usuario):
     return timezone.localtime(primero).date() if primero else None
 
 
-def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=None, ausencias=None, feriados=None, desde_control=False):
+def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=None, ausencias=None, feriados=None, desde_control=False,
+            justificaciones=None):
     """Resumen de un día. Los parámetros opcionales evitan consultas cuando se calcula un mes entero.
-    `desde_control`: fecha desde la que la persona usa el control de horario (None = nunca ha marcado)."""
+    `desde_control`: fecha desde la que la persona usa el control de horario (None = nunca ha marcado).
+    `justificaciones`: {fecha: datos} precargadas (si es None y hubo tardanza, se consulta la del día)."""
     ahora = ahora or timezone.now()
     hoy = timezone.localtime(ahora).date()
     if horario is None and obligatoria is None:
@@ -182,7 +184,7 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         # Lo mismo en segundos exactos: de ahí sale el pago, los minutos son solo para mostrar
         'programados_seg': programados * 60, 'trabajados_seg': 0, 'pausa_seg': 0, 'almuerzo_seg': 0, 'pausas_seg': 0, 'pausas': [], 'excesos': 0, 'exceso_seg': 0,
         'almuerzo_programado': (horario.almuerzo_inicio or None) if horario else None, 'pausa_max_minutos': horario.pausa_max_minutos if horario else 60, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None, 'pausa_max_minutos': horario.pausa_max_minutos if horario else 60, 'tardanza_seg': 0, 'salida_temprana_seg': 0, 'extra_seg': 0, 'sin_salida': False, 'estado': 'LIBRE', 'llegada': None,
-        'ausencia': ausencia.get_tipo_display() if ausencia else None,
+        'ausencia': ausencia.get_tipo_display() if ausencia else None, 'justificacion': None,
         'marcajes': [{'id': m.id, 'tipo': m.tipo, 'momento': m.momento.isoformat(), 'origen': m.origen,
                       'motivo': m.motivo_pausa, 'almuerzo': m.es_almuerzo, 'corregido': bool(m.corregido_por_id)} for m in marcajes],
     }
@@ -273,6 +275,13 @@ def jornada(usuario, dia, ahora=None, horario=None, obligatoria=None, marcajes=N
         if tarde > tolerancia * 60:  # pasada la tolerancia, cuenta desde la hora de entrada, al segundo
             fila['tardanza'], fila['tardanza_seg'] = _min(tarde), _enteros(tarde)
         fila['llegada'] = 'TARDE' if fila['tardanza_seg'] else 'A_TIEMPO'
+        if fila['tardanza_seg']:   # la tardanza sigue contando; solo se anota si su supervisor la justificó
+            if justificaciones is None:
+                from .models import JustificacionTardanza
+                j = JustificacionTardanza.objects.filter(usuario=usuario, fecha=dia).select_related('registrada_por', 'modificada_por').first()
+                fila['justificacion'] = j.datos() if j else None
+            else:
+                fila['justificacion'] = justificaciones.get(dia)
         if ultima_salida and not inicio:
             temprano = _segundos(_aware(dia, _hora(turno[1])) - ultima_salida.momento)
             if temprano > tolerancia * 60:
@@ -307,8 +316,18 @@ def jornadas(usuario, desde, hasta, ahora=None):
     feriados = set(Feriado.objects.filter(fecha__range=(desde, hasta)).values_list('fecha', flat=True))
     hoy = timezone.localdate()
     control = inicio_control(usuario)
-    return [jornada(usuario, d, ahora, horario, obligatoria, por_dia.get(d, []), ausencias, feriados, control)
+    justificaciones = justificaciones_de([usuario.pk], desde, hasta).get(usuario.pk, {})
+    return [jornada(usuario, d, ahora, horario, obligatoria, por_dia.get(d, []), ausencias, feriados, control, justificaciones)
             for d in dias_entre(desde, min(hasta, hoy))]
+
+
+def justificaciones_de(ids, desde, hasta):
+    """{usuario_id: {fecha: datos}} de las justificaciones de tardanza del rango (una consulta)."""
+    from .models import JustificacionTardanza
+    salida = {}
+    for j in JustificacionTardanza.objects.filter(usuario_id__in=ids, fecha__range=(desde, hasta)).select_related('registrada_por', 'modificada_por'):
+        salida.setdefault(j.usuario_id, {})[j.fecha] = j.datos()
+    return salida
 
 
 def jornadas_del_dia(usuarios, dia, ahora=None):
@@ -327,12 +346,14 @@ def jornadas_del_dia(usuarios, dia, ahora=None):
         ausencias[a.usuario_id].append(a)
     feriados = set(Feriado.objects.filter(fecha=dia).values_list('fecha', flat=True))
     primeros = dict(Marcaje.objects.filter(usuario_id__in=ids).values('usuario_id').annotate(m=Min('momento')).values_list('usuario_id', 'm'))
+    justificadas = justificaciones_de(ids, dia, dia)
     salida = {}
     for u in usuarios:
         asignacion = asignados.get(u.pk)
         horario, obligatoria = (asignacion.horario, asignacion.marca_obligatoria) if asignacion else (por_depto.get(_departamento_id(u)) or por_defecto, True)
         control = timezone.localtime(primeros[u.pk]).date() if u.pk in primeros else None
-        salida[u.pk] = jornada(u, dia, ahora, horario, obligatoria, marcajes.get(u.pk, []), ausencias.get(u.pk, []), feriados, control)
+        salida[u.pk] = jornada(u, dia, ahora, horario, obligatoria, marcajes.get(u.pk, []), ausencias.get(u.pk, []), feriados, control,
+                               justificadas.get(u.pk, {}))
     return salida
 
 
@@ -354,6 +375,7 @@ def resumen(usuario, desde, hasta, ahora=None):
     return {
         'dias_laborables': len(laborables), 'dias_presentes': len(presentes), 'dias_a_tiempo': len(a_tiempo),
         'tardanzas': len(presentes_laborables) - len(a_tiempo), 'minutos_tarde': tarde_seg // 60, 'segundos_tarde': tarde_seg,
+        'tardanzas_justificadas': sum(1 for d in presentes_laborables if d['llegada'] == 'TARDE' and d['justificacion']),
         'ausencias': len(ausentes), 'permisos': len(con_permiso),
         'salidas_tempranas': sum(1 for d in dias if d['salida_temprana']), 'minutos_salida_temprana': salida_seg // 60, 'segundos_salida_temprana': salida_seg,
         'sin_salida': sum(1 for d in dias if d['sin_salida']),
@@ -481,7 +503,7 @@ def revisar_asistencia(ahora=None):
     from apps.desempeno.servicios import avisar
     ahora = ahora or timezone.now()
     hoy = timezone.localtime(ahora).date()
-    enviados = revisar_pausas(ahora) + revisar_almuerzos(ahora)
+    enviados = revisar_pausas(ahora) + revisar_almuerzos(ahora) + recordar_jornadas_abiertas(ahora)
     # Solo a quien ya usa el control de horario o tiene horario asignado
     usan = set(Marcaje.objects.values_list('usuario_id', flat=True).distinct()) | set(
         AsignacionHorario.objects.filter(marca_obligatoria=True).values_list('usuario_id', flat=True))
@@ -498,12 +520,12 @@ def revisar_asistencia(ahora=None):
     return enviados
 
 
-# ------------------------------------------------------------------ Jornada automática
-# Al abrir la plataforma la jornada empieza sola; al cerrarla (sin señal de ningún dispositivo durante CIERRE_SIN_SENAL) termina sola,
-# a la hora de la última señal, y se detiene el cronómetro de la tarea. Si vuelve a abrirla ese día, empieza otro tramo.
-CIERRE_SIN_SENAL = timedelta(minutes=5)
+# ------------------------------------------------------------------ Jornada: apertura automática, cierre manual
+# Al abrir la plataforma la jornada empieza sola. El CIERRE es manual: cada persona cierra la suya al terminar (botón Jornada).
+# Apagar el equipo, cerrar el navegador o salir de la plataforma NO la cierra. Si alguien la olvida abierta, se le recuerda una
+# hora después de su turno; pasadas 16 h se da por olvidada (el día queda «sin salida» y al día siguiente vuelve a abrirse sola).
 VENTANA_ANTES, VENTANA_DESPUES = timedelta(hours=2), timedelta(hours=3)   # entrada automática: de 2 h antes del turno a 3 h después
-NOTA_CIERRE_AUTO = 'Cierre automático: la plataforma se cerró'
+RECORDAR_CIERRE = timedelta(hours=1)   # recordatorio si sigue abierta una hora después de su hora de salida
 
 
 def registrar_senal(usuario, ahora=None):
@@ -531,26 +553,24 @@ def entrada_automatica(usuario, ahora=None, hoy=None, obligatoria=None):
     return ultimo.tipo == Marcaje.SALIDA and ultimo.origen == 'AUTO'
 
 
-def cerrar_jornadas_sin_senal(ahora=None):
-    """Cierra las jornadas de quienes cerraron la plataforma: la salida queda a la hora de la última señal.
-    Solo si la plataforma estuvo abierta durante ese tramo (quien marcó por QR y no la usa no se ve afectado)."""
-    from apps.tiempo import servicios as cronometro
-    from .models import PresenciaPlataforma
+def recordar_jornadas_abiertas(ahora=None):
+    """A quien sigue con la jornada abierta una hora después de su turno: «¿Terminaste? Cierra tu jornada» (una vez al día).
+    Nunca la cierra: el cierre es de cada persona."""
+    from apps.desempeno.servicios import avisar
     ahora = ahora or timezone.now()
-    cerradas = 0
-    for p in PresenciaPlataforma.objects.filter(ultima_senal__lt=ahora - CIERRE_SIN_SENAL, ultima_senal__gt=ahora - TURNO_MAXIMO).select_related('usuario'):
-        estado, ultimo = estado_actual(p.usuario, ahora)
+    hoy = timezone.localtime(ahora).date()
+    enviados = 0
+    abiertos = Marcaje.objects.filter(momento__gt=ahora - TURNO_MAXIMO, momento__lte=ahora).values_list('usuario_id', flat=True).distinct()
+    for u in User.objects.filter(is_active=True, pk__in=list(abiertos)):
+        estado, _ = estado_actual(u, ahora)
         if estado == 'FUERA':
             continue
-        apertura = Marcaje.objects.filter(usuario=p.usuario, tipo=Marcaje.ENTRADA, momento__lte=ahora).order_by('-momento').values_list('momento', flat=True).first()
-        if apertura is None or p.ultima_senal < apertura:
-            continue   # no tuvo la plataforma abierta en este tramo
-        momento = max(p.ultima_senal, ultimo.momento)
-        marcaje, error = marcar(p.usuario, Marcaje.SALIDA, 'AUTO', nota=NOTA_CIERRE_AUTO, momento=momento)
-        if error:
+        horario, _ = horario_de(u)
+        turno = horario.turno(hoy.weekday()) if horario else None
+        if not turno or ahora < _aware(hoy, _hora(turno[1])) + RECORDAR_CIERRE:
             continue
-        registro = cronometro.activo(p.usuario)
-        if registro:
-            cronometro.detener(registro, fin=max(momento, registro.inicio))
-        cerradas += 1
-    return cerradas
+        if _una_vez(u, f'cerrar-jornada-{hoy:%Y%m%d}', 'CERRAR_JORNADA'):
+            avisar([u], 'ASISTENCIA', 'Tu jornada sigue abierta', f"Tu turno terminaba a las {turno[1]}. Si ya terminaste, ciérrala en «Jornada» (arriba).",
+                   enlace='/')
+            enviados += 1
+    return enviados

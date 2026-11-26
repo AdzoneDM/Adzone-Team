@@ -14,7 +14,7 @@ from apps.desempeno.permisos import EsAdministrador, LecturaOAdministrador, equi
 from apps.desempeno.servicios import avisar
 from apps.desempeno.views import periodo_desde_mes
 from . import servicios
-from .models import AlmuerzoPersonal, AsignacionHorario, Ausencia, Feriado, Horario, Marcaje
+from .models import AlmuerzoPersonal, AsignacionHorario, Ausencia, Feriado, Horario, JustificacionTardanza, Marcaje
 
 
 def _nombre(u):
@@ -188,7 +188,7 @@ def hoy_view(request):
     jornadas_hoy = servicios.jornadas_del_dia(personas, hoy)  # en lote: no una consulta por persona
     for u in personas:
         j = jornadas_hoy[u.pk]
-        filas.append({**_persona(u), **{k: j[k] for k in ('estado', 'llegada', 'entrada', 'salida', 'tardanza', 'trabajados', 'pausa', 'turno', 'ausencia',
+        filas.append({**_persona(u), **{k: j[k] for k in ('estado', 'llegada', 'entrada', 'salida', 'tardanza', 'trabajados', 'pausa', 'turno', 'ausencia', 'justificacion',
                                                                  'trabajados_seg', 'pausa_seg', 'tardanza_seg', 'almuerzo_seg', 'pausas_seg', 'excesos')},
                       'pausa_abierta': next((p for p in reversed(j['pausas']) if p['fin'] is None), None)})
     orden = {'TARDE_SIN_MARCAR': 0, 'AUSENTE': 1, 'EN_PAUSA': 2, 'TRABAJANDO': 3, 'PRESENTE': 4, 'PENDIENTE': 5, 'PERMISO': 6}
@@ -222,13 +222,13 @@ def reporte_view(request):
         resp['Content-Disposition'] = f'attachment; filename="asistencia-{desde:%Y-%m}.csv"'
         resp.write('﻿')
         w = csv.writer(resp)
-        w.writerow(['Colaborador', 'Puesto', 'Departamento', 'Días laborables', 'Días presentes', 'A tiempo', 'Tardanzas',
+        w.writerow(['Colaborador', 'Puesto', 'Departamento', 'Días laborables', 'Días presentes', 'A tiempo', 'Tardanzas', 'Tardanzas justificadas',
                     'Tiempo tarde (H:MM:SS)', 'Ausencias', 'Permisos', 'Salidas tempranas', 'Días sin marcar salida',
                     'Horas programadas', 'Tiempo trabajado (H:MM:SS)', 'Segundos trabajados', 'Horas trabajadas (decimal)',
                     'Tiempo extra (H:MM:SS)', 'Pausas, incluido el almuerzo (H:MM:SS)', 'De ellas, almuerzo (H:MM:SS)', 'Pausas que pasaron el límite', 'Exceso en pausas (H:MM:SS)', 'Puntualidad %', 'Asistencia %', 'Adherencia %'])
         for f in filas:
             w.writerow([f['nombre'], f['puesto'] or '', f['departamento'] or '', f['dias_laborables'], f['dias_presentes'], f['dias_a_tiempo'],
-                        f['tardanzas'], _hms(f['segundos_tarde']), f['ausencias'], f['permisos'], f['salidas_tempranas'], f['sin_salida'],
+                        f['tardanzas'], f['tardanzas_justificadas'], _hms(f['segundos_tarde']), f['ausencias'], f['permisos'], f['salidas_tempranas'], f['sin_salida'],
                         round(f['minutos_programados'] / 60, 2), _hms(f['segundos_trabajados']), f['segundos_trabajados'],
                         round(f['segundos_trabajados'] / 3600, 4), _hms(f['segundos_extra']),
                         _hms(f['segundos_pausa']), _hms(f['segundos_almuerzo']), f['pausas_excedidas'], _hms(f['segundos_exceso_pausa']),
@@ -277,6 +277,70 @@ class MarcajeViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         self._revisar(instance.usuario)
         instance.delete()
+
+
+# ------------------------------------------------------------------ Justificación de tardanzas
+def _puede_justificar(user, persona):
+    """Solo su supervisor (quien ve la asistencia de esa persona: perfil Supervisor o Dirección), nunca uno mismo."""
+    return persona.pk != user.pk and puede_gestionar(user, persona, 'asistencia.ver')
+
+
+class JustificacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JustificacionTardanza
+        fields = ['id', 'usuario', 'fecha', 'tipo', 'nota']
+
+    def validate_nota(self, v):
+        v = (v or '').strip()
+        if len(v) < 5:
+            raise serializers.ValidationError("Escribe el motivo (p. ej. «tenía permiso para ir al médico»).")
+        return v
+
+
+class JustificacionViewSet(viewsets.ModelViewSet):
+    """Constancia de tardanzas justificadas. La tardanza no se borra: el día queda marcado «justificada» con la nota.
+    Registrar y modificar: solo el supervisor de la persona. No se eliminan (queda la constancia; al modificar se guarda el antes)."""
+    serializer_class = JustificacionSerializer
+    http_method_names = ['get', 'post', 'patch']
+
+    def get_queryset(self):
+        qs = JustificacionTardanza.objects.filter(usuario__in=equipo_gestionable(self.request.user, 'asistencia.ver')).exclude(usuario=self.request.user)
+        if str(self.request.query_params.get('usuario', '')).isdigit():
+            qs = qs.filter(usuario_id=self.request.query_params['usuario'])
+        return qs.select_related('usuario', 'registrada_por', 'modificada_por')
+
+    def list(self, request, *args, **kwargs):
+        return Response([{**j.datos(), 'usuario': j.usuario_id, 'usuario_nombre': _nombre(j.usuario)} for j in self.get_queryset()[:500]])
+
+    def create(self, request, *args, **kwargs):
+        s = self.get_serializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        persona, fecha = s.validated_data['usuario'], s.validated_data['fecha']
+        if not _puede_justificar(request.user, persona):
+            raise PermissionDenied("Las tardanzas las justifica el supervisor de la persona (nunca uno mismo).")
+        if fecha > timezone.localdate():
+            return Response({'fecha': ['Esa fecha todavía no ha pasado.']}, status=status.HTTP_400_BAD_REQUEST)
+        if not servicios.jornada(persona, fecha).get('tardanza_seg'):
+            return Response({'fecha': ['Ese día no tiene una tardanza registrada.']}, status=status.HTTP_400_BAD_REQUEST)
+        if JustificacionTardanza.objects.filter(usuario=persona, fecha=fecha).exists():
+            return Response({'fecha': ['Esa tardanza ya está justificada: modifícala.']}, status=status.HTTP_400_BAD_REQUEST)
+        j = s.save(registrada_por=request.user)
+        avisar([persona], 'ASISTENCIA', f"Tu tardanza del {fecha:%d/%m} quedó justificada",
+               f"{j.get_tipo_display()}: {j.nota[:200]} — registrada por {_nombre(request.user)}.", enlace='/asistencia?ver=mia', excepto=request.user)
+        return Response(j.datos(), status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        j = self.get_object()
+        if not _puede_justificar(request.user, j.usuario):
+            raise PermissionDenied("Las tardanzas las justifica el supervisor de la persona (nunca uno mismo).")
+        s = self.get_serializer(j, data={k: v for k, v in request.data.items() if k in ('tipo', 'nota')}, partial=True)
+        s.is_valid(raise_exception=True)
+        anterior = {'tipo': j.tipo, 'nota': j.nota, 'por': _nombre(j.modificada_por or j.registrada_por),
+                    'fecha': (j.modificada or j.creada).isoformat()}
+        j.historial = [*j.historial, anterior]
+        s.save(modificada_por=request.user, modificada=timezone.now(), historial=j.historial)
+        j.refresh_from_db()
+        return Response(j.datos())
 
 
 # ------------------------------------------------------------------ Horarios y feriados

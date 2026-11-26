@@ -1,5 +1,18 @@
 # Cambios
 
+## 12.72 · 26/11/2026 · Cierre manual de la jornada y justificación de tardanzas
+
+**Jornada**
+- La jornada **ya no se cierra sola** al apagar el equipo, cerrar el navegador, irse la luz o salir de la plataforma (se quitó la tarea `cerrar_jornadas`). Cada persona la cierra a mano en «Jornada».
+- La **apertura sigue siendo automática** al entrar a la plataforma.
+- Si alguien la olvida abierta, recibe un aviso «Tu jornada sigue abierta» una hora después de su hora de salida (una vez al día; el aviso no la cierra). Pasadas 16 h se da por olvidada: ese día queda «sin salida» y al día siguiente vuelve a abrirse sola.
+
+**Justificación de tardanzas** (Asistencia → Equipo en el mes / Hoy → la persona → día con tardanza → «Justificar tardanza»)
+- El supervisor elige el motivo (avisó que llegaría tarde / tenía un permiso autorizado / otro) y escribe la nota; queda la fecha, la persona y quién la registró.
+- Solo el supervisor de esa persona (o Dirección) puede registrarla o modificarla, nunca uno mismo; validado en el servidor. Al modificarla se guarda la versión anterior; no se borra.
+- La tardanza **no desaparece**: el día sigue diciendo «Llegó N min tarde» y además «Justificada» con la constancia. La persona la ve en «Mi asistencia» y recibe un aviso.
+- Puntualidad, «Equipo en el mes» y el CSV muestran cuántas tardanzas están justificadas.
+
 ## 12.71 · 26/11/2026 · Responder mensajes en el chat (como en WhatsApp)
 
 - **Celular:** desliza el mensaje hacia un lado (izquierda o derecha) y queda listo para responder; vibra al pasar el umbral. Un deslizamiento corto o vertical no hace nada (la lista se sigue desplazando normal).

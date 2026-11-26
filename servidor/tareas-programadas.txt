@@ -7,7 +7,6 @@ P=/var/www/vhosts/adzone.marketing/kpi-app
 |--------------------------------|-----------------------------------|---------------------------------------------------------------
 | Todos los días 7:00            | 0 7 * * *                         | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py tareas_diarias
 | Cada minuto                    | * * * * *                         | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py revisar_recordatorios
-| Cada minuto                    | * * * * *                         | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py cerrar_jornadas
 | Cada minuto de 7:00 a 20:59    | * 7-20 * * *                      | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py avisar_almuerzos
 | Cada 10 min de 7:00 a 20:59    | */10 7-20 * * *                   | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py revisar_jornadas
 | Todos los días 7:30            | 30 7 * * *                        | cd /var/www/vhosts/adzone.marketing/kpi-app/backend && /var/www/vhosts/adzone.marketing/kpi-app/venv/bin/python manage.py revisar_talento
@@ -18,7 +17,6 @@ P=/var/www/vhosts/adzone.marketing/kpi-app
 Para qué sirve cada una:
 - tareas_diarias: crea las recurrentes, avisa lo que vence mañana, automatizaciones de vencidas y trae pagos de Cashflow.
 - revisar_recordatorios: avisa los recordatorios personales a la hora exacta que cada persona eligió (tiene que correr cada minuto).
-- cerrar_jornadas: cierra sola la jornada de quien cerró la plataforma (5 minutos sin señal); la salida queda a la hora de la última señal y se detiene el cronómetro (cada minuto).
 - avisar_almuerzos: «es tu hora de comer» justo al minuto que cada persona eligió (fija, solo hoy o pospuesta) y «te quedan 5 minutos» (cada minuto).
 - revisar_jornadas: tardanzas, entradas sin marcar y pausas que pasaron su límite.
 - revisar_talento: documentos por vencer y recordatorio de políticas pendientes.

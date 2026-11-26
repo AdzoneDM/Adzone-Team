@@ -5,7 +5,7 @@ import DiaDeAsistencia from "@/features/asistencia/DiaDeAsistencia";
 import { CalendarClock, Check, Download, Plus, Trash2, X } from "lucide-react";
 import {
   asignacionesHorario, asignarHorario, asistenciaHoy, asistenciaMes, asistenciaReporte, ausencias, borrarFeriado, borrarHorario,
-  borrarMarcaje, corregirMarcaje, feriados, guardarFeriado, guardarHorario, horarios, pedirAusencia, retirarAusencia, revisarAusencia,
+  borrarMarcaje, corregirMarcaje, justificarTardanza, feriados, guardarFeriado, guardarHorario, horarios, pedirAusencia, retirarAusencia, revisarAusencia,
   departamentos, urlAsistenciaCsv,
 } from "@/lib/api";
 import { fechaCorta, horaExacta, mesActual, relojSeg } from "@/lib/formato";
@@ -37,7 +37,7 @@ export function ResumenAsistencia({ r, adherencia }) {
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       <Dato titulo="Adherencia al horario" valor={<Puntaje valor={adherencia} />} detalle="Puntualidad, asistencia y horas" />
-      <Dato titulo="Puntualidad" valor={pct(r.puntualidad)} detalle={`${r.tardanzas} tarde · ${r.minutos_tarde} min`} alerta={r.tardanzas >= 3} />
+      <Dato titulo="Puntualidad" valor={pct(r.puntualidad)} detalle={`${r.tardanzas} tarde · ${r.minutos_tarde} min${r.tardanzas_justificadas ? ` · ${r.tardanzas_justificadas} justificada${r.tardanzas_justificadas > 1 ? "s" : ""}` : ""}`} alerta={r.tardanzas >= 3} />
       <Dato titulo="Asistencia" valor={pct(r.asistencia)} detalle={`${r.dias_presentes} de ${r.dias_laborables} días · ${r.ausencias} ausencia(s)`} alerta={r.ausencias > 0} />
       <Dato titulo="Horas trabajadas" valor={dur(r.segundos_trabajados)} detalle={`de ${dur(r.minutos_programados * 60)} programadas`} />
       <Dato titulo="Horas extra" valor={dur(r.segundos_extra)} detalle={r.minutos_extra >= 600 ? "Riesgo de agotamiento" : "Sobre lo programado"} alerta={r.minutos_extra >= 600} />
@@ -54,7 +54,17 @@ export function MesPersona({ usuario, puedeCorregir }) {
   const [d, setD] = useState(null);
   const [error, setError] = useState("");
   const [corrigiendo, setCorrigiendo] = useState(null);
+  const [justificando, setJustificando] = useState(null);
   const cargar = useCallback(() => { setD(null); asistenciaMes({ mes, usuario }).then(setD).catch((e) => setError(e.message)); }, [mes, usuario]);
+  // Solo al ver a otra persona (su supervisor): el servidor vuelve a comprobar que sea su supervisor y nunca uno mismo
+  const abrirJustificar = usuario ? (j) => setJustificando({ id: j.justificacion?.id, fecha: j.fecha, tardanza: j.tardanza,
+    tipo: j.justificacion?.tipo || "NOTIFICADA", nota: j.justificacion?.nota || "" }) : null;
+  const guardarJustificacion = async () => {
+    try {
+      await justificarTardanza({ ...justificando, usuario });
+      setJustificando(null); avisar("Tardanza justificada: queda la constancia en su asistencia."); cargar();
+    } catch (e) { avisar(e.message, "rojo"); }
+  };
   useEffect(() => { cargar(); }, [cargar]);
   if (error) return <Alerta>{error}</Alerta>;
   return (
@@ -69,7 +79,7 @@ export function MesPersona({ usuario, puedeCorregir }) {
           <Panel titulo="Día por día" cuerpo="p-0">
             <ul className="divide-y divide-linea-suave">
               {[...d.dias].reverse().map((j) => (
-                <DiaDeAsistencia key={j.fecha} j={j}
+                <DiaDeAsistencia key={j.fecha} j={j} onJustificar={abrirJustificar}
                   estado={<><Estado e={j.estado} />{j.feriado && <Insignia>Feriado</Insignia>}{j.sin_salida && <Insignia tono="amarillo">Sin salida</Insignia>}</>}
                   marcajes={(j.marcajes.length > 0 || puedeCorregir) && (
                     <details className="group">
@@ -98,6 +108,19 @@ export function MesPersona({ usuario, puedeCorregir }) {
           </Panel>
         </>
       )}
+      <Modal abierto={!!justificando} onCerrar={() => setJustificando(null)} titulo={justificando?.id ? "Modificar justificación" : "Justificar tardanza"}
+        descripcion={justificando && `${d?.persona.nombre} · ${fechaCorta(justificando.fecha)} · llegó ${justificando.tardanza} min tarde. La tardanza sigue en su historial, marcada como justificada.`}
+        pie={<><Boton variante="secundario" onClick={() => setJustificando(null)}>Cancelar</Boton><Boton onClick={guardarJustificacion}>Guardar constancia</Boton></>}>
+        {justificando && (
+          <div className="grid gap-4">
+            <Campo etiqueta="Motivo">{(id) => <select id={id} className="campo" value={justificando.tipo} onChange={(e) => setJustificando({ ...justificando, tipo: e.target.value })}>
+              <option value="NOTIFICADA">Avisó que llegaría tarde</option><option value="PERMISO">Tenía un permiso autorizado</option><option value="OTRO">Otro motivo justificado</option></select>}</Campo>
+            <Campo etiqueta="Nota" ayuda="Queda registrado que la escribiste tú, con la fecha. Si la modificas, se guarda la versión anterior.">{(id) => (
+              <textarea id={id} rows={3} className="campo" maxLength={1000} autoFocus value={justificando.nota} placeholder="Ej.: avisó a las 7:30 que tenía cita médica"
+                onChange={(e) => setJustificando({ ...justificando, nota: e.target.value })} />)}</Campo>
+          </div>
+        )}
+      </Modal>
       <Modal abierto={!!corrigiendo} onCerrar={() => setCorrigiendo(null)} titulo="Agregar marcaje" descripcion="Queda registrado que lo agregaste tú, con la nota."
         pie={<><Boton variante="secundario" onClick={() => setCorrigiendo(null)}>Cancelar</Boton><Boton onClick={async () => {
           try {
@@ -162,6 +185,7 @@ function Hoy({ onVer }) {
                 <tr key={p.id} className="cursor-pointer hover:bg-fondo" onClick={() => onVer(p.id)}>
                   <td><p className="font-medium">{p.nombre}</p><p className="text-xs text-gris">{p.puesto || "Sin puesto"}</p></td>
                   <td><Estado e={p.estado} />{p.llegada === "TARDE" && <span className="ml-1 text-xs text-rojo">{p.tardanza} min tarde</span>}
+                    {p.llegada === "TARDE" && p.justificacion && <span className="ml-1 text-xs font-medium text-verde" title={p.justificacion.nota}>· justificada</span>}
                     {p.pausa_abierta && <span className={cx("mt-0.5 block text-xs", p.pausa_abierta.excedida ? "font-semibold text-rojo" : "text-gris")}>
                       {p.pausa_abierta.almuerzo ? "Pausa - Almuerzo" : "Pausa"} desde las {hora(p.pausa_abierta.inicio)} · {dur(p.pausa_abierta.segundos)}{p.pausa_abierta.excedida ? " (pasó el límite)" : ""}</span>}</td>
                   <td className="num whitespace-nowrap">{hora(p.entrada)}{p.turno && <span className="block text-xs text-gris">turno {hhmm(p.turno[0])}</span>}</td>
@@ -204,7 +228,8 @@ function MesEquipo({ onVer }) {
                     <td className="text-right"><Puntaje valor={p.adherencia} /></td>
                     <td className="text-right num">{pct(p.puntualidad)}</td>
                     <td className="text-right num">{pct(p.asistencia)}</td>
-                    <td className={cx("text-right num", p.tardanzas >= 3 && "text-rojo")}>{p.tardanzas} <span className="text-xs text-gris">({p.minutos_tarde} min)</span></td>
+                    <td className={cx("text-right num", p.tardanzas >= 3 && "text-rojo")}>{p.tardanzas} <span className="text-xs text-gris">({p.minutos_tarde} min)</span>
+                      {p.tardanzas_justificadas > 0 && <span className="block text-xs text-verde">{p.tardanzas_justificadas} justificada{p.tardanzas_justificadas > 1 ? "s" : ""}</span>}</td>
                     <td className={cx("text-right num", p.ausencias && "text-rojo")}>{p.ausencias}</td>
                     <td className="text-right num">{dur(p.segundos_trabajados)}</td>
                     <td className={cx("text-right num", p.minutos_extra >= 600 && "text-[#a86a00]")}>{dur(p.segundos_extra)}</td>

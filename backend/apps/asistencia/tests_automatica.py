@@ -1,4 +1,4 @@
-"""Jornada automática: empieza sola al abrir la plataforma y termina sola al cerrarla (5 min sin señal)."""
+"""Jornada: empieza sola al abrir la plataforma; el cierre es manual (apagar o cerrar la plataforma no la cierra)."""
 from datetime import timedelta
 from unittest import mock
 
@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from apps.tiempo.models import RegistroTiempo
 from . import servicios
-from .models import Marcaje, PresenciaPlataforma
+from .models import Marcaje
 from .tests import LUNES, Base, momento
 
 
@@ -34,51 +34,48 @@ class JornadaAutomaticaTests(Base):
         with self.en('10:00', LUNES + timedelta(days=6)):   # domingo
             self.assertFalse(servicios.entrada_automatica(self.ana))
 
-    def test_sin_senal_5_minutos_se_cierra_a_la_hora_de_la_ultima_senal_y_para_el_cronometro(self):
+    def test_cerrar_la_plataforma_o_apagar_no_cierra_la_jornada(self):
         self.marcas(LUNES, ('ENTRADA', '08:00'))
         RegistroTiempo.objects.create(usuario=self.ana, descripcion='Diseño', inicio=momento(LUNES, '09:00'))
-        with self.en('16:30'):
+        with self.en('12:00'):
             self.assertEqual(self.c.post('/api/asistencia/presencia/').status_code, 200)
-        with self.en('16:34'):   # 4 min: todavía no
-            self.assertEqual(servicios.cerrar_jornadas_sin_senal(), 0)
-        with self.en('16:36'):
-            self.assertEqual(servicios.cerrar_jornadas_sin_senal(), 1)
-        salida = Marcaje.objects.filter(usuario=self.ana, tipo='SALIDA').get()
-        self.assertEqual((salida.origen, salida.momento), ('AUTO', momento(LUNES, '16:30')))
-        reg = RegistroTiempo.objects.get(usuario=self.ana)
-        self.assertEqual((reg.fin, reg.minutos), (momento(LUNES, '16:30'), 7 * 60 + 30))
-        with self.en('16:40'):
-            self.assertEqual(servicios.cerrar_jornadas_sin_senal(), 0)   # no se cierra dos veces
+        # horas sin señal (apagó el equipo, se fue la luz, cerró el navegador): sigue abierta y el cronómetro sigue
+        self.assertEqual(servicios.estado_actual(self.ana, momento(LUNES, '16:00'))[0], 'TRABAJANDO')
+        self.assertFalse(Marcaje.objects.filter(usuario=self.ana, tipo='SALIDA').exists())
+        self.assertIsNone(RegistroTiempo.objects.get(usuario=self.ana).fin)
+        self.assertFalse(hasattr(servicios, 'cerrar_jornadas_sin_senal'))
 
-    def test_al_volver_a_abrir_empieza_otro_tramo_y_se_suman(self):
+    def test_la_cierra_cada_quien_a_mano(self):
+        with self.en('08:00'):
+            self.c.post('/api/asistencia/marcar/', {'tipo': 'ENTRADA', 'automatica': True}, format='json')
+        with self.en('17:02'):
+            r = self.c.post('/api/asistencia/marcar/', {'tipo': 'SALIDA'}, format='json')
+            self.assertEqual(r.status_code, 201)
+        salida = Marcaje.objects.get(usuario=self.ana, tipo='SALIDA')
+        self.assertNotEqual(salida.origen, 'AUTO')
+        self.assertEqual(servicios.estado_actual(self.ana, momento(LUNES, '17:30'))[0], 'FUERA')
+
+    def test_recordatorio_si_la_olvida_abierta_una_hora_despues_del_turno(self):
+        from apps.desempeno.models import Notificacion
         self.marcas(LUNES, ('ENTRADA', '08:00'))
-        PresenciaPlataforma.objects.create(usuario=self.ana, ultima_senal=momento(LUNES, '12:00'))
-        with self.en('12:10'):
-            servicios.cerrar_jornadas_sin_senal()
-        with self.en('13:00'):
-            self.assertTrue(self.c.post('/api/asistencia/presencia/').data['entrada_automatica'])
-            self.assertEqual(self.c.post('/api/asistencia/marcar/', {'tipo': 'ENTRADA', 'automatica': True}, format='json').status_code, 201)
-        self.marcas(LUNES, ('SALIDA', '17:00'))
-        j = servicios.jornada(self.ana, LUNES, ahora=momento(LUNES, '18:00'))
-        self.assertEqual(j['trabajados'], 8 * 60)
+        self.assertEqual(servicios.recordar_jornadas_abiertas(momento(LUNES, '17:30')), 0)   # turno hasta las 17:00: aún no
+        self.assertEqual(servicios.recordar_jornadas_abiertas(momento(LUNES, '18:05')), 1)
+        self.assertEqual(servicios.recordar_jornadas_abiertas(momento(LUNES, '18:30')), 0)   # una sola vez al día
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.ana, titulo='Tu jornada sigue abierta').exists())
+        self.assertEqual(servicios.estado_actual(self.ana, momento(LUNES, '18:30'))[0], 'TRABAJANDO')   # recordar no la cierra
+
+    def test_olvidada_al_dia_siguiente_vuelve_a_abrirse_sola(self):
+        self.marcas(LUNES, ('ENTRADA', '08:00'))
+        martes = LUNES + timedelta(days=1)
+        with self.en('07:55', martes):
+            self.assertTrue(servicios.entrada_automatica(self.ana))
+        j = servicios.jornada(self.ana, LUNES, ahora=momento(martes, '08:00'))
+        self.assertTrue(j['sin_salida'])
 
     def test_salida_a_mano_no_reabre_sola(self):
         self.marcas(LUNES, ('ENTRADA', '08:00'), ('SALIDA', '12:00'))
         with self.en('13:00'):
             self.assertFalse(servicios.entrada_automatica(self.ana))
-
-    def test_quien_marco_por_qr_y_no_abrio_la_plataforma_no_se_cierra(self):
-        self.marcas(LUNES, ('ENTRADA', '08:00'))
-        PresenciaPlataforma.objects.create(usuario=self.ana, ultima_senal=momento(LUNES, '07:00'))   # señal de antes de entrar
-        with self.en('12:00'):
-            self.assertEqual(servicios.cerrar_jornadas_sin_senal(), 0)
-
-    def test_en_pausa_tambien_se_cierra(self):
-        self.marcas(LUNES, ('ENTRADA', '08:00'), ('PAUSA', '12:00'))
-        PresenciaPlataforma.objects.create(usuario=self.ana, ultima_senal=momento(LUNES, '12:01'))
-        with self.en('12:10'):
-            self.assertEqual(servicios.cerrar_jornadas_sin_senal(), 1)
-        self.assertEqual(servicios.estado_actual(self.ana, momento(LUNES, '12:10'))[0], 'FUERA')
 
     def test_quien_no_marca_obligatoriamente_no_empieza_sola(self):
         from .models import AsignacionHorario

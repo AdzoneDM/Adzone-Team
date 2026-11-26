@@ -164,3 +164,35 @@ class AlmuerzoPersonal(models.Model):
 
     def __str__(self):
         return f'{self.usuario} · {self.hora}'
+
+
+class JustificacionTardanza(models.Model):
+    """Constancia de que una tardanza estaba justificada (permiso autorizado o aviso previo). La registra su supervisor.
+    La tardanza NO se borra ni deja de contar: el día queda marcado «justificada» con esta nota."""
+    TIPOS = [('PERMISO', 'Tenía un permiso autorizado'), ('NOTIFICADA', 'Avisó que llegaría tarde'), ('OTRO', 'Otro motivo justificado')]
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='justificaciones_tardanza')
+    fecha = models.DateField()
+    tipo = models.CharField(max_length=12, choices=TIPOS, default='NOTIFICADA')
+    nota = models.TextField("Motivo", max_length=1000)
+    registrada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    creada = models.DateTimeField(auto_now_add=True)
+    modificada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    modificada = models.DateTimeField(null=True, blank=True)
+    # Versiones anteriores (quién, cuándo, tipo y nota) cada vez que se modifica: queda la constancia de todo
+    historial = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        unique_together = ('usuario', 'fecha')
+        ordering = ['-fecha']
+        verbose_name = 'justificación de tardanza'
+        verbose_name_plural = 'justificaciones de tardanza'
+
+    def __str__(self):
+        return f'{self.usuario} · {self.fecha} · {self.get_tipo_display()}'
+
+    def datos(self):
+        nombre = lambda u: (u.get_full_name() or u.username) if u else None  # noqa: E731
+        return {'id': self.id, 'fecha': self.fecha.isoformat(), 'tipo': self.tipo, 'tipo_nombre': self.get_tipo_display(), 'nota': self.nota,
+                'registrada_por': nombre(self.registrada_por), 'creada': self.creada.isoformat(),
+                'modificada_por': nombre(self.modificada_por), 'modificada': self.modificada.isoformat() if self.modificada else None,
+                'historial': self.historial}

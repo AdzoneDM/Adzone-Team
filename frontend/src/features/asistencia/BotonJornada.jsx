@@ -212,7 +212,7 @@ export default function BotonJornada() {
             {hoy.llegada === "TARDE" && <span className="text-rojo"> ({relojSeg(hoy.tardanza_seg)} tarde)</span>}</p>
           <p className="mt-1 text-sm">Trabajado: <strong className="num">{relojSeg(segundosHoy)}</strong>{hoy.pausa_seg ? <> · pausas {relojSeg(hoy.pausa_seg)}{hoy.almuerzo_seg ? <span className="text-gris"> (incluye almuerzo {relojSeg(hoy.almuerzo_seg)})</span> : null}</> : null}</p>
           {hoy.turno && <p className="mt-1 text-sm">Salida programada: <strong className="num">{hhmm(hoy.turno[1])}</strong>{hoy.salida ? <span className="text-gris"> · ya marcaste a las {horaExacta(hoy.salida)}</span> : null}</p>}
-          {e !== "FUERA" && <p className="mt-1 text-xs text-gris">Tu jornada se cierra sola si cierras la plataforma en todos tus dispositivos (a los 5 min, con la hora en que la cerraste).</p>}
+          {e !== "FUERA" && <p className="mt-1 text-xs text-gris">Tu jornada no se cierra sola: ciérrala tú al terminar tus labores. Apagar el equipo o cerrar la plataforma no la cierra.</p>}
           <p className="mt-1 text-xs text-gris">Hora oficial: <span className="num font-medium text-tinta">{horaExacta(horaOficial)}</span></p>
           {e === "EN_PAUSA" && limitePausa > 0 && (
             <p className={cx("mt-2 rounded-md px-2 py-1 text-sm", pasada ? "bg-rojo/10 font-semibold text-rojo" : "bg-amarillo-50 text-[#8a5a00]")}>
