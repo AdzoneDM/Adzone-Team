@@ -1,12 +1,13 @@
 // Organigrama de la empresa: gráfico jerárquico con color por departamento, zoom, búsqueda, contraer/expandir,
 // vista de lista (celular y lectores de pantalla) y versión para imprimir.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { ChevronDown, Maximize2, Minus, Network, Plus, Printer, Search, X } from "lucide-react";
-import { organigrama } from "@/lib/api";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { BadgeCheck, ChevronDown, Maximize2, Minus, Network, Plus, Printer, Search, X } from "lucide-react";
+import { aprobarOrganigrama, organigrama } from "@/lib/api";
+import { Cambios, Matriz } from "./MatrizOrganigrama";
 import { plural } from "@/lib/formato";
 import { useSesion } from "@/lib/sesion";
-import { Alerta, Boton, Cargando, Vacio, cx } from "@/components/ui";
+import { Alerta, Boton, Campo, Cargando, Modal, Pestanas, Vacio, cx, useAviso } from "@/components/ui";
 
 // ── Color por departamento: paleta fija y sobria, estable entre visitas ─────────────────────────────────────────────
 const PALETA = [
@@ -58,22 +59,26 @@ const TONOS = {
 };
 const LINEA = "bg-azul/45";
 
-function Tarjeta({ nodo, tono = "hoja", admin, resumen, abierto, onAlternar, atenuado, destacado, onDepto, ancho = "w-[230px]" }) {
+function Tarjeta({ nodo, tono = "hoja", admin, resumen, abierto, onAlternar, atenuado, destacado, onDepto, ancho = "w-[230px]", modo = "nominal" }) {
   const color = colorDe(nodo.departamento_id);
   const t = TONOS[tono];
-  const titulo = admin ? <Link to={`/puestos/${nodo.id}`} className="hover:underline">{nodo.nombre}</Link> : nodo.nombre;
+  const estructural = modo === "estructural";
+  const texto = estructural ? (nodo.unidad || nodo.nombre) : nodo.nombre;
+  const titulo = admin ? <Link to={`/puestos/${nodo.id}`} className="hover:underline">{texto}</Link> : texto;
   return (
     <div data-nodo={nodo.id} data-depto={nodo.departamento_id} data-coincide={destacado ? "1" : undefined}
       className={cx("relative rounded-[3px] border shadow-[0_1px_2px_rgb(15_37_80/0.08)] transition", t.caja, ancho, atenuado && "opacity-30",
         destacado ? "ring-4 ring-amarillo/70" : "hover:shadow-md")}>
       <div className={cx("px-3 py-2.5", t.centro && "text-center")}>
         <h3 className={cx("!text-[14px] leading-snug", t.centro ? "font-bold" : "", t.titulo)}>{titulo}</h3>
+        {/* El cargo y su unidad quedan vinculados: en el estructural se ve el cargo debajo; en el nominal, la unidad */}
+        {(estructural ? nodo.unidad && nodo.unidad !== nodo.nombre : nodo.unidad) && <p className={cx("mt-0.5 text-[11.5px] leading-snug", t.sub)}>{estructural ? nodo.nombre : nodo.unidad}</p>}
         <button type="button" onClick={() => onDepto?.(nodo.departamento_id)} title={`Acercar a ${nodo.departamento}`} aria-label={`Acercar el organigrama a ${nodo.departamento}`}
           className={cx("mt-1 inline-flex max-w-full items-center gap-1.5 rounded text-[10.5px] font-semibold uppercase tracking-wide hover:underline", t.sub)}>
           <span className="size-2 shrink-0 rounded-full ring-1 ring-white/60" style={{ background: color.acento }} aria-hidden />
           <span className="truncate">{nodo.departamento}</span>
         </button>
-        {nodo.personas.length ? (
+        {estructural ? null : nodo.personas.length ? (
           <ul className={cx("mt-1.5 space-y-1", t.centro && "flex flex-col items-center")}>
             {nodo.personas.slice(0, 4).map((p) => (
               <li key={p.id} className="flex max-w-full items-center gap-1.5 text-[12.5px]">
@@ -83,7 +88,10 @@ function Tarjeta({ nodo, tono = "hoja", admin, resumen, abierto, onAlternar, ate
             ))}
             {nodo.personas.length > 4 && <li className={cx("text-[11.5px]", t.sub)}>+ {nodo.personas.length - 4} más</li>}
           </ul>
-        ) : <p className={cx("mt-1.5 text-[11.5px] italic", t.sub)}>Vacante</p>}
+        ) : !nodo.cubre?.length && <p className={cx("mt-1.5 inline-flex rounded border border-dashed px-1.5 text-[11px] italic", t.centro ? "border-current/40" : "border-gris/50", t.sub)}>Vacante</p>}
+        {!estructural && nodo.situacion === "COMPARTIDO" && (
+          <p className={cx("mt-1.5 text-[11px]", t.sub)}><span className={cx("rounded px-1.5 py-px font-semibold", t.chip || "bg-[#f0ebfb] text-[#6d4ac8]")}>Compartido</span>{nodo.cubre?.length ? ` · lo cubre ${nodo.cubre.join(", ")}` : ""}</p>
+        )}
         {nodo.hijos.length > 0 && (
           <button type="button" onClick={onAlternar} aria-expanded={abierto} aria-label={`${abierto ? "Contraer" : "Expandir"} ${nodo.nombre}`}
             className={cx("mt-2 inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium transition-colors", t.boton)}>
@@ -97,7 +105,7 @@ function Tarjeta({ nodo, tono = "hoja", admin, resumen, abierto, onAlternar, ate
 }
 
 const tarjeta = (nodo, ctx, tono, ancho) => (
-  <Tarjeta nodo={nodo} tono={tono} admin={ctx.admin} resumen={contar(nodo)} abierto={ctx.abierto(nodo)} onAlternar={() => ctx.alternar(nodo.id)}
+  <Tarjeta nodo={nodo} tono={tono} modo={ctx.modo} admin={ctx.admin} resumen={contar(nodo)} abierto={ctx.abierto(nodo)} onAlternar={() => ctx.alternar(nodo.id)}
     atenuado={ctx.atenuado(nodo)} destacado={ctx.destacado(nodo)} onDepto={ctx.alDepto} ancho={ancho} />
 );
 
@@ -178,6 +186,51 @@ function Arbol({ raiz, ctx }) {
   );
 }
 
+// ── Coordinación operativa: líneas punteadas entre puestos (debajo de las tarjetas, sin cruzar los títulos) ──────────
+const COORD = "#d0452f";
+function LineasCoordinacion({ todos, clave }) {
+  const svg = useRef(null);
+  const [lineas, setLineas] = useState([]);
+  useLayoutEffect(() => {
+    const caja = svg.current?.parentElement;
+    if (!caja) return undefined;
+    const medir = () => {
+      const base = caja.getBoundingClientRect();
+      const k = base.width / (caja.offsetWidth || 1) || 1;   // el zoom del lienzo
+      const rect = (id) => { const el = caja.querySelector(`[data-nodo="${id}"]`); if (!el) return null; const r = el.getBoundingClientRect(); return { x: (r.left + r.width / 2 - base.left) / k, arriba: (r.top - base.top) / k, abajo: (r.bottom - base.top) / k, izq: (r.left - base.left) / k, der: (r.right - base.left) / k }; };
+      const nuevas = [];
+      todos.forEach((n) => (n.coordina_con || []).forEach((destino, i) => {
+        const a = rect(n.id), b = rect(destino);
+        if (!a || !b) return;
+        if (Math.abs(a.arriba - b.arriba) < 30) {   // en la misma fila: por encima de las tarjetas (entre la línea de reporte y ellas), sin cruzar ninguna tarjeta
+          const y = Math.min(a.arriba, b.arriba) - 9 - i * 4;
+          const ax = a.x + (b.x > a.x ? 1 : -1) * Math.min(40, (a.der - a.izq) / 4), bx = b.x + (b.x > a.x ? -1 : 1) * Math.min(40, (b.der - b.izq) / 4);
+          nuevas.push({ id: `${n.id}-${destino}`, d: `M${ax},${a.arriba} V${y} H${bx} V${b.arriba}`, puntos: [[ax, a.arriba], [bx, b.arriba]] });
+        } else {   // en filas distintas: sale por el lado y entra por el lado
+          const sale = b.x > a.x ? a.der : a.izq, entra = b.x > a.x ? b.izq : b.der;
+          const ya = (a.arriba + a.abajo) / 2, yb = (b.arriba + b.abajo) / 2, xm = (sale + entra) / 2;
+          nuevas.push({ id: `${n.id}-${destino}`, d: `M${sale},${ya} H${xm} V${yb} H${entra}`, puntos: [[sale, ya], [entra, yb]] });
+        }
+      }));
+      setLineas(nuevas);
+    };
+    const t = setTimeout(medir, 60);
+    const obs = new ResizeObserver(medir);
+    obs.observe(caja);
+    return () => { clearTimeout(t); obs.disconnect(); };
+  }, [todos, clave]);
+  return (
+    <svg ref={svg} className="pointer-events-none absolute inset-0 !mt-0 size-full overflow-visible" aria-hidden>
+      {lineas.map((l) => (
+        <g key={l.id}>
+          <path d={l.d} fill="none" stroke={COORD} strokeWidth="1.6" strokeDasharray="5 3" />
+          {l.puntos.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.5" fill={COORD} />)}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 /** Zoom real: se escala el gráfico y se reserva su tamaño para que el desplazamiento sea correcto. */
 function Lienzo({ escala, children }) {
   const interior = useRef(null);
@@ -237,6 +290,10 @@ export default function Organigrama() {
   const [cerrados, setCerrados] = useState(() => new Set());
   const [escala, setEscala] = useState(1);
   const [vista, setVista] = useState(() => (window.matchMedia("(max-width: 767px)").matches ? "lista" : "grafico"));
+  const [modo, setModo] = useState("nominal");   // estructural: unidades; nominal: cargos y personas
+  const [params, setParams] = useSearchParams();
+  const pestana = params.get("ver") || "organigrama";
+  const [aprobando, setAprobando] = useState(false);
   const contenedor = useRef(null);
 
   useEffect(() => { organigrama().then(setDatos).catch((e) => setError(e.message)); }, []);
@@ -255,13 +312,13 @@ export default function Organigrama() {
 
   const alternar = useCallback((id) => setCerrados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; }), []);
   const ctx = useMemo(() => ({
-    admin: esAdmin, alternar,
+    admin: esAdmin, alternar, modo,
     // Con una búsqueda activa se abren las ramas que contienen coincidencias; si no, manda lo que la persona contrajo
     abierto: (n) => (t ? ramaCoincide(n, t) : !cerrados.has(n.id)),
     atenuado: (n) => (t ? !ramaCoincide(n, t) : depto != null && n.departamento_id !== depto),
     destacado: (n) => (t ? coincideNodo(n, t) : false),
     alDepto: (id) => setDepto((d) => (d === id ? d : id)),
-  }), [esAdmin, alternar, t, cerrados, depto]);
+  }), [esAdmin, alternar, t, cerrados, depto, modo]);
 
   // Ajusta el gráfico al ancho disponible (sin bajar de `minimo`, para que el texto siga leyéndose)
   // La «cámara» del organigrama: el zoom y el desplazamiento se animan JUNTOS, cuadro a cuadro (300 ms), en un solo movimiento
@@ -433,13 +490,26 @@ export default function Organigrama() {
       <header className="mb-5 flex flex-wrap items-end justify-between gap-4 overflow-hidden rounded-xl bg-azul px-5 py-5 text-white md:px-7 print:rounded-none">
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-amarillo">Adzone D. M. / {new Date().getFullYear()}</p>
-          <h1 className="mt-1 text-[26px] font-bold leading-tight !text-white md:text-3xl">Organigrama estructural</h1>
-          <p className="mt-1 max-w-[70ch] text-sm text-white/75">Quién reporta a quién. El supervisor de cada persona es quien ocupa el puesto del que depende: asigna y valida sus tareas.</p>
+          <h1 className="mt-1 text-[26px] font-bold leading-tight !text-white md:text-3xl">{pestana === "matriz" ? "Matriz de reporte y coordinación" : pestana === "cambios" ? "Cambios y versiones" : `Organigrama ${modo}`}</h1>
+          <p className="mt-1 max-w-[70ch] text-sm text-white/75">¿A quién le reporto?, ¿con quién coordino? y ¿por dónde escalo un caso? El supervisor de cada persona es quien ocupa el puesto del que depende.</p>
+          <p className="mt-2 text-xs font-semibold text-white">
+            {datos.version ? <>Versión {datos.version.numero} · vigente desde {new Date(`${datos.version.vigente_desde}T12:00`).toLocaleDateString("es-DO")} · aprobada por {datos.version.aprobada_por}</> : "Borrador: todavía sin versión aprobada por Dirección General"}
+            {datos.cambios_pendientes > 0 && <span className="ml-2 rounded-full bg-amarillo px-2 py-0.5 text-[11px] text-noche">{plural(datos.cambios_pendientes, "cambio pendiente", "cambios pendientes")} de aprobar</span>}
+          </p>
         </div>
-        <button type="button" onClick={() => window.print()} className="no-imprimir inline-flex h-10 items-center gap-2 rounded-lg bg-white/15 px-4 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/25">
-          <Printer className="size-4" aria-hidden />Imprimir
-        </button>
+        <div className="no-imprimir flex flex-wrap gap-2">
+          {datos.puede_aprobar && (datos.cambios_pendientes > 0 || !datos.version) && (
+            <button type="button" onClick={() => setAprobando(true)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-amarillo px-4 text-sm font-semibold text-noche hover:bg-amarillo-600"><BadgeCheck className="size-4" aria-hidden />Aprobar versión</button>
+          )}
+          <button type="button" onClick={() => window.print()} className="inline-flex h-10 items-center gap-2 rounded-lg bg-white/15 px-4 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/25">
+            <Printer className="size-4" aria-hidden />Imprimir / PDF
+          </button>
+        </div>
       </header>
+      <ModalAprobar abierto={aprobando} pendientes={datos.cambios_pendientes} onCerrar={() => setAprobando(false)} onHecho={() => { setAprobando(false); organigrama().then(setDatos).catch(() => {}); }} />
+      <Pestanas className="no-imprimir mb-5" opciones={[{ valor: "organigrama", etiqueta: "Organigrama" }, { valor: "matriz", etiqueta: "Matriz de reporte" }, { valor: "cambios", etiqueta: "Cambios y versiones" }]}
+        valor={pestana} onCambio={(v) => setParams(v === "organigrama" ? {} : { ver: v })} />
+      {pestana === "matriz" ? <Matriz /> : pestana === "cambios" ? <Cambios /> : <>
 
       {/* Cifras de la empresa */}
       <dl className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -465,6 +535,12 @@ export default function Organigrama() {
           </div>
           {t && <p className="text-sm text-gris" aria-live="polite">{coincidencias ? plural(coincidencias, "coincidencia", "coincidencias") : "Sin coincidencias"}</p>}
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-lg border border-linea bg-fondo p-0.5" role="group" aria-label="Estructural o nominal">
+              {[["estructural", "Estructural"], ["nominal", "Nominal"]].map(([v, txt]) => (
+                <button key={v} type="button" onClick={() => setModo(v)} aria-pressed={modo === v} title={v === "estructural" ? "Unidades organizativas y sus dependencias" : "Cargos, personas y vacantes"}
+                  className={cx("rounded-md px-3 py-1.5 text-sm font-medium transition-colors", modo === v ? "bg-white text-noche shadow-sm" : "text-gris hover:text-tinta")}>{txt}</button>
+              ))}
+            </div>
             <div className="inline-flex rounded-lg border border-linea bg-fondo p-0.5" role="group" aria-label="Tipo de vista">
               {[["grafico", "Gráfico"], ["lista", "Lista"]].map(([v, txt]) => (
                 <button key={v} type="button" onClick={() => setVista(v)} aria-pressed={vista === v}
@@ -506,10 +582,14 @@ export default function Organigrama() {
       {vista === "grafico" ? (
         <div ref={contenedor} className="cursor-grab overflow-auto rounded-xl border border-linea [&.arrastrando]:cursor-grabbing [&.arrastrando]:select-none bg-white p-6 print:overflow-visible print:border-0">
           <Lienzo escala={escala}>
-            <div className="space-y-12">{datos.raices.map((r) => <Arbol key={r.id} raiz={r} ctx={ctx} />)}</div>
+            <div className="relative space-y-12">
+              {datos.raices.map((r) => <Arbol key={r.id} raiz={r} ctx={ctx} />)}
+              <LineasCoordinacion todos={todos} clave={`${[...cerrados].join(",")}|${t}|${modo}|${depto}`} />
+            </div>
           </Lienzo>
           <p className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-gris">
             <span className="inline-flex items-center gap-1.5"><span className={cx("h-px w-6", LINEA)} aria-hidden />Reporte directo</span>
+            <span className="inline-flex items-center gap-1.5"><svg width="26" height="4" aria-hidden><line x1="0" y1="2" x2="26" y2="2" stroke={COORD} strokeWidth="1.6" strokeDasharray="5 3" /></svg>Coordinación operativa (no es reporte)</span>
             <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[2px] bg-amarillo" aria-hidden />Dirección</span>
             <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[2px] bg-azul" aria-hidden />Dirección de área o gerencia</span>
             <span className="inline-flex items-center gap-1.5"><span className="size-3 rounded-[2px] border border-azul/35 bg-white" aria-hidden /><b className="font-bold text-azul">Departamento</b> (con puestos a cargo)</span>
@@ -519,6 +599,30 @@ export default function Organigrama() {
       ) : (
         <ul className="space-y-3">{datos.raices.map((r) => <ItemLista key={r.id} nodo={r} nivel={0} ctx={ctx} />)}</ul>
       )}
+      </>}
     </div>
+  );
+}
+
+function ModalAprobar({ abierto, pendientes, onCerrar, onHecho }) {
+  const [fecha, setFecha] = useState(() => new Date().toLocaleDateString("en-CA"));
+  const [notas, setNotas] = useState("");
+  const [error, setError] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const avisar = useAviso();
+  const aprobar = async () => {
+    setEnviando(true); setError("");
+    try { const v = await aprobarOrganigrama({ vigente_desde: fecha, notas }); avisar(`Versión ${v.numero} aprobada`); onHecho(); } catch (e) { setError(e.message); }
+    setEnviando(false);
+  };
+  return (
+    <Modal abierto={abierto} onCerrar={onCerrar} titulo="Aprobar versión del organigrama" descripcion={`Dirección General aprueba la versión que se comunica al personal. Incluye ${plural(pendientes, "cambio registrado", "cambios registrados")}.`}
+      pie={<><Boton variante="secundario" onClick={onCerrar}>Cancelar</Boton><Boton icono={BadgeCheck} onClick={aprobar} cargando={enviando}>Aprobar</Boton></>}>
+      <div className="space-y-4">
+        {error && <Alerta>{error}</Alerta>}
+        <Campo etiqueta="Vigente desde">{(id) => <input id={id} type="date" className="campo" value={fecha} onChange={(e) => setFecha(e.target.value)} />}</Campo>
+        <Campo etiqueta="Notas (opcional)" ayuda="Qué cambia en esta versión; las áreas ya revisaron sus puestos y dependencias.">{(id) => <textarea id={id} rows={3} className="campo" value={notas} onChange={(e) => setNotas(e.target.value)} />}</Campo>
+      </div>
+    </Modal>
   );
 }

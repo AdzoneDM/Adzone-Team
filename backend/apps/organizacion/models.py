@@ -36,6 +36,12 @@ class PuestoDeTrabajo(models.Model):
     compensacion_variable = models.TextField(blank=True, default='', verbose_name="Compensación variable")
     beneficios = models.TextField(blank=True, default='', verbose_name="Beneficios adicionales")
     alineacion_cultural = models.TextField(blank=True, default='', verbose_name="Alineación con la cultura")
+    # Organigrama estructural: la unidad que encabeza o a la que pertenece el cargo («Dirección de Operaciones» ↔ «Director de Operaciones»)
+    unidad = models.CharField("Unidad organizativa", max_length=150, blank=True, default='',
+                              help_text="Nombre de la unidad en el organigrama estructural (p. ej. «Gerencia de Call Center»).")
+    # Coordinación operativa (línea punteada): no es reporte directo ni da autoridad; documenta con quién se coordina
+    coordina_con = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='coordinado_por',
+                                          verbose_name="Coordinación operativa con")
     fecha_creacion = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Fecha de Creación"
@@ -120,3 +126,31 @@ class PerfilUsuario(models.Model):
     class Meta:
         verbose_name = "Perfil de Usuario"
         verbose_name_plural = "Perfiles de Usuarios"
+
+
+class VersionOrganigrama(models.Model):
+    """Versión aprobada por Dirección General: número, fecha de vigencia y la foto de la matriz de reporte de ese momento."""
+    numero = models.PositiveIntegerField(unique=True)
+    vigente_desde = models.DateField()
+    notas = models.TextField(blank=True)
+    aprobada_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    aprobada_en = models.DateTimeField(auto_now_add=True)
+    matriz = models.JSONField(default=list)
+
+    class Meta:
+        ordering = ['-numero']
+
+
+class CambioOrganigrama(models.Model):
+    """Registro de cambios de nomenclatura, ubicación y dependencia. Queda pendiente hasta que se aprueba una versión."""
+    fecha = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    puesto = models.ForeignKey(PuestoDeTrabajo, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    puesto_nombre = models.CharField(max_length=255)
+    campo = models.CharField(max_length=30)
+    antes = models.CharField(max_length=1000, blank=True)
+    despues = models.CharField(max_length=1000, blank=True)
+    version = models.ForeignKey(VersionOrganigrama, on_delete=models.SET_NULL, null=True, blank=True, related_name='cambios')
+
+    class Meta:
+        ordering = ['-fecha', '-id']

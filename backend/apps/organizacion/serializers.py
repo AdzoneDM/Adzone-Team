@@ -32,13 +32,16 @@ class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
             'departamento', 'departamento_nombre',
             'supervisor', 'supervisor_nombre',
             'funciones_principales', 'objetivo', 'perfil_ideal', 'compensacion_variable', 'beneficios',
-            'alineacion_cultural', 'personas', 'subordinados',
+            'alineacion_cultural', 'personas', 'subordinados', 'unidad', 'coordina_con',
             'fecha_creacion', 'fecha_modificacion',
         ]
         extra_kwargs = {
             'departamento': {'required': True},
             'supervisor': {'required': False, 'allow_null': True},
+            'coordina_con': {'required': False},
         }
+
+
 
     def to_representation(self, obj):
         # Compensación variable y beneficios: los ve quien ocupa el puesto, Gestión del Talento, salarios y Dirección
@@ -83,6 +86,8 @@ class PuestoDeTrabajoSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {"supervisor": "Ese puesto ya reporta (directa o indirectamente) a este. Se formaría un ciclo."})
                 actual = actual.supervisor
+        if self.instance and any(p.pk == self.instance.pk for p in data.get('coordina_con', [])):
+            raise serializers.ValidationError({'coordina_con': 'Un puesto no coordina consigo mismo.'})
         return data
 
 

@@ -12,7 +12,8 @@ from .serializers import PuestoDeTrabajoSerializer, UserSerializer
 
 def _puestos():
     return PuestoDeTrabajo.objects.select_related('departamento', 'supervisor').prefetch_related(
-        Prefetch('perfiles_usuarios', queryset=PerfilUsuario.objects.select_related('user')), 'subordinados'
+        Prefetch('perfiles_usuarios', queryset=PerfilUsuario.objects.select_related('user').prefetch_related('puestos_adicionales')), 'subordinados',
+        Prefetch('perfiles_adicionales', queryset=PerfilUsuario.objects.select_related('user')), 'coordina_con'
     ).order_by('departamento__nombre', 'nombre')
 
 
@@ -22,6 +23,7 @@ def prefetch_puesto(prefijo):
         f'{prefijo}__supervisor',
         Prefetch(f'{prefijo}__perfiles_usuarios', queryset=PerfilUsuario.objects.select_related('user')),
         f'{prefijo}__subordinados',
+        f'{prefijo}__coordina_con',
     ]
 
 
@@ -39,7 +41,21 @@ class PuestoDeTrabajoViewSet(viewsets.ModelViewSet):
         if puesto.perfiles_usuarios.filter(user__is_active=True).exists():
             return Response({"detail": "Hay personas en este puesto. Cámbialas de puesto antes de borrarlo."},
                             status=status.HTTP_400_BAD_REQUEST)
+        from .estructura import registrar
+        registrar(request.user, None, {'nombre': puesto.nombre}, {'nombre': puesto.nombre, 'baja': puesto.nombre})
         return super().destroy(request, *args, **kwargs)
+
+    # Registro de cambios del organigrama (nomenclatura, ubicación y dependencia), pendiente hasta que Dirección apruebe una versión
+    def perform_create(self, serializer):
+        from .estructura import foto, registrar
+        p = serializer.save()
+        registrar(self.request.user, p, {'nombre': p.nombre, 'alta': ''}, {**foto(p), 'alta': p.nombre})
+
+    def perform_update(self, serializer):
+        from .estructura import foto, registrar
+        antes = foto(serializer.instance)
+        p = serializer.save()
+        registrar(self.request.user, p, antes, foto(p))
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -244,9 +260,12 @@ def organigrama_view(request):
     from apps.core.permisos import areas_ocultas
     ocultas = areas_ocultas(request.user)
     puestos = list(_puestos())
+    from .estructura import situacion
     nodos = {p.id: {
         'id': p.id, 'nombre': p.nombre, 'departamento': p.departamento.nombre, 'departamento_id': p.departamento_id,
-        'funciones': (p.funciones_principales or '').strip()[:260],
+        'funciones': (p.funciones_principales or '').strip()[:260], 'unidad': p.unidad,
+        'coordina_con': [x.id for x in p.coordina_con.all()], 'situacion': situacion(p),
+        'cubre': [pf.user.get_full_name() or pf.user.username for pf in p.perfiles_adicionales.all() if pf.user.is_active and p.departamento_id not in ocultas],
         'personas': [{'id': pf.user_id, 'nombre': pf.user.get_full_name() or pf.user.username}
                      for pf in p.perfiles_usuarios.all() if pf.user.is_active and p.departamento_id not in ocultas],
         'hijos': [],
@@ -258,4 +277,53 @@ def organigrama_view(request):
         else:
             raices.append(nodos[p.id])
     sin_puesto = User.objects.filter(is_active=True, perfil__puesto_trabajo__isnull=True).count()
-    return Response({'raices': raices, 'sin_puesto': sin_puesto})
+    from apps.desempeno.permisos import es_administrador
+    from .estructura import estado_version
+    return Response({'raices': raices, 'sin_puesto': sin_puesto, **estado_version(), 'puede_aprobar': es_administrador(request.user)})
+
+
+@api_view(['GET'])
+def matriz_view(request):
+    """Matriz de reporte y coordinación (todos la consultan: «¿a quién le reporto?, ¿con quién coordino?, ¿por dónde escalo?»).
+    ?formato=xlsx la descarga en Excel (editable), con el registro de cambios."""
+    from django.http import HttpResponse
+    from apps.core.permisos import areas_ocultas
+    from .estructura import estado_version, excel, matriz, revision
+    filas = matriz()
+    if areas_ocultas(request.user):   # las personas de áreas que no ve quedan fuera (los cargos sí se ven)
+        ocultas = {d for d in PuestoDeTrabajo.objects.filter(departamento_id__in=areas_ocultas(request.user)).values_list('nombre', flat=True)}
+        for f in filas:
+            if f['puesto'] in ocultas:
+                f['personas'], f['cubre'] = [], []
+    estado = estado_version()
+    if request.query_params.get('formato') == 'xlsx':
+        r = HttpResponse(excel(filas, estado['version']), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        r['Content-Disposition'] = 'attachment; filename="matriz-reporte-coordinacion.xlsx"'
+        return r
+    return Response({'filas': filas, 'revision': revision(filas), **estado})
+
+
+@api_view(['GET', 'POST'])
+def versiones_view(request):
+    """GET: versiones y registro de cambios. POST {vigente_desde, notas}: Dirección General aprueba la versión que se comunica."""
+    from datetime import date
+    from apps.desempeno.permisos import es_administrador
+    from .estructura import CAMPOS, aprobar
+    from .models import CambioOrganigrama, VersionOrganigrama
+    if request.method == 'POST':
+        if not es_administrador(request.user):
+            return Response({'detail': 'Solo Dirección General aprueba una versión del organigrama.'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            vigente = date.fromisoformat(request.data.get('vigente_desde')) if request.data.get('vigente_desde') else None
+        except ValueError:
+            return Response({'vigente_desde': ['Fecha no válida.']}, status=status.HTTP_400_BAD_REQUEST)
+        v = aprobar(request.user, vigente, (request.data.get('notas') or '')[:2000])
+        return Response({'numero': v.numero, 'vigente_desde': v.vigente_desde}, status=status.HTTP_201_CREATED)
+    nombre = lambda u: (u.get_full_name() or u.username) if u else None  # noqa: E731
+    return Response({
+        'versiones': [{'numero': v.numero, 'vigente_desde': v.vigente_desde, 'aprobada_por': nombre(v.aprobada_por), 'aprobada_en': v.aprobada_en,
+                       'notas': v.notas, 'cambios': v.cambios.count()} for v in VersionOrganigrama.objects.select_related('aprobada_por')],
+        'cambios': [{'id': c.id, 'fecha': c.fecha, 'puesto': c.puesto_nombre, 'campo': CAMPOS.get(c.campo, c.campo), 'antes': c.antes,
+                     'despues': c.despues, 'usuario': nombre(c.usuario), 'version': c.version.numero if c.version_id else None}
+                    for c in CambioOrganigrama.objects.select_related('usuario', 'version')[:500]],
+    })

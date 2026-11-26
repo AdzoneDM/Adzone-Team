@@ -20,6 +20,7 @@ export function FormPuesto({ abierto, inicial, deptos, puestos, onCerrar, onGuar
     setGuardando(true);
     try {
       const p = await guardarPuesto({ id: f.id, nombre: f.nombre.trim(), departamento: Number(f.departamento), supervisor: f.supervisor ? Number(f.supervisor) : null, funciones_principales: f.funciones_principales || "",
+        unidad: (f.unidad || "").trim(), coordina_con: (f.coordina_con || []).map(Number),
         ...Object.fromEntries(SECCIONES.map(([c]) => [c, f[c] || ""])) });
       onGuardado(p);
     } catch (err) { setError(err.message); }
@@ -42,6 +43,24 @@ export function FormPuesto({ abierto, inicial, deptos, puestos, onCerrar, onGuar
               {puestos.filter((p) => p.id !== f.id).map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>)}</Campo>
         </div>
+        <Campo etiqueta="Unidad (organigrama estructural)" ayuda="La unidad que encabeza o a la que pertenece el cargo. Ej.: «Dirección de Operaciones» para «Director de Operaciones».">
+          {(id) => <input id={id} className="campo" maxLength={150} value={f.unidad || ""} onChange={(e) => setF({ ...f, unidad: e.target.value })} placeholder="Ej.: Gerencia de Call Center" />}
+        </Campo>
+        <Campo etiqueta="Coordinación operativa con (línea punteada)" ayuda="No es reporte directo ni da autoridad: documenta con quién se coordina (p. ej. Operaciones con Comercial).">
+          {() => (
+            <div className="max-h-40 space-y-0.5 overflow-y-auto rounded-lg border border-linea p-2">
+              {puestos.filter((p) => p.id !== f.id).map((p) => {
+                const si = (f.coordina_con || []).map(Number).includes(p.id);
+                return (
+                  <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-fondo">
+                    <input type="checkbox" checked={si} onChange={() => setF({ ...f, coordina_con: si ? (f.coordina_con || []).filter((x) => Number(x) !== p.id) : [...(f.coordina_con || []), p.id] })} />
+                    {p.nombre}<span className="text-xs text-gris">· {p.departamento_nombre}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </Campo>
         <Campo etiqueta="Funciones principales" ayuda="Una función por línea.">
           {(id) => <textarea id={id} className="campo" rows={7} value={f.funciones_principales || ""} onChange={(e) => setF({ ...f, funciones_principales: e.target.value })} />}
         </Campo>

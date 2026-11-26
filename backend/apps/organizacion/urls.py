@@ -10,4 +10,6 @@ router.register(r'usuarios', views.UserViewSet, basename='usuario')
 urlpatterns = [
     path('', include(router.urls)),
     path('organigrama/', views.organigrama_view, name='organigrama'),
+    path('organigrama/matriz/', views.matriz_view),
+    path('organigrama/versiones/', views.versiones_view),
 ]

@@ -32,6 +32,13 @@ class Command(BaseCommand):
                 self.stdout.write(f'Seguimientos comerciales avisados: {seguimientos}.')
         except Exception as e:  # noqa: BLE001
             self.stderr.write(f'Seguimientos comerciales no avisados: {e}')
+        try:
+            from apps.casos.servicios import avisar_vencidos
+            casos = avisar_vencidos()
+            if casos:
+                self.stdout.write(f'Casos operativos vencidos avisados: {casos}.')
+        except Exception as e:  # noqa: BLE001
+            self.stderr.write(f'Casos vencidos no avisados: {e}')
         from apps.automatizaciones.motor import revisar_vencimientos
         reglas = revisar_vencimientos()
         from apps.operaciones.servicios_ot import revisar_excepciones

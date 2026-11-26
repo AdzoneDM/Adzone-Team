@@ -34,6 +34,8 @@ const Clientes = perezosa(() => import("@/features/clientes/Clientes"));
 const ClienteDetalle = perezosa(() => import("@/features/clientes/ClienteDetalle"));
 const Oportunidades = perezosa(() => import("@/features/comercial/Oportunidades"));
 const Asistente = perezosa(() => import("@/features/asistente/Asistente"));
+const Casos = perezosa(() => import("@/features/casos/Casos"));
+const CasoDetalle = perezosa(() => import("@/features/casos/CasoDetalle"));
 const MiTiempo = perezosa(() => import("@/features/tiempo/MiTiempo"));
 const Finanzas = perezosa(() => import("@/features/finanzas/Finanzas"));
 const Imprimir = perezosa(() => import("@/features/finanzas/Imprimir"));
@@ -130,6 +132,8 @@ export default function App() {
           <Route path="clientes/:id" element={<ClienteDetalle />} />
           <Route path="oportunidades" element={<Oportunidades />} />
           <Route path="asistente" element={<Asistente />} />
+          <Route path="casos" element={<Casos />} />
+          <Route path="casos/:id" element={<CasoDetalle />} />
           <Route path="tiempo" element={<MiTiempo />} />
           <Route path="asistencia" element={<Asistencia />} />
           <Route path="monitoreo/*" element={<Navigate to="/" replace />} />

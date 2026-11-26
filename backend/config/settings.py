@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'apps.chat',
     'apps.documentos',
     'apps.comercial',
+    'apps.casos',
     'apps.asistente',
     'corsheaders',
     'rest_framework',

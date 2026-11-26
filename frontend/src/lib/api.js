@@ -226,6 +226,10 @@ export const puesto = (id) => api(`/api/organizacion/puestos-trabajo/${id}/`);
 export const guardarPuesto = (p) => (p.id ? api(`/api/organizacion/puestos-trabajo/${p.id}/`, { method: "PATCH", body: p }) : api("/api/organizacion/puestos-trabajo/", { method: "POST", body: p }));
 export const eliminarPuesto = (id) => api(`/api/organizacion/puestos-trabajo/${id}/`, { method: "DELETE" });
 export const organigrama = () => api("/api/organizacion/organigrama/");
+export const matrizOrganigrama = () => api("/api/organizacion/organigrama/matriz/");
+export const urlMatrizExcel = "/api/organizacion/organigrama/matriz/?formato=xlsx";
+export const versionesOrganigrama = () => api("/api/organizacion/organigrama/versiones/");
+export const aprobarOrganigrama = (datos) => api("/api/organizacion/organigrama/versiones/", { method: "POST", body: datos });
 export const usuarios = () => api("/api/organizacion/usuarios/");
 export const guardarUsuario = (u) => (u.id ? api(`/api/organizacion/usuarios/${u.id}/`, { method: "PATCH", body: u }) : api("/api/organizacion/usuarios/", { method: "POST", body: u }));
 export const usuarioPendientes = (id) => api(`/api/organizacion/usuarios/${id}/pendientes/`);
@@ -671,3 +675,23 @@ export const asistenteBorrar = (id) => api(`${IA}/conversaciones/${id}/`, { meth
 export const asistentePreguntar = (texto, conversacion) => api(`${IA}/preguntar/`, { method: "POST", body: { texto, ...(conversacion ? { conversacion } : {}) } });
 export const asistenteInforme = () => api(`${IA}/informe/`);
 export const asistenteActualizarInforme = () => api(`${IA}/informe/`, { method: "POST" });
+
+// Casos operativos (incidencias, solicitudes y mejoras que centraliza Operaciones)
+const CS = "/api/casos";
+export const casosOpciones = () => api(`${CS}/opciones/`);
+export const listarCasos = (params) => api(`${CS}/${q(params)}`);
+export const obtenerCaso = (id) => api(`${CS}/${id}/`);
+export const reportarCaso = (datos, archivos = []) => {
+  const f = new FormData();
+  Object.entries(datos).forEach(([k, v]) => { if (v != null && v !== "") f.append(k, v); });
+  archivos.forEach((a) => f.append("evidencias", a));
+  return api(`${CS}/`, { method: "POST", body: f });
+};
+export const accionCaso = (id, datos, archivos = []) => {
+  if (!archivos.length) return api(`${CS}/${id}/accion/`, { method: "POST", body: datos });
+  const f = new FormData();
+  Object.entries(datos).forEach(([k, v]) => { if (v != null && v !== "") f.append(k, v); });
+  archivos.forEach((a) => f.append("evidencias", a));
+  return api(`${CS}/${id}/accion/`, { method: "POST", body: f });
+};
+export const urlEvidenciaCaso = (id, eid, descargar = false) => `${CS}/${id}/evidencias/${eid}/${descargar ? "?descargar=1" : ""}`;

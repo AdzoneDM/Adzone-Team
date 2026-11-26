@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  AlarmClock, Bell, BellRing, Boxes, Briefcase, Headset, Building, Building2, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
+  AlarmClock, Bell, BellRing, Boxes, Briefcase, Headset, Building, Building2, LifeBuoy, SlidersHorizontal, CircleCheckBig, CircleHelp, Clock, ClipboardList, Ellipsis, FolderKanban, House, KeyRound,
   Award, CalendarClock, ChartNoAxesColumn, FolderOpen, Gauge, HeartHandshake, History, UsersRound, Laptop, LayoutDashboard, ScrollText, ListChecks, LogOut, Network, Plus, Search, Settings2, ShieldCheck, DatabaseBackup, Sparkles, Square, SquarePen, Target, Trophy, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { avisos as cargarAvisos, leerAvisos, senalPresencia, tablerosDepartamentos } from "@/lib/api";
@@ -62,6 +62,7 @@ function secciones({ esAdmin, puedeValidar, puedeAsignar, puedeAutoasignar, esFi
       { a: "/ordenes", texto: "Órdenes de trabajo", icono: ClipboardList },
       { a: "/proyectos", texto: "Proyectos", icono: FolderKanban },
       { a: "/clientes", texto: "Clientes", icono: Building },
+      { a: "/casos", texto: "Casos operativos", icono: LifeBuoy },
     ] },
   ];
   if (esAlmacen || esCoordinacion || esFinanzas || misAreas.length) s[1].items.splice(1, 0, { a: "/almacen", texto: "Almacén", icono: Boxes });
