@@ -680,6 +680,10 @@ export const obtenerSolicitud = (id) => api(`${CM}/solicitudes/${id}/`);
 export const guardarSolicitud = (s) => (s.id ? api(`${CM}/solicitudes/${s.id}/`, { method: "PATCH", body: s }) : api(`${CM}/solicitudes/`, { method: "POST", body: s }));
 export const comentarSolicitud = (id, texto) => api(`${CM}/solicitudes/${id}/comentar/`, { method: "POST", body: { texto } });
 export const convertirSolicitud = (id, datos = {}) => api(`${CM}/solicitudes/${id}/convertir/`, { method: "POST", body: datos });
+export const registrarInteraccion = (id, datos) => api(`${CM}/oportunidades/${id}/interacciones/`, { method: "POST", body: datos });
+export const coincidenciasCliente = (id) => api(`${CM}/oportunidades/${id}/coincidencias/`);
+// Sin `cliente` registra el cliente con los datos del posible cliente; con `cliente` lo enlaza al que ya existe (sin duplicar)
+export const convertirEnCliente = (id, cliente) => api(`${CM}/oportunidades/${id}/convertir_cliente/`, { method: "POST", body: cliente ? { cliente } : {} });
 
 // Asistente con IA (consulta los datos con los permisos de quien pregunta) y análisis del día
 const IA = "/api/asistente";

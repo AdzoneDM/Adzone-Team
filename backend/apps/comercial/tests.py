@@ -13,7 +13,7 @@ from apps.desempeno.models import Notificacion
 from apps.operaciones.models import Cliente, Proyecto
 from apps.organizacion.models import PuestoDeTrabajo
 
-from .models import MovimientoComercial, Oportunidad, SolicitudServicio
+from .models import InteraccionComercial, MovimientoComercial, Oportunidad, SolicitudServicio
 from .servicios import avisar_seguimientos
 
 CLAVE = 'Clave-Segura-2026'
@@ -114,7 +114,7 @@ class AceptacionTests(Base):
             self.assertEqual(self.sesion(u).get(f'{API}/oportunidades/').status_code, 403, u.username)
         r = self.sesion(self.erlyn).get(f'{API}/oportunidades/resumen/').json()
         self.assertEqual([e['codigo'] for e in r['estados']],
-                         ['NUEVO', 'CONTACTADO', 'EVALUACION', 'COTIZADA', 'NEGOCIACION', 'APROBADA', 'NO_CONCRETADA'])
+                         ['NUEVO', 'CONTACTADO', 'NEGOCIACION', 'COTIZADA', 'APROBADA', 'NO_CONCRETADA'])
 
     def test_5_marketing_registra_cliente_nuevo_y_oportunidad(self):
         c = self.sesion(self.erlyn)
@@ -220,3 +220,148 @@ class SeguimientoTests(Base):
         self.assertTrue(self.sesion(self.jefe_av).get('/api/auth/session/').json()['user']['ve_solicitudes'] is False)
         self.solicitud(op, 'VIDEO')
         self.assertTrue(self.sesion(self.jefe_av).get('/api/auth/session/').json()['user']['ve_solicitudes'])
+
+
+class FlujoComercialTests(Base):
+    """Punto 9 del requerimiento: estados del flujo, posibles clientes, seguimiento y conversión en cliente sin duplicar."""
+
+    def prospecto(self, c=None, **extra):
+        c = c or self.sesion(self.erlyn)
+        datos = {'prospecto_nombre': 'Café Ñandú', 'prospecto_contacto': 'Ana Pérez', 'prospecto_telefono': '809-555-0000',
+                 'prospecto_correo': 'ana@nandu.do', 'titulo': 'Redes y fotos', 'servicios_interes': ['REDES', 'FOTOGRAFIA'],
+                 'valor_estimado': '45000.00', **extra}
+        r = c.post(f'{API}/oportunidades/', datos, format='json')
+        self.assertEqual(r.status_code, 201, r.content)
+        return r.json()
+
+    def test_estados_del_flujo_con_sus_nombres(self):
+        self.assertEqual([n for c, n in Oportunidad.ESTADOS if c in Oportunidad.ESTADOS_VIGENTES],
+                         ['Nueva oportunidad', 'Contactado', 'En negociación', 'Propuesta enviada', 'Ganada', 'Perdida'])
+        c = self.sesion(self.erlyn)
+        op = self.oportunidad(c)
+        for estado in ('CONTACTADO', 'NEGOCIACION', 'COTIZADA', 'APROBADA'):
+            self.assertEqual(c.patch(f'{API}/oportunidades/{op["id"]}/', {'estado': estado}, format='json').status_code, 200, estado)
+        self.assertEqual(c.get(f'{API}/oportunidades/{op["id"]}/').json()['estado_nombre'], 'Ganada')
+        # El estado anterior «Evaluación» ya no se ofrece, pero lo que lo tenía se sigue viendo y puede avanzar
+        self.assertEqual(c.patch(f'{API}/oportunidades/{op["id"]}/', {'estado': 'EVALUACION'}, format='json').status_code, 400)
+        vieja = Oportunidad.objects.create(cliente=self.cliente, titulo='De antes', estado='EVALUACION')
+        r = c.get(f'{API}/oportunidades/resumen/').json()
+        self.assertIn('EVALUACION', [e['codigo'] for e in r['estados']])
+        self.assertEqual(c.patch(f'{API}/oportunidades/{vieja.pk}/', {'titulo': 'De antes (editada)'}, format='json').status_code, 200)
+        self.assertEqual(c.patch(f'{API}/oportunidades/{vieja.pk}/', {'estado': 'NEGOCIACION'}, format='json').status_code, 200)
+        # «Perdida» pide el motivo
+        self.assertEqual(c.patch(f'{API}/oportunidades/{vieja.pk}/', {'estado': 'NO_CONCRETADA'}, format='json').status_code, 400)
+
+    def test_posible_cliente_sin_registrarlo(self):
+        c = self.sesion(self.erlyn)
+        clientes_antes = Cliente.objects.count()
+        op = self.prospecto(c)
+        self.assertTrue(op['es_prospecto'])
+        self.assertIsNone(op['cliente'])
+        self.assertEqual(op['cliente_nombre'], 'Café Ñandú')
+        self.assertEqual(op['servicios_interes'], ['REDES', 'FOTOGRAFIA'])
+        self.assertEqual(Cliente.objects.count(), clientes_antes)  # no se registró ningún cliente
+        # Sin cliente ni nombre del prospecto no se guarda; los servicios deben ser de la lista
+        self.assertEqual(c.post(f'{API}/oportunidades/', {'titulo': 'Sin nadie'}, format='json').status_code, 400)
+        self.assertEqual(c.post(f'{API}/oportunidades/', {'prospecto_nombre': 'X', 'titulo': 'Y', 'servicios_interes': ['NADA']},
+                                format='json').status_code, 400)
+        # Se encuentra buscando por el nombre del prospecto y con el filtro de prospectos
+        self.assertEqual([o['id'] for o in c.get(f'{API}/oportunidades/?q=Ñandú').json()], [op['id']])
+        self.oportunidad(c)
+        self.assertEqual([o['id'] for o in c.get(f'{API}/oportunidades/?tipo=prospecto').json()], [op['id']])
+        # Todavía no se le crean solicitudes a los departamentos
+        r = c.post(f'{API}/solicitudes/', {'oportunidad': op['id'], 'servicio': 'VIDEO'}, format='json')
+        self.assertEqual(r.status_code, 400)
+        # Resumen: pendientes, ganadas, perdidas y valor potencial de las abiertas
+        self.oportunidad(c, valor_estimado='5000')
+        perdida = self.oportunidad(c, valor_estimado='99999')
+        c.patch(f'{API}/oportunidades/{perdida["id"]}/', {'estado': 'NO_CONCRETADA', 'motivo_no_concretado': 'Precio'}, format='json')
+        r = c.get(f'{API}/oportunidades/resumen/').json()
+        self.assertEqual((r['pendientes'], r['ganadas'], r['perdidas'], r['prospectos']), (3, 0, 1, 1))
+        self.assertEqual(float(r['valor_abierto']), 50000.0)
+
+    def test_convertir_enlaza_al_cliente_existente_sin_duplicar(self):
+        c = self.sesion(self.erlyn)
+        existente = Cliente.objects.create(nombre='CAFE NANDU', rnc='1-01-12345-6')
+        op = self.prospecto(c)
+        r = c.get(f'{API}/oportunidades/{op["id"]}/coincidencias/').json()
+        self.assertEqual([x['id'] for x in r['iguales']], [existente.pk])
+        # Pedir crear uno nuevo no duplica: avisa que ya existe
+        r = c.post(f'{API}/oportunidades/{op["id"]}/convertir_cliente/', {}, format='json')
+        self.assertEqual(r.status_code, 409, r.content)
+        self.assertEqual(Cliente.objects.count(), 2)
+        # Mismo RNC con otro nombre también se detecta
+        op2 = self.prospecto(c, prospecto_nombre='Distribuidora del Este', prospecto_rnc='101123456')
+        self.assertEqual([x['id'] for x in c.get(f'{API}/oportunidades/{op2["id"]}/coincidencias/').json()['iguales']], [existente.pk])
+        # Se enlaza al que ya existe
+        c.patch(f'{API}/oportunidades/{op["id"]}/', {'estado': 'APROBADA'}, format='json')
+        r = c.post(f'{API}/oportunidades/{op["id"]}/convertir_cliente/', {'cliente': existente.pk}, format='json')
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertFalse(r.json()['cliente_nuevo'])
+        o = Oportunidad.objects.get(pk=op['id'])
+        self.assertEqual(o.cliente, existente)
+        self.assertEqual(Cliente.objects.count(), 2)  # Banco X y el existente: ninguno nuevo
+        self.assertTrue(MovimientoComercial.objects.filter(oportunidad=o, tipo='CLIENTE').exists())
+        # Los servicios de interés pasan a ser solicitudes para su departamento, listas para proyecto u orden
+        sols = list(SolicitudServicio.objects.filter(oportunidad=o).order_by('id'))
+        self.assertEqual([(s.servicio, s.departamento.nombre, s.cliente_id) for s in sols],
+                         [('REDES', 'Marketing', existente.pk), ('FOTOGRAFIA', 'Audiovisual', existente.pk)])
+        jefe = self.sesion(self.jefe_av)
+        foto = sols[1]
+        jefe.patch(f'{API}/solicitudes/{foto.pk}/', {'estado': 'APROBADA'}, format='json')
+        self.assertEqual(jefe.post(f'{API}/solicitudes/{foto.pk}/convertir/', {}, format='json').status_code, 200)
+        self.assertEqual(Proyecto.objects.get(solicitudes_servicio=foto).cliente, existente)
+        # Ya convertida, no se vuelve a convertir
+        self.assertEqual(c.post(f'{API}/oportunidades/{op["id"]}/convertir_cliente/', {}, format='json').status_code, 400)
+
+    def test_convertir_crea_el_cliente_con_los_datos_del_prospecto(self):
+        c = self.sesion(self.erlyn)
+        op = self.prospecto(c, prospecto_nombre='Ferretería La Unión', prospecto_rnc='131-00000-1')
+        self.assertEqual(c.get(f'{API}/oportunidades/{op["id"]}/coincidencias/').json()['iguales'], [])
+        c.patch(f'{API}/oportunidades/{op["id"]}/', {'estado': 'APROBADA'}, format='json')
+        r = c.post(f'{API}/oportunidades/{op["id"]}/convertir_cliente/', {}, format='json')
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertTrue(r.json()['cliente_nuevo'])
+        self.assertFalse(r.json()['es_prospecto'])
+        nuevo = Cliente.objects.get(nombre='Ferretería La Unión')
+        self.assertEqual((nuevo.contacto, nuevo.telefono, nuevo.correo, nuevo.rnc, nuevo.creado_por),
+                         ('Ana Pérez', '809-555-0000', 'ana@nandu.do', '131-00000-1', self.erlyn))
+        self.assertEqual(Oportunidad.objects.get(pk=op['id']).cliente, nuevo)
+        self.assertEqual(nuevo.solicitudes_servicio.count(), 2)
+        # Una perdida no se convierte
+        perdida = self.prospecto(c, prospecto_nombre='Otro prospecto')
+        c.patch(f'{API}/oportunidades/{perdida["id"]}/', {'estado': 'NO_CONCRETADA', 'motivo_no_concretado': 'No respondió'}, format='json')
+        self.assertEqual(c.post(f'{API}/oportunidades/{perdida["id"]}/convertir_cliente/', {}, format='json').status_code, 400)
+        # Quien no es comercial no convierte (ni entra)
+        self.assertEqual(self.sesion(self.dev).post(f'{API}/oportunidades/{perdida["id"]}/convertir_cliente/', {},
+                                                    format='json').status_code, 403)
+
+    def test_interacciones_de_seguimiento(self):
+        c = self.sesion(self.erlyn)
+        op = self.prospecto(c)
+        manana = (timezone.localdate() + timedelta(days=1)).isoformat()
+        r = c.post(f'{API}/oportunidades/{op["id"]}/interacciones/', {'tipo': 'LLAMADA', 'nota': 'Le interesa empezar en enero',
+                                                                       'proximo_seguimiento': manana}, format='json')
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(r.json()['usuario_nombre'], 'Erlyn')
+        r = c.post(f'{API}/oportunidades/{op["id"]}/interacciones/', {'tipo': 'PROPUESTA', 'nota': 'Plan trimestral',
+                                                                       'monto_propuesta': '42000', 'usuario': self.enmanuel.pk}, format='json')
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(c.post(f'{API}/oportunidades/{op["id"]}/interacciones/', {'tipo': 'REUNION', 'nota': '  '},
+                                format='json').status_code, 400)
+        self.assertEqual(c.post(f'{API}/oportunidades/{op["id"]}/interacciones/', {'tipo': 'FAX', 'nota': 'x'},
+                                format='json').status_code, 400)
+        detalle = c.get(f'{API}/oportunidades/{op["id"]}/').json()
+        self.assertEqual([i['tipo'] for i in detalle['interacciones']], ['PROPUESTA', 'LLAMADA'])
+        self.assertEqual(detalle['interacciones'][0]['usuario_nombre'], 'Enmanuel')
+        self.assertEqual(detalle['proximo_seguimiento'], manana)
+        self.assertEqual(InteraccionComercial.objects.filter(oportunidad_id=op['id'], registrado_por=self.erlyn).count(), 2)
+        self.assertEqual(MovimientoComercial.objects.filter(oportunidad_id=op['id'], tipo='INTERACCION').count(), 2)
+        self.assertEqual(len(c.get(f'{API}/oportunidades/{op["id"]}/interacciones/').json()), 2)
+        # Fuera de Marketing/Dirección no se ve ni se registra
+        self.assertEqual(self.sesion(self.camarografo).post(f'{API}/oportunidades/{op["id"]}/interacciones/',
+                                                            {'tipo': 'LLAMADA', 'nota': 'x'}, format='json').status_code, 403)
+        # El aviso diario de seguimiento usa el nombre del prospecto
+        Oportunidad.objects.filter(pk=op['id']).update(proximo_seguimiento=timezone.localdate())
+        avisar_seguimientos()
+        self.assertTrue(Notificacion.objects.filter(destinatario=self.erlyn, titulo='Seguimiento pendiente: Café Ñandú').exists())

@@ -1,9 +1,12 @@
+import re
+import unicodedata
+
 from django.db import transaction
 from django.utils import timezone
 
 from apps.desempeno.servicios import avisar
 
-from .models import MovimientoComercial, Oportunidad, SolicitudServicio
+from .models import SERVICIOS, InteraccionComercial, MovimientoComercial, Oportunidad, SolicitudServicio
 
 
 def registrar(usuario, tipo, oportunidad=None, solicitud=None, antes='', despues='', texto='', cambios=None):
@@ -100,8 +103,99 @@ def avisar_seguimientos(hoy=None):
         if quien is None:
             continue
         atraso = (hoy - o.proximo_seguimiento).days
-        avisar([quien], 'COMERCIAL', f"Seguimiento pendiente: {o.cliente}",
+        avisar([quien], 'COMERCIAL', f"Seguimiento pendiente: {o.nombre_cliente}",
                f"{o.codigo} · {o.titulo} · {o.get_estado_display()}" + (f" · {atraso} día(s) de atraso" if atraso else " · hoy"),
                enlace=f"/oportunidades?oportunidad={o.pk}")
         n += 1
     return n
+
+
+# ---------------------------------------------------------------- Prospecto → cliente registrado (sin duplicar)
+def normalizar_nombre(texto):
+    """«Café  Ñandú, S.R.L.» y «cafe ñandu srl» cuentan como el mismo nombre: sin tildes, sin mayúsculas, sin signos."""
+    t = unicodedata.normalize('NFKD', texto or '')
+    t = ''.join(c for c in t if not unicodedata.combining(c)).lower()
+    return ' '.join(re.sub(r'[^a-z0-9]+', ' ', t).split())
+
+
+def normalizar_rnc(texto):
+    return re.sub(r'\D', '', texto or '')
+
+
+def coincidencias_cliente(nombre, rnc=''):
+    """Clientes ya registrados que parecen el mismo prospecto.
+
+    Devuelve (iguales, parecidos): «iguales» tienen el mismo nombre (sin distinguir mayúsculas ni tildes) o el mismo RNC, y con
+    ellos NO se crea un cliente nuevo; «parecidos» contienen el nombre o están contenidos en él (solo como sugerencia).
+    """
+    from apps.operaciones.models import Cliente
+    clave, rnc = normalizar_nombre(nombre), normalizar_rnc(rnc)
+    iguales, parecidos = [], []
+    if not clave and not rnc:
+        return iguales, parecidos
+    for c in Cliente.objects.only('id', 'nombre', 'rnc', 'contacto', 'telefono', 'correo', 'activo'):
+        otro = normalizar_nombre(c.nombre)
+        if (clave and otro == clave) or (rnc and normalizar_rnc(c.rnc) == rnc):
+            iguales.append(c)
+        elif clave and len(clave) >= 4 and otro and (clave in otro or (len(otro) >= 4 and otro in clave)):
+            parecidos.append(c)
+    return iguales, parecidos[:5]
+
+
+def crear_solicitudes_de_interes(o, usuario):
+    """Los servicios de interés anotados en el prospecto pasan a ser solicitudes para su departamento (los que aún no la tengan)."""
+    from apps.core.models import Departamento
+    ya = set(o.solicitudes.values_list('servicio', flat=True))
+    creadas = []
+    for codigo in o.servicios_interes or []:
+        if codigo in ya or codigo not in SERVICIOS:
+            continue
+        sugerido = SERVICIOS[codigo][1]
+        depto = (Departamento.objects.filter(nombre__iexact=sugerido).first() if sugerido else None) or o.departamento
+        if depto is None:
+            continue
+        s = SolicitudServicio.objects.create(cliente=o.cliente, oportunidad=o, servicio=codigo, departamento=depto, creado_por=usuario,
+                                             servicio_detalle='Por definir' if codigo == 'OTRO' else '', descripcion=o.necesidades)
+        registrar(usuario, 'CREADA', solicitud=s, despues=s.estado, texto=s.servicio_nombre)
+        registrar(usuario, 'CAMBIO', oportunidad=o, texto=f"Nueva solicitud {s.codigo}: {s.servicio_nombre} → {depto}")
+        avisar_solicitud_nueva(s, usuario)
+        ya.add(codigo)
+        creadas.append(s)
+    return creadas
+
+
+@transaction.atomic
+def convertir_en_cliente(o, usuario, cliente=None):
+    """Enlaza la oportunidad a `cliente` (uno que ya existe) o, si no se indica, registra el cliente con los datos del prospecto.
+
+    Si ya hay un cliente con el mismo nombre o RNC no se crea otro: se devuelve ValueError con esos clientes para elegir uno.
+    """
+    from apps.operaciones.models import Cliente
+    nuevo = cliente is None
+    if nuevo:
+        iguales, _ = coincidencias_cliente(o.prospecto_nombre, o.prospecto_rnc)
+        if iguales:
+            raise ValueError(iguales)
+        if not (o.prospecto_nombre or '').strip():
+            raise ValueError([])
+        cliente = Cliente.objects.create(
+            nombre=o.prospecto_nombre.strip()[:200], rnc=o.prospecto_rnc, contacto=o.prospecto_contacto,
+            telefono=o.prospecto_telefono, correo=o.prospecto_correo, creado_por=usuario,
+            notas=f"Registrado desde la oportunidad {o.codigo}.")
+    o.cliente = cliente
+    o.save(update_fields=['cliente', 'fecha_modificacion'])
+    texto = (f"Cliente nuevo registrado: {cliente.nombre}" if nuevo
+             else f"Enlazada al cliente que ya existía: {cliente.nombre} (no se creó un duplicado)")
+    registrar(usuario, 'CLIENTE', oportunidad=o, texto=texto,
+              cambios={'cliente': {'antes': o.prospecto_nombre or '', 'despues': cliente.nombre}})
+    crear_solicitudes_de_interes(o, usuario)
+    return cliente, nuevo
+
+
+def registrar_interaccion(o, usuario, datos):
+    i = InteraccionComercial.objects.create(oportunidad=o, registrado_por=usuario, **datos)
+    resumen = f"{i.get_tipo_display()}: {i.nota[:300]}"
+    if i.monto_propuesta is not None:
+        resumen += f" (RD$ {i.monto_propuesta:,.2f})"
+    registrar(usuario, 'INTERACCION', oportunidad=o, texto=resumen)
+    return i

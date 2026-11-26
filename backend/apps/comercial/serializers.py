@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import SERVICIOS, MovimientoComercial, Oportunidad, SolicitudServicio
+from .models import SERVICIOS, InteraccionComercial, MovimientoComercial, Oportunidad, SolicitudServicio
 from .permisos import puede_cambiar_solicitud
 
 
@@ -54,9 +54,34 @@ class SolicitudSerializer(serializers.ModelSerializer):
         return bool(r and puede_cambiar_solicitud(r.user, o))
 
 
+class InteraccionSerializer(serializers.ModelSerializer):
+    tipo_nombre = serializers.CharField(source='get_tipo_display', read_only=True)
+    usuario_nombre = serializers.SerializerMethodField()
+    registrado_por_nombre = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InteraccionComercial
+        fields = ['id', 'oportunidad', 'tipo', 'tipo_nombre', 'fecha', 'nota', 'monto_propuesta', 'usuario', 'usuario_nombre',
+                  'registrado_por_nombre', 'fecha_registro']
+        read_only_fields = ['oportunidad']
+        extra_kwargs = {'fecha': {'required': False}}
+
+    def get_usuario_nombre(self, o):
+        return nombre(o.usuario)
+
+    def get_registrado_por_nombre(self, o):
+        return nombre(o.registrado_por)
+
+    def validate_nota(self, v):
+        if not (v or '').strip():
+            raise serializers.ValidationError("Escribe qué se habló o qué se envió.")
+        return v.strip()[:4000]
+
+
 class OportunidadSerializer(serializers.ModelSerializer):
     estado_nombre = serializers.CharField(source='get_estado_display', read_only=True)
-    cliente_nombre = serializers.CharField(source='cliente.nombre', read_only=True)
+    cliente_nombre = serializers.CharField(source='nombre_cliente', read_only=True)
+    es_prospecto = serializers.BooleanField(read_only=True)
     departamento_nombre = serializers.CharField(source='departamento.nombre', read_only=True, default=None)
     responsable_nombre = serializers.SerializerMethodField()
     creado_por_nombre = serializers.SerializerMethodField()
@@ -65,10 +90,11 @@ class OportunidadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Oportunidad
-        fields = ['id', 'codigo', 'cliente', 'cliente_nombre', 'titulo', 'necesidades', 'departamento', 'departamento_nombre',
-                  'responsable', 'responsable_nombre', 'estado', 'estado_nombre', 'fecha_contacto', 'proximo_seguimiento',
-                  'motivo_no_concretado', 'creado_por_nombre', 'fecha_creacion', 'fecha_modificacion', 'fecha_cierre', 'servicios',
-                  'seguimiento_vencido']
+        fields = ['id', 'codigo', 'cliente', 'cliente_nombre', 'es_prospecto', 'prospecto_nombre', 'prospecto_contacto',
+                  'prospecto_telefono', 'prospecto_correo', 'prospecto_rnc', 'servicios_interes', 'valor_estimado', 'titulo',
+                  'necesidades', 'departamento', 'departamento_nombre', 'responsable', 'responsable_nombre', 'estado', 'estado_nombre',
+                  'fecha_contacto', 'proximo_seguimiento', 'motivo_no_concretado', 'creado_por_nombre', 'fecha_creacion',
+                  'fecha_modificacion', 'fecha_cierre', 'servicios', 'seguimiento_vencido']
         read_only_fields = ['codigo', 'fecha_cierre']
 
     def get_responsable_nombre(self, o):
@@ -84,11 +110,27 @@ class OportunidadSerializer(serializers.ModelSerializer):
     def get_seguimiento_vencido(self, o):
         return bool(o.abierta and o.proximo_seguimiento and o.proximo_seguimiento <= timezone.localdate())
 
+    def validate_servicios_interes(self, v):
+        if not isinstance(v, list) or any(c not in SERVICIOS for c in v):
+            raise serializers.ValidationError("Elige servicios de la lista.")
+        return list(dict.fromkeys(v))
+
+    def validate_valor_estimado(self, v):
+        if v is not None and v < 0:
+            raise serializers.ValidationError("El valor potencial no puede ser negativo.")
+        return v
+
     def validate(self, datos):
         estado = datos.get('estado', getattr(self.instance, 'estado', 'NUEVO'))
+        if 'estado' in datos and estado in Oportunidad.ESTADOS_RETIRADOS and getattr(self.instance, 'estado', None) != estado:
+            raise serializers.ValidationError({'estado': "Ese estado ya no se usa. Elige uno del flujo actual."})
         motivo = datos.get('motivo_no_concretado', getattr(self.instance, 'motivo_no_concretado', ''))
         if estado == 'NO_CONCRETADA' and not (motivo or '').strip():
-            raise serializers.ValidationError({'motivo_no_concretado': "Explica por qué no se concretó."})
+            raise serializers.ValidationError({'motivo_no_concretado': "Explica por qué se perdió."})
+        cliente = datos.get('cliente', getattr(self.instance, 'cliente', None))
+        prospecto = datos.get('prospecto_nombre', getattr(self.instance, 'prospecto_nombre', ''))
+        if cliente is None and not (prospecto or '').strip():
+            raise serializers.ValidationError({'cliente': "Elige el cliente o escribe el nombre del posible cliente."})
         return datos
 
 
