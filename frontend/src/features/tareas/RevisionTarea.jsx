@@ -9,7 +9,7 @@ import { anunciarNovedades } from "@/lib/novedades";
 import { useRecurso } from "@/lib/recursos";
 import { useSesion } from "@/lib/sesion";
 import { Checklist } from "@/features/ordenes/piezas";
-import { EquipoTarea, Historial, Pasos, SelectorArchivos } from "@/features/tareas/componentes";
+import { EquipoTarea, Historial, Pasos, SelectorArchivos, TextoCopiable } from "@/features/tareas/componentes";
 import { Alerta, Avatar, Boton, Campo, Insignia, Modal, PrioridadTarea, cx, useAviso, useConfirmar } from "@/components/ui";
 import { BotonesGestion } from "./GestionTarea";
 import { ESCALA_CALIDAD, diasTarde, entregaDe, evidenciaActual, tamanoLegible, textoEspera, tipoDeArchivo } from "./validarUtil";
@@ -181,7 +181,7 @@ export default function RevisionTarea({ tarea, onListo, onFallo }) {
           {tarea.rondas_revision > 0 && <Insignia tono="rojo"><RotateCcw className="size-3" aria-hidden />Entrega n.º {tarea.rondas_revision + 1}</Insignia>}
           <EquipoTarea tarea={tarea} />
         </p>
-        {tarea.descripcion && <p className="whitespace-pre-line rounded-xl bg-fondo px-4 py-3 text-[15px] leading-relaxed">{tarea.descripcion}</p>}
+        {tarea.descripcion && <TextoCopiable texto={tarea.descripcion} className="text-[15px]" />}
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border border-linea p-4 sm:grid-cols-3">
           <Dato etiqueta="Asignada">{fechaCorta(tarea.fecha_creacion)}{tarea.asignada_por_nombre ? <span className="block text-xs font-normal text-gris">por {tarea.asignada_por_nombre}</span> : null}</Dato>
           <Dato etiqueta="Entregada">{fechaHora(entregaDe(tarea))}<span className="block text-xs font-normal text-gris">{textoEspera(tarea)}</span></Dato>

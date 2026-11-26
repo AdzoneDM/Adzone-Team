@@ -1,5 +1,9 @@
 # Cambios
 
+## 12.69 · 26/11/2026 · Botón «Copiar» en el texto de la tarea
+
+- Al abrir una tarea (Mis tareas, Mi equipo, avisos «Ver tarea») y en la revisión de **Por validar**, los detalles que escribió quien la asignó traen un botón **Copiar** que copia el texto tal cual (saltos de línea, enlaces, emojis) y confirma con «Copiado». Si el teléfono no da permiso al portapapeles, se usa el método antiguo y, si tampoco se puede, avisa que se mantenga pulsado el texto.
+
 ## 12.68.1 · 25/11/2026 · Corrección: «Gestión de clientes» no mostraba el botón Editar
 
 - En la 12.68 el servidor ya dejaba editar clientes con «Gestión de clientes», pero la ficha del cliente mostraba el botón **Editar** solo a quien gestiona un área o a Finanzas. Ahora sale a quien tiene el permiso. Borrar clientes sigue siendo de quien gestiona o de Finanzas (el requerimiento pide consultar, crear y editar).

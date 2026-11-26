@@ -1,6 +1,6 @@
 // Piezas de tareas que comparten Mis tareas, Por validar y Tareas del equipo.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Briefcase, Camera, Check, ExternalLink, FileText, Film, ImagePlus, Link2, Paperclip, Repeat, Target, Trash2, Users, Video, X } from "lucide-react";
+import { Briefcase, Camera, Check, Copy, ExternalLink, FileText, Film, ImagePlus, Link2, Paperclip, Repeat, Target, Trash2, Users, Video, X } from "lucide-react";
 import { comentarTarea, comentariosTarea, entregarTarea, historialTarea, marcarPaso, obtenerTarea, quitarReferencia, subirReferencias } from "@/lib/api";
 import Comentarios from "@/components/Comentarios";
 import { BotonesGestion } from "@/features/tareas/GestionTarea";
@@ -10,6 +10,37 @@ import { ESTADOS, fechaCorta, fechaHora, vencimiento } from "@/lib/formato";
 import { Alerta, Boton, Campo, EstadoTarea, Estrellas, Insignia, Modal, PrioridadTarea, cx, useAviso } from "@/components/ui";
 
 const MAX_LADO = 1600;
+
+async function copiarTexto(texto) {
+  try { await navigator.clipboard.writeText(texto); return true; } catch { /* sin permiso: se intenta a la antigua */ }
+  const area = document.createElement("textarea");
+  area.value = texto; area.setAttribute("readonly", ""); area.style.position = "fixed"; area.style.opacity = "0";
+  document.body.appendChild(area); area.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch { ok = false; }
+  area.remove();
+  return ok;
+}
+
+// Texto de la tarea (los detalles que escribió quien la asignó) con un botón para copiarlo tal cual.
+export function TextoCopiable({ texto, className }) {
+  const avisar = useAviso();
+  const [copiado, setCopiado] = useState(false);
+  const copiar = async () => {
+    if (await copiarTexto(texto)) { setCopiado(true); avisar("Texto copiado"); setTimeout(() => setCopiado(false), 2000); }
+    else avisar("No se pudo copiar. Mantén pulsado el texto para seleccionarlo.", "rojo");
+  };
+  return (
+    <div className={cx("relative rounded-xl bg-fondo px-4 py-3 pr-24", className)}>
+      <p className="whitespace-pre-line select-text leading-relaxed">{texto}</p>
+      <button type="button" onClick={copiar} aria-label="Copiar el texto de la tarea"
+        className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg border border-linea bg-white px-2 py-1 text-xs font-medium text-gris hover:text-tinta">
+        {copiado ? <Check className="size-3.5 text-verde" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+        {copiado ? "Copiado" : "Copiar"}
+      </button>
+    </div>
+  );
+}
 const MAX_ARCHIVOS = 10;
 const EXT_PERMITIDAS = /\.(jpe?g|png|webp|heic|heif|gif|pdf|mp4|mov|m4v|webm|avi|mkv|3gp|mpe?g|doc|docx|xls|xlsx|ppt|pptx|odt|ods|csv|txt|zip)$/i;
 const esDocumento = (f) => /\.(doc|docx|xls|xlsx|ppt|pptx|odt|ods|csv|txt|zip)$/i.test(f.name || "");
@@ -419,7 +450,7 @@ export function DetalleTarea({ tarea: recibida, abierto, onCerrar, pie, onCambio
           {tarea.revisor_nombre && <div><dt className="text-gris">La valida</dt><dd className="font-medium">{tarea.revisor_nombre}</dd></div>}
           {tarea.kpi_nombre && <div className="col-span-2 sm:col-span-3"><dt className="text-gris">Suma al KPI</dt><dd className="flex items-center gap-1.5 font-medium"><Target className="size-4 text-azul" />{tarea.kpi_nombre}</dd></div>}
         </dl>
-        {tarea.descripcion && <p className="whitespace-pre-line text-[15px]">{tarea.descripcion}</p>}
+        {tarea.descripcion && <TextoCopiable texto={tarea.descripcion} className="text-[15px]" />}
 
         <Pasos tarea={tarea} onCambio={onCambio} />
 
