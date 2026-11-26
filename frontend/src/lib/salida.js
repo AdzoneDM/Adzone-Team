@@ -27,9 +27,19 @@ export function recargarSinAviso() {
   window.location.reload();
 }
 
+// Recargar con el teclado (F5, Ctrl + R, Ctrl + Mayús + R, Cmd + R) no es cerrar: no se pregunta.
+// (El botón de recargar del navegador no se puede distinguir de cerrar: el navegador no lo dice.)
+let recargando = 0;
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (e) => {
+    const r = e.key === "F5" || ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "r" || e.key === "R"));
+    if (r) recargando = Date.now();
+  }, true);
+}
+
 /** Escucha el cierre de la pestaña/navegador mientras haya algo pendiente. */
 export function alCerrarPestana(e) {
-  if (!mensaje || omitir) return undefined;
+  if (!mensaje || omitir || Date.now() - recargando < 3000) return undefined;
   e.preventDefault();
   e.returnValue = `${TITULO_CIERRE} ${mensaje}`;   // los navegadores muestran su texto propio, pero lo exigen para preguntar
   return e.returnValue;
