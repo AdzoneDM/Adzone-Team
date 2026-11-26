@@ -162,3 +162,50 @@ class SubidaPorPartesTests(Base):
         self.assertFalse(SubidaPorPartes.objects.filter(pk=sid).exists())
         self.assertFalse(os.path.exists(os.path.join(MEDIA, CARPETA, sid)))
         self.assertTrue(os.path.exists(os.path.join(MEDIA, CARPETA, nuevo)))
+
+
+@override_settings(MEDIA_ROOT=MEDIA, SUBIDA_PARTE_BYTES=PARTE, CHAT_ANTIVIRUS='exigir', CLAMAV_STREAM_MAX_MB=1)
+class AntivirusZipGrandeTests(Base):
+    """El antivirus del servidor solo recibe hasta 100 MB por envío: un ZIP más grande se revisa archivo por archivo."""
+    def subir_zip(self, datos):
+        self.como(self.vladi)
+        inicio = self.c.post(S, {'nombre': 'grande.zip', 'tamano': len(datos)}, format='json').json()
+        for i in range(inicio['partes']):
+            self.c.put(f"{S}{inicio['id']}/partes/{i}/", data=datos[i * PARTE:(i + 1) * PARTE], content_type='application/octet-stream')
+        return self.c.post(f"{S}{inicio['id']}/completar/")
+
+    def zip_varios(self, tamanos):
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, 'w', zipfile.ZIP_STORED) as z:
+            for i, mb in enumerate(tamanos):
+                z.writestr(f'parte{i}.png', os.urandom(int(mb * 1024 * 1024)))
+        return b.getvalue()
+
+    def test_zip_mas_grande_que_el_tope_se_revisa_por_archivo(self):
+        from unittest import mock
+        from apps.chat import antivirus
+        enviados = []
+        def falso(f):
+            enviados.append(len(f.read()))
+            return antivirus.LIMPIO, ''
+        with mock.patch.object(antivirus, 'escanear', side_effect=falso):
+            r = self.subir_zip(self.zip_varios([0.6, 0.6, 0.6]))
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(len(enviados), 3)                       # uno por archivo, nunca el ZIP entero
+        self.assertTrue(all(n <= 1024 * 1024 for n in enviados))
+
+    def test_archivo_interno_mas_grande_que_el_tope_se_rechaza_con_explicacion(self):
+        from unittest import mock
+        from apps.chat import antivirus
+        with mock.patch.object(antivirus, 'escanear', return_value=(antivirus.LIMPIO, '')):
+            r = self.subir_zip(self.zip_varios([1.5, 0.2]))
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('parte0.png', r.content.decode())
+
+    def test_amenaza_dentro_del_zip(self):
+        from unittest import mock
+        from apps.chat import antivirus
+        with mock.patch.object(antivirus, 'escanear', side_effect=[(antivirus.LIMPIO, ''), (antivirus.INFECTADO, 'Eicar-Test')]):
+            r = self.subir_zip(self.zip_varios([0.6, 0.6]))
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('Eicar', r.content.decode())

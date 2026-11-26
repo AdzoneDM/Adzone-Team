@@ -265,6 +265,8 @@ EVIDENCIA_VIDEO_MAX_MB = int(env('EVIDENCIA_VIDEO_MAX_MB', '60'))
 # Adjuntos grandes de tareas (ZIP y videos de cientos de MB). El nginx de Plesk SIGUE limitando cada petición a 64 MB
 # (client_max_body_size, no se toca): por eso el navegador los sube POR PARTES (/api/subidas/), cada parte una petición pequeña.
 # Las partes se juntan en MEDIA_ROOT/subidas_tmp/<id>/ (el único lugar con escritura en el contenedor) y las incompletas se borran a las 24 h.
+# El antivirus (clamd) acepta envíos de hasta StreamMaxLength (100 MB en el servidor): un ZIP más grande se revisa archivo por archivo
+CLAMAV_STREAM_MAX_MB = int(env('CLAMAV_STREAM_MAX_MB', '95'))
 ADJUNTO_GRANDE_MAX_MB = int(env('ADJUNTO_GRANDE_MAX_MB', '400'))   # ZIP de una tarea (referencias, entregas, devoluciones)
 EVIDENCIA_VIDEO_GRANDE_MAX_MB = int(env('EVIDENCIA_VIDEO_GRANDE_MAX_MB', str(ADJUNTO_GRANDE_MAX_MB)))   # video subido por partes
 SUBIDA_PARTE_MB = int(env('SUBIDA_PARTE_MB', '8'))   # tamaño de cada parte (debe quedar muy por debajo de los 64 MB de nginx)

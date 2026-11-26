@@ -32,10 +32,10 @@
 
 **Adjuntos grandes (ZIP y videos hasta 400 MB)**
 - Subida por partes de 8 MB (el nginx de Plesk sigue en 64 MB por petición, sin tocar el servidor). Temporales en MEDIA_ROOT/subidas_tmp (se limpian a las 24 h). ZIP revisados como en el chat (antivirus, bomba de compresión, ejecutables). Ajustes: ADJUNTO_GRANDE_MAX_MB, EVIDENCIA_VIDEO_GRANDE_MAX_MB, SUBIDA_PARTE_MB.
-- Pendiente de revisar en el servidor: `StreamMaxLength` de ClamAV (por defecto 25 MB) para escanear ZIP grandes.
+- El antivirus del servidor acepta envíos de hasta 100 MB (`StreamMaxLength`): un ZIP más grande se revisa archivo por archivo (descomprimido); si un archivo de adentro pasa de 95 MB se pide subirlo por separado (CLAMAV_STREAM_MAX_MB).
 
 **Base de datos (solo agrega; nada se borra)**: core 0022, desempeno 0035 (vínculo de tareas y nombres «En pausa»), operaciones 0006 (logo), comercial 0002 (prospectos e interacciones).
-**Pruebas**: 779 pruebas automáticas (nuevas: expediente y reportes, subidas por partes, oportunidades).
+**Pruebas**: 782 pruebas automáticas (nuevas: expediente y reportes, subidas por partes, oportunidades).
 
 ## 12.75 · 26/11/2026 · Asistente IA y análisis del día
 

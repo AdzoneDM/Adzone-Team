@@ -106,12 +106,48 @@ def _revisar_zip(archivo):
             return f'el ZIP trae archivos ejecutables (.{", .".join(malos)}) y no se permite por seguridad'
     if settings.CHAT_ANTIVIRUS == 'omitir':
         return None
-    estado, detalle = antivirus.escanear(archivo)
-    if estado == antivirus.INFECTADO:
-        return f'el antivirus detectó una amenaza en el ZIP ({detalle})'
-    if estado == antivirus.NO_DISPONIBLE:
-        return 'no se pudo revisar el ZIP con el antivirus en este momento. Inténtalo de nuevo en unos minutos'
+    # clamd solo acepta envíos de hasta StreamMaxLength (100 MB en el servidor). Un ZIP más grande se revisa archivo por archivo:
+    # cada uno se manda descomprimido al antivirus (así revisa el contenido real); uno solo que pase el tope no se puede revisar.
+    tope = getattr(settings, 'CLAMAV_STREAM_MAX_MB', 95) * MB
+    if archivo.seek(0, 2) <= tope:
+        archivo.seek(0)
+        estado, detalle = antivirus.escanear(archivo)
+        if estado == antivirus.INFECTADO:
+            return f'el antivirus detectó una amenaza en el ZIP ({detalle})'
+        if estado == antivirus.NO_DISPONIBLE:
+            return 'no se pudo revisar el ZIP con el antivirus en este momento. Inténtalo de nuevo en unos minutos'
+        return None
+    archivo.seek(0)
+    grandes = [i.filename for i in infos if i.file_size > tope]
+    if grandes:
+        return (f'dentro del ZIP hay archivos de más de {tope // MB} MB ({", ".join(grandes[:3])}) que el antivirus no puede revisar. '
+                'Súbelos por separado (los videos van sin comprimir) o divide el ZIP')
+    try:
+        with zipfile.ZipFile(archivo) as z:
+            for info in infos:
+                if info.is_dir() or not info.file_size:
+                    continue
+                with z.open(info) as miembro:
+                    estado, detalle = antivirus.escanear(_Rebobinable(miembro))
+                if estado == antivirus.INFECTADO:
+                    return f'el antivirus detectó una amenaza en «{info.filename}» ({detalle})'
+                if estado == antivirus.NO_DISPONIBLE:
+                    return 'no se pudo revisar el ZIP con el antivirus en este momento. Inténtalo de nuevo en unos minutos'
+    finally:
+        archivo.seek(0)
     return None
+
+
+class _Rebobinable:
+    """Un archivo de dentro del ZIP leído en orden; `escanear` lo rebobina al empezar y al terminar (aquí no hace falta)."""
+    def __init__(self, f):
+        self.f = f
+
+    def read(self, n=-1):
+        return self.f.read(n)
+
+    def seek(self, *args):
+        return 0
 
 
 def revisar_archivo(ruta, nombre):
