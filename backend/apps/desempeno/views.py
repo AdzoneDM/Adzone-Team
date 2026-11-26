@@ -3,6 +3,7 @@ import mimetypes
 import os
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Count, Max, Q
@@ -14,6 +15,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
+from apps.core import subidas
 from apps.core.models import Departamento
 from apps.kpis.models import KPIAsignado
 from apps.tiempo import servicios as cronometro
@@ -138,9 +140,13 @@ class TareaViewSet(viewsets.ModelViewSet):
         if not puede_editar_tarea(request.user, tarea):
             raise PermissionDenied("Para adjuntar referencias a esta tarea hace falta el permiso «Editar tareas» sobre ella.")
         datos = ReferenciasSerializer(data={'archivos': request.FILES.getlist('archivos'), 'nota': request.data.get('nota', ''),
-                                            'momento': request.data.get('momento') or 'ASIGNACION'})
+                                            'momento': request.data.get('momento') or 'ASIGNACION', 'subidas': subidas.ids_de_subidas(request)})
         datos.is_valid(raise_exception=True)
-        n = self._guardar_referencias(tarea, datos.validated_data['archivos'], datos.validated_data['momento'], datos.validated_data.get('nota', ''))
+        with transaction.atomic():
+            grandes = subidas.tomar(request.user, [str(i) for i in datos.validated_data.get('subidas') or []])
+            n = self._guardar_referencias(tarea, list(datos.validated_data.get('archivos') or []) + grandes,
+                                          datos.validated_data['momento'], datos.validated_data.get('nota', ''))
+            subidas.marcar_usadas(grandes)
         servicios.al_referenciar(tarea, request.user, n)
         return self._respuesta(tarea)
 
@@ -356,12 +362,14 @@ class TareaViewSet(viewsets.ModelViewSet):
             'evidencia_nota': request.data.get('evidencia_nota', ''),
             'evidencia_enlace': request.data.get('evidencia_enlace', ''),
             'archivos': request.FILES.getlist('archivos') or request.FILES.getlist('evidencia_archivo'),
+            'subidas': subidas.ids_de_subidas(request),
         }
         entrega = EntregaSerializer(data=datos)
         entrega.is_valid(raise_exception=True)
         datos = entrega.validated_data
 
         with transaction.atomic():
+            grandes = subidas.tomar(request.user, [str(i) for i in datos.get('subidas') or []])
             tarea.evidencia_nota = datos.get('evidencia_nota', '').strip()
             tarea.evidencia_enlace = datos.get('evidencia_enlace', '')
             tarea.estado = 'EN_REVISION'
@@ -370,12 +378,13 @@ class TareaViewSet(viewsets.ModelViewSet):
             tarea.fecha_inicio_trabajo = tarea.fecha_inicio_trabajo or tarea.fecha_entrega_real
             tarea.comentario_revision = ''
             tarea.save()
-            for archivo in datos.get('archivos', []):
+            for archivo in list(datos.get('archivos', [])) + grandes:
                 EvidenciaArchivo.objects.create(
                     tarea=tarea, archivo=archivo, nombre_original=archivo.name[:255],
                     tipo=(getattr(archivo, 'content_type', '') or mimetypes.guess_type(archivo.name)[0] or '')[:100],
                     tamano=archivo.size, ronda=tarea.rondas_revision, subido_por=request.user,
                 )
+            subidas.marcar_usadas(grandes)
             servicios.al_entregar(tarea, request.user)
             # Al entregar se detiene el cronómetro si corría en esta tarea.
             corriendo = cronometro.activo(request.user)
@@ -419,6 +428,9 @@ class TareaViewSet(viewsets.ModelViewSet):
         rechazo.is_valid(raise_exception=True)
         # Al devolverla se pueden adjuntar bocetos o imágenes de referencia para la corrección
         archivos = validar_archivos_referencia(request.FILES.getlist('archivos'))
+        ids_grandes = subidas.ids_de_subidas(request)   # ZIP o videos grandes ya subidos por partes
+        if len(archivos) + len(ids_grandes) > settings.EVIDENCIA_MAX_ARCHIVOS:
+            raise serializers.ValidationError({"archivos": f"Como máximo {settings.EVIDENCIA_MAX_ARCHIVOS} archivos cada vez."})
         tarea.comentario_revision = rechazo.validated_data['comentario_revision']
         g3 = request.data.get('g3') or {}
         if isinstance(g3, str):  # con archivos la petición viaja como formulario: el G3 llega como texto JSON
@@ -428,6 +440,8 @@ class TareaViewSet(viewsets.ModelViewSet):
             except ValueError:
                 g3 = {}
         with transaction.atomic():
+            grandes = subidas.tomar(request.user, ids_grandes)
+            archivos = list(archivos) + grandes
             if tarea.oa_id:
                 from apps.operaciones.servicios_ot import rechazar_g3
                 rechazar_g3(tarea.oa, request.user, g3, tarea.comentario_revision, request.data.get('causa_retrabajo') or None)
@@ -436,6 +450,7 @@ class TareaViewSet(viewsets.ModelViewSet):
             tarea.rondas_revision += 1
             tarea.save()
             n = self._guardar_referencias(tarea, archivos, 'CORRECCION') if archivos else 0
+            subidas.marcar_usadas(grandes)
         servicios.al_devolver(tarea, request.user, referencias=n)
         return self._respuesta(tarea)
 

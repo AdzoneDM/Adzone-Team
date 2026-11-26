@@ -1,4 +1,6 @@
 
+import uuid
+
 from django.db import models
 
 
@@ -203,3 +205,30 @@ class AlcanceAreas(models.Model):
     class Meta:
         verbose_name = 'Alcance por áreas'
         verbose_name_plural = 'Alcances por áreas'
+
+
+class SubidaPorPartes(models.Model):
+    """Un archivo grande (ZIP o video de cientos de MB) que el navegador sube por partes: el nginx de Plesk corta cada petición en 64 MB.
+    Las partes se escriben una tras otra en MEDIA_ROOT/subidas_tmp/<id>/ (nunca en /tmp del contenedor ni en memoria); al completarse se
+    revisa el archivo entero y queda listo para adjuntarlo a una tarea una sola vez. Las que no se terminan se borran a las 24 h."""
+    SUBIENDO, COMPLETA, USADA, RECHAZADA = 'SUBIENDO', 'COMPLETA', 'USADA', 'RECHAZADA'
+    ESTADOS = [(SUBIENDO, 'Subiendo'), (COMPLETA, 'Completa'), (USADA, 'Usada'), (RECHAZADA, 'Rechazada')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    dueno = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='subidas_por_partes')
+    nombre = models.CharField(max_length=255)
+    tamano = models.BigIntegerField(help_text="Tamaño total declarado al iniciar (bytes).")
+    tipo = models.CharField(max_length=100, blank=True)
+    tamano_parte = models.PositiveIntegerField(help_text="Bytes de cada parte (la última puede ser menor).")
+    recibidos = models.BigIntegerField(default=0)
+    estado = models.CharField(max_length=10, choices=ESTADOS, default=SUBIENDO, db_index=True)
+    creada = models.DateTimeField(auto_now_add=True, db_index=True)
+    actualizada = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-creada']
+        verbose_name = 'Subida por partes'
+        verbose_name_plural = 'Subidas por partes'
+
+    def __str__(self):
+        return f'{self.nombre} ({self.get_estado_display()})'

@@ -39,6 +39,13 @@ class Command(BaseCommand):
                 self.stdout.write(f'Casos operativos vencidos avisados: {casos}.')
         except Exception as e:  # noqa: BLE001
             self.stderr.write(f'Casos vencidos no avisados: {e}')
+        try:
+            from apps.core.subidas import limpiar_vencidas
+            subidas = limpiar_vencidas()
+            if subidas:
+                self.stdout.write(f'Subidas por partes sin terminar borradas: {subidas}.')
+        except Exception as e:  # noqa: BLE001
+            self.stderr.write(f'Subidas por partes no limpiadas: {e}')
         from apps.automatizaciones.motor import revisar_vencimientos
         reglas = revisar_vencimientos()
         from apps.operaciones.servicios_ot import revisar_excepciones

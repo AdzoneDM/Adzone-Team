@@ -279,6 +279,8 @@ class EntregaSerializer(serializers.Serializer):
     evidencia_nota = serializers.CharField(required=False, allow_blank=True, max_length=4000)
     evidencia_enlace = serializers.URLField(required=False, allow_blank=True, max_length=500)
     archivos = serializers.ListField(child=serializers.FileField(), required=False, allow_empty=True)
+    # Archivos grandes (ZIP, videos) ya subidos por partes (/api/subidas/) y revisados al completarse
+    subidas = serializers.ListField(child=serializers.UUIDField(), required=False, allow_empty=True)
 
     # Fotos, PDF y videos, más documentos (Word, Excel, PowerPoint, OpenDocument, CSV, texto) y ZIP (revisado como en el chat)
     EXTENSIONES = ('.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.pdf') + EXTENSIONES_VIDEO + EXTENSIONES_DOCUMENTO
@@ -291,8 +293,10 @@ class EntregaSerializer(serializers.Serializer):
         return archivos
 
     def validate(self, data):
-        if not (data.get('evidencia_nota', '').strip() or data.get('evidencia_enlace') or data.get('archivos')):
+        if not (data.get('evidencia_nota', '').strip() or data.get('evidencia_enlace') or data.get('archivos') or data.get('subidas')):
             raise serializers.ValidationError({"detail": "Agrega una nota, un enlace o una foto como evidencia."})
+        if len(data.get('archivos') or []) + len(data.get('subidas') or []) > settings.EVIDENCIA_MAX_ARCHIVOS:
+            raise serializers.ValidationError({"archivos": f"Como máximo {settings.EVIDENCIA_MAX_ARCHIVOS} archivos por entrega."})
         return data
 
 
@@ -325,12 +329,21 @@ class NuevoComentarioSerializer(serializers.Serializer):
 
 class ReferenciasSerializer(serializers.Serializer):
     """Archivos de referencia que adjunta quien supervisa. Solo fotos, bocetos o PDF."""
-    archivos = serializers.ListField(child=serializers.FileField(), allow_empty=False)
+    archivos = serializers.ListField(child=serializers.FileField(), required=False, allow_empty=True)
+    subidas = serializers.ListField(child=serializers.UUIDField(), required=False, allow_empty=True)  # grandes, subidos por partes
     nota = serializers.CharField(required=False, allow_blank=True, max_length=200)
     momento = serializers.ChoiceField(choices=['ASIGNACION', 'CORRECCION'], required=False, default='ASIGNACION')
 
     def validate_archivos(self, archivos):
         return validar_archivos_referencia(archivos)
+
+    def validate(self, data):
+        n = len(data.get('archivos') or []) + len(data.get('subidas') or [])
+        if not n:
+            raise serializers.ValidationError({"archivos": "Elige al menos un archivo."})
+        if n > settings.EVIDENCIA_MAX_ARCHIVOS:
+            raise serializers.ValidationError({"archivos": f"Como máximo {settings.EVIDENCIA_MAX_ARCHIVOS} archivos cada vez."})
+        return data
 
 
 MAX_REFERENCIAS_POR_TAREA = 30

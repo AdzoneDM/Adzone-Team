@@ -108,6 +108,9 @@ def datos_usuario(user):
         'permisos': sorted(_permisos(user)),
         'limite_zip_mb': settings.CHAT_ZIP_MAX_MB,  # el chat avisa antes de subir un ZIP demasiado pesado
         'limite_video_mb': settings.EVIDENCIA_VIDEO_MAX_MB,  # la pantalla avisa antes de subir un video demasiado pesado
+        # Adjuntos de tareas que se suben por partes (/api/subidas/): ZIP y videos grandes
+        'limite_adjunto_grande_mb': settings.ADJUNTO_GRANDE_MAX_MB,
+        'limite_video_grande_mb': settings.EVIDENCIA_VIDEO_GRANDE_MAX_MB,
         'puede_asignar': _puede_asignar(user),
         'puede_autoasignar': _tiene_permiso(user, 'tareas.propias'),
         've_asistencia_equipo': _equipo_con(user, 'asistencia.ver'),

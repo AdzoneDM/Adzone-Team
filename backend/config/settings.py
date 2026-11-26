@@ -262,6 +262,13 @@ EVIDENCIA_MAX_ARCHIVOS = int(env('EVIDENCIA_MAX_ARCHIVOS', '10'))  # fotos, vide
 # Un video pesa mucho más que una foto. Por defecto 60 MB: lo que cabe en el límite actual del nginx de Plesk (64 MB).
 # Para permitir videos más grandes, subir antes `client_max_body_size` del servidor y luego este valor (ver docs/DESPLIEGUE.md).
 EVIDENCIA_VIDEO_MAX_MB = int(env('EVIDENCIA_VIDEO_MAX_MB', '60'))
+# Adjuntos grandes de tareas (ZIP y videos de cientos de MB). El nginx de Plesk SIGUE limitando cada petición a 64 MB
+# (client_max_body_size, no se toca): por eso el navegador los sube POR PARTES (/api/subidas/), cada parte una petición pequeña.
+# Las partes se juntan en MEDIA_ROOT/subidas_tmp/<id>/ (el único lugar con escritura en el contenedor) y las incompletas se borran a las 24 h.
+ADJUNTO_GRANDE_MAX_MB = int(env('ADJUNTO_GRANDE_MAX_MB', '400'))   # ZIP de una tarea (referencias, entregas, devoluciones)
+EVIDENCIA_VIDEO_GRANDE_MAX_MB = int(env('EVIDENCIA_VIDEO_GRANDE_MAX_MB', str(ADJUNTO_GRANDE_MAX_MB)))   # video subido por partes
+SUBIDA_PARTE_MB = int(env('SUBIDA_PARTE_MB', '8'))   # tamaño de cada parte (debe quedar muy por debajo de los 64 MB de nginx)
+SUBIDA_PARTE_BYTES = min(SUBIDA_PARTE_MB, 16) * 1024 * 1024   # nunca más de 16 MB por petición
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
