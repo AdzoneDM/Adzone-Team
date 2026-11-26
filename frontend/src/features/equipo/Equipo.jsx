@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArchiveRestore, BellRing, Ban, ClipboardList, History, Pencil, Plus, Repeat, RotateCcw, Search, Target, Trash2, X } from "lucide-react";
+import { ArchiveRestore, BellRing, Ban, CalendarDays, ClipboardList, History, Pencil, Plus, Repeat, RotateCcw, Search, Target, Trash2, X } from "lucide-react";
 import {
   cancelarTarea, eliminarRecurrente, equipo as cargarEquipo, guardarRecurrente,
   listarRecurrentes, listarTareas, obtenerTarea, recordarTarea, restaurarTarea, tareasEliminadas,
 } from "@/lib/api";
 import { ESTADOS, fechaCorta, fechaHora, hoyISO, mesActual } from "@/lib/formato";
 import {
-  Alerta, Boton, Cabecera, Campo, Cargando, EstadoTarea, Estrellas, Insignia, Modal, Panel, Pestanas, PrioridadTarea,
+  Alerta, Boton, Cabecera, Campo, Cargando, EstadoTarea, Estrellas, Insignia, Modal, Panel, Pestanas, PrioridadTarea, cx,
   SelectorMes, Vacio, useAviso, useConfirmar,
 } from "@/components/ui";
 import { DetalleTarea, EquipoTarea, Progreso, Vencimiento } from "@/features/tareas/componentes";
@@ -123,6 +123,9 @@ export default function Equipo() {
   const asignadas = params.get("asignadas") === "1"; // solo las que yo asigné a otras personas
   const buscar = params.get("buscar") || "";
   const cliente = params.get("cliente") || "";
+  const grupo = params.get("grupo") === "historial" ? "historial" : "activas";   // las validadas (y canceladas) van al historial
+  const etapaPedida = params.get("etapa") || "";                                  // dentro de las activas: por empezar primero
+  const dia = params.get("dia") || "";
   const [clientes] = useRecurso("clientes");
 
   useEffect(() => { if (params.get("nueva") === "1") { setForm({}); params.delete("nueva"); setParams(params, { replace: true }); } }, [params, setParams]);
@@ -145,9 +148,26 @@ export default function Equipo() {
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], "es"));
   }, [gente]);
   const genteVisible = departamento ? gente.filter((g) => String(g.departamento_id) === departamento) : gente;
-  const lista = useMemo(() => [...(tareas || [])].sort((a, b) => a.fecha_limite.localeCompare(b.fecha_limite)), [tareas]);
+  const hoyDia = hoyISO();
+  const CERRADAS = ["COMPLETADA", "CANCELADA"];
+  const ETAPAS = {
+    por_empezar: ["Por empezar", (t) => t.estado === "PENDIENTE"],
+    en_curso: ["En curso", (t) => t.estado === "EN_PROGRESO"],
+    pausa: ["En pausa", (t) => t.estado === "BLOQUEADA"],
+    revision: ["Por validar", (t) => t.estado === "EN_REVISION"],
+    vencidas: ["Vencidas", (t) => ["PENDIENTE", "EN_PROGRESO"].includes(t.estado) && t.fecha_limite < hoyDia],
+    todas: ["Todas las activas", () => true],
+  };
+  const etapa = etapaPedida || ((tareas || []).some((t) => t.estado === "PENDIENTE") ? "por_empezar" : "todas");
+  // El día: en las activas, su fecha límite; en el historial, el día que se validó (o se terminó)
+  const delDia = (t) => !dia || (grupo === "historial" ? (t.fecha_validacion || "").slice(0, 10) === dia || t.fecha_completada === dia : t.fecha_limite === dia);
+  const activas = useMemo(() => (tareas || []).filter((t) => !CERRADAS.includes(t.estado)), [tareas]); // eslint-disable-line react-hooks/exhaustive-deps
+  const historial = useMemo(() => (tareas || []).filter((t) => CERRADAS.includes(t.estado))
+    .sort((a, b) => String(b.fecha_validacion || b.fecha_completada || "").localeCompare(String(a.fecha_validacion || a.fecha_completada || ""))), [tareas]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lista = useMemo(() => (grupo === "historial" ? historial
+    : [...activas].filter(ETAPAS[etapa]?.[1] || (() => true)).sort((a, b) => a.fecha_limite.localeCompare(b.fecha_limite))).filter(delDia),
+  [grupo, historial, activas, etapa, dia]); // eslint-disable-line react-hooks/exhaustive-deps
   const cuenta = (fn) => (tareas || []).filter(fn).length;
-  const hoy = hoyISO();
 
   const recargar = () => setVersion((v) => v + 1);
   // Desde el buscador: una persona muestra sus tareas; un texto busca en todas; una tarea se abre
@@ -201,7 +221,13 @@ export default function Equipo() {
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            {!vencidas && !buscar && !cliente && <SelectorMes valor={mes} onCambio={(v) => poner("mes", v === mesActual() ? "" : v)} hastaActual={false} />}
+            {!vencidas && !buscar && !cliente && <SelectorMes valor={mes} onCambio={(v) => { const n = new URLSearchParams(params); if (v === mesActual()) n.delete("mes"); else n.set("mes", v); n.delete("dia"); setParams(n, { replace: true }); }} hastaActual={false} />}
+            <label className="flex h-11 items-center gap-2 rounded-lg border border-linea bg-white px-3 text-sm" title={grupo === "historial" ? "Día en que se validó" : "Día de la fecha límite"}>
+              <CalendarDays className="size-4 text-gris" aria-hidden />
+              <input type="date" value={dia} onChange={(e) => { const n = new URLSearchParams(params); if (e.target.value) { n.set("dia", e.target.value); if (e.target.value.slice(0, 7) !== mesActual()) n.set("mes", e.target.value.slice(0, 7)); else n.delete("mes"); } else n.delete("dia"); setParams(n, { replace: true }); }}
+                className="border-0 bg-transparent p-0 text-sm focus:ring-0" aria-label="Filtrar por día" />
+              {dia && <button type="button" onClick={() => poner("dia", "")} aria-label="Quitar el día" className="rounded p-0.5 text-gris hover:text-tinta"><X className="size-3.5" /></button>}
+            </label>
             {departamentos.length > 1 && (
               <select className="campo h-11 w-auto py-0" value={departamento} aria-label="Por departamento"
                 onChange={(e) => { const n = new URLSearchParams(params); if (e.target.value) n.set("departamento", e.target.value); else n.delete("departamento"); n.delete("colaborador"); setParams(n, { replace: true }); }}>
@@ -212,10 +238,6 @@ export default function Equipo() {
             <select className="campo h-11 w-auto py-0" value={colaborador} onChange={(e) => poner("colaborador", e.target.value)} aria-label="Persona">
               <option value="">{departamento ? "Todo el departamento" : "Todo el equipo"}</option>
               {genteVisible.filter((g) => !g.es_yo).map((g) => <option key={g.id} value={g.id}>{g.nombre}</option>)}
-            </select>
-            <select className="campo h-11 w-auto py-0" value={estado} onChange={(e) => poner("estado", e.target.value)} aria-label="Estado" disabled={vencidas}>
-              <option value="">Todos los estados</option>
-              {Object.entries(ESTADOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             <select className="campo h-11 w-auto max-w-56 py-0" value={cliente} onChange={(e) => poner("cliente", e.target.value)} aria-label="Cliente">
               <option value="">Todos los clientes</option>
@@ -234,12 +256,32 @@ export default function Equipo() {
             )}
           </div>
 
-          {tareas && !vencidas && (
-            <p className="mb-4 text-sm text-gris">
-              {tareas.length} tareas · <span className="text-verde">{cuenta((t) => t.estado === "COMPLETADA")} validadas</span> ·{" "}
-              <span className="text-[#a86a00]">{cuenta((t) => t.estado === "EN_REVISION")} por validar</span> ·{" "}
-              <span className="text-rojo">{cuenta((t) => ["PENDIENTE", "EN_PROGRESO"].includes(t.estado) && t.fecha_limite < hoy)} vencidas</span>
-            </p>
+          {tareas && (
+            <div className="mb-4 space-y-3">
+              <div className="inline-flex rounded-xl border border-linea bg-white p-1" role="tablist" aria-label="Activas o historial">
+                {[["activas", "Activas", activas.length], ["historial", "Historial (validadas)", historial.length]].map(([v, t, n]) => (
+                  <button key={v} type="button" role="tab" aria-selected={grupo === v} onClick={() => poner("grupo", v === "activas" ? "" : v)}
+                    className={cx("flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors", grupo === v ? "bg-azul text-white" : "text-gris hover:text-tinta")}>
+                    {v === "historial" ? <History className="size-4" aria-hidden /> : <ClipboardList className="size-4" aria-hidden />}{t}
+                    <span className={cx("num rounded-full px-1.5 text-xs", grupo === v ? "bg-white/20" : "bg-fondo")}>{n}</span>
+                  </button>
+                ))}
+              </div>
+              {grupo === "activas" && (
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Etapa">
+                  {Object.entries(ETAPAS).map(([k, [texto, fn]]) => {
+                    const n = activas.filter(fn).filter(delDia).length;
+                    return (
+                      <button key={k} type="button" aria-pressed={etapa === k} onClick={() => poner("etapa", k)}
+                        className={cx("flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors", etapa === k ? "border-noche bg-noche text-white" : "border-linea bg-white text-tinta hover:bg-fondo")}>
+                        {texto}<span className={cx("num rounded-full px-1.5 text-xs", etapa === k ? "bg-white/20" : k === "vencidas" && n ? "bg-rojo-50 text-rojo" : k === "revision" && n ? "bg-amarillo-50 text-[#8a5a00]" : "bg-fondo text-gris")}>{n}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {grupo === "historial" && <p className="text-sm text-gris">{historial.filter(delDia).length} tareas validadas o canceladas{dia ? ` el ${fechaCorta(dia)}` : " en el período"} · <span className="text-verde">{cuenta((t) => t.estado === "COMPLETADA")} validadas</span></p>}
+            </div>
           )}
 
           {!tareas ? <Cargando /> : lista.length === 0 ? (
