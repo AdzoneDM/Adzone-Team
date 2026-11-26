@@ -91,6 +91,10 @@ class TareaViewSet(viewsets.ModelViewSet):
 
         if params.get('mes'):
             queryset = queryset.filter(fecha_limite__range=rango_del_mes(periodo_desde_mes(params['mes'])))
+        if params.get('validadas_mes'):   # historial: las validadas en ese mes (por el día en que se validaron, no por su fecha límite)
+            ini, fin = rango_del_mes(periodo_desde_mes(params['validadas_mes']))
+            queryset = queryset.filter(estado='COMPLETADA').filter(Q(fecha_validacion__date__range=(ini, fin))
+                                                                     | Q(fecha_validacion__isnull=True, fecha_completada__range=(ini, fin)))
         if params.get('departamento'):
             queryset = queryset.filter(colaborador__perfil__puesto_trabajo__departamento_id=params['departamento'])
         if params.get('buscar'):

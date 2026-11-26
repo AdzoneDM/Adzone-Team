@@ -134,8 +134,15 @@ export default function Equipo() {
   const cargar = useCallback((silencioso) => {
     if (silencioso !== true) setTareas(null);
     // Con una búsqueda de texto se mira en todas las tareas, de cualquier mes
-    listarTareas({ ambito: "equipo", mes: vencidas || buscar || cliente ? "" : mes, colaborador, departamento, estado, vencidas: vencidas ? "1" : "", buscar, cliente, asignadas: asignadas ? "1" : "" })
-      .then(setTareas).catch((e) => setError(e.message));
+    const comunes = { ambito: "equipo", colaborador, departamento, buscar, cliente, asignadas: asignadas ? "1" : "" };
+    // Activas: por fecha límite del mes (más las vencidas). Historial: lo validado en el mes, sin importar su fecha límite.
+    Promise.all([
+      listarTareas({ ...comunes, mes: vencidas || buscar || cliente ? "" : mes, estado, vencidas: vencidas ? "1" : "" }),
+      vencidas ? Promise.resolve([]) : listarTareas({ ...comunes, validadas_mes: mes }),
+    ]).then(([a, b]) => {
+      const vistos = new Set(a.map((t) => t.id));
+      setTareas([...a, ...b.filter((t) => !vistos.has(t.id))]);
+    }).catch((e) => setError(e.message));
   }, [mes, colaborador, departamento, estado, vencidas, buscar, cliente, asignadas]);
   useEffect(() => { cargar(); }, [cargar, version]);
   useNovedades(useCallback(() => cargar(true), [cargar]));
@@ -162,8 +169,9 @@ export default function Equipo() {
   // El día: en las activas, su fecha límite; en el historial, el día que se validó (o se terminó)
   const delDia = (t) => !dia || (grupo === "historial" ? (t.fecha_validacion || "").slice(0, 10) === dia || t.fecha_completada === dia : t.fecha_limite === dia);
   const activas = useMemo(() => (tareas || []).filter((t) => !CERRADAS.includes(t.estado)), [tareas]); // eslint-disable-line react-hooks/exhaustive-deps
-  const historial = useMemo(() => (tareas || []).filter((t) => CERRADAS.includes(t.estado))
-    .sort((a, b) => String(b.fecha_validacion || b.fecha_completada || "").localeCompare(String(a.fecha_validacion || a.fecha_completada || ""))), [tareas]); // eslint-disable-line react-hooks/exhaustive-deps
+  const enMes = (t) => vencidas || buscar || cliente || String(t.fecha_validacion || t.fecha_completada || t.fecha_limite || "").slice(0, 7) === mes;
+  const historial = useMemo(() => (tareas || []).filter((t) => CERRADAS.includes(t.estado) && enMes(t))
+    .sort((a, b) => String(b.fecha_validacion || b.fecha_completada || "").localeCompare(String(a.fecha_validacion || a.fecha_completada || ""))), [tareas, mes, vencidas, buscar, cliente]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useMemo(() => (grupo === "historial" ? historial
     : [...activas].filter(ETAPAS[etapa]?.[1] || (() => true)).sort((a, b) => a.fecha_limite.localeCompare(b.fecha_limite))).filter(delDia),
   [grupo, historial, activas, etapa, dia]); // eslint-disable-line react-hooks/exhaustive-deps
