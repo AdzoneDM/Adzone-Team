@@ -621,10 +621,11 @@ function subirConProgreso(url, formulario, alAvanzar) {
   });
 }
 
-export const chatEnviar = (conversacion, texto, archivo = null, alAvanzar = null) => {
-  if (!archivo) return api(`/api/chat/conversaciones/${conversacion}/mensajes/`, { method: "POST", body: { texto } });
+export const chatEnviar = (conversacion, texto, archivo = null, alAvanzar = null, respondeA = null) => {
+  if (!archivo) return api(`/api/chat/conversaciones/${conversacion}/mensajes/`, { method: "POST", body: { texto, ...(respondeA ? { responde_a: respondeA } : {}) } });
   const f = new FormData(); // con archivo (documento, imagen, video o ZIP) el mensaje va como formulario
   f.append("texto", texto || "");
+  if (respondeA) f.append("responde_a", String(respondeA));
   f.append("archivo", archivo);
   return subirConProgreso(`/api/chat/conversaciones/${conversacion}/mensajes/`, f, alAvanzar);
 };

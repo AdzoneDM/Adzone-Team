@@ -166,14 +166,15 @@ export function useMensajes(conversacion, { alLeer, usuarioId } = {}) {
 
   // Varios archivos a la vez: el servidor guarda un archivo por mensaje, así que se envían en orden (el texto va con el primero).
   // Devuelve cuántos alcanzó a enviar para que, si falla uno, la persona no pierda lo que falta.
-  const enviar = useCallback(async (texto, archivos = []) => {
+  const enviar = useCallback(async (texto, archivos = [], respondeA = null) => {
     setEnviando(true);
     const lista = archivos.length ? archivos : [null];
     let hechos = 0;
     try {
       for (const a of lista) {
         if (a) setProgreso({ actual: hechos + 1, total: lista.length, nombre: a.name, pct: 0 });
-        aplicar([await chatEnviar(conversacion, hechos === 0 ? texto : "", a, (p) => setProgreso((x) => (x ? { ...x, pct: Math.round(p * 100) } : x)))]);
+        aplicar([await chatEnviar(conversacion, hechos === 0 ? texto : "", a, (p) => setProgreso((x) => (x ? { ...x, pct: Math.round(p * 100) } : x)),
+          hechos === 0 ? respondeA : null)]);
         hechos += 1;
       }
       return { ok: true, hechos };

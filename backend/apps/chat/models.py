@@ -72,6 +72,8 @@ class Mensaje(models.Model):
     archivo_items = models.PositiveIntegerField(null=True, blank=True)
     archivo_escaneo = models.CharField(max_length=12, blank=True, default='')
     creado = models.DateTimeField(auto_now_add=True, db_index=True)
+    # Respuesta a otro mensaje de la misma conversación (como en WhatsApp): se muestra la cita arriba del texto
+    responde_a = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='respuestas')
     # Un mensaje borrado no se elimina de la base (queda constancia), pero deja de mostrar su texto.
     editado_en = models.DateTimeField(null=True, blank=True, help_text="Última edición (la hora de envío original no cambia).")
     eliminado = models.BooleanField(default=False)

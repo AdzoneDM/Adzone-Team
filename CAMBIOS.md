@@ -1,5 +1,13 @@
 # Cambios
 
+## 12.71 · 26/11/2026 · Responder mensajes en el chat (como en WhatsApp)
+
+- **Celular:** desliza el mensaje hacia un lado (izquierda o derecha) y queda listo para responder; vibra al pasar el umbral. Un deslizamiento corto o vertical no hace nada (la lista se sigue desplazando normal).
+- **PC:** botón con la flechita ↩ junto al mensaje (aparece al pasar el mouse).
+- Arriba de la caja de texto sale «Respondiendo a …» con el mensaje citado; la X o Esc lo cancela.
+- El mensaje enviado lleva la cita (autor y texto, o el archivo); al tocarla lleva al mensaje original y lo resalta. Si el original se borró, la cita dice «Mensaje eliminado» sin mostrar su texto.
+- El servidor solo acepta responder a un mensaje de la misma conversación que no esté borrado.
+
 ## 12.70 · 26/11/2026 · Oportunidades comerciales de Marketing, solicitudes de servicio por departamento y copiar mensajes del chat
 
 **Oportunidades comerciales (Marketing)** — menú Operación → *Oportunidades comerciales* (permiso nuevo «Oportunidades comerciales», incluido en el perfil «Gestión de clientes» y en Dirección).

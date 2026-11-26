@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, Check, CheckCheck, Copy, Download, FileArchive, FileSpreadsheet, FileText, Film, Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowDown, Check, CheckCheck, Copy, Download, Reply, FileArchive, FileSpreadsheet, FileText, Film, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { chatAbierto, urlArchivoChat } from "@/lib/api";
 import { BotonVistos, ModalVistos } from "./Vistos";
 import { copiarTexto } from "@/lib/portapapeles";
@@ -208,7 +208,51 @@ function EdicionEnLinea({ m, onGuardar, onCancelar }) {
   );
 }
 
-function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, lectores, ultimoMio, yo, onVer }) {
+const UMBRAL_DESLIZAR = 60;
+
+/** Deslizar el mensaje hacia un lado (en el celular) para responderlo, como en WhatsApp. El desplazamiento vertical sigue normal. */
+function useDeslizar(alResponder, activo) {
+  const inicio = useRef(null);
+  const [dx, setDx] = useState(0);
+  if (!activo) return { dx: 0, eventos: {} };
+  return {
+    dx,
+    eventos: {
+      onTouchStart: (e) => { const t = e.touches[0]; inicio.current = { x: t.clientX, y: t.clientY, eje: null }; },
+      onTouchMove: (e) => {
+        const s = inicio.current;
+        if (!s) return;
+        const t = e.touches[0];
+        const x = t.clientX - s.x, y = t.clientY - s.y;
+        if (!s.eje) {
+          if (Math.abs(x) < 8 && Math.abs(y) < 8) return;
+          s.eje = Math.abs(x) > Math.abs(y) * 1.2 ? "x" : "y";   // si empieza vertical, es desplazar la lista
+        }
+        if (s.eje === "x") setDx(Math.max(-90, Math.min(90, x)));
+      },
+      onTouchEnd: () => {
+        if (Math.abs(dx) >= UMBRAL_DESLIZAR) { navigator.vibrate?.(15); alResponder(); }
+        setDx(0); inicio.current = null;
+      },
+      onTouchCancel: () => { setDx(0); inicio.current = null; },
+    },
+  };
+}
+
+/** La cita del mensaje al que se responde; al tocarla lleva al original. */
+function Cita({ cita, mio, onIr }) {
+  const texto = cita.eliminado ? "Mensaje eliminado" : cita.texto || (cita.archivo ? `📎 ${cita.archivo.es_imagen ? "Imagen" : cita.archivo.nombre}` : "");
+  return (
+    <button type="button" onClick={() => onIr?.(cita.id)} title="Ir al mensaje original"
+      className={cx("mb-1 block w-full min-w-[10rem] rounded-lg border-l-4 px-2 py-1 text-left text-[12.5px] leading-snug",
+        mio ? "border-white/70 bg-white/15 hover:bg-white/25" : "border-azul bg-fondo hover:bg-linea-suave")}>
+      <span className={cx("block font-semibold", mio ? "text-white" : "text-azul")}>{cita.autor_nombre}</span>
+      <span className={cx("line-clamp-2 whitespace-pre-wrap break-words", mio ? "text-white/85" : "text-gris", cita.eliminado && "italic")}>{texto}</span>
+    </button>
+  );
+}
+
+function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, onResponder, onIr, resaltado, lectores, ultimoMio, yo, onVer }) {
   const [confirmar, setConfirmar] = useState(false);
   const [editando, setEditando] = useState(false);
   const editable = useEditable(mio && onEditar && !m.eliminado ? m.editable_hasta : null);
@@ -218,11 +262,21 @@ function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, lectores, ultim
     if (await copiarTexto(m.texto)) { setCopiado(true); avisar("Mensaje copiado"); setTimeout(() => setCopiado(false), 1500); }
     else avisar("No se pudo copiar. Mantén pulsado el texto para seleccionarlo.", "rojo");
   };
+  const { dx, eventos } = useDeslizar(() => onResponder?.(m), !!onResponder && !m.eliminado && !editando);
   if (m.eliminado) {
-    return <p className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : privado ? "" : "pl-10")}>Mensaje eliminado</p>;
+    return <p data-mensaje={m.id} className={cx("my-0.5 text-xs italic text-gris", mio ? "text-right" : privado ? "" : "pl-10")}>Mensaje eliminado</p>;
   }
   return (
-    <div className={cx("group flex items-end gap-2", mio ? "flex-row-reverse" : "", primero ? "mt-3" : "mt-0.5")}>
+    <div data-mensaje={m.id} {...eventos} style={{ touchAction: "pan-y" }}
+      className={cx("group relative flex items-end gap-2 rounded-xl transition-colors duration-700", mio ? "flex-row-reverse" : "", primero ? "mt-3" : "mt-0.5",
+        resaltado && "bg-amarillo-50")}>
+      {dx !== 0 && (
+        <span aria-hidden className={cx("absolute top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white text-azul shadow", dx > 0 ? "left-1" : "right-1")}
+          style={{ opacity: Math.min(1, Math.abs(dx) / UMBRAL_DESLIZAR), transform: `translateY(-50%) scale(${Math.abs(dx) >= UMBRAL_DESLIZAR ? 1.1 : 0.8})` }}>
+          <Reply className="size-4" />
+        </span>
+      )}
+      <div className="flex w-full items-end gap-2" style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: dx ? "none" : "transform 150ms ease-out", flexDirection: mio ? "row-reverse" : undefined }}>
       {!mio && !privado && (primero ? <Avatar nombre={m.autor_nombre} tam="sm" /> : <span className="size-8 shrink-0" aria-hidden />)}
       <div className={cx("flex max-w-[85%] flex-col lg:max-w-[75%]", mio ? "items-end" : "items-start")}>
         {primero && !mio && !privado && <span className="mb-0.5 px-1 text-xs font-medium text-gris">{m.autor_nombre}</span>}
@@ -231,6 +285,12 @@ function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, lectores, ultim
             <button type="button" onClick={() => setEditando(true)} aria-label="Editar mensaje" title="Editar (durante 5 minutos desde que lo enviaste)"
               className={cx("rounded p-1 text-gris transition-opacity hover:bg-azul/10 hover:text-azul focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100", mio ? "order-first" : "order-last")}>
               <Pencil className="size-3.5" aria-hidden />
+            </button>
+          )}
+          {onResponder && !editando && (
+            <button type="button" onClick={() => onResponder(m)} aria-label="Responder" title="Responder"
+              className={cx("hidden rounded p-1 text-gris transition-opacity hover:bg-azul/10 hover:text-azul focus-visible:opacity-100 sm:inline-flex sm:opacity-0 sm:group-hover:opacity-100", mio ? "order-first" : "order-last")}>
+              <Reply className="size-3.5" aria-hidden />
             </button>
           )}
           {m.texto && !editando && (
@@ -249,12 +309,14 @@ function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, lectores, ultim
             </button>
           )}
           <div className={cx("flex min-w-0 flex-col", mio ? "items-end" : "items-start")}>
+            {m.responde_a && !m.texto && <div className={cx("rounded-2xl p-1", mio ? "bg-azul" : "bg-white ring-1 ring-linea")}><Cita cita={m.responde_a} mio={mio} onIr={onIr} /></div>}
             {m.archivo && <Adjunto m={m} mio={mio} />}
             {editando && editable ? <EdicionEnLinea m={m} onGuardar={onEditar} onCancelar={() => setEditando(false)} /> : m.texto && (
-              <p className={cx("whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[14px] leading-snug",
-                mio ? "rounded-br-md bg-azul text-white" : "rounded-bl-md bg-white text-tinta shadow-sm ring-1 ring-linea")}>
+              <div className={cx("whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[14px] leading-snug",
+                mio ? "rounded-br-md bg-azul text-white" : "rounded-bl-md bg-white text-tinta shadow-sm ring-1 ring-linea", m.responde_a && "pt-1.5")}>
+                {m.responde_a && <Cita cita={m.responde_a} mio={mio} onIr={onIr} />}
                 <TextoLargo texto={m.texto} menciones={m.menciones || []} yo={yo} mio={mio} />
-              </p>
+              </div>
             )}
           </div>
         </div>
@@ -264,17 +326,27 @@ function Burbuja({ m, mio, primero, privado, onBorrar, onEditar, lectores, ultim
           {mio && <Visto m={m} lectores={lectores} privado={privado} detalle={ultimoMio} onVer={m.puede_ver_vistos ? () => onVer(m) : null} />}
         </div>
       </div>
+      </div>
     </div>
   );
 }
 
 /** Lista con desplazamiento inteligente: si estás al final sigue los mensajes nuevos; si lees arriba, no te mueve y te avisa. */
-export default function ListaMensajes({ mensajes, lectores = { lista: [], total: 0 }, usuarioId, hayMas, cargando, privado = false, nombreOtro = "", onMas, onBorrar, onEditar }) {
+export default function ListaMensajes({ mensajes, lectores = { lista: [], total: 0 }, usuarioId, hayMas, cargando, privado = false, nombreOtro = "", onMas, onBorrar, onEditar, onResponder }) {
   const caja = useRef(null);
   const alFinal = useRef(true);
   const previo = useRef({ n: 0, primero: null, alto: 0 });
   const [nuevos, setNuevos] = useState(false);
   const [viendo, setViendo] = useState(null);   // mensaje del que se consulta quién lo vio
+  const [resaltado, setResaltado] = useState(null);   // el original al que se saltó desde una cita
+  const avisarLista = useAviso();
+  const irAMensaje = (id) => {
+    const el = caja.current?.querySelector(`[data-mensaje="${id}"]`);
+    if (!el) { avisarLista(hayMas ? "Ese mensaje es más antiguo: toca «Ver mensajes anteriores» arriba." : "Ese mensaje ya no está disponible.", "rojo"); return; }
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    setResaltado(id);
+    setTimeout(() => setResaltado((r) => (r === id ? null : r)), 1600);
+  };
 
   const irAlFinal = (suave) => {
     const el = caja.current;
@@ -332,7 +404,7 @@ export default function ListaMensajes({ mensajes, lectores = { lista: [], total:
           return (
             <Fragment key={m.id}>
               {nuevoDia && <p className="my-3 text-center text-xs font-medium capitalize text-gris">{dia}</p>}
-              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} onEditar={onEditar} lectores={lectores} ultimoMio={m.id === ultimoPropio} yo={usuarioId} onVer={setViendo} />
+              <Burbuja m={m} mio={m.autor === usuarioId} primero={primero} privado={privado} onBorrar={onBorrar} onEditar={onEditar} onResponder={onResponder} onIr={irAMensaje} resaltado={resaltado === m.id} lectores={lectores} ultimoMio={m.id === ultimoPropio} yo={usuarioId} onVer={setViendo} />
             </Fragment>
           );
         })}

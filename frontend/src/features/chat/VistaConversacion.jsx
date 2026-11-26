@@ -7,6 +7,7 @@ import { useMensajes } from "./useChat";
 /** Una conversación abierta. Se monta con `key` = id para empezar limpia en cada una. */
 export default function VistaConversacion({ conversacion, usuarioId, alLeer }) {
   const chat = useMensajes(conversacion.id, { alLeer, usuarioId });
+  const [respondiendo, setRespondiendo] = useState(null);   // mensaje al que se está respondiendo (deslizar o la flechita)
   // A quién se puede mencionar con @: los miembros del grupo, o todo el equipo en la sala de la empresa (en un chat privado no hace falta)
   const [participantes, setParticipantes] = useState([]);
   useEffect(() => {
@@ -26,8 +27,10 @@ export default function VistaConversacion({ conversacion, usuarioId, alLeer }) {
       )}
       <ListaMensajes mensajes={chat.mensajes} lectores={chat.lectores} usuarioId={usuarioId} hayMas={chat.hayMas} cargando={chat.cargando}
         privado={conversacion.tipo === "DIRECTA"} nombreOtro={conversacion.titulo}
-        onMas={chat.cargarAnteriores} onBorrar={chat.borrar} onEditar={chat.editar} />
-      <Compositor clave={conversacion.id} participantes={participantes} enviando={chat.enviando} progreso={chat.progreso} onEnviar={chat.enviar} autoFoco />
+        onMas={chat.cargarAnteriores} onBorrar={chat.borrar} onEditar={chat.editar} onResponder={setRespondiendo} />
+      <Compositor clave={conversacion.id} participantes={participantes} enviando={chat.enviando} progreso={chat.progreso} autoFoco
+        respondiendo={respondiendo} onCancelarRespuesta={() => setRespondiendo(null)}
+        onEnviar={async (texto, archivos) => { const r = await chat.enviar(texto, archivos, respondiendo?.id); if (r.ok) setRespondiendo(null); return r; }} />
     </>
   );
 }

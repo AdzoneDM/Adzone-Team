@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FileArchive, FileText, Paperclip, SendHorizontal, X } from "lucide-react";
+import { FileArchive, FileText, Paperclip, Reply, SendHorizontal, X } from "lucide-react";
 import { limites } from "@/lib/archivos";
 import { cx } from "@/components/ui";
 
@@ -40,7 +40,7 @@ function Pieza({ archivo, onQuitar }) {
 const leerBorrador = (c) => { try { return (c && sessionStorage.getItem(`adzone:borrador:${c}`)) || ""; } catch { return ""; } };
 const guardarBorrador = (c, t) => { try { if (!c) return; if (t) sessionStorage.setItem(`adzone:borrador:${c}`, t); else sessionStorage.removeItem(`adzone:borrador:${c}`); } catch { /* sin almacenamiento */ } };
 
-export default function Compositor({ enviando, progreso, onEnviar, autoFoco, participantes = [], clave }) {
+export default function Compositor({ enviando, progreso, onEnviar, autoFoco, participantes = [], clave, respondiendo, onCancelarRespuesta }) {
   const [texto, setTexto] = useState(() => leerBorrador(clave)); // el texto escrito se conserva si el chat se oculta sin querer
   useEffect(() => { guardarBorrador(clave, texto); }, [clave, texto]);
   const [archivos, setArchivos] = useState([]);
@@ -53,6 +53,7 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco, par
   const caretPendiente = useRef(null);
 
   useEffect(() => { if (autoFoco) ref.current?.focus(); }, [autoFoco]);
+  useEffect(() => { if (respondiendo) ref.current?.focus(); }, [respondiendo]);   // al elegir «Responder», a escribir
 
   // Crece con el texto (hasta casi media pantalla; después tiene su propia barra) para escribir y revisar mensajes largos
   useEffect(() => {
@@ -153,7 +154,18 @@ export default function Compositor({ enviando, progreso, onEnviar, autoFoco, par
   const cerca = texto.length > LIMITE * 0.8;
   const palabras = texto.trim() ? texto.trim().split(/\s+/).length : 0;
   return (
-    <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className="border-t border-linea bg-white p-3">
+    <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className="border-t border-linea bg-white p-3"
+      onKeyDown={(e) => { if (e.key === "Escape" && respondiendo) { e.stopPropagation(); onCancelarRespuesta?.(); } }}>
+      {respondiendo && (
+        <div className="mb-2 flex items-start gap-2 rounded-xl border-l-4 border-azul bg-fondo px-3 py-2" aria-live="polite">
+          <Reply className="mt-0.5 size-4 shrink-0 text-azul" aria-hidden />
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="font-semibold text-azul">Respondiendo a {respondiendo.autor_nombre}</p>
+            <p className="truncate text-gris">{respondiendo.texto || (respondiendo.archivo ? `📎 ${respondiendo.archivo.nombre}` : "")}</p>
+          </div>
+          <button type="button" onClick={onCancelarRespuesta} aria-label="Cancelar la respuesta" className="rounded p-1 text-gris hover:bg-linea-suave hover:text-tinta"><X className="size-4" aria-hidden /></button>
+        </div>
+      )}
       {archivos.length > 0 && (
         <div className="mb-2 rounded-xl border border-linea bg-fondo p-2">
           <ul className="flex max-h-48 flex-wrap gap-3 overflow-y-auto p-1">

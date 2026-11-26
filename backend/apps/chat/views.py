@@ -32,11 +32,25 @@ class MensajeSerializer(serializers.ModelSerializer):
     editable_hasta = serializers.SerializerMethodField()
     archivo = serializers.SerializerMethodField()
     menciones = serializers.SerializerMethodField()
+    responde_a = serializers.SerializerMethodField()
 
     class Meta:
         model = Mensaje
         fields = ['id', 'conversacion', 'autor', 'autor_nombre', 'texto', 'archivo', 'menciones', 'creado', 'eliminado', 'puede_borrar', 'puede_ver_vistos',
-                  'editado_en', 'editable_hasta']
+                  'editado_en', 'editable_hasta', 'responde_a']
+
+    def get_responde_a(self, o):
+        """La cita del mensaje al que responde (texto recortado; nada del contenido si el original se borró)."""
+        r = o.responde_a
+        if o.eliminado or r is None:
+            return None
+        if r.eliminado:
+            return {'id': r.id, 'autor': r.autor_id, 'autor_nombre': self.get_autor_nombre(r), 'texto': '', 'eliminado': True, 'archivo': None}
+        archivo = None
+        if r.archivo or r.archivo_purgado:
+            archivo = {'nombre': r.archivo_nombre, 'es_imagen': r.archivo_es_imagen and not r.archivo_purgado}
+        texto = r.texto if len(r.texto) <= 300 else r.texto[:300] + '…'
+        return {'id': r.id, 'autor': r.autor_id, 'autor_nombre': self.get_autor_nombre(r), 'texto': texto, 'eliminado': False, 'archivo': archivo}
 
     def get_archivo(self, o):
         if o.eliminado:
@@ -77,10 +91,11 @@ class MensajeSerializer(serializers.ModelSerializer):
 
 class NuevoMensaje(serializers.Serializer):
     texto = serializers.CharField(max_length=LIMITE_TEXTO, trim_whitespace=True, required=False, allow_blank=True, default='')
+    responde_a = serializers.IntegerField(required=False, allow_null=True, default=None)
 
 
 def _serializar(request, qs):
-    return MensajeSerializer(qs.select_related('autor', 'conversacion'), many=True, context={'request': request}).data
+    return MensajeSerializer(qs.select_related('autor', 'conversacion', 'responde_a__autor'), many=True, context={'request': request}).data
 
 
 def _con_lectores(request, conv, datos):
@@ -254,7 +269,13 @@ def mensajes_view(request, pk):
         es_imagen = servicios.revisar_archivo(archivo) if archivo else False
         if servicios.excede_ritmo(request.user):
             return Response({'detail': 'Estás escribiendo muy rápido. Espera unos segundos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        m = Mensaje.objects.create(conversacion=conv, autor=request.user, texto=datos.validated_data['texto'])
+        responde_a = None
+        if datos.validated_data.get('responde_a'):
+            # Solo se responde a un mensaje de esta misma conversación (y que no esté borrado)
+            responde_a = Mensaje.objects.filter(pk=datos.validated_data['responde_a'], conversacion=conv, eliminado=False).first()
+            if responde_a is None:
+                return Response({'responde_a': ['Ese mensaje ya no está disponible para responder.']}, status=status.HTTP_400_BAD_REQUEST)
+        m = Mensaje.objects.create(conversacion=conv, autor=request.user, texto=datos.validated_data['texto'], responde_a=responde_a)
         if archivo:
             m.archivo, m.archivo_nombre, m.archivo_es_imagen, m.archivo_tamano = archivo, archivo.name[:150], es_imagen, archivo.size
             info = getattr(archivo, '_zip_info', None)   # solo ZIP: cuántos archivos trae y si el antivirus lo revisó
